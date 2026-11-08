@@ -15,8 +15,11 @@ space with independent surpluses and the second Borel–Cantelli lemma. Aggregat
 two-state i.i.d. coin tree as a witness under genuine uncertainty. Both are then re-proved on
 genuine infinite-horizon i.i.d. processes with Mathlib's conditional expectation: i.i.d. surplus
 processes for §6.4.1, and i.i.d. growth processes, including a constructed lognormal process and
-an infinite coin process for Bohn's example, for §6.4.7. The library contains **745 theorems**,
-including the shared core; 529 of them are in the twenty-one chapter modules.
+an infinite coin process for Bohn's example, for §6.4.7. The continuous-time AR(1) surplus of
+§6.4.1 is an Ornstein–Uhlenbeck process driven by a Brownian motion, with the Itô integral; the
+Brownian and Itô modules are copied from the Monetarism project. The library contains
+**1189 theorems**, including the shared core and 357 in the twelve copied Brownian and Itô
+modules; 616 of them are in the twenty-five chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises.
@@ -58,6 +61,26 @@ Headline results, in the namespace `Cochrane.FiscalConstraints`:
   above, which no non-degenerate Gaussian is
   (`DebtLimitStochasticMeasure.gaussian_iid_unbounded_vacuous`). The book's claim that bounded
   support still breaks any bound is false (`DebtLimitStochastic.bounded_support_counterexample`).
+* **The continuous-time AR(1) surplus.** The book's Ornstein–Uhlenbeck surplus
+  `ds = −η(s − s̄)dt + σdW` (p. 197, where the printed drift lacks `dt`) is built for any
+  pre-Brownian motion with continuous paths: on every path it solves
+  `s_t = s_0 − η∫_0^t (s_u − s̄)du + σW_t`, uniquely (`TidyR7OrnsteinUhlenbeck.ouProc_integral_eq`,
+  `TidyR7OrnsteinUhlenbeck.ouProc_unique`), and almost surely
+  `s_t = s̄ + e^{−ηt}(s_0 − s̄) + σe^{−ηt}∫_0^t e^{ηu}dW_u` with the Itô integral
+  (`TidyR7OrnsteinUhlenbeck.ouProc_ae_eq_itoInt`). Wiener integrals of `C¹` integrands are
+  Gaussian, `∫h dW ~ N(0, ∫h²)` (`TidyR7WienerGaussian.map_wienerBP`), so
+  `s_t ~ N(s̄ + e^{−ηt}(s_0 − s̄), σ²(1 − e^{−2ηt})/(2η))` (`TidyR7OrnsteinUhlenbeck.ouProc_hasLaw`),
+  converging weakly to the stationary `N(s̄, σ²/(2η))`
+  (`TidyR7OrnsteinUhlenbeck.tendsto_integral_ouProc`). "An AR(1) ranges over the entire real
+  line": at every date `t > 0` the surplus charges every non-empty open set
+  (`TidyR7OrnsteinUhlenbeck.ouProc_mem_open_pos`), and so does debt (6.5), which is Gaussian and
+  non-degenerate; for every `r − g`, every initial debt and every limit `M`, the probability that
+  debt never exceeds `M` is below one (`TidyR7OrnsteinUhlenbeck.ouDebtProc_not_sustainable`).
+  Sampled at integer dates the surplus is exactly the Gaussian AR(1) with `ρ = e^{−η}` and i.i.d.
+  innovations (`TidyR7OUSampled.ouProc_succ_eq_ar1`, `TidyR7OUSampled.map_ouProc_sampled`), so
+  with permanent `r < g` the discrete debt it drives is almost surely unbounded
+  (`TidyR7OUSampled.sampled_debt_unbounded`). The Brownian motion and the Itô integral are copied,
+  with only the namespace renamed, from the Monetarism project.
 * **Managed surpluses and global determinacy.** For the linear rule `s̄ + u_t + φ(x_t − b̄)` with
   AR(1) shocks, the boundary-avoiding modification keeps debt within the limit on every path
   (`TidyR6ManagedSurplus.avoidPath_within_iff`), while the unmodified rule sustains no debt for
@@ -147,8 +170,8 @@ the printed text precise. The main corrections are the confirmed errors of the c
   indeterminate even with a band; a two-sided plan that does not respond to the revaluation of
   debt, with shocks reaching both edges, pins `P₀` uniquely.
 
-In addition, the typos E6.4 (`B₁` for `B₋₁`, p. 194) and E6.6 (a missing `+`, p. 206) are
-corrected, the rounding in E6.3 (a 20% rise is a log change of 18.2%) and in "e^{−0.2} = 80%"
+In addition, the typos E6.4 (`B₁` for `B₋₁`, p. 194) and E6.6 (a missing `+`, p. 206) and the
+missing `dt` in the drift of the continuous-time AR(1) surplus (p. 197) are corrected, the rounding in E6.3 (a 20% rise is a log change of 18.2%) and in "e^{−0.2} = 80%"
 (81.9%) is made exact, the §6.3 regime claims are shown to need outstanding debt `B₀ ≠ 0`, and the
 slogan "indeterminacy, not infinity" is shown to use two different criteria for its two halves.
 The main correction to this formalisation rather than the book is that the earlier Gaussian debt
@@ -166,10 +189,14 @@ Not formalised:
   `φ > γ − 1` gives probability zero and every `φ < γ − 1` probability at least `1/2` from a low
   enough initial debt (`TidyR6LinearRuleBounds.linear_rule_zero_prob`,
   `TidyR6LinearRuleBounds.linear_rule_half_prob`);
-* the continuous-time (Ornstein–Uhlenbeck) AR(1) surplus of p. 197, which needs Itô calculus. It
-  is replaced by its discrete analogue, a Gaussian AR(1) surplus process on `ν^ℕ`
-  (`TidyR5GaussianAR1.ar1_hasLaw_gaussian`, `TidyR5GaussianAR1.gaussian_ar1_unbounded`), with the
-  book's decay `ρ = e^{−η}` per period (`TidyR5GaussianAR1.gaussian_ar1_exp_unbounded`);
+* for the continuous-time (Ornstein–Uhlenbeck) AR(1) surplus of p. 197, only the almost-sure
+  unboundedness of the continuous-time debt (6.5) itself is not proved (it needs a 0-1 law for the
+  two-dimensional chain `(s_n, b_n)`). Positive probability at every date is proved
+  (`TidyR7OrnsteinUhlenbeck.ouDebtProc_not_sustainable`), and the almost-sure statement is proved
+  for the discrete debt recursion driven by the sampled OU surplus
+  (`TidyR7OUSampled.sampled_debt_unbounded`). The driving motion is assumed to start at `0` and
+  to have continuous paths for every `ω` (the constructed `TidyR7BrownianExist.bmPath` satisfies
+  both surely), and the laws assume `η > 0` and `t > 0`;
 * the discursive passages: dynamic inefficiency, overlapping generations and demographics
   (p. 200), the discussion paragraphs of §6.4.6 and §6.4.8, and contingent liabilities (§6.5,
   pp. 209–211).
@@ -205,6 +232,22 @@ Not formalised:
 | [TidyR6ManagedSurplus](FiscalConstraints/TidyR6ManagedSurplus.lean) | 32 | §6.4.1, p. 197, path by path: surplus rules and the linear rule, the boundary-avoiding, two-sided and capped modifications, feedback rules sustain every debt within the limit, the capacity condition iff, plans and the revaluation of debt, price-level conversions |
 | [TidyR6ManagedSurplusMeasure](FiscalConstraints/TidyR6ManagedSurplusMeasure.lean) | 28 | §6.4.1, p. 197, on AR(1) and i.i.d. surplus processes: managed plans are adapted and hit the limit a.s.; one-sided plan prices exactly `[B/(y₀m₀), ∞)` (E6.9 false), feedback rules indeterminate, two-sided plan determinate; Gaussian verdicts |
 | [TidyR6LinearRuleBounds](FiscalConstraints/TidyR6LinearRuleBounds.lean) | 9 | §6.4.1, p. 197: the unmodified linear rule for every `φ` (probability zero for `φ > γ − 1`, at least `1/2` for `φ < γ − 1`, never a.s. sustainable); the one-sided plan a.s. unbounded below |
+| [TidyR7BrownianSchauder](FiscalConstraints/TidyR7BrownianSchauder.lean) | 53 | Copied from Monetarism (tool for p. 197; originally from the Meyn–Tweedie project): the Lévy–Ciesielski construction on `[0,1]`, Schauder functions, the covariance identity `Σ_m S_m(s)S_m(t) = min s t`, uniform convergence almost surely to a path continuous for every `ω` |
+| [TidyR7BrownianUnit](FiscalConstraints/TidyR7BrownianUnit.lean) | 13 | Copied from Monetarism (tool; originally from the Meyn–Tweedie project): Brownian motion on `[0,1]`, its finite-dimensional laws, `B(t) ~ N(0, t)`, `Cov(B s, B t) = min s t` |
+| [TidyR7BrownianExist](FiscalConstraints/TidyR7BrownianExist.lean) | 17 | Copied from Monetarism (tool): a Brownian motion on `[0, ∞)` exists, with every path continuous (`TidyR7BrownianExist.bmPath`) |
+| [TidyR7BrownianTools](FiscalConstraints/TidyR7BrownianTools.lean) | 25 | Copied from Monetarism (tool): moments of increments of a pre-Brownian motion, the natural filtration, increments independent of the past, martingales; the bridge to the index `ℝ` |
+| [TidyR7StieltjesIntegral](FiscalConstraints/TidyR7StieltjesIntegral.lean) | 44 | Copied from Monetarism (tool): the Riemann–Stieltjes integral `∫_a^b f dg` from Mathlib's Lebesgue–Stieltjes vector measure, its atoms, linearity, bound and additivity |
+| [TidyR7StieltjesSums](FiscalConstraints/TidyR7StieltjesSums.lean) | 34 | Copied from Monetarism (tool): partitions, convergence of left-point Riemann–Stieltjes sums, the vanishing cross sum, dyadic partitions |
+| [TidyR7BrownianQV](FiscalConstraints/TidyR7BrownianQV.lean) | 48 | Copied from Monetarism (tool): the quadratic variation of a pre-Brownian motion along partitions, in `L²`, in probability and a.s. along dyadic partitions; admissible filtrations |
+| [TidyR7ItoL2](FiscalConstraints/TidyR7ItoL2.lean) | 20 | Copied from Monetarism (tool): mean-square convergence, completeness of `L²` with adapted limits, `L²` and a.s. limits agree |
+| [TidyR7ItoSums](FiscalConstraints/TidyR7ItoSums.lean) | 44 | Copied from Monetarism (tool): elementary integrals, left-point sums, the discrete Itô isometry and the Cauchy estimate |
+| [TidyR7ItoIntegral](FiscalConstraints/TidyR7ItoIntegral.lean) | 32 | Copied from Monetarism (tool): the Itô integral `∫ H dW` as an adapted mean-square limit, the Itô isometry, linearity, additivity, the martingale property |
+| [TidyR7StieltjesCalculus](FiscalConstraints/TidyR7StieltjesCalculus.lean) | 11 | Copied from Monetarism (tool): the partition identity for products, integration by parts, measurability of pathwise integrals |
+| [TidyR7ItoBridge](FiscalConstraints/TidyR7ItoBridge.lean) | 16 | Copied from Monetarism (tool): for bounded-variation integrands the Itô integral is the pathwise integral by parts; Wiener integrals and their isometry; `∫ W dW` |
+| [TidyR7OUPath](FiscalConstraints/TidyR7OUPath.lean) | 23 | §6.4.1, p. 197, path by path: the OU surplus for any continuous driving path, solving `s_t = s_0 − η∫_0^t (s_u − s̄)du + σw_t` uniquely, an exact AR(1) over any step; debt (6.4)–(6.5) with it, its noise as a linear functional of the path with a non-degenerate kernel |
+| [TidyR7WienerGaussian](FiscalConstraints/TidyR7WienerGaussian.lean) | 13 | §6.4.1, p. 197 (tool): a.s. limits of centred Gaussians are Gaussian; the Itô integral of a `C¹` integrand is the by-parts Wiener integral, with its isometry; Wiener integrals are Gaussian, jointly Gaussian in finite combinations, uncorrelated over disjoint intervals |
+| [TidyR7OrnsteinUhlenbeck](FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean) | 33 | §6.4.1, p. 197: the OU surplus process driven by a pre-Brownian motion, its SDE and uniqueness, the explicit Itô form, its Gaussian law, mean, variance and stationary limit, every open set charged; debt (6.5) Gaussian and non-degenerate, above every bound with positive probability, never sustainable with probability one |
+| [TidyR7OUSampled](FiscalConstraints/TidyR7OUSampled.lean) | 18 | §6.4.1, p. 197: the OU surplus at integer dates is the Gaussian AR(1) of `TidyR5GaussianAR1` with `ρ = e^{−η}` and i.i.d. Gaussian innovations; the discrete debt it drives is a.s. unbounded and no debt limit is sustainable |
 
 ## Modelling conventions
 
@@ -234,6 +277,16 @@ Not formalised:
   surpluses with deficits of every size
   (`DebtLimitStochasticMeasure.iid_unbounded_of_integrable`), which covers i.i.d. Gaussian
   surpluses (`DebtLimitStochasticMeasure.gaussian_process_unbounded`).
+* **The continuous-time AR(1) surplus.** `TidyR7OUPath` solves the Ornstein–Uhlenbeck equation
+  path by path for any continuous driving path, with no stochastic calculus.
+  `TidyR7OrnsteinUhlenbeck` and `TidyR7OUSampled` drive it by a pre-Brownian motion `W` (Mathlib's
+  `IsPreBrownianReal`) with measurable values, continuous paths and `W_0 = 0` for every `ω`, as
+  for the constructed `TidyR7BrownianExist.bmPath`, on which the laws of the surplus and the
+  innovations and both debt results are also stated (non-vacuity). The Itô integral is that of `TidyR7ItoIntegral`; for deterministic `C¹`
+  integrands it is identified a.s. with the pathwise by-parts integral
+  (`TidyR7WienerGaussian.itoInt_ae_eq_wienerBP`). Debt is the corrected (6.5),
+  `b_t = e^{at}b_0 − ∫_0^t e^{a(t−u)}s_u du`, for every `a = r − g`; the sampled version uses the
+  discrete debt `DebtLimitStochastic.debtPath` with `0 ≤ γ < 1`.
 * **Expectations for §§6.4.6–6.4.7.** Random variables are `Ω → ℝ` under an arbitrary
   `ExpectationSystem` with the pull-out property (`ExpectationSystem.PullOut`). I.i.d. growth is the
   hypothesis `E_t[G_{t+1}^a] = mom a` for every real `a` (`AggregateUncertainty.IIDGrowth`), and
@@ -282,7 +335,11 @@ is copied, with only the namespace renamed, from the Cochrane `ObservationalEqui
 the three measure modules use its i.i.d. economy (`ExpectationsMeasureIID.iidSystem`) and its
 bridge from finite event trees (`ExpectationsMeasure.TreeBridge.treeSystem`), and
 `TidyR5GaussianAR1` builds its AR(1) surplus from `ExpectationsMeasureIID.ar1` on the same
-economy.
+economy. The twelve Brownian and Itô modules (`TidyR7BrownianSchauder` to `TidyR7ItoBridge` in
+the library map) are copied, with only the namespace renamed and proofs unchanged, from the
+Cochrane Monetarism project; each docstring names its original. They are the import closure of
+`TidyR7ItoBridge`, and only `TidyR7WienerGaussian`, `TidyR7OrnsteinUhlenbeck` and
+`TidyR7OUSampled` use them.
 
 Unlike the Chapter 1 project, no Woodford or Galí result is restated in a chapter module, and
 `Links` links the chapter's own two formalisation chains rather than other books. Two

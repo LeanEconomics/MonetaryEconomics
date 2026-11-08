@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-10-29T21:00:09.234741+00:00",
-  "theorems": 745,
+  "checked_at_utc": "2026-11-08T03:13:32.838780+00:00",
+  "theorems": 1189,
   "module_theorems": {
     "FiscalConstraints/Determinacy.lean": 23,
     "FiscalConstraints/Expectations.lean": 20,
@@ -28,9 +28,25 @@
     "FiscalConstraints/TidyR5GaussianAR1.lean": 22,
     "FiscalConstraints/TidyR6ManagedSurplus.lean": 32,
     "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean": 28,
-    "FiscalConstraints/TidyR6LinearRuleBounds.lean": 9
+    "FiscalConstraints/TidyR6LinearRuleBounds.lean": 9,
+    "FiscalConstraints/TidyR7BrownianSchauder.lean": 53,
+    "FiscalConstraints/TidyR7BrownianUnit.lean": 13,
+    "FiscalConstraints/TidyR7BrownianExist.lean": 17,
+    "FiscalConstraints/TidyR7BrownianTools.lean": 25,
+    "FiscalConstraints/TidyR7StieltjesIntegral.lean": 44,
+    "FiscalConstraints/TidyR7StieltjesSums.lean": 34,
+    "FiscalConstraints/TidyR7BrownianQV.lean": 48,
+    "FiscalConstraints/TidyR7ItoL2.lean": 20,
+    "FiscalConstraints/TidyR7ItoSums.lean": 44,
+    "FiscalConstraints/TidyR7ItoIntegral.lean": 32,
+    "FiscalConstraints/TidyR7StieltjesCalculus.lean": 11,
+    "FiscalConstraints/TidyR7ItoBridge.lean": 16,
+    "FiscalConstraints/TidyR7OUPath.lean": 23,
+    "FiscalConstraints/TidyR7WienerGaussian.lean": 13,
+    "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean": 33,
+    "FiscalConstraints/TidyR7OUSampled.lean": 18
   },
-  "audited_declarations": 916,
+  "audited_declarations": 1437,
   "declarations": [
     {
       "name": "Cochrane.FiscalConstraints.SchurStable",
@@ -4611,6 +4627,2611 @@
       "name": "Cochrane.FiscalConstraints.TidyR6LinearRuleBounds.plan_debt_ae_unbounded_below",
       "kind": "theorem",
       "module": "FiscalConstraints/TidyR6LinearRuleBounds.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_nonneg",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_le",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_of_le",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_of_ge",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_of_left",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_of_right",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_mem_of_ne_zero",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.continuous_lcTent",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridgeTerm",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridgeTerm_nonneg",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridgeTerm_split",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lc_sum_le_of_atMostOne",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lc_sum_range_two_mul",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lc_dyadic_unique",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauderLevel",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauder",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauder_zero_apply",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauder_two_pow_add",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauderLevel_nonneg",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.continuous_schauder",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridge",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_mul_comm_minmax",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauderLevel_sum_mul",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauder_sum_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridgeTerm_le",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridgeTerm_mem_of_ne_zero",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridge_nonneg",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridge_le",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.tendsto_schauder_sum_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.gaussSeq",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.isProbabilityMeasure_gaussSeq",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.hasLaw_gaussSeq_coord",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.iIndepFun_gaussSeq_mul",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.gaussSeq_map_sum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.map_eq_gaussianReal_of_tendsto",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauderC",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcPartial",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcPartial_apply",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.continuous_lcPartial",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcWeight",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcWeight_nonneg",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.measurable_lcWeight",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lc_abs_le_add_pow_four",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lc_sqrt_div_le",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcPartial_succ_sub",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.norm_lcPartial_succ_sub_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.gaussFourth",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.integrable_pow_four_gaussianReal",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.integrable_gaussSeq_coord_pow",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.integral_gaussSeq_coord_pow",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.integrable_lcWeight",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.integral_lcWeight",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.summable_integral_lcWeight",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcGood",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.measurable_lcWeight_tsum",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.measurableSet_lcGood",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.ae_mem_lcGood",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.summable_lcWeight_of_mem",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.cauchySeq_lcPartial",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.levyPath",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.tendsto_lcPartial_levyPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.tendsto_lcPartial_apply",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauder_apply_zero",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.levyPath_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianSchauder.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.brownian",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.continuous_brownian",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.brownian_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.tendsto_lcPartial_ite",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.measurable_levyPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.measurable_brownian",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.bmVar",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.bmCoeff",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.tendsto_sum_bmCoeff_sq",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.gaussSeq_map_sum_brownian",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.hasGaussianLaw_brownian_vec",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.isGaussianProcess_brownian",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.memLp_brownian",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.variance_of_map_eq_gaussianReal",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.gaussSeq_map_brownian",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianUnit.covariance_brownian",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianUnit.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.bmTime",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.coe_bmTime",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.continuous_bmTime",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.bmTime_zero",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.coe_bmTime_mono",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.bmPath",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.continuous_bmPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.bmPath_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.measurable_bmPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.isGaussianProcess_bmPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.integral_brownian",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.integral_bmPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.covariance_bmPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.isPreBrownianReal_bmPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.isBrownianReal_bmPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.exists_isBrownianReal",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.exists_isBrownianReal_measurable_continuous",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.bmPath_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianExist.hasLaw_bmPath_two_sub_half",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianExist.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.hasDerivAt_gaussMgf",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.deriv_mul_gaussMgf",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.iteratedDeriv_gaussMgf",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.integral_sq_gaussianReal",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.integral_pow_four_gaussianReal",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.integrable_pow_four_gaussianReal'",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.coe_nndist_val",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.integral_increment_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.integral_increment_pow_four",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.integrable_increment_pow_four",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.bmFiltration",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.stronglyAdapted_bmFiltration",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.bmFiltration_eq_comap",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.indepFun_increment_past",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.indep_increment_bmFiltration",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.condExp_fun_increment",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.condExp_increment",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.condExp_increment_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.martingale_bm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.martingale_bm_sq_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.bmReal",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.bmReal_of_nonneg",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.continuous_bmReal",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.bmFiltrationReal",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.martingale_bmReal",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.martingale_bmReal_sq_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.martingale_bmPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianTools.martingale_bmPath_sq_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianTools.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.clampFn",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.clampFn_of_mem",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.clampFn_of_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.clampFn_of_ge",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.eVariationOn_clampFn_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.bv_clampFn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.continuous_clampFn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.leftLim_clampFn_left",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rightLim_clampFn_right",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rightLim_clampFn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.leftLim_clampFn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.isFiniteMeasure_stMeasure",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.variation_real_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_Icc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_singleton_left",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_singleton_interior",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_singleton_right",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_Ioc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rightLim_clampFn_of_continuousOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_singleton_of_continuousOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_Ioc_of_continuousOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.RSIntegrable",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsIntegrable_of_continuousOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsIntegrable_of_measurable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.RSIntegrable.mono",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.exists_small_jumps_right",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.countable_jumps",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.continuousAt_of_leftLim_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.measurable_of_isCadlag",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.exists_bound_of_isCadlag",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsIntegrable_of_isCadlag",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt_add_left",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt_smul_left",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.eVariationOn_add_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rightLim_add_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.leftLim_add_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_add",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt_add_right",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_smul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt_smul_right",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.abs_rsInt_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.clampFn_split",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_split",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt_add_interval",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition",
+      "kind": "structure",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition.mk",
+      "kind": "constructor",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition.n",
+      "kind": "projection",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition.t",
+      "kind": "projection",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition.strictMono",
+      "kind": "projection",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition.first",
+      "kind": "projection",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition.last",
+      "kind": "projection",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.mesh",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.le_mesh",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.rsSum",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.crossSum",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.stepFn",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.t_mem",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.a_le_b",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Ioc_subset",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.exists_piece",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.stepFn_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.stepFn_of_notMem",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.abs_stepFn_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.measurable_stepFn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.integral_stepFn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.setIntegral_Icc_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.sum_mul_sub_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.abs_sub_rightLim_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.sum_eVariationOn_Icc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.sum_abs_jump_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.abs_rsSum_sub_rsInt_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_rsSum_of_continuousOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.rsSum_eq_integral_stepFn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_integral_stepFn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_stepFn_left",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_stepFn_right",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.rsInt_eq_Ioc_leftLim",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.rsInt_eq_rsInt_leftLim",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_rsSum_of_isCadlag",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_crossSum_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.heaviside",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.isCadlag_heaviside",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.bv_heaviside",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.crossSum_heaviside",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.not_tendsto_crossSum_heaviside",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.dyadic",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.mesh_dyadic",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_mesh_dyadic",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_rsSum_dyadic_of_continuousOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_rsSum_dyadic_of_isCadlag",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_crossSum_dyadic",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.incr",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.qvTerm",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.qvSum",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.wqvSum",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.sum_step_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.step_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.qvSum_sub_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.wqvSum_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.wqvSum_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.qvSum_eq_crossSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.measurable_incr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.measurable_qvTerm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.measurable_qvSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.abs_toNNReal_sub",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_incr_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_incr_pow_four",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.memLp_incr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integrable_incr_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integrable_incr_pow_four",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_qvTerm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.qvTerm_sq_eq",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integrable_qvTerm_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.memLp_qvTerm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_qvTerm_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.BMFiltration",
+      "kind": "structure",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.BMFiltration.mk",
+      "kind": "constructor",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.BMFiltration.adapted",
+      "kind": "projection",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.BMFiltration.indep",
+      "kind": "projection",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.bmFiltrationReal_isBM",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.stronglyMeasurable_incr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.stronglyMeasurable_qvTerm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.indepFun_incr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_mul_qvTerm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_mul_qvTerm_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integrable_mul_term",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integrable_mul_wqvSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_mul_wqvSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_wqvSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_qvSum_sub_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.sum_step_sq_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_qvSum_sub_sq_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_wqvSum_sq_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_indicator_one_mul",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.condExp_wqvSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.condExp_qvSum_sub_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.tendsto_eLpNorm_of_integral_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.memLp_qvSum_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.tendsto_integral_qvSum_sub_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.tendsto_eLpNorm_qvSum_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.tendstoInMeasure_qvSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.tendsto_integral_wqvSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.tendsto_eLpNorm_wqvSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.ae_tendsto_zero_of_summable_integral_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.ae_tendsto_qvSum_of_summable_mesh",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.summable_mesh_dyadic",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7BrownianQV.ae_tendsto_qvSum_dyadic",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7BrownianQV.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.L2Tendsto",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.integral_sq_eq_toReal_eLpNorm_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.eLpNorm_eq_ofReal_sqrt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.L2Tendsto.tendsto_eLpNorm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.sq_sub_le_two_mul",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.integral_sq_sub_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.exists_L2Tendsto",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.ae_eq_of_L2Tendsto",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.L2Tendsto.congr_ae",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.L2Tendsto.congr_seq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.L2Tendsto.add",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.L2Tendsto.const_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.ae_eq_of_L2Tendsto_of_ae_tendsto",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.sq_integral_mul_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.memLp_of_bound",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.tendsto_zero_of_sq_le",
+      "kind": "lemma",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.tendsto_integral_mul_of_L2Tendsto",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.tendsto_integral_mul_sq_of_L2Tendsto",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.riemannSum",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.abs_riemannSum_sub_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.tendsto_riemannSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoL2.exists_delta_integral_sq_sub_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoL2.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.incr_self",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_incr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integrable_incr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_incr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_incr_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.cellSum",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integrable_mul_cell",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integrable_mul_cellSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.measurable_cellSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.memLp_cellSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_cellSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_cellSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_eq_cellSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_eq_rsSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.partition_cells_disjoint",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.stronglyMeasurable_itoSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.memLp_itoSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_mul_incr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_itoSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_itoSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.condExp_itoSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_itoSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.condExp_itoSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_const",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_add",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_const_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.sum_integral_eq_integral_riemannSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.sum_clamp_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.cellA",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.cellB",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.cellA_comm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.cellB_comm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.cellA_le_cellB",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.clamp_sub_eq_cell",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.sub_eq_sum_cells",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.sub_eq_sum_cells'",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.sum_cells_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.cells_disjoint",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.abs_sub_le_of_cell",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_sub_itoSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_itoSum_sub_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_itoSum_sub_sq_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.concatT",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.concatT_add",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.concatT_of_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.concat",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_concat",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.mesh_nonneg",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoSums.mesh_concat_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoSums.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand",
+      "kind": "structure",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.mk",
+      "kind": "constructor",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.adapted",
+      "kind": "projection",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.bound",
+      "kind": "projection",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.cont",
+      "kind": "projection",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.measurable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.mono",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.add",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.const_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoIntegrand_const",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_of_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_spec",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.stronglyMeasurable_itoInt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.cauchy_itoSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.exists_dyadic_limit",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.L2Tendsto_dyadic",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.memLp_itoInt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.L2Tendsto_itoSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ae_eq_itoInt_of_L2Tendsto",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.measurable_riemannSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.abs_riemannSum_sq_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.abs_integral_sq_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ae_tendsto_riemannSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.integrable_integral_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.tendsto_integral_mul_riemannSum_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.integral_mul_itoInt_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.integral_itoInt_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_add",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_const_mul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_const",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_add_itoInt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.integral_mul_itoInt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.integral_itoInt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.condExp_itoInt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.martingale_itoInt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoIntegral.condExp_itoInt_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoIntegral.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.prod_partition_identity",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesCalculus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.sum_abs_sub_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesCalculus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.abs_rsSum_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesCalculus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.abs_crossSum_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesCalculus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.tendsto_crossSum_zero_of_continuousOn",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesCalculus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.integration_by_parts",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesCalculus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.integration_by_parts_of_isCadlag",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesCalculus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.measurable_rsSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesCalculus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.measurable_crossSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesCalculus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.tendsto_rsSum_dyadic_pi",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesCalculus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.measurable_rsInt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7StieltjesCalculus.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.crossSum_comm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.ae_tendsto_crossSum_integrand_bm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoSum_eq_byParts",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoInt_eq_byParts",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoIntegrand_deterministic",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoInt_deterministic",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.integral_itoInt_deterministic_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoSum_bm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.memLp_mul_incr",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.L2Tendsto_itoSum_bm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoInt_bm",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoInt_bmPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.not_itoInt_bmPath_eq_stratonovich",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.integral_itoInt_bmPath_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.integral_itoInt_bmPath_sq_eq_isometry",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7ItoBridge.integral_itoInt_id_bmPath_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7ItoBridge.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouPrim",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouNoise",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouMean",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouPath",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouStep",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.hasDerivAt_ouPrim",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_ouPrim",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouPrim_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_ouNoise",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_ouMean",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_ouPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouPath_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.hasDerivAt_ouPath_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouPath_integral_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouPath_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouPath_step",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouDebt",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.debtMean",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.debtNoise",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouDebt_hasDerivAt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouDebt_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.ouDebt_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.debtF",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.hasDerivAt_debtF",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_debtF",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.debtKernel",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_debtKernel",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.debtKernel_self",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.debtNoise_eq_integral",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.debtG",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.hasDerivAt_debtG",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.debtG_self",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_debtG",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUPath.integral_debtG_sq_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUPath.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.norm_charFun_gaussianReal",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.exists_gaussianReal_of_tendsto",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.tendsto_sum_mul_sub",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.IsLinW",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.isLinW_eval",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.IsLinW.exists_map_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.isLinW_itoSum",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.wienerBP",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.tendsto_itoSum_wienerBP",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.itoInt_ae_eq_wienerBP",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.integral_wienerBP_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.memLp_wienerBP",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.exists_map_sum_wienerBP",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.map_wienerBP",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7WienerGaussian.integral_mul_wienerBP_eq_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7WienerGaussian.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouVar",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_integral_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_unique",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.hasDerivAt_expMul",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouNoise_eq_wienerBP",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_ae_eq_itoInt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.map_affine_gaussian",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.integral_exp_sq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.aemeasurable_ouProc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_hasLaw",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.integral_ouProc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.variance_ouProc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.tendsto_ouMean",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.tendsto_ouVar",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.gaussianReal_eq_map",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.tendsto_integral_ouProc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouVar_ne_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.gaussianReal_open_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_mem_open_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_gt_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_lt_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.debtVar",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc_hasDerivAt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.aemeasurable_ouDebtProc",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc_hasLaw",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.debtVar_ne_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc_mem_open_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc_gt_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc_not_sustainable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.bmPath_ouProc_hasLaw",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.bmPath_ouProc_gt_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.bmPath_ouDebt_not_sustainable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.ouInnov",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.ouProc_succ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.ouInnov_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.ouInnov_hasLaw",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.aemeasurable_ouInnov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.memLp_ouInnov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.integral_ouInnov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.covariance_ouInnov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.isGaussianProcess_ouInnov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.iIndepFun_ouInnov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.map_ouInnov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.ouProc_succ_eq_ar1",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.map_ouProc_sampled",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.arVar_eq_ouVar",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.abs_debtPath_sub_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.sampled_debt_unbounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.sampled_debt_not_sustainable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.bmPath_map_ouInnov",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.bmPath_sampled_debt_unbounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR7OUSampled.lean"
     }
   ],
   "full_build": "passed",
@@ -9190,6 +11811,2611 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_of_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_of_left": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_of_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_mem_of_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.continuous_lcTent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridgeTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridgeTerm_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridgeTerm_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lc_sum_le_of_atMostOne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lc_sum_range_two_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lc_dyadic_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauderLevel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauder": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauder_zero_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauder_two_pow_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauderLevel_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.continuous_schauder": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcTent_mul_comm_minmax": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauderLevel_sum_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauder_sum_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridgeTerm_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridgeTerm_mem_of_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridge_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcBridge_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.tendsto_schauder_sum_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.gaussSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.isProbabilityMeasure_gaussSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.hasLaw_gaussSeq_coord": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.iIndepFun_gaussSeq_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.gaussSeq_map_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.map_eq_gaussianReal_of_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauderC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcPartial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcPartial_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.continuous_lcPartial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcWeight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcWeight_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.measurable_lcWeight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lc_abs_le_add_pow_four": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lc_sqrt_div_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcPartial_succ_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.norm_lcPartial_succ_sub_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.gaussFourth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.integrable_pow_four_gaussianReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.integrable_gaussSeq_coord_pow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.integral_gaussSeq_coord_pow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.integrable_lcWeight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.integral_lcWeight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.summable_integral_lcWeight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.lcGood": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.measurable_lcWeight_tsum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.measurableSet_lcGood": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.ae_mem_lcGood": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.summable_lcWeight_of_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.cauchySeq_lcPartial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.levyPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.tendsto_lcPartial_levyPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.tendsto_lcPartial_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.schauder_apply_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianSchauder.levyPath_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.brownian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.continuous_brownian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.brownian_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.tendsto_lcPartial_ite": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.measurable_levyPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.measurable_brownian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.bmVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.bmCoeff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.tendsto_sum_bmCoeff_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.gaussSeq_map_sum_brownian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.hasGaussianLaw_brownian_vec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.isGaussianProcess_brownian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.memLp_brownian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.variance_of_map_eq_gaussianReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.gaussSeq_map_brownian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianUnit.covariance_brownian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.bmTime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.coe_bmTime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.continuous_bmTime": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.bmTime_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.coe_bmTime_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.continuous_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.bmPath_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.measurable_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.isGaussianProcess_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.integral_brownian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.integral_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.covariance_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.isPreBrownianReal_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.isBrownianReal_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.exists_isBrownianReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.exists_isBrownianReal_measurable_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.bmPath_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianExist.hasLaw_bmPath_two_sub_half": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.hasDerivAt_gaussMgf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.deriv_mul_gaussMgf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.iteratedDeriv_gaussMgf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.integral_sq_gaussianReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.integral_pow_four_gaussianReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.integrable_pow_four_gaussianReal'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.coe_nndist_val": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.integral_increment_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.integral_increment_pow_four": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.integrable_increment_pow_four": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.bmFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.stronglyAdapted_bmFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.bmFiltration_eq_comap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.indepFun_increment_past": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.indep_increment_bmFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.condExp_fun_increment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.condExp_increment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.condExp_increment_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.martingale_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.martingale_bm_sq_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.bmReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.bmReal_of_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.continuous_bmReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.bmFiltrationReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.martingale_bmReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.martingale_bmReal_sq_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.martingale_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianTools.martingale_bmPath_sq_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.clampFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.clampFn_of_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.clampFn_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.clampFn_of_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.eVariationOn_clampFn_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.bv_clampFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.continuous_clampFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.leftLim_clampFn_left": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rightLim_clampFn_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rightLim_clampFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.leftLim_clampFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.isFiniteMeasure_stMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.variation_real_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_Icc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_singleton_left": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_singleton_interior": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_singleton_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_Ioc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rightLim_clampFn_of_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_singleton_of_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_Ioc_of_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.RSIntegrable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsIntegrable_of_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsIntegrable_of_measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.RSIntegrable.mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.exists_small_jumps_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.countable_jumps": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.continuousAt_of_leftLim_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.measurable_of_isCadlag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.exists_bound_of_isCadlag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsIntegrable_of_isCadlag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt_add_left": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt_smul_left": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.eVariationOn_add_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rightLim_add_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.leftLim_add_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt_add_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_smul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt_smul_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.abs_rsInt_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.clampFn_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.stMeasure_split": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesIntegral.rsInt_add_interval": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition.n": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition.t": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition.strictMono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition.first": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Partition.last": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.mesh": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.le_mesh": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.rsSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.crossSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.stepFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.t_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.a_le_b": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.Ioc_subset": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.exists_piece": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.stepFn_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.stepFn_of_notMem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.abs_stepFn_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.measurable_stepFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.integral_stepFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.setIntegral_Icc_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.sum_mul_sub_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.abs_sub_rightLim_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.sum_eVariationOn_Icc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.sum_abs_jump_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.abs_rsSum_sub_rsInt_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_rsSum_of_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.rsSum_eq_integral_stepFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_integral_stepFn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_stepFn_left": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_stepFn_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.rsInt_eq_Ioc_leftLim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.rsInt_eq_rsInt_leftLim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_rsSum_of_isCadlag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_crossSum_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.heaviside": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.isCadlag_heaviside": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.bv_heaviside": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.crossSum_heaviside": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.not_tendsto_crossSum_heaviside": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.dyadic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.mesh_dyadic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_mesh_dyadic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_rsSum_dyadic_of_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_rsSum_dyadic_of_isCadlag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesSums.tendsto_crossSum_dyadic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.incr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.qvTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.qvSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.wqvSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.sum_step_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.step_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.qvSum_sub_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.wqvSum_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.wqvSum_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.qvSum_eq_crossSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.measurable_incr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.measurable_qvTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.measurable_qvSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.abs_toNNReal_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_incr_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_incr_pow_four": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.memLp_incr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integrable_incr_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integrable_incr_pow_four": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_qvTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.qvTerm_sq_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integrable_qvTerm_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.memLp_qvTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_qvTerm_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.BMFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.BMFiltration.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.BMFiltration.adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.BMFiltration.indep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.bmFiltrationReal_isBM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.stronglyMeasurable_incr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.stronglyMeasurable_qvTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.indepFun_incr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_mul_qvTerm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_mul_qvTerm_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integrable_mul_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integrable_mul_wqvSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_mul_wqvSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_wqvSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_qvSum_sub_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.sum_step_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_qvSum_sub_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_wqvSum_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.integral_indicator_one_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.condExp_wqvSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.condExp_qvSum_sub_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.tendsto_eLpNorm_of_integral_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.memLp_qvSum_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.tendsto_integral_qvSum_sub_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.tendsto_eLpNorm_qvSum_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.tendstoInMeasure_qvSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.tendsto_integral_wqvSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.tendsto_eLpNorm_wqvSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.ae_tendsto_zero_of_summable_integral_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.ae_tendsto_qvSum_of_summable_mesh": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.summable_mesh_dyadic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7BrownianQV.ae_tendsto_qvSum_dyadic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.integral_sq_eq_toReal_eLpNorm_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.eLpNorm_eq_ofReal_sqrt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.L2Tendsto.tendsto_eLpNorm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.sq_sub_le_two_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.integral_sq_sub_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.exists_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.ae_eq_of_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.L2Tendsto.congr_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.L2Tendsto.congr_seq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.L2Tendsto.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.L2Tendsto.const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.ae_eq_of_L2Tendsto_of_ae_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.sq_integral_mul_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.memLp_of_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.tendsto_zero_of_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.tendsto_integral_mul_of_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.tendsto_integral_mul_sq_of_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.riemannSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.abs_riemannSum_sub_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.tendsto_riemannSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoL2.exists_delta_integral_sq_sub_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.incr_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_incr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integrable_incr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_incr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_incr_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.cellSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integrable_mul_cell": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integrable_mul_cellSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.measurable_cellSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.memLp_cellSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_cellSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_cellSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_eq_cellSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_eq_rsSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.partition_cells_disjoint": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.stronglyMeasurable_itoSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.memLp_itoSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_mul_incr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_itoSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_itoSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.condExp_itoSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_mul_itoSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.condExp_itoSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.sum_integral_eq_integral_riemannSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.sum_clamp_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.cellA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.cellB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.cellA_comm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.cellB_comm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.cellA_le_cellB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.clamp_sub_eq_cell": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.sub_eq_sum_cells": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.sub_eq_sum_cells'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.sum_cells_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.cells_disjoint": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.abs_sub_le_of_cell": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_sub_itoSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_itoSum_sub_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.integral_itoSum_sub_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.concatT": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.concatT_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.concatT_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.concat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.itoSum_concat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.mesh_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoSums.mesh_concat_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.cont": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ItoIntegrand.const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoIntegrand_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.stronglyMeasurable_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.cauchy_itoSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.exists_dyadic_limit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.L2Tendsto_dyadic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.memLp_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.L2Tendsto_itoSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ae_eq_itoInt_of_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.measurable_riemannSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.abs_riemannSum_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.abs_integral_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.ae_tendsto_riemannSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.integrable_integral_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.tendsto_integral_mul_riemannSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.integral_mul_itoInt_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.integral_itoInt_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.itoInt_add_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.integral_mul_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.integral_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.condExp_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.martingale_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoIntegral.condExp_itoInt_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.prod_partition_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.sum_abs_sub_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.abs_rsSum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.abs_crossSum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.tendsto_crossSum_zero_of_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.integration_by_parts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.integration_by_parts_of_isCadlag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.measurable_rsSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.measurable_crossSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.tendsto_rsSum_dyadic_pi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7StieltjesCalculus.measurable_rsInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.crossSum_comm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.ae_tendsto_crossSum_integrand_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoSum_eq_byParts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoInt_eq_byParts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoIntegrand_deterministic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoInt_deterministic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.integral_itoInt_deterministic_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoSum_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.memLp_mul_incr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.L2Tendsto_itoSum_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoInt_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.itoInt_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.not_itoInt_bmPath_eq_stratonovich": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.integral_itoInt_bmPath_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.integral_itoInt_bmPath_sq_eq_isometry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7ItoBridge.integral_itoInt_id_bmPath_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouPrim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouNoise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouMean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouStep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.hasDerivAt_ouPrim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_ouPrim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouPrim_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_ouNoise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_ouMean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_ouPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouPath_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.hasDerivAt_ouPath_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouPath_integral_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouPath_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouPath_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouDebt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.debtMean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.debtNoise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouDebt_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouDebt_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.ouDebt_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.debtF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.hasDerivAt_debtF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_debtF": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.debtKernel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_debtKernel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.debtKernel_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.debtNoise_eq_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.debtG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.hasDerivAt_debtG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.debtG_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.continuous_debtG": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUPath.integral_debtG_sq_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.norm_charFun_gaussianReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.exists_gaussianReal_of_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.tendsto_sum_mul_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.IsLinW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.isLinW_eval": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.IsLinW.exists_map_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.isLinW_itoSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.wienerBP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.tendsto_itoSum_wienerBP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.itoInt_ae_eq_wienerBP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.integral_wienerBP_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.memLp_wienerBP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.exists_map_sum_wienerBP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.map_wienerBP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7WienerGaussian.integral_mul_wienerBP_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_integral_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.hasDerivAt_expMul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouNoise_eq_wienerBP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_ae_eq_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.map_affine_gaussian": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.integral_exp_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.aemeasurable_ouProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_hasLaw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.integral_ouProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.variance_ouProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.tendsto_ouMean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.tendsto_ouVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.gaussianReal_eq_map": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.tendsto_integral_ouProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouVar_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.gaussianReal_open_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_mem_open_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_gt_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouProc_lt_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.debtVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc_hasDerivAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.aemeasurable_ouDebtProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc_hasLaw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.debtVar_ne_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc_mem_open_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc_gt_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.ouDebtProc_not_sustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.bmPath_ouProc_hasLaw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.bmPath_ouProc_gt_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck.bmPath_ouDebt_not_sustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.ouProc_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.ouInnov_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.ouInnov_hasLaw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.aemeasurable_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.memLp_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.integral_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.covariance_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.isGaussianProcess_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.iIndepFun_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.map_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.ouProc_succ_eq_ar1": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.map_ouProc_sampled": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.arVar_eq_ouVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.abs_debtPath_sub_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.sampled_debt_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.sampled_debt_not_sustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.bmPath_map_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR7OUSampled.bmPath_sampled_debt_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -9220,15 +14446,31 @@
     "FiscalConstraints/TidyR6ManagedSurplus.lean": "1143e181cf3356e47586b14205b2444924fcad7755b68e54ddcf107a54fecb31",
     "FiscalConstraints/TidyR6ManagedSurplusMeasure.lean": "cefc5cceb3a1320705ef251a917d4582c6d5deafacc522cb465a094a874e8b7c",
     "FiscalConstraints/TidyR6LinearRuleBounds.lean": "0b3383c09276f70ff82c43fecf15b4aac98a6ac60765ba52c36bfb49c5a7639d",
-    "FiscalConstraints.lean": "69d298bb7c4f9beb2e0b13939caac37e474013cea16afc2eb9a87f4b0ffe7c86",
+    "FiscalConstraints/TidyR7BrownianSchauder.lean": "89951c0d4b86e06c9b0942b2ce4132fa85de481c2ce934a4c80866650aa9001b",
+    "FiscalConstraints/TidyR7BrownianUnit.lean": "4cbf195d19481aec21ec371490a0d7567ac4cdc87c3bb00cb4b4ebb68db619c4",
+    "FiscalConstraints/TidyR7BrownianExist.lean": "639634cafb989c8f36e83653bc8354549685d41a2d0963887e7c1fdb0d593d41",
+    "FiscalConstraints/TidyR7BrownianTools.lean": "3c6167acd45112611c99f2884986bf91ae8aba81b9507540c7d55c72b369861f",
+    "FiscalConstraints/TidyR7StieltjesIntegral.lean": "e62b77a82520b6a6c57f65b37d6444d2e67bd0022649f14745e5bfca57cf4d9d",
+    "FiscalConstraints/TidyR7StieltjesSums.lean": "b679a4ab99a61fdb667167e20e22976fca15a5635af10863f7e993fa5caa2a04",
+    "FiscalConstraints/TidyR7BrownianQV.lean": "c6fcfbeef58c584a9fec3ab6c0c895d291e70d2afcaebf1d80de4e4bd37058a0",
+    "FiscalConstraints/TidyR7ItoL2.lean": "6ea5babed7f3585159b8ddee89428e9f1f1e5a412c962f57e7e5340c20e5d776",
+    "FiscalConstraints/TidyR7ItoSums.lean": "541b54f00aff604520dc33a0d32cc26ac25442a51083cab1eb08b4ab10bb8e8e",
+    "FiscalConstraints/TidyR7ItoIntegral.lean": "bea3418bec7755b10a9fc4d592f2ea37e865a9a4aa45b5751603504e35bcffe1",
+    "FiscalConstraints/TidyR7StieltjesCalculus.lean": "271b8ca356444522e95dfccebf460501937439d2a2d73fdf7bdbda2fede5965b",
+    "FiscalConstraints/TidyR7ItoBridge.lean": "2c46c6476c7ddc7937a9cf1caa022a1b8a0e5a8a3e60c98e515acc0daefebf89",
+    "FiscalConstraints/TidyR7OUPath.lean": "7274617d10783861920bbd2f2c7cfc9717029184245717c6109bfe00c82477a7",
+    "FiscalConstraints/TidyR7WienerGaussian.lean": "be6321f2636e46c48a885ebb3898076348691f09883d05eba47b594cab60a266",
+    "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean": "02cb0090b7f90ca335aca83b21bdb7f2c8abbc7792e5b0b3d312e13c6d844da3",
+    "FiscalConstraints/TidyR7OUSampled.lean": "016c521b7e7e38cddbe6b53a22f0937e812c62565a6f5b6e0dfe2b9c1c34d78c",
+    "FiscalConstraints.lean": "a7596edf620812eb6a2f57f0f594ba8f77faa0ca24eebc928afd47cf9246754a",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "2316afb07e737873c291196c3982b4bdd8780e7da7c3353143daebcc265883ed",
     "lake-manifest.json": "471395732f51621c043128672558300d914c17f1f7b01d12949738d21f9aac5f",
-    "proof-manifest.json": "ddaf2b8bf8b88ba430d857dc8457c66cff7b4e54209abb123e5a068c33b50d29",
+    "proof-manifest.json": "9fccff8be2ab99c46497290a253720aef54637a7f88187064b75958f9581a84f",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "75cc5e871aee72604718a776508ee0a8ec347617aa7038ff703b3338e61f4671",
+  "fresh_audit_sha256": "467dc76c1a562bee6f4eb8d13dc57a1d77d80717babbeba505274d5895999810",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 6: Fiscal constraints. The present-value Laffer curve with exact elasticities; discount rates and growth (r = delta + gamma g); the Miller crash model with both regimes and comparative statics; the debt-to-GDP equation and the r versus g dichotomy (r > g: the present value is the unique bounded solution; r < g: indeterminacy, not infinity; temporary r < g restores uniqueness), continuous and discrete; a stochastic debt limit via Borel-Cantelli; growth-theory transversality; money and liquidity; return discounting; aggregate uncertainty and Bohn's example with corrected lognormal formulas. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 6, pp. 187-211."
