@@ -408,7 +408,8 @@ The middle step of (1.32), `Λ/P · dB + E_t d(Λ/P)·B = E_t d(ΛB/P)`, proved 
 expectation form without a stochastic integral, for `B` adapted with continuous bounded-variation
 paths and `Λ/P = A + M` (`A` càdlàg of bounded variation, `M` a càdlàg martingale), under
 domination conditions. Bonds that jump with `Λ/P` are treated in the section on jumping bonds
-below; `B` with a martingale or diffusive part is not covered (see the README).
+below; `B` with a diffusive part is treated, for Itô processes, in the last section on
+(1.32) with diffusive bonds; a general martingale part is not covered (see the README).
 
 | Book | Claim | Lean |
 | --- | --- | --- |
@@ -442,8 +443,9 @@ and money adapted, money with continuous bounded-variation paths, the flow (1.31
 and a general interest rate on money `i^m`. No measurability of `i`, `i^m`, `s` in `ω` is
 assumed. The product step of the previous section gives (1.32); integrating it gives the
 finite-horizon budget, and three readings of "integrate to infinity" give (1.33)–(1.34). Money
-and bonds that jump with `Λ/P` are treated in the next section; bonds with a martingale or
-diffusive part are not covered (see the README).
+and bonds that jump with `Λ/P` are treated in the next section, and diffusive (Itô) bonds and
+money in the last section on (1.32) with diffusive bonds; bonds with a general martingale
+part are not covered (see the README).
 
 | Book | Claim | Lean |
 | --- | --- | --- |
@@ -493,9 +495,9 @@ Lebesgue–Stieltjes integral of the current (post-jump) `X` against `dB`. No st
 is needed. In the monetary model money jumps at news dates (an open-market operation) while
 `B + M` stays continuous, so `ΔB = −ΔM`: line 3 of (1.32) and (1.33) hold verbatim with the
 post-jump Lebesgue–Stieltjes integral `∫ n dM`, the pre-jump reading `∫ n_− dM` misses
-`E_t[ΔMΔ(Λ/P)]`, and (1.34) is unaffected. Bonds with a martingale or diffusive part are not
-covered (see the README); the Brownian infrastructure, the Itô integral and the product rule
-they need are in the next four sections.
+`E_t[ΔMΔ(Λ/P)]`, and (1.34) is unaffected. Bonds with a diffusive part are in the next five
+sections: the Brownian infrastructure, the Itô integral and the product rule they need, and
+(1.32)–(1.34) with diffusive bonds in the last.
 
 | Book | Claim | Lean |
 | --- | --- | --- |
@@ -537,8 +539,8 @@ A bond or discount factor with a diffusive component needs a Brownian integrator
 `ProbabilityTheory.IsBrownianReal` (index `ℝ≥0`) but proves no existence theorem. These modules
 supply one, with the filtration, martingale and moment tools that the quadratic variation and the
 Itô integral will need; the quadratic variation is in the next section, the Itô integral in
-the one after and the product rule in the last. (1.32) with diffusive bonds itself is not yet
-proved (see the README). The Lévy–Ciesielski construction on `[0,1]` (`TidyR7BrownianSchauder`,
+the one after, the product rule in the one after that, and (1.32)–(1.34) with diffusive bonds
+in the last. The Lévy–Ciesielski construction on `[0,1]` (`TidyR7BrownianSchauder`,
 all of it, and the part of `TidyR7BrownianUnit` that the extension uses) is restated, proofs kept,
 from the LeanDynamicProgramming project's Meyn–Tweedie `LimitTheorems` modules `LevyCiesielski`
 and `BrownianMotion` (namespace `MeynTweedie.LimitTheorems` there); each docstring names its
@@ -672,8 +674,7 @@ no continuous version. `∫ X dY := ∫ X b du + ∫ X K dW`, the time integral 
 (`TidyR7ItoProducts.dtInt`, the pathwise one when the paths are a.s. continuous). The product rule
 holds almost surely, conditionally on `𝓕_s` and in the expected-increment form; the bracket-free
 book form holds iff `E_s[∫_s^t HK du] = 0`, and fails for `X = Y = W`. The general product step
-in the book's economy, and so (1.32) with diffusive bonds itself, is not yet proved (see the
-README).
+in the book's economy, and so (1.32)–(1.34) with diffusive bonds, are in the next section.
 
 | Book | Claim | Lean |
 | --- | --- | --- |
@@ -703,6 +704,54 @@ README).
 | A1 §1.6, (1.32), p. 567 (link to Track 1's product step) | if `H = 0` the bracket vanishes and `E_s[X_tY_t − X_sY_s] = E_s[∫X b du] + E_s[∫Y a du]`, the identity of `TidyR7ProductStep.ProductStepData.product_step` term by term with `M := ∫K dW` | `TidyR7ItoProductRule.condExp_product_rule_bv` |
 | A1 §1.6, pp. 567–568 (Brownian motion and the clock) | `W` is an Itô process (drift `0`, diffusion `1`); a.s. `W_t² − W_s² = 2∫_s^t W dW + (t − s)`, which re-derives `∫_s^t W dW = (W_t² − W_s² − (t − s))/2` (`TidyR7ItoBridge.itoInt_bm`); the clock `u` is an Itô process (drift `1`, diffusion `0`); a.s. `tW_t − sW_s = ∫_s^t W_u du + ∫_s^t u dW_u` | `TidyR7ItoProductRule.itoProcess_bm`, `TidyR7ItoProductRule.ito_formula_bm`, `TidyR7ItoProductRule.itoInt_bm_of_product_rule`, `TidyR7ItoProductRule.itoProcess_id`, `TidyR7ItoProductRule.product_rule_bm_id` |
 | A1 §1.6, (1.32), pp. 567–568 (non-vacuity; **the book form fails for `X = Y = W`**) | for the constructed motion `TidyR7BrownianExist.bmPath`: a.s. `W_1² = 2∫_0^1 W dW + 1`; `E[W_1² − W_0²] = 1`, `E[2∫_0^1 W dW] = 0`, `E[∫_0^1 1 du] = 1`, so the expected increment of `W²` is entirely the bracket; `E_0[W_1² − W_0²]` is NOT a.s. the bracket-free `E_0[∫ W·0 du + ∫ W·0 du]` | `TidyR7ItoProductRule.ito_formula_bmPath`, `TidyR7ItoProductRule.integral_ito_formula_bmPath`, `TidyR7ItoProductRule.not_bookForm_bmPath` |
+
+## Online Appendix §1.6: (1.32)–(1.34) with diffusive bonds, pp. 567–568 (TidyR7ItoBondStep, TidyR7MonetarismIto, TidyR7MonetarismItoValuation, TidyR7MonetarismItoCex, TidyR7MonetarismItoCexInf)
+
+The product rule of the previous section applied to the book's economy. Bonds `B` (drift `β`,
+diffusion `σ_B`) and `X = Λ/P` (drift `ν`, diffusion `σ_X`) are Itô processes on the same `W`
+(`TidyR7ItoProcess.ItoProcess`, bounded adapted almost surely continuous coefficients). The step
+from the middle line of (1.32) to its last line is then
+`E_t d(BX) = X dB + B E_t dX + E_t d[B, X]` with `d[B, X] = σ_Bσ_X dt`; the book's bracket-free
+step holds iff `E_s[∫_s^t σ_Bσ_X du] = 0`, and against every Itô `Λ/P` iff bonds have no
+diffusion. In the model `TidyR7MonetarismIto.ItoMonetaryModel` (`P > 0`, `n = Λ/P` with drift
+`−in`, the flow (1.31) on the coefficients, so that `σ_M = −σ_B` and `B + M` is locally
+riskless) line 1 of (1.32) holds as a rate identity and line 2 verbatim, line 3 gains the
+bracket, (1.33) gains `−∫σ_Xσ_B du` in the flow, and (1.34) holds verbatim. Three economies on
+the constructed motion `TidyR7BrownianExist.bmPath` show that the printed line 3 fails when bonds' diffusion is
+correlated with `Λ/P`, that it holds with both diffusive when the diffusions are active on
+disjoint intervals, and that the printed (1.33) fails on `[0, ∞)` although the transversality
+condition holds. Their `Λ/P = 1 + W` and `1 + ∫φ dW` can be negative (see the README).
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| A1 §1.6, pp. 567–568 (linearity of the `dt`-terms of (1.32)) | Riemann sums are additive and homogeneous in the integrand; a.s. `∫(G + K) du = ∫G du + ∫K du` and `∫cG du = c∫G du` for the mean-square time integral of mean-square continuous `G, K`; mean-square continuous integrands are closed under sums (`E[((G + K)_u − (G + K)_v)²] ≤ 2E[(G_u − G_v)²] + 2E[(K_u − K_v)²]`) and constant multiples | `TidyR7ItoBondStep.dtSum_add`, `TidyR7ItoBondStep.dtSum_const_mul`, `TidyR7ItoBondStep.dtInt_add`, `TidyR7ItoBondStep.dtInt_const_mul`, `TidyR7ItoBondStep.MSIntegrand.add`, `TidyR7ItoBondStep.MSIntegrand.const_mul` |
+| A1 §1.6, pp. 567–568 (tools) | if `f = g + h` a.s., `g, h` integrable and `E[h \| m] = 0`, then `E[f \| m] = E[g \| m]` a.s.; the running integral `u ↦ ∫_s^u H dW` of a bounded admissible `H` is an Itô process with drift `0` and diffusion `H`; if `σ_B = 0` on `[s, t]` a.s., then `E_s[∫_s^t σ_Bσ_X du] = 0` a.s.; if `E_s[∫_s^t σ² du] = 0` a.s. for an admissible `σ`, then `σ = 0` on `[s, t]` a.s. | `TidyR7ItoBondStep.condExp_eq_of_ae_eq_add`, `TidyR7ItoBondStep.itoProcess_itoInt`, `TidyR7ItoBondStep.condExp_bracket_zero`, `TidyR7ItoBondStep.ae_zero_of_condExp_integral_sq` |
+| A1 §1.6, (1.32), p. 567 (**the general product step**) | for Itô bonds `B` and Itô `X = Λ/P` on `[s, t]`, `0 ≤ s < t`, a.s. **`E_s[B_tX_t − B_sX_s] = E_s[∫_s^t B ν du + ∫_s^t X β du + ∫_s^t σ_Bσ_X du]`**: `E_t d(BX) = B E_t dX + X E_t dB + E_t d[B, X]`, `d[B, X] = σ_Bσ_X dt` | `TidyR7ItoBondStep.bond_step` |
+| A1 §1.6, (1.32), p. 567 (the expected-increment form) | along any partitions with mesh `→ 0`, in `L¹`: `E_s[Σ B_iΔX_i] → E_s∫B ν du` (`B E_t d(Λ/P)`), `E_s[Σ X_iΔB_i] → E_s∫X β du` (`(Λ/P) dB`) and `E_s[Σ ΔB_iΔX_i] → E_s∫σ_Bσ_X du` (`E_t d[B, Λ/P]`) | `TidyR7ItoBondStep.bond_step_expIncr` |
+| A1 §1.6, (1.32), p. 567 (the book's case) | if `σ_B = 0` on `[s, t]` a.s. (bonds of bounded variation), the bracket vanishes and the book's step holds whatever `σ_X` is | `TidyR7ItoBondStep.bond_step_bv` |
+| A1 §1.6, (1.32), p. 567 (**the precise extent of the book's step**) | for a given pair the bracket-free step holds a.s. **iff** `E_s[∫_s^t σ_Bσ_X du] = 0` a.s.; for given Itô bonds it holds against EVERY Itô process `X` **iff** `σ_B = 0` on `[s, t]` a.s. (necessity: test with `X = ∫_s^· σ_B dW`, whose bracket with `B` is `∫σ_B² du`) | `TidyR7ItoBondStep.bond_step_book_iff`, `TidyR7ItoBondStep.bookForm_forall_iff` |
+| A1 §1.6, (1.32), p. 567 (the integrals of (1.32)) | `∫_s^t X dY := ∫_s^t X b du + ∫_s^t X K dW` for `Y` with drift `b` and diffusion `K`; the money term `∫_s^t n dM`; `E_s[∫_s^t X dY] = E_s[∫_s^t X b du]` a.s. for mean-square continuous `X`; `∫_s^t X dY` is square integrable, hence integrable | `TidyR7MonetarismIto.intIto`, `TidyR7MonetarismIto.moneyInt`, `TidyR7MonetarismIto.condExp_intIto`, `TidyR7MonetarismIto.integrable_intIto` |
+| A1 §1.6, (1.31)–(1.34), pp. 567–568 (**the money–bond model with diffusive bonds**) | `P > 0`; `n = Λ/P` an Itô process with drift `−in` (`E_t d(Λ/P) = −i(Λ/P) dt`) and diffusion `σ_X`; bonds and money Itô processes; (1.31) on the coefficients, `β + m = iB + i^mM − Ps` and `σ_B + σ_M = 0`. **Diffusive bonds force diffusive money**, `σ_M = −σ_B`; `B + M` is an Itô process with drift `β + m` and no diffusion; the flow path by path, `(B + M)_u − (B + M)_s = ∫_s^u (iB + i^mM − Ps) dr` a.s. | `TidyR7MonetarismIto.ItoMonetaryModel`, `TidyR7MonetarismIto.ItoMonetaryModel.money_diff`, `TidyR7MonetarismIto.ItoMonetaryModel.wealth_ito`, `TidyR7MonetarismIto.ItoMonetaryModel.flow_1_31` |
+| A1 §1.6, (1.32), p. 567 (line 1, as rates) | (1.31) divided by `P`: `β/P − iB/P = −s − m/P + i^mM/P` (drift part) and `σ_B/P + σ_M/P = 0` (diffusion part); (1.31) times `n`: `Λs − i^m nM = −(B·(−in) + nβ + nm)`; for (1.34), `Λs + (i − i^m)nM = −(n(β + m) + (B + M)(−in))` | `TidyR7MonetarismIto.ItoMonetaryModel.line1_1_32_rate`, `TidyR7MonetarismIto.ItoMonetaryModel.rate_1_32`, `TidyR7MonetarismIto.ItoMonetaryModel.rate_1_34` |
+| A1 §1.6, (1.32), p. 567 (**line 2, verbatim**) | a.s. `E_s[∫_s^t n dB] + E_s[∫_s^t B(−in) du] = −E_s[∫_s^t (Λs − i^m nM) du + ∫_s^t n dM]`: (1.31) times `n`, no product step, so no bracket; in the expected-increment reading `E_s[Σ n_iΔB_i] → E_s∫nβ du` and `E_s[Σ B_iΔn_i] → E_s∫B(−in) du` in `L¹` | `TidyR7MonetarismIto.ItoMonetaryModel.middle_1_32_ito`, `TidyR7MonetarismIto.ItoMonetaryModel.middle_1_32_ito_expIncr` |
+| A1 §1.6, (1.32), p. 567 (**line 3, corrected**) | for `0 ≤ s < t`, a.s. **`E_s[n_tB_t − n_sB_s] = E_s[−(∫_s^t (Λs − i^m nM) du + ∫_s^t n dM) + ∫_s^t σ_Xσ_B du]`**; for `i^m = 0`, `E_t d(ΛB/P) = −Λ(s dt + dM/P) + E_t[σ_Bσ_X] dt` integrated; the book's right-hand side is integrable | `TidyR7MonetarismIto.ItoMonetaryModel.incr_1_32_ito_general`, `TidyR7MonetarismIto.ItoMonetaryModel.incr_1_32_ito`, `TidyR7MonetarismIto.ItoMonetaryModel.integrable_rhs_1_32` |
+| A1 §1.6, (1.32), p. 567 (line 3 as printed) | holds a.s. **iff** `E_s[∫_s^t σ_Xσ_B du] = 0` a.s.; holds when `σ_Xσ_B = 0` on `[s, t]` a.s., in particular for bonds of bounded variation with `Λ/P` still diffusive | `TidyR7MonetarismIto.ItoMonetaryModel.incr_1_32_ito_book_iff`, `TidyR7MonetarismIto.ItoMonetaryModel.incr_1_32_ito_uncorrelated` |
+| A1 §1.6, p. 567 (the line before (1.34), verbatim) | a.s. `E_s[n_t(B + M)_t − n_s(B + M)_s] = −E_s∫_s^t (Λs + (i − i^m)nM) du`: no bracket, since `B + M` has no diffusion | `TidyR7MonetarismIto.ItoMonetaryModel.incr_1_34_ito` |
+| A1 §1.6, (1.32)–(1.34), p. 567 (the flows, with the model on every `[s, T]`, fixed bounds) | the book's flow `F_T = ∫_s^T (Λs − i^m nM) du + ∫_s^T n dM`; the bracket `∫_s^T σ_Xσ_B du`; the corrected flow `F^c_T = F_T − ∫_s^T σ_Xσ_B du`; the flow `∫_s^T (Λs + (i − i^m)nM) du` of (1.34); all vanish on `[s, s]`; `n_TB_T` and `n_T(B + M)_T` are integrable, `n_sB_s` and `n_s(B + M)_s` are `𝓕_s`-measurable, the flows are integrable | `TidyR7MonetarismItoValuation.flowItoBook`, `TidyR7MonetarismItoValuation.bracket`, `TidyR7MonetarismItoValuation.flowItoC`, `TidyR7MonetarismItoValuation.flowIto134`, `TidyR7MonetarismItoValuation.flows_self`, `TidyR7MonetarismItoValuation.integrable_nB`, `TidyR7MonetarismItoValuation.integrable_nW`, `TidyR7MonetarismItoValuation.stronglyMeasurable_nB_nW`, `TidyR7MonetarismItoValuation.integrable_flows`, `TidyR7MonetarismItoValuation.integrable_flow134` |
+| A1 §1.6, (1.32) ⇒ (1.33), p. 567 (the budget with the bracket) | for every `T ≥ s`, a.s. `n_sB_s = E_s[n_TB_T] + E_s[F^c_T]` | `TidyR7MonetarismItoValuation.rec_1_33_ito` |
+| A1 §1.6, (1.33), p. 567 (**corrected (1.33): valuation iff transversality**) | along any `T_k ≥ s`, a.s. `E_s[F^c_{T_k}] → n_sB_s` iff a.s. `E_s[n_{T_k}B_{T_k}] → 0` (no convergence hypothesis); if `F^c_T → G` in `L¹`, then `n_sB_s = E_s[G]` a.s. iff `E_s[n_TB_T] → 0` in `L¹` | `TidyR7MonetarismItoValuation.valuation_1_33_ito_seq`, `TidyR7MonetarismItoValuation.valuation_1_33_ito` |
+| A1 §1.6, (1.33), p. 567 (**(1.33) as printed**) | under the transversality condition, the book's limit form `E_s[F_{T_k}] → n_sB_s` a.s. holds **iff** `E_s[∫_s^{T_k} σ_Xσ_B du] → 0` a.s.; if `σ_Xσ_B = 0` on `[s, ∞)` a.s., it holds iff the transversality condition does, as without diffusion | `TidyR7MonetarismItoValuation.valuation_1_33_ito_book_iff`, `TidyR7MonetarismItoValuation.valuation_1_33_ito_uncorrelated` |
+| A1 §1.6, (1.33)–(1.34), p. 567 (dividing by `Λ_s`) | for `𝓕_s`-measurable `Λ_s > 0` and `P_s > 0`: `(Λ_s/P_s)X = E_s[G]` a.s. iff `X/P_s = E_s[G/Λ_s]` a.s. | `TidyR7MonetarismItoValuation.real_form_ito` |
+| A1 §1.6, (1.34), p. 567 (**(1.34), verbatim**) | for every `T ≥ s`, a.s. `n_s(B + M)_s = E_s[n_T(B + M)_T] + E_s∫_s^T (Λs + (i − i^m)nM) du`; valuation iff transversality in the limit form and in the `L¹` form | `TidyR7MonetarismItoValuation.rec_1_34_ito`, `TidyR7MonetarismItoValuation.valuation_1_34_ito_seq`, `TidyR7MonetarismItoValuation.valuation_1_34_ito` |
+| A1 §1.6, pp. 567–568 (test processes on the constructed motion) | `a + cW` is an Itô process with drift `0` and diffusion `c`; `a + ∫_r^· H dW` is one on `[s, t]`, `0 ≤ r ≤ s ≤ t`, with diffusion `H`; the natural filtration of `bmPath`; constant processes; `gaussSeq` is a probability measure | `TidyR7MonetarismItoCex.itoProcess_affine`, `TidyR7MonetarismItoCex.itoProcess_shift`, `TidyR7MonetarismItoCex.bmF`, `TidyR7MonetarismItoCex.constP`, `TidyR7MonetarismItoCex.isProb` |
+| A1 §1.6, (1.31)–(1.34), pp. 567–568 (economy 1) | `P = 1`, `Λ = Λ/P = 1 + W`, bonds `B = b + cW`, money `M = M₀ − cW` (forced by (1.31)), `i = i^m = s = 0`: a model on every `[s, t]`, `0 ≤ s`, with `σ_X = 1`, `σ_B = c`, `σ_M = −c` | `TidyR7MonetarismItoCex.cexΛ`, `TidyR7MonetarismItoCex.cexB`, `TidyR7MonetarismItoCex.cexM`, `TidyR7MonetarismItoCex.disc_cex`, `TidyR7MonetarismItoCex.cexModel` |
+| A1 §1.6, (1.32), p. 567 (**counterexample: the printed line 3 fails**) | on `[0, 1]`: `E[n_1B_1 − n_0B_0] = c`, the book's right side has mean `0`, the bracket has mean `c`; for `c ≠ 0` the printed line 3 fails conditionally on every `[s, t]`, `0 ≤ s < t`, while the corrected one holds; with `c = 1`, `1 ≠ 0`; the line before (1.34) holds verbatim | `TidyR7MonetarismItoCex.cex_lhs`, `TidyR7MonetarismItoCex.cex_book_rhs`, `TidyR7MonetarismItoCex.cex_bracket`, `TidyR7MonetarismItoCex.cex_book_fails`, `TidyR7MonetarismItoCex.cex_corrected`, `TidyR7MonetarismItoCex.cex_headline`, `TidyR7MonetarismItoCex.cex_1_34` |
+| A1 §1.6, (1.32), p. 567 (the ramps of economy 2) | `φ(u) = min 1 (max 0 (1 − u))` and `ψ(u) = min 1 (max 0 (u − 1))`; `φψ = 0` everywhere; `φ(0) = ψ(2) = 1`; `\|min 1 (max 0 x)\| ≤ 1`; both are continuous | `TidyR7MonetarismItoCex.rampDown`, `TidyR7MonetarismItoCex.rampUp`, `TidyR7MonetarismItoCex.rampDown_mul_rampUp`, `TidyR7MonetarismItoCex.ramps_ne_zero`, `TidyR7MonetarismItoCex.abs_clamp_le`, `TidyR7MonetarismItoCex.continuous_ramps` |
+| A1 §1.6, (1.31)–(1.33), pp. 567–568 (**economy 2: both diffusive, the book holds**) | `P = 1`, `Λ/P = 1 + ∫_0^· φ dW`, `B = b + ∫_0^· ψ dW`, `M = M₀ − ∫_0^· ψ dW`, `i = i^m = s = 0`: a model on every `[s, t]`; the printed line 3 of (1.32) holds on every `[s, t]` and the book's (1.33) holds iff the transversality condition, since `σ_Xσ_B = φψ = 0`: the condition is `E_s∫σ_Bσ_X du = 0`, not `σ_B = 0` | `TidyR7MonetarismItoCex.disjΛ`, `TidyR7MonetarismItoCex.disjB`, `TidyR7MonetarismItoCex.disjM`, `TidyR7MonetarismItoCex.disjModel`, `TidyR7MonetarismItoCex.disj_1_32`, `TidyR7MonetarismItoCex.disj_1_33` |
+| A1 §1.6, p. 567 (tools for economy 3) | `∫_0^1 (1 − u)² du = 1/3`; `∫_0^T φ² du = 1/3` for `T ≥ 1`; `𝓕_0` is trivial for the natural filtration of `bmPath`, so `E_0` is the expectation | `TidyR7MonetarismItoCexInf.integral_one_sub_sq`, `TidyR7MonetarismItoCexInf.integral_rampDown_sq`, `TidyR7MonetarismItoCexInf.bmF_zero` |
+| A1 §1.6, (1.31)–(1.34), pp. 567–568 (economy 3, on `[0, ∞)`) | `I = ∫_0^· φ dW`, `P = 1`, `Λ = Λ/P = 1 + I`, bonds `B = 1/3 − I` (`σ_B = −φ`), money `M = M₀ + I`, `i = i^m = s = 0`: a model on every `[0, T]`, `T > 0` | `TidyR7MonetarismItoCexInf.infI`, `TidyR7MonetarismItoCexInf.infΛ`, `TidyR7MonetarismItoCexInf.infB`, `TidyR7MonetarismItoCexInf.infM`, `TidyR7MonetarismItoCexInf.infModel`, `TidyR7MonetarismItoCexInf.infModels` |
+| A1 §1.6, (1.33), p. 567 (economy 3: transversality holds) | `n_0B_0 = 1/3`; `E[n_TB_T] = 1/3 − ∫_0^T φ² = 0` for `T ≥ 1`, so the transversality condition holds along `T_k = k + 1`; the bracket `∫_0^T σ_Xσ_B du = −1/3` for `T ≥ 1` | `TidyR7MonetarismItoCexInf.inf_initial`, `TidyR7MonetarismItoCexInf.inf_tvc_value`, `TidyR7MonetarismItoCexInf.inf_tvc`, `TidyR7MonetarismItoCexInf.inf_bracket` |
+| A1 §1.6, (1.33), p. 567 (**counterexample: the printed (1.33) fails although transversality holds**) | the corrected (1.33) holds, `E_0[F^c_{T_k}] → 1/3 = n_0B_0`; the book's flow has `E_0[F_{T_k}] → 0`, so it converges to `n_0B_0 = 1/3` on no set of positive probability; the headline collects these | `TidyR7MonetarismItoCexInf.inf_corrected`, `TidyR7MonetarismItoCexInf.inf_book_limit`, `TidyR7MonetarismItoCexInf.inf_book_fails`, `TidyR7MonetarismItoCexInf.inf_headline` |
 
 ## Online Appendix Chapter 4, money in continuous time, pp. 635–641 (ContinuousTime)
 

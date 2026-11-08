@@ -16,7 +16,7 @@ optimisation, under perfect foresight, on a finite event tree and on a genuine p
 whose information grows forever, there without bounds on prices or plans. Continuous time is
 deterministic, except the `E_td(·)` forms, the product step and the chain (1.31)–(1.34) of Online
 Appendix §1.6 (`TidyR6StochasticDrift`, `TidyR7ProductStep`, `TidyR7MonetarismModel`,
-`TidyR7MonetarismValuation`). The library contains **2351 theorems**, including the shared core; 578 of them are in the fourteen
+`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **2429 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
@@ -25,12 +25,14 @@ uncertainty, 49 on the Hamiltonian conditions and 12 on the `E_td(·)` forms, 11
 `TidyR7Stieltjes…` modules, deterministic Riemann–Stieltjes tools for the product step of (1.32),
 28 in `TidyR7JumpSums`, the same tools for jumping integrators, 154 in the six
 `TidyR7CondDominated`/`TidyR7ProductStep…` modules that prove that product step, for continuous
-and for jumping bonds, 220 in the nine `TidyR7Monetarism…` modules that prove the chain
-(1.31) → (1.32) → (1.33)–(1.34) under uncertainty, with continuous and with jumping money,
+and for jumping bonds, 283 in the thirteen `TidyR7Monetarism…` modules that prove the chain
+(1.31) → (1.32) → (1.33)–(1.34) under uncertainty, with continuous, with jumping and with
+diffusive money and bonds,
 173 in the six `TidyR7Brownian…` modules, a Brownian motion on `[0, ∞)`, its martingale tools,
 its quadratic variation and the infinite variation of its paths, 66 of them copied from the
-Meyn–Tweedie project, and 224 in the ten `TidyR7Ito…` modules, the Itô integral `∫ H dW`,
-Itô processes and Itô's product rule with covariation.
+Meyn–Tweedie project, and 239 in the eleven `TidyR7Ito…` modules, the Itô integral `∫ H dW`,
+Itô processes, Itô's product rule with covariation and the general product step of (1.32)
+with diffusive bonds.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -326,6 +328,28 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   `H = 0` it is Track 1's product step term by term
   (`TidyR7ItoProductRule.condExp_product_rule_bv`), and for `X = Y = W` on the constructed motion
   it fails (`TidyR7ItoProductRule.not_bookForm_bmPath`).
+* **(1.32)–(1.34) with diffusive bonds.** For bonds `B` and `X = Λ/P` Itô processes on the same
+  Brownian motion, with diffusions `σ_B` and `σ_X`, the step from the middle line of (1.32) to its
+  last line is `E_t d(BX) = X dB + B E_t dX + E_t d[B, X]` with `d[B, X] = σ_Bσ_X dt`: almost
+  surely `E_s[B_tX_t − B_sX_s] = E_s[∫ Bν du + ∫ Xβ du + ∫ σ_Bσ_X du]`
+  (`TidyR7ItoBondStep.bond_step`), also as limits of conditional partition sums
+  (`TidyR7ItoBondStep.bond_step_expIncr`). The book's bracket-free step holds iff
+  `E_s[∫_s^t σ_Bσ_X du] = 0` (`TidyR7ItoBondStep.bond_step_book_iff`), and for every Itô `Λ/P` iff
+  bonds have no diffusion (`TidyR7ItoBondStep.bookForm_forall_iff`). In the money–bond model with
+  Itô `Λ/P`, bonds and money and the flow (1.31) imposed on the coefficients
+  (`TidyR7MonetarismIto.ItoMonetaryModel`; diffusive bonds force `σ_M = −σ_B`), line 1 of (1.32)
+  holds as a rate identity (`TidyR7MonetarismIto.ItoMonetaryModel.line1_1_32_rate`), line 2
+  verbatim (`TidyR7MonetarismIto.ItoMonetaryModel.middle_1_32_ito`), line 3 gains the bracket, `E_s[n_tB_t − n_sB_s] = E_s[−(∫ (Λs − i^m nM) du + ∫ n dM) + ∫ σ_Xσ_B du]`
+  (`TidyR7MonetarismIto.ItoMonetaryModel.incr_1_32_ito_general`), and holds as printed iff
+  `E_s[∫_s^t σ_Xσ_B du] = 0` (`TidyR7MonetarismIto.ItoMonetaryModel.incr_1_32_ito_book_iff`).
+  Valuation (1.33) holds iff transversality with `−∫ σ_Xσ_B du` in the flow
+  (`TidyR7MonetarismItoValuation.valuation_1_33_ito`), and as printed, under transversality, iff
+  `E_s[∫_s^{T_k} σ_Xσ_B du] → 0` (`TidyR7MonetarismItoValuation.valuation_1_33_ito_book_iff`);
+  (1.34) holds verbatim (`TidyR7MonetarismItoValuation.valuation_1_34_ito`). With `Λ/P = 1 + W`
+  and bonds `b + cW` the printed line 3 fails, `1 ≠ 0` for `c = 1`
+  (`TidyR7MonetarismItoCex.cex_headline`); with bonds and `Λ/P` diffusing on disjoint time
+  intervals it holds (`TidyR7MonetarismItoCex.disj_1_32`); on `[0, ∞)` transversality holds while
+  the printed (1.33) gives `0 ≠ 1/3` (`TidyR7MonetarismItoCexInf.inf_headline`).
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -472,9 +496,10 @@ Not formalised:
   shows that some condition is needed (`TidyR6Halkin.halkin_no_tvc`), but no counterexample inside
   the book's model is formalised and no homogeneity condition replacing it is proved. A general
   Pontryagin principle without concavity is not formalised;
-* the product step `E_td(BΛ/P)` of Online Appendix §1.6 (1.32) for bonds with a martingale or
-  diffusive (non-bounded-variation) part: that needs a stochastic integral and the bracket
-  `[X, B]`, which Mathlib does not have. A Brownian motion itself now exists
+* the product step `E_td(BΛ/P)` of Online Appendix §1.6 (1.32) for bonds with a martingale part
+  that is not an Itô process, and parts of the diffusive case. They need a stochastic integral
+  and the bracket `[X, B]`, which Mathlib does not have; both are built here. A Brownian motion
+  exists
   (`TidyR7BrownianExist.exists_isBrownianReal`), with its martingale tools, and its bracket
   `[W]_t = t` is proved (in `L²`, in probability, almost surely along dyadic partitions and
   conditionally, `TidyR7BrownianQV`); its paths have infinite variation almost surely, so the
@@ -494,25 +519,41 @@ Not formalised:
   (`TidyR7ItoProductRule.condExp_product_rule`) and in the expected-increment form
   (`TidyR7ItoProductRule.expected_increment_product_rule`); the book's bracket-free form holds
   iff `E_s[∫_s^t HK du] = 0` (`TidyR7ItoProductRule.condExp_product_rule_bookForm_iff`) and
-  fails for `X = Y = W` (`TidyR7ItoProductRule.not_bookForm_bmPath`). What still remains for
-  (1.32) with diffusive bonds is the general product step in the book's economy. Not proved: the
-  isometry in the Fubini form `∫_s^t E[H_u²] du` (for unbounded integrands only as the limit of
-  its Riemann sums); adaptedness of the continuous modification, which is built for one fixed
-  `T` and bounded integrands, with no single version on `[s, ∞)`; Itô processes whose drift or
-  diffusion is unbounded or merely measurable (the coefficients are bounded with almost surely
-  continuous paths, so `uW_u`, whose drift `W_u` is unbounded, is not covered); integrands `X·Y`
-  with both factors unbounded (only `X·K` with `K` bounded); the bracket in `L²` (only in
-  `L¹`); `Σ ΔXΔB → 0` for a general continuous bounded-variation `B` (only for `B` an Itô
-  process with zero diffusion); a general Itô formula for `f(X)` (only `x²`), which `Λ/P`
-  obtained from `1/P` with nonzero drift would need. `TidyR7ProductStep.ProductStepData` still
-  cannot take `M = ∫ K dW` or a Brownian `W`: it needs càdlàg paths for every `ω` and an
-  integrable `pathSup·Var`, and no adapted path-regular version is proved; only the
-  term-by-term match with its product step is (`TidyR7ItoProductRule.condExp_product_rule_bv`).
-  The cross variation of two Brownian motions is not proved, and only Kolmogorov's maximal
-  inequality on finite grids is proved (enough for continuity), with no Doob bound for
-  `sup_{[s,T]} |∫ H dW|` (needed for a product-step instance with `M = W`); no measurable
-  modification of an arbitrary `IsBrownianReal` and no
-  usual augmentation of its filtration are proved. Adapted bonds of bounded variation are covered, with
+  fails for `X = Y = W` (`TidyR7ItoProductRule.not_bookForm_bmPath`). The general step in the
+  book's economy is done: for Itô bonds and Itô `Λ/P` the step has the bracket
+  `E_t d[B, Λ/P] = σ_Bσ_X dt`
+  (`TidyR7ItoBondStep.bond_step`), and (1.32)–(1.34) hold in `TidyR7MonetarismIto.ItoMonetaryModel`
+  with the bracket in line 3 of (1.32) and in the flow of (1.33)
+  (`TidyR7MonetarismIto.ItoMonetaryModel.incr_1_32_ito_general`,
+  `TidyR7MonetarismItoValuation.valuation_1_33_ito`, `TidyR7MonetarismItoValuation.valuation_1_34_ito`).
+  What remains: a positive diffusive `Λ/P` (the counterexamples' `Λ/P = 1 + W` and `1 + ∫ φ dW`
+  can be negative; a positive one such as `exp(W − t/2)` has an unbounded diffusion coefficient
+  and needs a general Itô formula for `f(X)`, of which only `x²` is proved, or solutions of SDEs;
+  the algebra of (1.32) uses only `P ≠ 0`, and positivity of `Λ` enters only the division by
+  `Λ_s`, `TidyR7MonetarismItoValuation.real_form_ito`); Itô processes whose drift or diffusion is
+  unbounded or merely measurable (the coefficients are bounded with almost surely continuous
+  paths, so the drift `−i·n` of `Λ/P` must be bounded, and `uW_u`, whose drift `W_u` is
+  unbounded, is not covered); pathwise time integrals in the model statements (they use the
+  mean-square `TidyR7ItoProducts.dtInt`, which equals the pathwise integral a.s. for a.s.
+  continuous paths, `TidyR7ItoProducts.dtInt_ae_eq_integral`, but the statements are not
+  restated); the dominated form of (1.33) with the bracket (only the limit and `L¹` forms);
+  several Brownian motions (the cross variation of two Brownian motions is not proved); a unified
+  model with both jumps and diffusion (the jump and the diffusive corrections of (1.32) are proved
+  in separate models, `TidyR7MonetarismJump.JumpMonetaryModel` and
+  `TidyR7MonetarismIto.ItoMonetaryModel`); `M = ∫ K dW` or a Brownian `W` in
+  `TidyR7ProductStep.ProductStepData`, which needs càdlàg paths for every `ω` and an integrable
+  `pathSup·Var`, with no adapted path-regular version proved (only the term-by-term match with
+  its product step is, `TidyR7ItoProductRule.condExp_product_rule_bv`); the isometry in the
+  Fubini form `∫_s^t E[H_u²] du` (for unbounded integrands only as the limit of its Riemann sums);
+  the bracket in `L²` (only in `L¹`); a Doob bound for `sup_{[s,T]} |∫ H dW|` (only
+  Kolmogorov's maximal inequality on finite grids, enough for continuity; needed for a
+  product-step instance with `M = W`). Infrastructure that the results above do not use is also
+  not proved: adaptedness of the continuous modification, which is built for one fixed `T` and
+  bounded integrands, with no single version on `[s, ∞)`; integrands `X·Y` with both factors
+  unbounded (only `X·K` with `K` bounded); `Σ ΔXΔB → 0` for a general continuous
+  bounded-variation `B` (only for `B` an Itô process with zero diffusion); a measurable
+  modification of an arbitrary `IsBrownianReal` and the usual augmentation of its filtration.
+  Adapted bonds of bounded variation are covered, with
   continuous paths (`TidyR7ProductStep.ProductStepData.product_step`) and with càdlàg paths that
   jump together with `Λ/P` (`TidyR7ProductStepJump.JumpStepData.jump_step`). The domination and
   integrability conditions of `TidyR7ProductStep.ProductStepData` and
@@ -627,6 +668,11 @@ Not formalised:
 | [TidyR7ItoProcess](Monetarism/TidyR7ItoProcess.lean) | 18 | A1 §1.6, pp. 567–568 (bonds and `Λ/P` in (1.32) with diffusive bonds): Itô processes `X_s + ∫ a dr + ∫ H dW`, their increments and mean-square modulus, Itô processes as mean-square continuous integrands, the drift error, `L²`/`L¹` tools |
 | [TidyR7ItoCovariation](Monetarism/TidyR7ItoCovariation.lean) | 14 | A1 §1.6, (1.32), pp. 567–568: `Σ X_iΔY_i → ∫ X b du + ∫ X K dW` in `L²`, the bracket `Σ ΔX_iΔY_i → ∫ HK du` in `L¹`, and no bracket when one factor has no diffusion |
 | [TidyR7ItoProductRule](Monetarism/TidyR7ItoProductRule.lean) | 22 | A1 §1.6, (1.32), pp. 567–568: Itô's product rule with covariation (a.s., conditional on `𝓕_s`, expected-increment form), Itô's formula for `x²`, the book's bracket-free form iff `E_s∫HK du = 0`, the link to Track 1's product step, `W` and the clock as Itô processes, and the failure of the book form for `X = Y = W` |
+| [TidyR7ItoBondStep](Monetarism/TidyR7ItoBondStep.lean) | 15 | A1 §1.6, (1.32), p. 567: the general product step for Itô bonds and Itô `Λ/P` with the bracket `σ_Bσ_X dt` (conditional and expected-increment forms), the book's step iff `E_s∫σ_Bσ_X du = 0`, and for every Itô `Λ/P` iff bonds have no diffusion; linearity of the mean-square time integral |
+| [TidyR7MonetarismIto](Monetarism/TidyR7MonetarismIto.lean) | 16 | A1 §1.6, (1.31)–(1.34), pp. 567–568: the money–bond model with Itô `Λ/P`, bonds and money (`σ_M = −σ_B`, `B + M` locally riskless); lines 1–2 of (1.32) verbatim, line 3 corrected with the bracket and as printed iff its conditional mean vanishes; the line before (1.34) verbatim |
+| [TidyR7MonetarismItoValuation](Monetarism/TidyR7MonetarismItoValuation.lean) | 15 | A1 §1.6, (1.33)–(1.34), p. 567: the finite-horizon budget with the bracket; the corrected (1.33) iff transversality (limit and `L¹` forms); the printed (1.33) under transversality iff the bracket vanishes in the limit; (1.34) verbatim |
+| [TidyR7MonetarismItoCex](Monetarism/TidyR7MonetarismItoCex.lean) | 19 | A1 §1.6, (1.31)–(1.34), pp. 567–568: on the constructed motion, `Λ/P = 1 + W` with bonds `b + cW` breaks the printed line 3 of (1.32) (`1 ≠ 0` at `c = 1`) while the corrected line and (1.34) hold; bonds and `Λ/P` diffusing on disjoint intervals satisfy the printed (1.32) and (1.33) |
+| [TidyR7MonetarismItoCexInf](Monetarism/TidyR7MonetarismItoCexInf.lean) | 13 | A1 §1.6, (1.32)–(1.33), p. 567: on `[0, ∞)` with bonds diffusing against `Λ/P`, transversality and the corrected (1.33) hold while the printed (1.33) fails (`0 ≠ 1/3`) |
 
 ## Modelling conventions
 

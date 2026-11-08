@@ -92,3 +92,8 @@ import Monetarism.TidyR7ItoProducts
 import Monetarism.TidyR7ItoProcess
 import Monetarism.TidyR7ItoCovariation
 import Monetarism.TidyR7ItoProductRule
+import Monetarism.TidyR7ItoBondStep
+import Monetarism.TidyR7MonetarismIto
+import Monetarism.TidyR7MonetarismItoValuation
+import Monetarism.TidyR7MonetarismItoCex
+import Monetarism.TidyR7MonetarismItoCexInf
