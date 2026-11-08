@@ -13,11 +13,15 @@ Discrete-time results hold for an arbitrary expectation operator, so they cover 
 and genuine uncertainty: random variables are functions `Ω → ℝ`, processes are `ℕ → Ω → ℝ`, every
 equation holds state by state, present values are genuine infinite sums and surpluses are signed.
 Continuous-time results are deterministic, with paths `ℝ → ℝ`, present values as improper
-integrals, and a price level free to jump at the initial date. The common thread is one theorem in
-many settings: **the flow condition plus the transversality condition at every date hold iff the
-real value of the debt equals the present value of surpluses at every date**, and then the
-valuation equation determines the price level. The library contains **782 theorems**, including
-the shared core; 674 of them are in the seventeen chapter modules.
+integrals, and a price level free to jump at the initial date, except for the diffusions and jumps
+of (3.44)–(3.45) and A1.4–A1.5, which are treated on a probability space with Itô processes driven
+by a Brownian motion and with càdlàg martingales; the Brownian, Itô and jump modules are copied
+from the Monetarism project. The common thread is one theorem in many settings: **the flow
+condition plus the transversality condition at every date hold iff the real value of the debt
+equals the present value of surpluses at every date**, and then the valuation equation determines
+the price level. The library contains **1525 theorems**, including the shared core and 660 in the
+twenty-five copied Brownian, Itô and jump modules; 757 of them are in the twenty-one chapter
+modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises.
@@ -88,6 +92,30 @@ Headline results, in the namespace `Cochrane.Generality`:
   (`ContinuousLinear.short_limit`, E20); and the money valuations (3.53)–(3.55)
   (`ContinuousMoney.money_printing_iff`, `ContinuousMoney.money_interest_iff`,
   `ContinuousMoney.money_mixed_iff`).
+* **Diffusions and jumps ((3.44)–(3.45), A1.4–A1.5).** With the discount factor `Λ` and the value
+  of debt `V` Itô processes driven by one Brownian motion
+  (`TidyR7ItoDiscountFactor.ItoDiscountModel`), the book's expanded
+  `E_t[dΛ/Λ + dW/W + dΛdW/(ΛW)] = 0` is a coefficient identity
+  (`TidyR7ItoDiscountFactor.pricing_rate_iff`), and `E_t[d(ΛV)] = −Λs dt`, `E_t[d(ΛW)] = 0` and
+  the martingale property of `ΛW` hold (`TidyR7ItoDiscountFactor.ItoDiscountModel.step`,
+  `TidyR7ItoDiscountFactor.ItoDiscountModel.step_W`,
+  `TidyR7ItoDiscountFactor.ItoDiscountModel.martingale_W`). **A1.5 holds verbatim with
+  diffusions** because the book keeps `dΛdW`: dropping it is right iff the expected bracket
+  vanishes (`TidyR7ItoDiscountFactor.ItoDiscountModel.bookForm_iff`), and fails on the constructed
+  Brownian motion (`TidyR7ItoDiscountFactorCex.w_bookForm_fails`). Valuation iff transversality
+  holds with diffusions (`TidyR7ItoDiscountFactor.ItoDiscountModel.valuation_seq`), in an economy
+  with a nonzero bracket in which both hold (`TidyR7ItoDiscountFactorCex.v_valuation`), and the
+  middle line of A1.4 for short-term debt holds verbatim
+  (`TidyR7ItoDiscountFactor.ItoDiscountModel.shortDebt_step`). (3.45) is exact to first order,
+  not at finite intervals: the innovation is `∫σdW` plus the unexpected part of the drift
+  (`TidyR7ItoInnovation.innovation_eq`), which has mean square at most `(2C(t − s))²`
+  (`TidyR7ItoInnovation.innovation_sq_le`). The AR(1) surplus solves `ds = −ηs dt + σdε`
+  (`TidyR7ItoInnovation.ou_sde`), its forecasts follow (3.44) (`TidyR7ItoInnovation.forecast_sde`),
+  and the innovation of its present value is `σ/(r + η)dε` to first order
+  (`TidyR7ItoInnovation.pv_innovation`). With jumps, `dΛdW` is the jump covariation `ΔΛΔW`
+  (`TidyR7JumpDiscountFactor.jump_pricing_iff`), and dropping it fails on a coin
+  (`TidyR7JumpDiscountFactor.coin_jump_bookForm_fails`). The Brownian, Itô and jump modules are
+  copied, with only the namespace renamed, from the Monetarism project.
 * **The simplest model by undetermined coefficients (A1.9.1).** The bounded-debt equilibrium
   exists and is unique, and bounded debt holds iff debt is the forward solution
   (`MSV.msv_exists`, `MSV.msv_unique`, `MSV.msv_determinacy`). Inflation is
@@ -168,10 +196,17 @@ Not formalised:
   the seigniorage numbers beyond their arithmetic;
 * the remark of p. 66 that §3.5.2 "agrees with (2.13)": projects do not import each other, and
   `LogLinearIdentities.special_constant_short` is the statement on this side;
-* diffusions and jumps, (3.44)–(3.45): Mathlib has no stochastic integral. Continuous time is
-  deterministic, an innovation is the difference between two perfect-foresight paths
-  (`ContinuousLinear.Eqm.LinearEqm`), and `E_t[d(ΛW)] = 0` is stated as `(ΛW)' = 0`
-  (`ContinuousLong.Lambda_W_const`);
+* (3.44)–(3.45) and A1.4–A1.5 are proved for Itô processes with bounded coefficients and one
+  Brownian motion (`TidyR7ItoDiscountFactor`, `TidyR7ItoInnovation`), and for compensated jumps
+  (`TidyR7JumpDiscountFactor`); remaining: the pathwise `d(V/W) = −(s/W)dt` and (1.28) with
+  diffusions, which need Itô's formula for `1/W`; the converse, that a martingale `ΛW` forces the
+  coefficient identity; positivity of `Λ` (the Gaussian discount factors of the examples can be
+  negative); `E_t∫_0^∞e^{−rτ}s_{t+τ}dτ` for the stochastic AR(1) path, which needs a conditional
+  Fubini theorem (the present value is taken over the forecast path,
+  `TidyR7ItoInnovation.pv_expected_path`); the real form `B/P = E_t∫(Λ_τ/Λ_t)s_τdτ` of A1.4; with
+  jumps, an instance with `E_t[d(ΛW)] = 0` and a nonzero jump covariation, and any jump-diffusion
+  model; and stochastic versions of the innovation identities (3.46)–(3.51), which remain
+  differences between two perfect-foresight paths (`ContinuousLinear.Eqm.LinearEqm`);
 * a Gaussian instance of `TidyR6InnovMeasure.MGrowthEconomy`. The almost-everywhere theorems
   are universally quantified, and `TidyR6InnovMeasure.L2Growth.toL1` covers stationary `L²`
   processes, but no Gaussian economy is constructed.
@@ -211,6 +246,35 @@ Stated limits of the results that are formalised:
 | [TidyR6InnovGrowth](Generality/TidyR6InnovGrowth.lean) | 38 | §3.5, A1.3: (3.20) iff `L_t = ρL_{t+1}`; `ρ = 1` with a common mean; (3.19)–(3.28) for growth `γ < 1/ρ`; counterexamples at `γ = 1/ρ` and `γ = 1/\|ω̂\|` |
 | [TidyR6Fig31Equilibrium](Generality/TidyR6Fig31Equilibrium.lean) | 15 | §3.5.3, A1.3: the full linear model, existence and uniqueness of equilibrium; Figure 3.1, announcements and the expected rise as equilibrium responses; a coin-flip instance |
 | [TidyR6InnovMeasure](Generality/TidyR6InnovMeasure.lean) | 30 | §3.5, A1.3 on a measure space with a filtration: (3.18)–(3.28) almost everywhere for integrable processes with `L¹` (or `L²`) growth `γ < 1/ρ` |
+| [TidyR7BrownianSchauder](Generality/TidyR7BrownianSchauder.lean) | 53 | Copied from the Monetarism project: the Lévy–Ciesielski construction on `[0,1]` (originally from the Meyn–Tweedie project): Schauder functions, the covariance identity `Σ_m S_m(s)S_m(t) = min s t`, Gaussian sums and their limits, uniform convergence almost surely to a path continuous for every `ω` |
+| [TidyR7BrownianUnit](Generality/TidyR7BrownianUnit.lean) | 13 | Copied from the Monetarism project: Brownian motion on `[0,1]` (originally from the Meyn–Tweedie project): continuous paths from `0`, finite-dimensional laws, Mathlib's `IsGaussianProcess`, `B(t) ~ N(0, t)`, `Cov(B s, B t) = min s t` |
+| [TidyR7BrownianExist](Generality/TidyR7BrownianExist.lean) | 17 | Copied from the Monetarism project: a Brownian motion on `[0, ∞)` exists (Mathlib's `IsBrownianReal`), by the time change `(1+t)B(t/(1+t)) − tB(1)`, with every path continuous: `bmPath`, the driving motion of the non-vacuity theorems |
+| [TidyR7BrownianTools](Generality/TidyR7BrownianTools.lean) | 25 | Copied from the Monetarism project: for any pre-Brownian motion: moments of increments, the natural filtration, increments independent of the past, `W` and `W_t² − t` martingales; the bridge to the index `ℝ` (`bmReal`) |
+| [TidyR7StieltjesIntegral](Generality/TidyR7StieltjesIntegral.lean) | 44 | Copied from the Monetarism project: the Riemann–Stieltjes integral `∫_a^b f dg` from Mathlib's Lebesgue–Stieltjes vector measure: atoms, linearity, the bound `sup\|f\|·Var(g)`, additivity over intervals, càdlàg functions |
+| [TidyR7StieltjesSums](Generality/TidyR7StieltjesSums.lean) | 34 | Copied from the Monetarism project: partitions and their mesh; convergence of left-point Riemann–Stieltjes sums for continuous `f`, or càdlàg `f` with continuous `g`; the cross sum vanishes and needs continuous `g`; dyadic partitions |
+| [TidyR7BrownianQV](Generality/TidyR7BrownianQV.lean) | 48 | Copied from the Monetarism project: quadratic variation of a pre-Brownian motion along partitions: `E(ΔW)² = Δt`, `Var((ΔW)²) = 2Δt²`, admissible filtrations, `Σ(ΔW_i)² → t − s` in `L²`, in probability and a.s. along dyadic partitions, `(dW)² = dt` in `L²` |
+| [TidyR7StieltjesVariation](Generality/TidyR7StieltjesVariation.lean) | 21 | Copied from the Monetarism project: the variation of a right-continuous path over a countable set; `ω ↦ Var_{[a,b]}(g(ω, ·))` is measurable; the degenerate interval `[a, a]` |
+| [TidyR7CondDominated](Generality/TidyR7CondDominated.lean) | 14 | Copied from the Monetarism project: conditional dominated convergence almost surely; the measurable path supremum `sup_{[s,t]}\|X\|`; partition sequences with mesh tending to `0` |
+| [TidyR7ItoL2](Generality/TidyR7ItoL2.lean) | 20 | Copied from the Monetarism project: mean-square convergence: completeness of `L²` with an adapted limit, uniqueness and linearity of limits, an `L²` and an a.s. limit agree, Cauchy–Schwarz, Riemann sums, mean-square uniform continuity |
+| [TidyR7ItoSums](Generality/TidyR7ItoSums.lean) | 44 | Copied from the Monetarism project: increments orthogonal to the past, elementary integrals, left-point sums, the discrete Itô isometry and its conditional form, the common refinement and the Cauchy estimate, concatenation |
+| [TidyR7ItoIntegral](Generality/TidyR7ItoIntegral.lean) | 32 | Copied from the Monetarism project: admissible integrands; the Itô integral `itoInt` as an adapted mean-square limit along any partitions; the Itô isometry, linearity, additivity over intervals, the martingale property and the conditional isometry |
+| [TidyR7StieltjesCalculus](Generality/TidyR7StieltjesCalculus.lean) | 11 | Copied from the Monetarism project: the exact partition identity for products, integration by parts, domination of the sums, measurability of `ω ↦ ∫_a^b f(ω) dg(ω)` |
+| [TidyR7ItoBridge](Generality/TidyR7ItoBridge.lean) | 16 | Copied from the Monetarism project: for bounded-variation integrands the Itô integral is the pathwise integral by parts; Wiener integrals of deterministic integrands and their isometry; `∫_s^t W dW = (W_t² − W_s² − (t − s))/2`, not the Stratonovich value |
+| [TidyR7ItoUnbounded](Generality/TidyR7ItoUnbounded.lean) | 23 | Copied from the Monetarism project: mean-square continuous integrands without bound or path regularity (`MSIntegrand`): the `L²` cell identity, existence of `∫ G dW` along any partitions, the isometry as a limit of Riemann sums, `E_r ∫_r^t G dW = 0` |
+| [TidyR7ItoProducts](Generality/TidyR7ItoProducts.lean) | 19 | Copied from the Monetarism project: products with bounded admissible integrands are mean-square continuous; `∫ ZK dW = Z∫ K dW` for square-integrable `𝓕_r`-measurable `Z`; the mean-square time integral `dtInt` and its agreement with the pathwise one |
+| [TidyR7ItoProcess](Generality/TidyR7ItoProcess.lean) | 18 | Copied from the Monetarism project: Itô processes `X_s + ∫ a dr + ∫ H dW` (`ItoProcess`), their increments and mean-square modulus, Itô processes as mean-square continuous integrands, the drift error, `L²` and `L¹` tools |
+| [TidyR7ProductStep](Generality/TidyR7ProductStep.lean) | 35 | Copied from the Monetarism project: the product step in expectation form for an adapted continuous bounded-variation `B` and an integrator equal to a bounded-variation part plus a martingale; the pathwise and discrete identities, limits along any partitions, the expected-increment integral |
+| [TidyR7ItoCovariation](Generality/TidyR7ItoCovariation.lean) | 14 | Copied from the Monetarism project: left-point sums of one Itô process against another converge in `L²`, the bracket `Σ ΔX_iΔY_i → ∫ HK du` in `L¹`, and no bracket when one factor has no diffusion |
+| [TidyR7ItoProductRule](Generality/TidyR7ItoProductRule.lean) | 22 | Copied from the Monetarism project: Itô's product rule with covariation (a.s., conditional on `𝓕_s`, expected-increment form), Itô's formula for `x²`, the bracket-free form iff `E_s∫HK du = 0`, the link to the bounded-variation product step, `W` and the clock as Itô processes, and the failure of the bracket-free form for `X = Y = W` |
+| [TidyR7ItoBondStep](Generality/TidyR7ItoBondStep.lean) | 15 | Copied from the Monetarism project: the product step for an Itô bond position and an Itô discount factor with the bracket `σ_Bσ_X dt` (conditional and expected-increment forms), the bracket-free step iff its conditional mean vanishes, and for every Itô discount factor iff bonds have no diffusion; linearity of the mean-square time integral |
+| [TidyR7ItoDiscountFactor](Generality/TidyR7ItoDiscountFactor.lean) | 22 | §3.6, (3.31)–(3.36), (3.44), A1.4–A1.5, pp. 70–77, 564–566: `Λ` and `V` as Itô processes with the pricing condition on the coefficients; the book's expanded forms; (1.27); `E_t[d(ΛV)] = −Λs dt`, `E_t[d(ΛW)] = 0` and the martingale `ΛW`; the bracket-free step iff the bracket vanishes; valuation iff transversality with diffusions; A1.4 short-term debt and its middle line |
+| [TidyR7ItoDiscountFactorCex](Generality/TidyR7ItoDiscountFactorCex.lean) | 32 | §3.6, A1.4–A1.5, pp. 70–77, 564–566: non-vacuity on the constructed motion: economy W (`E[Λ_1W_1] = 2 = Λ_0W_0`, bracket `3/4`) and economy V (transversality, valuation `7/16`, bracket `−1/3`), the bracket-free step failing in both; `σ = 0` recovers `ContinuousLong` |
+| [TidyR7ItoInnovation](Generality/TidyR7ItoInnovation.lean) | 22 | §3.6.3, (3.44)–(3.45), pp. 76–77: `E_tdx = μdt`; the innovation is `∫σdW` plus the unexpected drift, exact to first order; the AR(1) surplus, its SDE, forecasts, innovation and present-value innovation `σ/(r + η)dε`; the link with `ContinuousLinear.ar1_news` |
+| [TidyR7ProductStepCoin](Generality/TidyR7ProductStepCoin.lean) | 24 | Copied from the Monetarism project: non-vacuity of the product step on a fair coin revealed at time `1` (random bonds, nonzero martingale part, `1 = 1 + 0`); adaptedness of the bonds cannot be dropped; the coin filtration and martingale used by the jump examples |
+| [TidyR7JumpSums](Generality/TidyR7JumpSums.lean) | 28 | Copied from the Monetarism project: Riemann–Stieltjes sums against a càdlàg bounded-variation integrator: left-point sums tend to `∫ f_− dg`, right-point sums to `∫ f dg`, cross sums to the absolutely convergent jump covariation `Σ_u Δf_uΔg_u = ∫ f dg − ∫ f_− dg` |
+| [TidyR7ProductStepJump](Generality/TidyR7ProductStepJump.lean) | 43 | Copied from the Monetarism project: the corrected product step for adapted càdlàg bounded-variation positions, with the jump covariation as a third term (`JumpStepData`); its two-term Lebesgue–Stieltjes form; the left-point step holds iff the expected jump covariation vanishes; continuous positions recover `TidyR7ProductStep` |
+| [TidyR7ProductStepJumpCoin](Generality/TidyR7ProductStepJumpCoin.lean) | 27 | Copied from the Monetarism project: on the coin, positions jumping with the news break the left-point step (`1 ≠ 0`), positions jumping with the drift part break the two-term Lebesgue–Stieltjes step (`1 ≠ 1 + 1`); the corrected step holds in both and with a non-shared jump |
+| [TidyR7JumpDiscountFactor](Generality/TidyR7JumpDiscountFactor.lean) | 7 | (3.44)–(3.45) and A1.5, pp. 76–77, 566, with jumps: `E_t[d(ΛW)] = 0` with the jump covariation `ΔΛΔW`, the bracket-free step failing on a coin; the innovation of a compensated jump |
 
 ## Modelling conventions
 
@@ -244,7 +308,8 @@ Stated limits of the results that are formalised:
   The bond-return weight is a free parameter `ω̂` (`LogLinearIdentities.BondRet`): `ω/(1+i)` for
   the exact derivative, `ω` for the book's (1.24).
   Innovations are `LogLinearIdentities.innov`, `ΔE_{t+1} = E_{t+1} − E_t`.
-* **Continuous time.** Paths are deterministic functions `ℝ → ℝ`. Rates and surpluses are
+* **Continuous time.** Outside the diffusion and jump modules, paths are deterministic functions
+  `ℝ → ℝ`. Rates and surpluses are
   continuous on `[t, ∞)`; values are continuous on `[t, ∞)` and differentiable on `(t, ∞)`, so
   the price level may jump at `t` (`ContinuousShort.FlowOn`). The discount function is
   `D(t,τ) = exp(−∫_t^τ r)` (`ContinuousShort.disc`), present values are improper integrals under
@@ -255,7 +320,19 @@ Stated limits of the results that are formalised:
   (`ContinuousLong.bondPrice`). The book's density `ϖe^{−ϖj}B` differs by the constant `ϖ`, which
   leaves price ratios unchanged. `ω = 0` is the perpetuity; `ω → ∞` is instantaneous debt.
 * **Innovations in continuous time** are differences between an old and a new perfect-foresight
-  equilibrium of the linearised model from the news date on (`ContinuousLinear.Eqm.LinearEqm`).
+  equilibrium of the linearised model from the news date on (`ContinuousLinear.Eqm.LinearEqm`);
+  `TidyR7ItoInnovation` uses the stochastic innovation `x_t − E_sx_t` and links the two
+  (`TidyR7ItoInnovation.news_link`).
+* **Diffusions and jumps.** `TidyR7ItoDiscountFactor` and `TidyR7ItoInnovation` work with one
+  pre-Brownian motion with measurable values and an admissible filtration
+  (`TidyR7BrownianQV.BMFiltration`); `Λ`, `V` and `x` are Itô
+  processes on a bounded interval `[s, t]`, `0 ≤ s`, with bounded, adapted, almost surely
+  continuous drift and diffusion (`TidyR7ItoProcess.ItoProcess`), and the pricing condition is
+  imposed on the coefficients (`TidyR7ItoDiscountFactor.ItoDiscountModel`). Infinite-horizon
+  statements take the model on every `[s, T]`. Non-vacuity uses the constructed motion
+  `TidyR7BrownianExist.bmPath`. `TidyR7JumpDiscountFactor` takes a càdlàg bounded-variation
+  return and a discount factor equal to a càdlàg bounded-variation part plus a càdlàg martingale
+  (`TidyR7ProductStepJump.JumpStepData`).
 * **Money in continuous time** is discounted with the nominal factor `N = Λ/P`, `N' = −iN`, so the
   price level itself need not be differentiable (`ContinuousMoney`).
 
