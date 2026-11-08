@@ -87,3 +87,8 @@ import Monetarism.TidyR7ItoSums
 import Monetarism.TidyR7ItoIntegral
 import Monetarism.TidyR7ItoBridge
 import Monetarism.TidyR7ItoContinuity
+import Monetarism.TidyR7ItoUnbounded
+import Monetarism.TidyR7ItoProducts
+import Monetarism.TidyR7ItoProcess
+import Monetarism.TidyR7ItoCovariation
+import Monetarism.TidyR7ItoProductRule
