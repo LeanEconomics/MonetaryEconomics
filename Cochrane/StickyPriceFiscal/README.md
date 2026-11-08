@@ -13,11 +13,13 @@ holds under perfect foresight and under genuine uncertainty. The discrete-time m
 restated in a genuine probability model, with Mathlib's conditional expectation: §5.5 in
 `PolicyRulesMeasure`, `PolicyRulesMeasureNews` and `PolicyRulesMeasureStationary`, and §§5.1–5.4,
 5.6, the responses and Table 5.1 in the TidyR6Meas modules. The continuous-time models (§5.7)
-are about deterministic paths after a date-0 shock, which is how the book computes its responses.
+are about deterministic paths after a date-0 shock, which is how the book computes its responses;
+§§5.7–5.7.1 are also solved with Brownian shocks, with the Itô integral of the Brownian and Itô
+modules copied from the Monetarism project (by way of the FiscalConstraints project).
 "Determinate" means that exactly one bounded equilibrium exists for every admissible forcing and
-initial condition. The library contains **1431 theorems**, including the shared core; 1215 of them
-are in the forty-three chapter modules, 108 of these in a verbatim copy of the Woodford Chapter 4
-Blanchard–Kahn theorem (`BKCopy`).
+initial condition. The library contains **1891 theorems**, including the shared core and 357 in
+the twelve copied Brownian and Itô modules; 1318 of them are in the forty-six chapter modules, 108
+of these in a verbatim copy of the Woodford Chapter 4 Blanchard–Kahn theorem (`BKCopy`).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E19–E54 refer to the
@@ -180,6 +182,31 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
   exactly one member, with no price-level jump (`CTSimple.ct_equilibrium_exists_unique`,
   `CTSimple.ct_no_price_jump`); the step example (5.96) and its frictionless limit follow
   (`CTSimple.ct_step_solution`, `CTSimple.ct_price_limit`).
+* **Brownian shocks (§§5.7–5.7.1).** With diffusive shocks `dε_m = σ_i dW`, `dε_s = σ_s dW` for
+  one Brownian motion `W`, the model is solved explicitly on every continuous path: with the
+  Ornstein–Uhlenbeck noise `Y_t = ∫_0^t e^{−λ₂(t−u)}dW_u` (pathwise, by parts) and
+  `A = −(r + λ₂)σ_s/r`, `π = σ_iW + AY`, `x = (ρσ_iW + λ₁AY)/κ`, `v = (σ_s/r)(W − Y)` and
+  `p = ∫π` (`TidyR7StochCTPath.path_solves`). The book's `E_t d`-equations hold,
+  `E_t[x_T − x_t] = E_t∫_t^T σ(i − π)`, `E_t[π_T − π_t] = E_t∫_t^T (ρπ − κx)`,
+  `E_tΔi = E_tΔs̃ = 0`, with the `v` and `p` equations on every path and expectational errors
+  `dδx = R_x(0)dW`, `dδπ = R_π(0)dW` (`TidyR7StochCTBrownian.ito_book_equations`,
+  `TidyR7StochCTBrownian.expectational_errors`). **The `dW` loadings are the impulse responses**:
+  a.s. `π_T = ∫_0^T R_π(T − u)dW_u`, and likewise for `x` and `v`, where `R` is the book's
+  deterministic step response (5.96) (`TidyR7StochCTBrownian.responses_ito`,
+  `TidyR7StochCTPath.resp_eq_ct_step`); forecasts are moving averages of past shocks weighted by
+  the responses, and news loads on them (`TidyR7StochCTBrownian.condExp_responses`,
+  `TidyR7StochCTBrownian.news_responses`). The valuation equation (5.95) and the transversality
+  condition hold at every date, in `L¹` (`TidyR7StochCTBrownian.valuation_L1`,
+  `TidyR7StochCTBrownian.tvc_L1`). No covariation correction is needed: `v` and `p` are `C¹` on
+  every path, so their brackets with `W` vanish (`TidyR7StochCTBrownian.crossSum_v_tendsto_zero`).
+  With debt as the state, every equilibrium obeys the feedback rule (5.96)
+  (`TidyR7StochCTUnique.feedback_rule`); among adapted processes with continuous paths and `E|·|`
+  growing at most linearly, the equilibrium exists and is unique
+  (`TidyR7StochCTUnique.stochCTEq_exists`, `TidyR7StochCTUnique.stochCTEq_unique`), and on the
+  constructed Brownian motion debt is genuinely random (`TidyR7StochCTBrownian.bmPath_v_nondegenerate`).
+  The Brownian and Itô modules are copied from the Monetarism project (by way of
+  FiscalConstraints), and some FiscalConstraints Ornstein–Uhlenbeck and Wiener-integral lemmas are
+  restated in `TidyR7StochCTPath` and `TidyR7StochCTBrownian`.
 * **Long-term debt (Fig. 5.10).** `π₀ = 1 − (r + λ₂)/(r + ω)`, negative iff `ω < λ₂`, with a
   smooth frictionless limit and longer disinflation for stickier prices
   (`CTSimple.fig510`, `CTSimple.fig510_initial_disinflation`, `CTSimple.fig510_price_limit`,
@@ -394,10 +421,15 @@ Not formalised:
   sequence);
 * the P/M selector notation of App. §1.13, replaced by component-by-component statements
   (`TidyR6MatrixMethod.Good`);
-* stochastic continuous time: `dε` and `dδ` are jumps at the news date (and, in
-  `TidyR6OperatorCalculus`, bounded continuous shock densities) followed by perfect foresight, as
-  in the book's responses, not diffusions; diffusions need Itô integrals and Itô's formula, which
-  Mathlib lacks;
+* stochastic continuous time beyond §§5.7–5.7.1: only (5.85)–(5.96) are solved with diffusive
+  shocks, and with one Brownian motion driving both (`dε_m = σ_i dW`, `dε_s = σ_s dW`), so the
+  cross variation of two Brownian motions never arises. In §§5.7.2–5.7.5 (the s-shaped surplus
+  (5.97)–(5.101), the price-level diffusion `βs dε` of p. 168, long-term debt, the rules and
+  coordination) `dε` and `dδ` are still jumps at the news date (and, in `TidyR6OperatorCalculus`,
+  bounded continuous shock densities) followed by perfect foresight. The frictionless limit
+  `κ → ∞` of the stochastic price level is not taken, and the integral forms of p. 163,
+  `x_t = −σE_t∫(i − π)` and `π_t = κE_t∫e^{−ρτ}x`, are not proved under uncertainty (the first
+  needs `x_∞ = 0`, which fails for a permanent rate shock when `ρ ≠ 0`, since `R_x(τ) → ρσ_i/κ`);
 * `CTSimple.tvc_iff_forward` from `NonlinearCT.tvc_iff_integral` itself for interior-discontinuous
   forcing: the theorem as stated assumes a continuous surplus and provably cannot reach such data
   (`TidyR5TVC.witness_not_covered`). The full CTSimple theorem is derived instead from the same
@@ -457,6 +489,21 @@ Not formalised:
 | [TidyR6MeasResponses](StickyPriceFiscal/TidyR6MeasResponses.lean) | 8 | §§5.1.2–5.3, Figs. 5.1, 5.3: forecasts are perfect-foresight equilibria; the responses as forecast revisions; the Fisherian long run and the impact sign |
 | [TidyR6MeasPathForecasts](StickyPriceFiscal/TidyR6MeasPathForecasts.lean) | 7 | Fig. 5.2, §5.3: linearity and scaling of the perfect-foresight models; the anticipated rise, the joint contraction and the AR(1) rise as forecast revisions |
 | [TidyR6PathwiseTransfer](StickyPriceFiscal/TidyR6PathwiseTransfer.lean) | 13 | §5.4, (5.25)–(5.28): expectation-free core results on a probability space (`idSystem`), the surplus news and its s-shape, comparative statics of the impact revisions |
+| [TidyR7BrownianSchauder](StickyPriceFiscal/TidyR7BrownianSchauder.lean) | 53 | Copied from Monetarism (tool for §§5.7–5.7.1; originally from the Meyn–Tweedie project): the Lévy–Ciesielski construction on `[0,1]`, Schauder functions, the covariance identity `Σ_m S_m(s)S_m(t) = min s t`, uniform convergence almost surely to a path continuous for every `ω` |
+| [TidyR7BrownianUnit](StickyPriceFiscal/TidyR7BrownianUnit.lean) | 13 | Copied from Monetarism (tool; originally from the Meyn–Tweedie project): Brownian motion on `[0,1]`, its finite-dimensional laws, `B(t) ~ N(0, t)`, `Cov(B s, B t) = min s t` |
+| [TidyR7BrownianExist](StickyPriceFiscal/TidyR7BrownianExist.lean) | 17 | Copied from Monetarism (tool): a Brownian motion on `[0, ∞)` exists, with every path continuous (`TidyR7BrownianExist.bmPath`) |
+| [TidyR7BrownianTools](StickyPriceFiscal/TidyR7BrownianTools.lean) | 25 | Copied from Monetarism (tool): moments of increments of a pre-Brownian motion, the natural filtration, increments independent of the past, martingales; the bridge to the index `ℝ` |
+| [TidyR7StieltjesIntegral](StickyPriceFiscal/TidyR7StieltjesIntegral.lean) | 44 | Copied from Monetarism (tool): the Riemann–Stieltjes integral `∫_a^b f dg` from Mathlib's Lebesgue–Stieltjes vector measure, its atoms, linearity, bound and additivity |
+| [TidyR7StieltjesSums](StickyPriceFiscal/TidyR7StieltjesSums.lean) | 34 | Copied from Monetarism (tool): partitions, convergence of left-point Riemann–Stieltjes sums, the vanishing cross sum, dyadic partitions |
+| [TidyR7BrownianQV](StickyPriceFiscal/TidyR7BrownianQV.lean) | 48 | Copied from Monetarism (tool): the quadratic variation of a pre-Brownian motion along partitions, in `L²`, in probability and a.s. along dyadic partitions; admissible filtrations |
+| [TidyR7ItoL2](StickyPriceFiscal/TidyR7ItoL2.lean) | 20 | Copied from Monetarism (tool): mean-square convergence, completeness of `L²` with adapted limits, `L²` and a.s. limits agree |
+| [TidyR7ItoSums](StickyPriceFiscal/TidyR7ItoSums.lean) | 44 | Copied from Monetarism (tool): elementary integrals, left-point sums, the discrete Itô isometry and the Cauchy estimate |
+| [TidyR7ItoIntegral](StickyPriceFiscal/TidyR7ItoIntegral.lean) | 32 | Copied from Monetarism (tool): the Itô integral `∫ H dW` as an adapted mean-square limit, the Itô isometry, linearity, additivity, the martingale property |
+| [TidyR7StieltjesCalculus](StickyPriceFiscal/TidyR7StieltjesCalculus.lean) | 11 | Copied from Monetarism (tool): the partition identity for products, integration by parts, the vanishing cross sum against a bounded-variation integrator, measurability of pathwise integrals |
+| [TidyR7ItoBridge](StickyPriceFiscal/TidyR7ItoBridge.lean) | 16 | Copied from Monetarism (tool): for bounded-variation integrands the Itô integral is the pathwise integral by parts; Wiener integrals and their isometry; `∫ W dW` |
+| [TidyR7StochCTPath](StickyPriceFiscal/TidyR7StochCTPath.lean) | 28 | §§5.7–5.7.1, (5.85)–(5.96), pp. 162–166, path by path: the model with `dε_m = σ_i dw`, `dε_s = σ_s dw` solved explicitly on every continuous path, expectational errors `R(0)dw`, the responses as the step equilibrium (5.96), a jump at the news date as the same linear map; the OU noise restated from FiscalConstraints |
+| [TidyR7StochCTBrownian](StickyPriceFiscal/TidyR7StochCTBrownian.lean) | 43 | §§5.7–5.7.1, (5.85)–(5.96), App. §1.13: the model with Brownian shocks; the variables as Wiener integrals of the responses, forecasts and news, the book's `E_t d`-equations, valuation (5.95) and the transversality condition in `L¹`, zero covariation of `v` and `p` with `W`; non-vacuity |
+| [TidyR7StochCTUnique](StickyPriceFiscal/TidyR7StochCTUnique.lean) | 32 | §§5.7–5.7.1, (5.85)–(5.96), App. §1.12: the stochastic equilibrium (`StochCTEq`), the feedback rule (5.96) under uncertainty, existence and uniqueness |
 
 ## Modelling conventions
 
@@ -503,7 +550,14 @@ Not formalised:
   `HasDerivAt` equations on `(0, ∞)`, paths are continuous on `[0, ∞)` with the right limits as
   initial values, and the `dε`, `dδ` terms are the jumps at date 0. Infinite-horizon integrals are
   Bochner integrals over `(0, ∞)` with proved integrability. Instantaneous debt is predetermined,
-  so the price level does not jump (`CTSimple.IsCTEquilibrium`).
+  so the price level does not jump (`CTSimple.IsCTEquilibrium`). With Brownian shocks
+  (`TidyR7StochCTBrownian`, `TidyR7StochCTUnique`) the driving motion is a pre-Brownian motion
+  (Mathlib's `IsPreBrownianReal`) with measurable values, continuous paths and `W_0 = 0` for every
+  `ω`, with any admissible filtration (`TidyR7BrownianQV.BMFiltration`); `E_t` is Mathlib's
+  `condExp`, the `E_t d`-equations are stated over every interval `[t, T]`, and an equilibrium is a
+  triple of adapted processes with continuous paths and `E|·|` growing at most linearly
+  (`TidyR7StochCTUnique.StochCTEq`). Non-vacuity is shown on the constructed
+  `TidyR7BrownianExist.bmPath`.
 * **Numbers.** Printed figure and table values are proved as rational enclosures by exact
   arithmetic (`norm_num`, `nlinarith`), never by floating-point evaluation.
 * **Explicit hypotheses.** Hypotheses the book leaves implicit are stated in each theorem:
@@ -523,7 +577,18 @@ Nothing is imported from those projects. The chapter modules use `ExpectationSys
 `root₂` of `Determinacy`; the Schur–Cohn theorem itself (`schurStable_iff_roots`) is carried for
 the later projects. The measure-theoretic core (`ExpectationsMeasure`, `ExpectationsMeasureIID`)
 is a verbatim copy, with the namespace renamed, of the modules built in the Cochrane
-`ObservationalEquivalence` project.
+`ObservationalEquivalence` project. The twelve Brownian and Itô modules (`TidyR7BrownianSchauder`
+to `TidyR7ItoBridge` in the library map) are copied, with only the namespace renamed and proofs
+unchanged, from the Cochrane Monetarism project, by way of the FiscalConstraints project; each
+docstring names its Monetarism original. They are the import closure of `TidyR7ItoBridge`, and
+only `TidyR7StochCTBrownian` and `TidyR7StochCTUnique` use them. Ten FiscalConstraints declarations are
+restated, each docstring naming its original: the Ornstein–Uhlenbeck noise of a path and its
+primitive in `TidyR7StochCTPath` (`TidyR7StochCTPath.ouPrim`, `TidyR7StochCTPath.ouNoise`,
+`TidyR7StochCTPath.hasDerivAt_ouPrim`, `TidyR7StochCTPath.continuous_ouPrim`,
+`TidyR7StochCTPath.ouPrim_zero`, `TidyR7StochCTPath.continuous_ouNoise`), and the Wiener integral
+of a `C¹` integrand in `TidyR7StochCTBrownian` (`TidyR7StochCTBrownian.tendsto_sum_mul_sub`,
+`TidyR7StochCTBrownian.wienerBP`, `TidyR7StochCTBrownian.tendsto_itoSum_wienerBP`,
+`TidyR7StochCTBrownian.itoInt_ae_eq_wienerBP`).
 
 **`BKCopy` is a verbatim copy of the Woodford Chapter 4 general Blanchard–Kahn theorem.** It
 consists of the three modules `InvariantSplit`, `GeneralBKForward` and `GeneralBK` of the
