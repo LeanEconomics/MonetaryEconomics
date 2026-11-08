@@ -14,9 +14,12 @@ of every maturity. The structural results (the flow and present-value relations,
 bond sales, the general formula, Theorem P and maturity-structure irrelevance) hold for an
 arbitrary `ExpectationSystem` with the pull-out property, so under perfect foresight and under
 genuine uncertainty. Fourteen further modules take the book's deterministic passages (forward
-guidance, §7.6.1, §A1.14) to uncertainty and settle existence in §7.4. The library contains
-**485 theorems**, including the shared core; 197 of them are in the eight chapter modules and 180
-in the fourteen further modules.
+guidance, §7.6.1, §A1.14) to uncertainty and settle existence in §7.4, and five more take the
+continuous-time forward-guidance formula of §A1.2.1 to Brownian uncertainty, with the Brownian
+motion and the Itô integral copied from the Cochrane Monetarism project (twenty modules). The
+library contains **1073 theorems**, including the shared core; 197 of them are in the eight
+chapter modules, 180 in the fourteen further modules, 65 in the five continuous-time guidance
+modules and 523 in the twenty copied modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. "Theorem W" (the general formula
@@ -59,6 +62,27 @@ Headline results, in the namespace `Cochrane.LongTermDebtDynamics`:
   guidance against `1/8` without it or with the delayed guidance
   (`TidyR6GuidanceFlows.cg_flows_counterexample`,
   `TidyR6GuidanceFlows.cg_horizon_flows_counterexample`).
+* **Continuous-time forward guidance under Brownian uncertainty.** On a piece of the rate path
+  where the short rate `c` is known at the start, the nominal discount factor follows
+  `dΛ = −cΛ dt + H dW` (`TidyR7GuidanceSDF.SDFPiece`), and `E_sΛ_u = e^{−c(u−s)}Λ_s` whatever the
+  diffusion `H` (`TidyR7GuidanceSDF.condExp_sdf`), because `E_s∫ = ∫E_s` on test sets
+  (`TidyR7GuidanceSDF.setIntegral_eq_sub_integral`). So under a known announced path the bond
+  prices are the book's, the interchange `E_0∫_0^∞ = ∫_0^∞E_0` gives the value of the debt
+  (`TidyR7GuidanceItoValuation.condExp_debtValue`), and the formula of p. 561,
+  `P_0/P − 1 = e^{−(r+ϖ)T}((r+ϖ)/(i+ϖ) − 1)`, holds verbatim, state by state, with Brownian noise
+  in `Λ` and random surpluses (`TidyR7GuidanceItoValuation.guidance_jump_ito`), non-vacuously on
+  the constructed Brownian motion (`TidyR7GuidanceItoBM.bm_guidance_jump`). If the rate `ι` from
+  `T` on is news revealed at `T`, the jump is the book's jump averaged under the `T`-forward
+  measure, `P_0/P_0' − 1 = E_0[e^{rT}Λ_T · cfgJump r ι ϖ T]/Λ_0`
+  (`TidyR7GuidanceItoValuation.random_jump_ito`), and the book's formula at the expected rate is
+  wrong: it understates the jump by a Jensen term (`TidyR7GuidanceItoCex.bm_jensen`), averaging
+  it over the states misses a covariance term (`TidyR7GuidanceItoCex.bm_covariance`), and for
+  some noise size both gaps are strict at once, `J(Eι) < E[J(ι)] < P_0/P_0' − 1`
+  (`TidyR7GuidanceItoCex.bm_random_headline`). With no noise the value of the debt is the
+  deterministic integral path by path (`TidyR7GuidanceItoLinks.sigma_zero_value`), and the
+  discrete formula of p. 560 tends to the continuous one as the period shrinks
+  (`TidyR7GuidanceItoLinks.tendsto_fgJump_cfgJump`). The Brownian motion, the Itô integral and
+  Itô's product rule are the Monetarism project's, copied into this project.
 * **The buffer and runs.** With no sales after date 0, `B_{−1}^{(t)}/P_t = s_t` (7.6), so
   unexpected inflation reflects only news about the current surplus while news about later
   surpluses moves bond prices (`MaturingDebt.price_eq_maturing`, `MaturingDebt.noSales_price_news`,
@@ -215,7 +239,10 @@ those found during formalisation:
 * the comparative statics of §7.1, pp. 213–214, hold for a rate path known at date 0 but fail for
   a state-contingent one: a higher expected rate path can raise `P_0`, and an earlier
   announcement can give the higher price level (a precision: the book's §7.1 is deterministic),
-  also with the flow conditions imposed at every date under the rollover policy.
+  also with the flow conditions imposed at every date under the rollover policy;
+* the continuous-time formula of p. 561 holds verbatim under uncertainty for a known rate path,
+  but for a future rate revealed as news it is not the formula at the expected rate (an
+  extension: the book derives p. 561 for a known path).
 
 In addition, the labels (7.14) and (7.15) are swapped in the text (E7.1), the innovation display
 of p. 224 mixes the dates `0` and `t` and is corrected at a general date (E7.9), the "25%" drop of
@@ -227,7 +254,9 @@ above and the last section of the corrections). It also said that the strict sig
 `ExpectationSystem` need not be strictly positive; that premise is false
 (`TidyR6StrictSignRule.E_pos_iff`), and the exact condition is positive conditional probability
 of a larger sale. It also listed the state-contingent guidance counterexamples as resting on the
-date-0 valuation alone; they survive with the flow conditions at every date.
+date-0 valuation alone; they survive with the flow conditions at every date. It also said
+that by the project's conventions continuous time is deterministic, with no stochastic calculus;
+the continuous-time formula is now proved under Brownian uncertainty.
 
 Not formalised:
 * §7.7, the U.S. maturity structure (pp. 234–236), and Figures 7.6–7.7, which are data. The other
@@ -239,9 +268,16 @@ Not formalised:
   §7.6.2 (pp. 232–234) and the summary §7.6.3;
 * Theorem W with an infinite horizon under neither the row condition nor no buy-backs: it is false
   in general (the counterexample above);
-* the continuous-time forward-guidance formula of §A1.2.1 (p. 561) under uncertainty: by the
-  project's conventions continuous time is deterministic (no stochastic calculus). The discrete
-  formula of p. 560 is proved state by state (`TidyR5GuidanceUncertainty.stoch_fg_jump`);
+* for the continuous-time formula of §A1.2.1 (p. 561) under uncertainty: a rate after `T` that
+  is itself an Itô process with continuous values (this needs Itô's formula for the
+  exponential); the rates are known piecewise and take finitely many values
+  (`TidyR7GuidanceSDF.SDFPiece`), and the diffusion `H` is bounded, although the drift may be
+  unbounded. Positivity of `Λ` is not proved
+  when `κ ≠ 0`: in the model economy `1 + κW_T` can be negative. No theorem uses it, and the
+  Jensen counterexample (`κ = 0`) is positive throughout. The interchange is stated at date 0
+  (for a general filtration), and the counterexamples have trivial date-0 information
+  (`TidyR7GuidanceItoCex.bmF_zero`). The surplus side is kept as `E_0∫_0^∞ e^{−rj}s_j dj`, which
+  is the same in the two economies compared, so no interchange is proved for it;
 * for state-contingent guidance, the counterexamples with the flow conditions at every date are
   proved under one fully specified debt policy, the rollover policy `TidyR6GuidanceFlows.rollD`;
   that is enough to refute the book's claims, but the full equilibria under other debt policies
@@ -277,6 +313,31 @@ Not formalised:
 | [TidyR6StrictSignRule](LongTermDebtDynamics/TidyR6StrictSignRule.lean) | 18 | §A1.14.2, p. 592, (1.65)–(1.66): every expectation system is strictly positive on events of positive conditional probability; the exact strict sign rule with random debt and no uniform bounds; the zero-probability counterexample |
 | [TidyR6StrictSignMeasure](LongTermDebtDynamics/TidyR6StrictSignMeasure.lean) | 12 | §A1.14.2, p. 592, on a probability space with `condExp`: strict positivity of conditional expectations, (1.66) printed and pulled out, the strict sign rule almost surely, equilibrium prices from the flow conditions |
 | [TidyR6GuidanceFlows](LongTermDebtDynamics/TidyR6GuidanceFlows.lean) | 17 | §7.1, (7.1)–(7.3): full equilibria under the rollover debt policy, `P_0` unique; both state-contingent guidance counterexamples survive with the flow conditions at every date |
+| [TidyR7BrownianSchauder](LongTermDebtDynamics/TidyR7BrownianSchauder.lean) | 53 | Copied from Monetarism (tool for §A1.2.1; originally from the Meyn–Tweedie project): the Lévy–Ciesielski construction on `[0,1]`, Schauder functions, the covariance identity `Σ_m S_m(s)S_m(t) = min s t`, uniform convergence almost surely to a path continuous for every `ω` |
+| [TidyR7BrownianUnit](LongTermDebtDynamics/TidyR7BrownianUnit.lean) | 13 | Copied from Monetarism (tool; originally from the Meyn–Tweedie project): Brownian motion on `[0,1]`, its finite-dimensional laws, `B(t) ~ N(0, t)`, `Cov(B s, B t) = min s t` |
+| [TidyR7BrownianExist](LongTermDebtDynamics/TidyR7BrownianExist.lean) | 17 | Copied from Monetarism (tool): a Brownian motion on `[0, ∞)` exists, with every path continuous (`TidyR7BrownianExist.bmPath`) |
+| [TidyR7BrownianTools](LongTermDebtDynamics/TidyR7BrownianTools.lean) | 25 | Copied from Monetarism (tool): moments of increments of a pre-Brownian motion, the natural filtration, increments independent of the past, martingales; the bridge to the index `ℝ` |
+| [TidyR7StieltjesIntegral](LongTermDebtDynamics/TidyR7StieltjesIntegral.lean) | 44 | Copied from Monetarism (tool): the Riemann–Stieltjes integral `∫_a^b f dg` from Mathlib's Lebesgue–Stieltjes vector measure, its atoms, linearity, bound and additivity |
+| [TidyR7StieltjesSums](LongTermDebtDynamics/TidyR7StieltjesSums.lean) | 34 | Copied from Monetarism (tool): partitions, convergence of left-point Riemann–Stieltjes sums, the vanishing cross sum, dyadic partitions |
+| [TidyR7BrownianQV](LongTermDebtDynamics/TidyR7BrownianQV.lean) | 48 | Copied from Monetarism (tool): the quadratic variation of a pre-Brownian motion along partitions, in `L²`, in probability and a.s. along dyadic partitions; admissible filtrations |
+| [TidyR7StieltjesVariation](LongTermDebtDynamics/TidyR7StieltjesVariation.lean) | 21 | Copied from Monetarism (tool): the variation of a right-continuous path over a countable set; measurability of the variation in `ω` |
+| [TidyR7CondDominated](LongTermDebtDynamics/TidyR7CondDominated.lean) | 14 | Copied from Monetarism (tool): conditional dominated convergence almost surely; the measurable path supremum; partition sequences with mesh → 0 |
+| [TidyR7ItoL2](LongTermDebtDynamics/TidyR7ItoL2.lean) | 20 | Copied from Monetarism (tool): mean-square convergence, completeness of `L²` with adapted limits, `L²` and a.s. limits agree |
+| [TidyR7ItoSums](LongTermDebtDynamics/TidyR7ItoSums.lean) | 44 | Copied from Monetarism (tool): elementary integrals, left-point sums, the discrete Itô isometry and the Cauchy estimate |
+| [TidyR7ItoIntegral](LongTermDebtDynamics/TidyR7ItoIntegral.lean) | 32 | Copied from Monetarism (tool): the Itô integral `∫ H dW` as an adapted mean-square limit, the Itô isometry, linearity, additivity, the martingale property |
+| [TidyR7StieltjesCalculus](LongTermDebtDynamics/TidyR7StieltjesCalculus.lean) | 11 | Copied from Monetarism (tool): the partition identity for products, integration by parts, measurability of pathwise integrals |
+| [TidyR7ItoBridge](LongTermDebtDynamics/TidyR7ItoBridge.lean) | 16 | Copied from Monetarism (tool): for bounded-variation integrands the Itô integral is the pathwise integral by parts; Wiener integrals and their isometry; `∫ W dW` |
+| [TidyR7ItoUnbounded](LongTermDebtDynamics/TidyR7ItoUnbounded.lean) | 23 | Copied from Monetarism (tool): mean-square continuous integrands without a bound, existence of `∫ G dW` along any partitions, `E_r ∫_r^t G dW = 0` |
+| [TidyR7ItoProducts](LongTermDebtDynamics/TidyR7ItoProducts.lean) | 19 | Copied from Monetarism (tool): products `X·K` with bounded admissible `K`, `∫ ZK dW = Z∫ K dW` for `Z` known at the start, the time integral in mean square |
+| [TidyR7ItoProcess](LongTermDebtDynamics/TidyR7ItoProcess.lean) | 18 | Copied from Monetarism (tool): Itô processes `X_s + ∫ a dr + ∫ H dW`, their increments and mean-square modulus, Itô processes as integrands |
+| [TidyR7ProductStep](LongTermDebtDynamics/TidyR7ProductStep.lean) | 35 | Copied from Monetarism (tool): the pathwise and discrete product identities and the product step in expectation form for bounded-variation `B` and `Λ/P` = bounded-variation part + martingale |
+| [TidyR7ItoCovariation](LongTermDebtDynamics/TidyR7ItoCovariation.lean) | 14 | Copied from Monetarism (tool): `Σ X_iΔY_i → ∫ X b du + ∫ X K dW` in `L²`, the bracket `Σ ΔX_iΔY_i → ∫ HK du` in `L¹` |
+| [TidyR7ItoProductRule](LongTermDebtDynamics/TidyR7ItoProductRule.lean) | 22 | Copied from Monetarism (tool): Itô's product rule with covariation (a.s., conditional, expected-increment form), Itô's formula for `x²`, `W` and the clock as Itô processes |
+| [TidyR7GuidanceSDF](LongTermDebtDynamics/TidyR7GuidanceSDF.lean) | 6 | §A1.2.1, pp. 559–561, under uncertainty: the nominal discount factor `dΛ = −cΛ dt + H dW` on a piece with a rate known at its start; `E_s∫ = ∫E_s` on test sets; `E_sΛ_u = e^{−c(u−s)}Λ_s` whatever the diffusion |
+| [TidyR7GuidanceItoValuation](LongTermDebtDynamics/TidyR7GuidanceItoValuation.lean) | 11 | §A1.2.1, p. 561, under uncertainty: bond prices under the announcement, the interchange `E_0∫_0^∞ = ∫_0^∞E_0`, the continuous formula verbatim state by state; with the future rate revealed at `T`, the corrected formula under the `T`-forward measure |
+| [TidyR7GuidanceItoBM](LongTermDebtDynamics/TidyR7GuidanceItoBM.lean) | 21 | §A1.2.1, p. 561: the model economy `Λ_t = e^{−rt}(1 + κW_t)` on the constructed Brownian motion, its SDE by the product rule, the hypotheses verified, genuine randomness, non-vacuity of the verbatim formula |
+| [TidyR7GuidanceItoCex](LongTermDebtDynamics/TidyR7GuidanceItoCex.lean) | 23 | §A1.2.1, p. 561, a future rate revealed as news at `T`: the jump in closed form, strict convexity of the jump in the rate, the Jensen and covariance corrections, the headline counterexample to the expected-rate reading |
+| [TidyR7GuidanceItoLinks](LongTermDebtDynamics/TidyR7GuidanceItoLinks.lean) | 4 | §A1.2.1, pp. 560–561: with no noise the deterministic formula path by path; the discrete formula of p. 560 converges to the continuous one |
 
 ## Modelling conventions
 
@@ -297,9 +358,13 @@ Not formalised:
   tree (`PolicyConstraints.perfectForesight_divClosed`, `PolicyConstraints.finiteTree_divClosed`).
   In the chapter modules forward guidance (§7.1, §A1.2.1), §7.6.1 and strong QE are
   deterministic, as in the book; the counterexample and the printed (7.15) are under perfect
-  foresight (`perfectForesight`). The further modules redo forward guidance (except the
+  foresight (`perfectForesight`). The fourteen further modules redo forward guidance (except the
   continuous-time formula), §7.6.1 and §A1.14 with random surpluses, price levels and debt, and
-  their counterexamples live on a finite coin-flip tree. `TidyR6StrictSignMeasure` restates the
+  their counterexamples live on a finite coin-flip tree. The five continuous-time guidance
+  modules work on a probability space with a Brownian motion and a filtration for which it is a
+  Brownian motion, with `E_t` Mathlib's conditional expectation and statements almost surely;
+  their examples live on the constructed motion `TidyR7BrownianExist.bmPath` with its natural
+  filtration. `TidyR6StrictSignMeasure` restates the
   §A1.14 sign rule on a probability space, with `E_0` Mathlib's conditional expectation and
   statements almost surely.
   `E_t` passes through every absolutely convergent series, for every `ExpectationSystem`
