@@ -17721,9 +17721,10 @@ noncomputable def surplusL (r α η βs z : ℝ) : ℝ :=
   lagOp ![(η + r) / (η + r - α), -(α / (η + r - α) - α * βs)] ![η, α - r] z
 
 /-- Cochrane (2023), p. 168 (survey E47): **`L(r) = +β_s`** (for `α ≠ 0`, `η + r ≠ 0`,
-`η + r − α ≠ 0`). The book prints `L(r) = −β_s`; with its second sign slip
-(`−Δ(1/P)/(1/P) = −L(r)dε`) the price-level line `Δ(1/P)/(1/P) = β_s dε` is nevertheless
-right. -/
+`η + r − α ≠ 0`). The book prints `L(r) = −β_s`. Its price-level line
+`−Δ(1/P)/(1/P) = −L(r)dε = β_s dε` is right in its first equality but wrong in its last:
+with `L(r) = +β_s` it reads `−Δ(1/P)/(1/P) = −β_s dε`, i.e. `Δ(1/P)/(1/P) = β_s dε` and
+`dP/P = −β_s dε`, as on p. 167 (`TidyR8StochCTSurplus.pstar_loading`). -/
 theorem surplus_L_r {r α η βs : ℝ} (hα : α ≠ 0) (h1 : η + r ≠ 0) (h3 : η + r - α ≠ 0) :
     surplusL r α η βs r = βs := by
   simp only [surplusL, lagOp, Fin.sum_univ_two, Matrix.cons_val_zero, Matrix.cons_val_one]
@@ -42406,6 +42407,2717 @@ theorem bmPath_stochCTEq (hr : 0 < r) (hκ : 0 < κ) (hσ : 0 < σ) :
 
 end Cochrane.StickyPriceFiscal.TidyR7StochCTUnique
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Two-mode Wiener integrals, discounting by parts, and brackets with `W`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 5, §§5.7.2–5.7.5,
+pp. 167–179, and Online Appendix A1, §§1.12–1.13, pp. 579–585: tools for the stochastic
+versions of the s-shaped surplus, the bond price and the policy rules with Brownian shocks.
+
+The responses of §§5.7.2–5.7.5 to an MIT shock are sums of a constant and decaying
+exponentials (`CTSurplus.expSum`). With one Brownian motion `W`, the stochastic solution is the
+response integrated against `dW`, and on every path it is a combination of `W` and the OU noises
+`Y^η = ∫ e^{−η(t−u)} dW_u` (`TidyR7StochCTPath.ouNoise`). This module extends T8's one-mode
+kernels (`TidyR7StochCTBrownian.kerProc`) to two modes.
+
+## Main results
+
+* `ker2Proc`, `ker2Proc_ae_eq_itoInt`: `cW_T + d₁Y^{η₁}_T + d₂Y^{η₂}_T` is a.s. the Wiener
+  integral `∫_0^T (c + d₁e^{−η₁(T−u)} + d₂e^{−η₂(T−u)}) dW_u`; `condExp_ker2Proc` (forecasts
+  decay each mode), `condExp_ker2Proc_itoInt` (the moving-average form of A1 §1.13),
+  `integral_ker2Proc_sq` (the isometry), `integral_abs_ker2Proc_le`, `regProc_ker2Proc`,
+  `tendsto_condExp_exp_ker2` (the discounted forecast vanishes in `L¹`).
+* `expWiener`, `expWiener_ae_eq_itoInt`, `condExp_expWiener`: the discounted Wiener integral
+  `∫_t^T e^{−a(τ−t)} dW_τ` in by-parts form, and `E_t[·]` of it is `0`.
+* **`discounted_byParts`** (the product rule for `e^{−aτ}X_τ` with `X = F + kw`, `F` of class
+  `C¹`, on every continuous path): `∫_t^T e^{−a(τ−t)}(aX − F') = X_t − e^{−a(T−t)}X_T +
+  k∫_t^T e^{−a(τ−t)}dw`. This is how every present-value identity of §§5.7.2–5.7.5 is proved
+  with a diffusive state; there is no Itô term because `e^{−aτ}` is deterministic.
+* **`tendsto_crossSum_affine`** (the bracket): if `X = aW + F`, `Y = bW + G` with `F`, `G` of
+  class `C¹` on every path, then a.s. along the dyadic partitions of `[s, t]`
+  `Σ ΔX ΔY → ab(t − s)`: `[X, Y] = ab t`. Only the `dW`-loadings enter.
+-/
+
+namespace Cochrane.StickyPriceFiscal.TidyR8StochKernel
+
+open Real MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.StickyPriceFiscal.TidyR7StieltjesSums Cochrane.StickyPriceFiscal.TidyR7BrownianTools
+open Cochrane.StickyPriceFiscal.TidyR7BrownianQV Cochrane.StickyPriceFiscal.TidyR7ItoL2
+open Cochrane.StickyPriceFiscal.TidyR7ItoSums Cochrane.StickyPriceFiscal.TidyR7ItoIntegral
+open Cochrane.StickyPriceFiscal.TidyR7ItoBridge Cochrane.StickyPriceFiscal.TidyR7BrownianExist
+open Cochrane.StickyPriceFiscal.TidyR7StieltjesCalculus
+open Cochrane.StickyPriceFiscal.TidyR7StochCTPath Cochrane.StickyPriceFiscal.TidyR7StochCTBrownian
+open Cochrane.StickyPriceFiscal.TidyR7StochCTUnique
+open scoped ENNReal NNReal
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {W : ℝ≥0 → Ω → ℝ}
+  {𝓕 : Filtration ℝ mΩ}
+
+/-! ### Two-mode kernels -/
+
+/-- Cochrane (2023), (5.101), p. 168: a two-mode response kernel
+`R(τ) = c + d₁e^{−η₁τ} + d₂e^{−η₂τ}`. -/
+noncomputable def ker2Fn (c d₁ η₁ d₂ η₂ τ : ℝ) : ℝ :=
+  c + d₁ * exp (-(η₁ * τ)) + d₂ * exp (-(η₂ * τ))
+
+/-- Cochrane (2023), (5.101), p. 168: the process `cW_T + d₁Y^{η₁}_T + d₂Y^{η₂}_T` on the
+Brownian path (`Y^η` the OU noise). -/
+noncomputable def ker2Proc (W : ℝ≥0 → Ω → ℝ) (c d₁ η₁ d₂ η₂ T : ℝ) (ω : Ω) : ℝ :=
+  kerProc W c d₁ η₁ T ω + kerProc W 0 d₂ η₂ T ω
+
+/-- Cochrane (2023), (5.101), p. 168: the two-mode kernel is the sum of two one-mode kernels.
+The sum of two `TidyR7StochCTBrownian.kerFn` kernels. -/
+theorem ker2Fn_eq (c d₁ η₁ d₂ η₂ τ : ℝ) :
+    ker2Fn c d₁ η₁ d₂ η₂ τ = kerFn c d₁ η₁ τ + kerFn 0 d₂ η₂ τ := by
+  simp only [ker2Fn, kerFn]
+  ring
+
+/-- Cochrane (2023), (5.101), p. 168: the kernel is continuous in the integration variable. -/
+theorem continuous_ker2Fn (c d₁ η₁ d₂ η₂ T : ℝ) :
+    Continuous fun u => ker2Fn c d₁ η₁ d₂ η₂ (T - u) := by
+  unfold ker2Fn
+  fun_prop
+
+/-- Cochrane (2023), (5.101), p. 168: on a path, the process is `cw + d₁Y^{η₁} + d₂Y^{η₂}`. -/
+theorem ker2Proc_eq (c d₁ η₁ d₂ η₂ T : ℝ) (ω : Ω) :
+    ker2Proc W c d₁ η₁ d₂ η₂ T ω = c * bmReal W T ω
+      + d₁ * ouNoise η₁ (fun u => bmReal W u ω) T + d₂ * ouNoise η₂ (fun u => bmReal W u ω) T := by
+  simp only [ker2Proc, kerProc]
+  ring
+
+/-- **Cochrane (2023), (5.101), p. 168: the two-mode process is the Wiener integral of the
+two-mode response**, `ker2Proc_T = ∫_0^T R(T − u) dW_u` a.s. for `T ≥ 0`.
+The two-mode version of `TidyR7StochCTBrownian.kerProc_ae_eq_itoInt`. -/
+theorem ker2Proc_ae_eq_itoInt (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (c d₁ η₁ d₂ η₂ : ℝ) {T : ℝ} (hT : 0 ≤ T) :
+    ker2Proc W c d₁ η₁ d₂ η₂ T =ᵐ[P]
+      itoInt P 𝓕 W (fun u _ => ker2Fn c d₁ η₁ d₂ η₂ (T - u)) 0 T := by
+  obtain ⟨C₁, h₁⟩ := exists_itoIntegrand_kerFn (P := P) (𝓕 := 𝓕) c d₁ η₁ T 0 T
+  obtain ⟨C₂, h₂⟩ := exists_itoIntegrand_kerFn (P := P) (𝓕 := 𝓕) 0 d₂ η₂ T 0 T
+  have hadd := itoInt_add hB hW h𝓕 le_rfl h₁ h₂
+  have e : (fun u (_ : Ω) => ker2Fn c d₁ η₁ d₂ η₂ (T - u))
+      = fun u ω => (fun u (_ : Ω) => kerFn c d₁ η₁ (T - u)) u ω
+        + (fun u (_ : Ω) => kerFn 0 d₂ η₂ (T - u)) u ω := by
+    funext u ω
+    exact ker2Fn_eq c d₁ η₁ d₂ η₂ (T - u)
+  rw [e]
+  filter_upwards [hadd, kerProc_ae_eq_itoInt hB hW h𝓕 hcont hW0 c d₁ η₁ hT,
+    kerProc_ae_eq_itoInt hB hW h𝓕 hcont hW0 0 d₂ η₂ hT] with ω h1 h2 h3
+  rw [h1, ker2Proc, h2, h3]
+
+/-- Cochrane (2023), (5.101), p. 168: the two-mode process is square integrable.
+The two-mode version of `TidyR7StochCTBrownian.memLp_kerProc`. -/
+theorem memLp_ker2Proc (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (c d₁ η₁ d₂ η₂ : ℝ) {T : ℝ} (hT : 0 ≤ T) :
+    MemLp (ker2Proc W c d₁ η₁ d₂ η₂ T) 2 P :=
+  (memLp_kerProc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 c d₁ η₁ hT).add
+    (memLp_kerProc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 0 d₂ η₂ hT)
+
+/-- Cochrane (2023), (5.101), p. 168: the two-mode process is integrable.
+The two-mode version of `TidyR7StochCTBrownian.integrable_kerProc`. -/
+theorem integrable_ker2Proc (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (c d₁ η₁ d₂ η₂ : ℝ) {T : ℝ} (hT : 0 ≤ T) :
+    Integrable (ker2Proc W c d₁ η₁ d₂ η₂ T) P := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  exact (memLp_ker2Proc hB hW h𝓕 hcont hW0 c d₁ η₁ d₂ η₂ hT).integrable one_le_two
+
+/-- Cochrane (2023), (5.101), p. 168: the two-mode process is adapted.
+The two-mode version of `TidyR7StochCTBrownian.aesm_kerProc`. -/
+theorem aesm_ker2Proc (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (c d₁ η₁ d₂ η₂ : ℝ) {T : ℝ} (hT : 0 ≤ T) :
+    AEStronglyMeasurable[𝓕 T] (ker2Proc W c d₁ η₁ d₂ η₂ T) P :=
+  ⟨_, stronglyMeasurable_itoInt, ker2Proc_ae_eq_itoInt hB hW h𝓕 hcont hW0 c d₁ η₁ d₂ η₂ hT⟩
+
+/-- **Cochrane (2023), §5.7.2, p. 168 and A1 §1.13 (forecasts of a two-mode process)**: for
+`0 ≤ t ≤ T`, `E_t[ker2Proc_T]` is the two-mode process at `t` with each mode decayed,
+`cW_t + d₁e^{−η₁(T−t)}Y^{η₁}_t + d₂e^{−η₂(T−t)}Y^{η₂}_t`, a.s.
+The two-mode version of `TidyR7StochCTBrownian.condExp_kerProc`. -/
+theorem condExp_ker2Proc (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (c d₁ η₁ d₂ η₂ : ℝ) {t T : ℝ} (ht : 0 ≤ t) (htT : t ≤ T) :
+    P[ker2Proc W c d₁ η₁ d₂ η₂ T | 𝓕 t] =ᵐ[P]
+      ker2Proc W c (d₁ * exp (-(η₁ * (T - t)))) η₁ (d₂ * exp (-(η₂ * (T - t)))) η₂ t := by
+  have i1 := integrable_kerProc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 c d₁ η₁ (ht.trans htT)
+  have i2 := integrable_kerProc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 0 d₂ η₂ (ht.trans htT)
+  have e : ker2Proc W c d₁ η₁ d₂ η₂ T = kerProc W c d₁ η₁ T + kerProc W 0 d₂ η₂ T := rfl
+  rw [e]
+  filter_upwards [condExp_add i1 i2 (𝓕 t), condExp_kerProc hB hW h𝓕 hcont hW0 c d₁ η₁ ht htT,
+    condExp_kerProc hB hW h𝓕 hcont hW0 0 d₂ η₂ ht htT] with ω h1 h2 h3
+  rw [h1, Pi.add_apply, h2, h3]
+  rfl
+
+/-- **Cochrane (2023), A1 §1.13, p. 581 (moving-average form of forecasts)**: for
+`0 ≤ t ≤ T`, `E_t[ker2Proc_T] = ∫_0^t R(T − u) dW_u` a.s.
+The two-mode version of `TidyR7StochCTBrownian.condExp_kerProc_itoInt`. -/
+theorem condExp_ker2Proc_itoInt (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (c d₁ η₁ d₂ η₂ : ℝ) {t T : ℝ} (ht : 0 ≤ t) (htT : t ≤ T) :
+    P[ker2Proc W c d₁ η₁ d₂ η₂ T | 𝓕 t] =ᵐ[P]
+      itoInt P 𝓕 W (fun u _ => ker2Fn c d₁ η₁ d₂ η₂ (T - u)) 0 t := by
+  obtain ⟨C, hC⟩ := isCompact_Icc.exists_bound_of_continuousOn (s := Set.Icc 0 T)
+    (continuous_ker2Fn c d₁ η₁ d₂ η₂ T).continuousOn
+  have hI : ItoIntegrand P 𝓕 (fun u _ => ker2Fn c d₁ η₁ d₂ η₂ (T - u)) 0 T C :=
+    itoIntegrand_deterministic (continuous_ker2Fn c d₁ η₁ d₂ η₂ T).continuousOn fun u hu => by
+      simpa [Real.norm_eq_abs] using hC u hu
+  exact (condExp_congr_ae (ker2Proc_ae_eq_itoInt hB hW h𝓕 hcont hW0 c d₁ η₁ d₂ η₂
+    (ht.trans htT))).trans (condExp_itoInt hB hW h𝓕 le_rfl ht htT hI)
+
+/-- Cochrane (2023), (5.101), p. 168: the variance of the two-mode process is
+`∫_0^T R(T − u)² du` (the Wiener isometry).
+The two-mode version of `TidyR7StochCTBrownian.integral_kerProc_sq`. -/
+theorem integral_ker2Proc_sq (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (c d₁ η₁ d₂ η₂ : ℝ) {T : ℝ} (hT : 0 ≤ T) :
+    ∫ ω, ker2Proc W c d₁ η₁ d₂ η₂ T ω ^ 2 ∂P
+      = ∫ u in (0 : ℝ)..T, ker2Fn c d₁ η₁ d₂ η₂ (T - u) ^ 2 := by
+  obtain ⟨C, hC⟩ := isCompact_Icc.exists_bound_of_continuousOn (s := Set.Icc 0 T)
+    (continuous_ker2Fn c d₁ η₁ d₂ η₂ T).continuousOn
+  rw [← integral_itoInt_deterministic_sq (𝓕 := 𝓕) hB hW h𝓕 le_rfl hT
+    (continuous_ker2Fn c d₁ η₁ d₂ η₂ T).continuousOn (fun u hu => by
+      simpa [Real.norm_eq_abs] using hC u hu)]
+  refine integral_congr_ae ?_
+  filter_upwards [ker2Proc_ae_eq_itoInt hB hW h𝓕 hcont hW0 c d₁ η₁ d₂ η₂ hT] with ω hω
+  simp only [hω]
+
+/-- Cochrane (2023), (5.101), p. 168: with nonnegative rates the kernel is bounded on
+`[0, ∞)`, `|R(τ)| ≤ |c| + |d₁| + |d₂|`. -/
+theorem abs_ker2Fn_le {c d₁ η₁ d₂ η₂ τ : ℝ} (h₁ : 0 ≤ η₁) (h₂ : 0 ≤ η₂) (hτ : 0 ≤ τ) :
+    |ker2Fn c d₁ η₁ d₂ η₂ τ| ≤ |c| + |d₁| + |d₂| := by
+  have e1 : exp (-(η₁ * τ)) ≤ 1 := exp_le_one_iff.2 (by nlinarith)
+  have e2 : exp (-(η₂ * τ)) ≤ 1 := exp_le_one_iff.2 (by nlinarith)
+  unfold ker2Fn
+  refine (abs_add_le _ _).trans (add_le_add ((abs_add_le _ _).trans (add_le_add le_rfl ?_)) ?_)
+  · rw [abs_mul, abs_of_pos (exp_pos _)]
+    exact mul_le_of_le_one_right (abs_nonneg _) e1
+  · rw [abs_mul, abs_of_pos (exp_pos _)]
+    exact mul_le_of_le_one_right (abs_nonneg _) e2
+
+/-- Cochrane (2023), (5.101), p. 168: with nonnegative rates, `E|X_T| ≤ 1 + T(|c|+|d₁|+|d₂|)²`
+for `T ≥ 0`.
+Generalises `TidyR7StochCTBrownian.integral_abs_vProc_le`. -/
+theorem integral_abs_ker2Proc_le (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) {c d₁ η₁ d₂ η₂ : ℝ} (h₁ : 0 ≤ η₁) (h₂ : 0 ≤ η₂) {T : ℝ}
+    (hT : 0 ≤ T) :
+    ∫ ω, |ker2Proc W c d₁ η₁ d₂ η₂ T ω| ∂P ≤ 1 + T * (|c| + |d₁| + |d₂|) ^ 2 := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have hm := memLp_ker2Proc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 c d₁ η₁ d₂ η₂ hT
+  have hsq := hm.integrable_sq
+  have h1 : ∫ ω, |ker2Proc W c d₁ η₁ d₂ η₂ T ω| ∂P
+      ≤ ∫ ω, (1 + ker2Proc W c d₁ η₁ d₂ η₂ T ω ^ 2) ∂P :=
+    integral_mono (hm.integrable one_le_two).abs ((integrable_const 1).add hsq) fun ω => by
+      have := abs_nonneg (ker2Proc W c d₁ η₁ d₂ η₂ T ω)
+      have := sq_abs (ker2Proc W c d₁ η₁ d₂ η₂ T ω)
+      nlinarith
+  have h2 : ∫ u in (0 : ℝ)..T, ker2Fn c d₁ η₁ d₂ η₂ (T - u) ^ 2
+      ≤ ∫ u in (0 : ℝ)..T, (|c| + |d₁| + |d₂|) ^ 2 := by
+    refine intervalIntegral.integral_mono_on hT
+      (((continuous_ker2Fn c d₁ η₁ d₂ η₂ T).pow 2).intervalIntegrable 0 T)
+      intervalIntegrable_const fun u hu => ?_
+    rw [← sq_abs]
+    exact pow_le_pow_left₀ (abs_nonneg _) (abs_ker2Fn_le h₁ h₂ (by linarith [hu.2])) 2
+  rw [integral_add (integrable_const 1) hsq,
+    integral_ker2Proc_sq hB hW h𝓕 hcont hW0 c d₁ η₁ d₂ η₂ hT] at h1
+  simp only [integral_const, probReal_univ, smul_eq_mul, one_mul] at h1
+  simp only [intervalIntegral.integral_const, sub_zero, smul_eq_mul] at h2
+  linarith
+
+/-- Cochrane (2023), (5.101), p. 168: with nonnegative rates the two-mode process is regular
+(`TidyR7StochCTUnique.RegProc`).
+The two-mode version of `TidyR7StochCTUnique.regProc_kerProc`. -/
+theorem regProc_ker2Proc (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) {η₁ η₂ : ℝ} (h₁ : 0 ≤ η₁) (h₂ : 0 ≤ η₂) (c d₁ d₂ : ℝ) :
+    RegProc P (ker2Proc W c d₁ η₁ d₂ η₂) :=
+  ((regProc_kerProc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 h₁ c d₁).lin
+    (regProc_kerProc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 h₂ 0 d₂) 1 1).congr
+    (by funext t ω; simp only [ker2Proc, one_mul])
+
+/-- **Cochrane (2023), §5.7.1–§5.7.3 (transversality under uncertainty, two modes)**: for
+`a > 0`, nonnegative rates and `t ≥ 0`, `E_t[e^{−a(T−t)}X_T] → 0` in `L¹` as `T → ∞`.
+The two-mode version of `TidyR7StochCTBrownian.tvc_L1`. -/
+theorem tendsto_condExp_exp_ker2 (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) {a c d₁ η₁ d₂ η₂ : ℝ} (ha : 0 < a) (h₁ : 0 ≤ η₁) (h₂ : 0 ≤ η₂)
+    (t : ℝ) :
+    Tendsto (fun T => ∫ ω, |P[fun ω => exp (-(a * (T - t))) * ker2Proc W c d₁ η₁ d₂ η₂ T ω
+      | 𝓕 t] ω| ∂P) atTop (𝓝 0) := by
+  refine squeeze_zero' (Eventually.of_forall fun _ => integral_nonneg fun _ => abs_nonneg _)
+    ?_ (tendsto_exp_mul_affine ha t ((|c| + |d₁| + |d₂|) ^ 2))
+  filter_upwards [eventually_ge_atTop 0] with T hT
+  refine (integral_abs_condExp_le _).trans ?_
+  have e : (fun ω => |exp (-(a * (T - t))) * ker2Proc W c d₁ η₁ d₂ η₂ T ω|)
+      = fun ω => exp (-(a * (T - t))) * |ker2Proc W c d₁ η₁ d₂ η₂ T ω| := by
+    funext ω
+    rw [abs_mul, abs_of_pos (exp_pos _)]
+  rw [e, integral_const_mul]
+  exact mul_le_mul_of_nonneg_left (integral_abs_ker2Proc_le hB hW h𝓕 hcont hW0 h₁ h₂ hT)
+    (exp_pos _).le
+
+/-! ### Discounted Wiener integrals -/
+
+/-- Cochrane (2023), §5.7.2, p. 168 (Hansen–Sargent): the discounted Wiener integral
+`∫_t^T e^{−a(τ−t)} dW_τ` in by-parts form,
+`e^{−a(T−t)}W_T − W_t + a∫_t^T e^{−a(τ−t)}W_τ dτ`. -/
+noncomputable def expWiener (a : ℝ) (W : ℝ≥0 → Ω → ℝ) (t T : ℝ) (ω : Ω) : ℝ :=
+  exp (-(a * (T - t))) * bmReal W T ω - bmReal W t ω
+    + a * ∫ τ in t..T, exp (-(a * (τ - t))) * bmReal W τ ω
+
+/-- Cochrane (2023), §5.7.2, p. 168: the discount factor `u ↦ e^{−a(u−t)}` is an admissible
+deterministic integrand on `[t, T]`.
+The analogue of `TidyR7StochCTBrownian.exists_itoIntegrand_kerFn`. -/
+theorem exists_itoIntegrand_exp (a t T : ℝ) :
+    ∃ C, ItoIntegrand P 𝓕 (fun u _ => exp (-(a * (u - t)))) t T C := by
+  have hc : Continuous fun u : ℝ => exp (-(a * (u - t))) := by fun_prop
+  obtain ⟨C, hC⟩ := isCompact_Icc.exists_bound_of_continuousOn (s := Set.Icc t T)
+    hc.continuousOn
+  exact ⟨C, itoIntegrand_deterministic hc.continuousOn fun u hu => by
+    simpa [Real.norm_eq_abs] using hC u hu⟩
+
+/-- **Cochrane (2023), §5.7.2, p. 168: the by-parts form is the Itô integral**,
+`expWiener a t T = ∫_t^T e^{−a(u−t)} dW_u` a.s. for `0 ≤ t ≤ T`.
+A special case of `TidyR7StochCTBrownian.itoInt_ae_eq_wienerBP`. -/
+theorem expWiener_ae_eq_itoInt (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω) (a : ℝ) {t T : ℝ}
+    (ht : 0 ≤ t) (htT : t ≤ T) :
+    expWiener a W t T =ᵐ[P] itoInt P 𝓕 W (fun u _ => exp (-(a * (u - t)))) t T := by
+  rcases htT.lt_or_eq with hlt | heq
+  · have hh : ∀ x, HasDerivAt (fun u => exp (-(a * (u - t))))
+        (-a * exp (-(a * (x - t)))) x := by
+      intro x
+      have h1 : HasDerivAt (fun u => -(a * (u - t))) (-a) x := by
+        have := (((hasDerivAt_id' x).sub_const t).const_mul a).neg
+        exact this.congr_deriv (by ring)
+      exact h1.exp.congr_deriv (by ring)
+    refine ((itoInt_ae_eq_wienerBP hB hW h𝓕 hcont hh (by fun_prop) ht hlt).trans
+      (ae_of_all _ fun ω => ?_)).symm
+    simp only [wienerBP, expWiener, sub_self, mul_zero, neg_zero, exp_zero, one_mul]
+    have e : (fun u => bmReal W u ω * (-a * exp (-(a * (u - t)))))
+        = fun u => -a * (exp (-(a * (u - t))) * bmReal W u ω) := by
+      funext u
+      ring
+    rw [e, intervalIntegral.integral_const_mul]
+    ring
+  · subst heq
+    rw [itoInt_of_le le_rfl]
+    exact ae_of_all _ fun ω => by simp [expWiener]
+
+/-- **Cochrane (2023), §5.7.2, p. 168: `E_t∫_t^T e^{−a(τ−t)} dW_τ = 0`** a.s. for
+`0 ≤ t ≤ T`.
+An instance of `TidyR7ItoIntegral.condExp_itoInt`. -/
+theorem condExp_expWiener (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω) (a : ℝ) {t T : ℝ}
+    (ht : 0 ≤ t) (htT : t ≤ T) :
+    P[expWiener a W t T | 𝓕 t] =ᵐ[P] 0 := by
+  obtain ⟨C, hC⟩ := exists_itoIntegrand_exp (P := P) (𝓕 := 𝓕) a t T
+  refine (condExp_congr_ae (expWiener_ae_eq_itoInt hB hW h𝓕 hcont a ht htT)).trans ?_
+  refine (condExp_itoInt hB hW h𝓕 ht le_rfl htT hC).trans ?_
+  rw [itoInt_of_le le_rfl]
+
+/-- Cochrane (2023), §5.7.2, p. 168: the discounted Wiener integral is integrable. -/
+theorem integrable_expWiener (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω) (a : ℝ) {t T : ℝ}
+    (ht : 0 ≤ t) (htT : t ≤ T) : Integrable (expWiener a W t T) P := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  obtain ⟨C, hC⟩ := exists_itoIntegrand_exp (P := P) (𝓕 := 𝓕) a t T
+  exact ((memLp_itoInt hB hW h𝓕 ht hC).integrable one_le_two).congr
+    (expWiener_ae_eq_itoInt hB hW h𝓕 hcont a ht htT).symm
+
+/-- **Cochrane (2023), §§5.7.2–5.7.3 (discounting a diffusive state, on a path).** If `F` is
+`C¹` with continuous derivative `F'`, `w` is continuous and `X = F + kw`, then for all `t, T`,
+`∫_t^T e^{−a(τ−t)}(aX_τ − F'_τ)dτ = X_t − e^{−a(T−t)}X_T
+  + k(e^{−a(T−t)}w_T − w_t + a∫_t^T e^{−a(τ−t)}w_τ dτ)`
+(the last bracket is `∫_t^T e^{−a(τ−t)} dw` by parts). -/
+theorem discounted_byParts {F F' w : ℝ → ℝ} (hF : ∀ x, HasDerivAt F (F' x) x)
+    (hF' : Continuous F') (hw : Continuous w) (a k t T : ℝ) :
+    ∫ τ in t..T, exp (-(a * (τ - t))) * (a * (F τ + k * w τ) - F' τ)
+      = (F t + k * w t) - exp (-(a * (T - t))) * (F T + k * w T)
+        + k * (exp (-(a * (T - t))) * w T - w t
+          + a * ∫ τ in t..T, exp (-(a * (τ - t))) * w τ) := by
+  have hFc : Continuous F := continuous_iff_continuousAt.2 fun x => (hF x).continuousAt
+  have hE : ∀ τ, HasDerivAt (fun τ => exp (-(a * (τ - t)))) (exp (-(a * (τ - t))) * -a) τ := by
+    intro τ
+    have h1 : HasDerivAt (fun τ => -(a * (τ - t))) (-a) τ := by
+      have := (((hasDerivAt_id' τ).sub_const t).const_mul a).neg
+      exact this.congr_deriv (by ring)
+    exact h1.exp
+  have hG : ∀ τ, HasDerivAt (fun τ => -(exp (-(a * (τ - t))) * F τ))
+      (exp (-(a * (τ - t))) * (a * F τ - F' τ)) τ := fun τ =>
+    ((hE τ).mul (hF τ)).neg.congr_deriv (by ring)
+  have c1 : Continuous fun τ => exp (-(a * (τ - t))) * (a * F τ - F' τ) := by fun_prop
+  have c2 : Continuous fun τ => exp (-(a * (τ - t))) * w τ := by fun_prop
+  have hsplit : (fun τ => exp (-(a * (τ - t))) * (a * (F τ + k * w τ) - F' τ))
+      = fun τ => exp (-(a * (τ - t))) * (a * F τ - F' τ)
+        + (a * k) * (exp (-(a * (τ - t))) * w τ) := by
+    funext τ
+    ring
+  rw [hsplit, intervalIntegral.integral_add (c1.intervalIntegrable t T)
+    ((c2.const_mul _).intervalIntegrable t T), intervalIntegral.integral_const_mul,
+    intervalIntegral.integral_eq_sub_of_hasDerivAt (fun x _ => hG x) (c1.intervalIntegrable t T)]
+  simp only [sub_self, mul_zero, neg_zero, exp_zero, one_mul]
+  ring
+
+/-! ### Brackets with `W` -/
+
+/-- Cochrane (2023), A1 §1.6, p. 567 (tool): the cross sum is bilinear,
+`Σ Δ(aw + F)Δ(bw + G) = ab Σ(Δw)² + a ΣΔwΔG + b ΣΔFΔw + ΣΔFΔG`. -/
+theorem crossSum_affine {s t : ℝ} (p : Partition s t) (a b : ℝ) (w F G : ℝ → ℝ) :
+    crossSum p (fun u => a * w u + F u) (fun u => b * w u + G u)
+      = a * b * crossSum p w w + a * crossSum p w G + b * crossSum p F w + crossSum p F G := by
+  simp only [crossSum, Finset.mul_sum, ← Finset.sum_add_distrib]
+  exact Finset.sum_congr rfl fun i _ => by ring
+
+/-- **Cochrane (2023), §5.7.2, p. 168, and A1 §1.6 (the bracket of two diffusive states).** If
+on every path `X = aW + F` and `Y = bW + G` with `F, G` of class `C¹` (continuous derivatives),
+then for `0 ≤ s < t`, a.s. along the dyadic partitions of `[s, t]`,
+`Σ ΔX_i ΔY_i → ab(t − s)`: only the `dW`-loadings enter `[X, Y]`.
+Generalises `TidyR7BrownianQV.ae_tendsto_qvSum_dyadic` and
+`TidyR7StochCTBrownian.crossSum_v_tendsto_zero`. -/
+theorem tendsto_crossSum_affine (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) {s t : ℝ} (hs : 0 ≤ s) (hst : s < t) (a b : ℝ)
+    {F G F' G' : Ω → ℝ → ℝ} (hF : ∀ ω x, HasDerivAt (F ω) (F' ω x) x)
+    (hF' : ∀ ω, Continuous (F' ω)) (hG : ∀ ω x, HasDerivAt (G ω) (G' ω x) x)
+    (hG' : ∀ ω, Continuous (G' ω)) :
+    ∀ᵐ ω ∂P, Tendsto (fun k => crossSum (dyadic hst k)
+      (fun u => a * bmReal W u ω + F ω u) (fun u => b * bmReal W u ω + G ω u))
+      atTop (𝓝 (a * b * (t - s))) := by
+  filter_upwards [ae_tendsto_qvSum_dyadic hB hW hs hst] with ω hω
+  have hw := continuous_bmReal (hcont ω)
+  have hFc : Continuous (F ω) := continuous_iff_continuousAt.2 fun x => (hF ω x).continuousAt
+  have hm := tendsto_mesh_dyadic hst
+  have hGbv := bv_of_hasDerivAt (hG ω) (hG' ω) hst.le
+  have hFbv := bv_of_hasDerivAt (hF ω) (hF' ω) hst.le
+  have t1 := tendsto_crossSum_zero_of_continuousOn hw.continuousOn hGbv _ hm
+  have t2 := tendsto_crossSum_zero_of_continuousOn hw.continuousOn hFbv _ hm
+  have t3 := tendsto_crossSum_zero_of_continuousOn hFc.continuousOn hGbv _ hm
+  simp_rw [qvSum_eq_crossSum] at hω
+  have hlim := (((hω.const_mul (a * b)).add (t1.const_mul a)).add
+    ((t2.const_mul b).congr fun k => by rw [crossSum_comm])).add t3
+  simp only [mul_zero, add_zero] at hlim
+  refine hlim.congr fun k => ?_
+  rw [crossSum_affine]
+
+end Cochrane.StickyPriceFiscal.TidyR8StochKernel
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The integral forms of p. 163, deterministic and with Brownian shocks
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 5, §5.7, p. 163.
+
+The book integrates (5.85) and (5.86) forward to
+`x_t = −σE_t∫_0^∞(i_{t+τ} − π_{t+τ})dτ` and `π_t = κE_t∫_0^∞ e^{−ρτ}x_{t+τ}dτ`.
+`CTSimple.ct_is_integral` proves the first only under `x_T → 0`, and `CTSimple.ct_pc_integral`
+the second for `ρ > 0`.
+
+**The printed IS form is false for a permanent interest-rate shock when `ρ ≠ 0`.** After a
+permanent rate change output does not return to `0`: the long-run Phillips curve `ρπ = κx`
+with `π_∞ = i_∞` gives `x_∞ = ρi_∞/κ` (`R_x(τ) → ρσ_i/κ`). The correct statement is
+`x_t = x_∞ − σ∫_0^∞(i − π)`, i.e. `x_t = (ρ/κ)E_t i_∞ − σE_t∫_0^∞(i − π)`; the printed form
+holds iff `x_∞ = 0` (a transitory shock, or `ρ = 0`). The Phillips-curve form holds for every
+`ρ > 0` also under uncertainty; at `ρ = 0` it needs `+π_∞`.
+
+## Main results
+
+Deterministic (the book's continuous-time model of `CTSimple`):
+* `is_integral_general` (`x_t = x_∞ − σ∫(i − π)` whenever `x_T → x_∞`),
+  `is_printed_iff` (the printed form iff `x_∞ = 0`);
+* `fisherian_equilibrium` (a permanent rate rise `i₀` with no fiscal news: `π = i₀`,
+  `x = ρi₀/κ`, `v = 0`, an equilibrium of `CTSimple.IsCTEquilibrium`) and
+  **`printed_is_counterexample`** (it violates the printed IS form whenever `ρi₀ ≠ 0`);
+  `step_is_corrected` (every step equilibrium satisfies `x_t = ρi₀/κ − σ∫(i − π)`);
+* `pc_rho_zero_corrected`, `printed_pc_counterexample_rho_zero` (at `ρ = 0`,
+  `π_t = π_∞ + κ∫x`, and the printed form fails).
+
+With Brownian shocks (`dε_m = σ_i dW`, `dε_s = σ_s dW`, T8's explicit solution):
+* `condExp_isProc` (`E_t∫_t^T(i − π) = −(A/λ₂)(1 − e^{−λ₂(T−t)})Y_t`);
+* **`is_corrected_L1`** (`E_t∫_t^T σ(i − π) + x_t − (ρ/κ)i_t → 0` in `L¹`) and
+  `condExp_x_limit` (`E_t x_T → (ρ/κ)i_t`): `x_t = lim E_t x_T − σ lim E_t∫_t^T(i − π)`;
+* **`printed_is_fails`**: for `ρσ_i ≠ 0`, `t > 0`, the `L¹` distance between `x(t)` and
+  `−σE_t∫_t^T(i − π)` converges to `|ρ/κ|E|i_t| > 0`;
+* `pc_identity` (on every path,
+  `κ∫_t^T e^{−ρ(τ−t)}x = π_t − e^{−ρ(T−t)}π_T + R_π(0)∫e^{−ρ(τ−t)}dW`),
+  **`pc_integral_L1`** (`ρ > 0`: `κE_t∫_t^T e^{−ρ(τ−t)}x → π_t` in `L¹`, the printed form),
+  `pc_rho_zero_L1` (`ρ = 0`: `κE_t∫_t^T x + i_t → π_t`);
+* non-vacuity on `bmPath`: `bmPath_printed_is_fails`.
+-/
+
+namespace Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms
+
+open Real MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.StickyPriceFiscal.TidyR7StieltjesSums Cochrane.StickyPriceFiscal.TidyR7BrownianTools
+open Cochrane.StickyPriceFiscal.TidyR7BrownianQV Cochrane.StickyPriceFiscal.TidyR7ItoIntegral
+open Cochrane.StickyPriceFiscal.TidyR7ItoBridge Cochrane.StickyPriceFiscal.TidyR7BrownianExist
+open Cochrane.StickyPriceFiscal.TidyR7BrownianSchauder Cochrane.StickyPriceFiscal.TidyR7ItoSums
+open Cochrane.StickyPriceFiscal.TidyR7StochCTPath Cochrane.StickyPriceFiscal.TidyR7StochCTBrownian
+open Cochrane.StickyPriceFiscal.TidyR7StochCTUnique Cochrane.StickyPriceFiscal.TidyR8StochKernel
+open Cochrane.StickyPriceFiscal.CTSimple
+open scoped ENNReal NNReal
+
+/-! ### Deterministic: the IS form -/
+
+/-- **Cochrane (2023), §5.7, p. 163, corrected: the integrated IS curve with its limit term.**
+Along a solution of (5.91)–(5.92), if `x_T → x_∞` and `i − infl` is integrable on `(t, ∞)`, then
+`x_t = x_∞ − σ∫_0^∞(i_{t+τ} − π_{t+τ})dτ`.
+Generalises `CTSimple.ct_is_integral` (the case `x_∞ = 0`). -/
+theorem is_integral_general {σ κ ρ t xinf : ℝ} {i x infl : ℝ → ℝ} (h : IsCTSolution σ κ ρ i x infl)
+    (ht : 0 ≤ t) (hx : Tendsto x atTop (𝓝 xinf))
+    (hint : IntegrableOn (fun τ => i τ - infl τ) (Set.Ioi t)) :
+    x t = xinf - σ * ∫ τ in Set.Ioi 0, (i (t + τ) - infl (t + τ)) := by
+  have hl := tendsto_of_deriv_Ioi (G := x) (g := fun τ => σ * (i τ - infl τ))
+    (h.1.mono (Set.Ici_subset_Ici.2 ht)) (fun τ hτ => (h.2.2 τ (by linarith)).1)
+    (hint.const_mul σ)
+  have hu := tendsto_nhds_unique hl hx
+  rw [integral_const_mul] at hu
+  rw [integral_Ioi_shift (fun τ => i τ - infl τ) t]
+  linarith
+
+/-- Cochrane (2023), §5.7, p. 163: **the printed IS form holds iff output returns to zero**:
+under the hypotheses of `is_integral_general`, `x_t = −σ∫(i − infl)` iff `x_∞ = 0`. -/
+theorem is_printed_iff {σ κ ρ t xinf : ℝ} {i x infl : ℝ → ℝ} (h : IsCTSolution σ κ ρ i x infl)
+    (ht : 0 ≤ t) (hx : Tendsto x atTop (𝓝 xinf))
+    (hint : IntegrableOn (fun τ => i τ - infl τ) (Set.Ioi t)) :
+    x t = -σ * ∫ τ in Set.Ioi 0, (i (t + τ) - infl (t + τ)) ↔ xinf = 0 := by
+  rw [is_integral_general h ht hx hint]
+  constructor <;> intro h' <;> linarith
+
+/-- **Cochrane (2023), p. 166 (the Fisherian response to a permanent rate rise with no fiscal
+news)**: for `κ ≠ 0` and `r ∈ ℝ`, `infl = i₀`, `x = ρi₀/κ`, `v = 0` is an equilibrium of the
+continuous-time model (`CTSimple.IsCTEquilibrium` with `v₀ = 0`, `s̃ = 0`). -/
+theorem fisherian_equilibrium {r σ κ ρ : ℝ} (hκ : κ ≠ 0) (i0 : ℝ) :
+    IsCTEquilibrium r σ κ ρ 0 (fun _ => i0) (fun _ => 0) (fun _ => ρ * i0 / κ) (fun _ => i0)
+      (fun _ => 0) := by
+  refine ⟨⟨⟨continuousOn_const, continuousOn_const, fun t _ => ⟨?_, ?_⟩⟩,
+    ⟨|ρ * i0 / κ|, fun _ _ => le_rfl⟩, ⟨|i0|, fun _ _ => le_rfl⟩⟩,
+    continuousOn_const, fun t _ => ?_, rfl, ?_⟩
+  · exact (hasDerivAt_const t _).congr_deriv (by ring)
+  · exact (hasDerivAt_const t _).congr_deriv (by field_simp; ring)
+  · exact (hasDerivAt_const t _).congr_deriv (by ring)
+  · simp
+
+/-- **Cochrane (2023), §5.7, p. 163: the printed integrated IS curve is false.** In the
+equilibrium `fisherian_equilibrium` (a permanent rate rise `i₀`, `ρi₀ ≠ 0`), `i − infl = 0`, so the
+printed right-hand side `−σ∫_0^∞(i − infl)` is `0`, while `x_t = ρi₀/κ ≠ 0`. -/
+theorem printed_is_counterexample {σ κ ρ i0 : ℝ} (hκ : κ ≠ 0) (hρi : ρ * i0 ≠ 0) (t : ℝ) :
+    (fun _ : ℝ => ρ * i0 / κ) t ≠
+      -σ * ∫ τ in Set.Ioi 0, ((fun _ : ℝ => i0) (t + τ) - (fun _ : ℝ => i0) (t + τ)) := by
+  simp only [sub_self, integral_zero, mul_zero]
+  exact div_ne_zero hρi hκ
+
+/-- **Cochrane (2023), pp. 163 and 166: the corrected IS form in the step example.** For `κ, σ > 0`,
+every equilibrium after a step to `i₀`, `s̃₀` satisfies, for `t ≥ 0`,
+`x_t = ρi₀/κ − σ∫_0^∞(i_{t+τ} − π_{t+τ})dτ`: the limit term is `x_∞ = ρi₀/κ`. -/
+theorem step_is_corrected {r σ κ ρ v0 i0 s0 : ℝ} {x infl v : ℝ → ℝ} (hκ : 0 < κ)
+    (hσ : 0 < σ) (h : IsCTEquilibrium r σ κ ρ v0 (fun _ => i0) (fun _ => s0) x infl v) {t : ℝ}
+    (ht : 0 ≤ t) :
+    x t = ρ * i0 / κ - σ * ∫ τ in Set.Ioi 0, ((fun _ => i0) (t + τ) - infl (t + τ)) := by
+  have h2 := lam2_pos (ρ := ρ) hκ hσ
+  have hfam := ct_step_family hκ hσ h.1
+  have hπ := fun τ hτ => (hfam τ hτ).1
+  have hxl : Tendsto x atTop (𝓝 (ρ * i0 / κ)) := by
+    have he : Tendsto (fun τ => Real.exp (-(lam2 ρ κ σ * τ))) atTop (𝓝 0) :=
+      Real.tendsto_exp_neg_atTop_nhds_zero.comp (tendsto_id.const_mul_atTop h2)
+    have := ((he.const_mul (lam1 ρ κ σ * (infl 0 - i0))).add_const (ρ * i0)).div_const κ
+    simp only [mul_zero, zero_add] at this
+    refine this.congr' ?_
+    filter_upwards [eventually_ge_atTop 0] with τ hτ
+    rw [(hfam τ hτ).2]
+  have hint : IntegrableOn (fun τ => (fun _ => i0) τ - infl τ) (Set.Ioi t) := by
+    have h0 : IntegrableOn (fun τ => -(infl 0 - i0) * Real.exp (-(lam2 ρ κ σ * τ)))
+        (Set.Ioi 0) := (integrableOn_exp_Ioi h2).const_mul _
+    have hI : IntegrableOn (fun τ => -(infl 0 - i0) * Real.exp (-(lam2 ρ κ σ * τ))) (Set.Ioi t) :=
+      h0.mono_set (Set.Ioi_subset_Ioi ht)
+    refine hI.congr_fun (fun τ hτ => ?_) measurableSet_Ioi
+    simp only
+    rw [hπ τ (le_of_lt (lt_of_le_of_lt ht hτ))]
+    ring
+  exact is_integral_general h.1.1 ht hxl hint
+
+/-! ### Deterministic: the Phillips-curve form at `ρ = 0` -/
+
+/-- Cochrane (2023), §5.7, p. 163, at `ρ = 0`: along a solution with `ρ = 0`, if `π_T → π_∞`
+and `x` is integrable on `(t, ∞)`, then `π_t = π_∞ + κ∫_0^∞ x_{t+τ}dτ`. -/
+theorem pc_rho_zero_corrected {σ κ t πinf : ℝ} {i x infl : ℝ → ℝ} (h : IsCTSolution σ κ 0 i x infl)
+    (ht : 0 ≤ t) (hπ : Tendsto infl atTop (𝓝 πinf)) (hint : IntegrableOn x (Set.Ioi t)) :
+    infl t = πinf + κ * ∫ τ in Set.Ioi 0, x (t + τ) := by
+  have hl := tendsto_of_deriv_Ioi (G := infl) (g := fun τ => -(κ * x τ))
+    (h.2.1.mono (Set.Ici_subset_Ici.2 ht))
+    (fun τ hτ => ((h.2.2 τ (by linarith)).2).congr_deriv (by ring)) (hint.const_mul κ).neg
+  have hu := tendsto_nhds_unique hl hπ
+  rw [integral_neg, integral_const_mul] at hu
+  rw [integral_Ioi_shift x t]
+  linarith
+
+/-- Cochrane (2023), §5.7, p. 163: **at `ρ = 0` the printed Phillips-curve form fails** for a
+permanent rate rise: in `fisherian_equilibrium` with `ρ = 0`, `x = 0`, so
+`κ∫_0^∞ e^{−0·τ}x = 0 ≠ i₀ = π_t`. -/
+theorem printed_pc_counterexample_rho_zero {κ i0 : ℝ} (hi : i0 ≠ 0) (t : ℝ) :
+    (fun _ : ℝ => i0) t ≠
+      κ * ∫ τ in Set.Ioi 0, Real.exp (-(0 * τ)) * (fun _ : ℝ => 0 * i0 / κ) (t + τ) := by
+  simp only [zero_mul, zero_div, mul_zero, integral_zero]
+  exact hi
+
+/-! ### With Brownian shocks -/
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {W : ℝ≥0 → Ω → ℝ}
+  {𝓕 : Filtration ℝ mΩ} {r σ κ ρ σi σs : ℝ}
+
+/-- Cochrane (2023), p. 163: the real-rate integral `∫_t^T (i_τ − π_τ) dτ` on the Brownian
+path. -/
+noncomputable def isProc (r σ κ ρ σi σs : ℝ) (W : ℝ≥0 → Ω → ℝ) (t T : ℝ) (ω : Ω) : ℝ :=
+  ∫ u in t..T, (iProc σi W u ω - piProc r σ κ ρ σi σs W u ω)
+
+/-- Cochrane (2023), p. 163, on every path: `∫_t^T (i − π) = −(A/λ₂)((W − Y)_T − (W − Y)_t)`
+(`A` = `TidyR7StochCTPath.fiscalLoad`, `W − Y` = `kerProc W 1 (−1) λ₂`). -/
+theorem isProc_eq (hκ : 0 < κ) (hσ : 0 < σ) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (t T : ℝ) (ω : Ω) :
+    isProc r σ κ ρ σi σs W t T ω = -(fiscalLoad r σ κ ρ σs / lam2 ρ κ σ)
+      * (kerProc W 1 (-1) (lam2 ρ κ σ) T ω - kerProc W 1 (-1) (lam2 ρ κ σ) t ω) := by
+  have h2 := (lam2_pos (ρ := ρ) hκ hσ).ne'
+  have hw := continuous_bmReal (hcont ω)
+  have hI := ouNoise_incr (lam2 ρ κ σ) hw t T
+  have e : (fun u => iProc σi W u ω - piProc r σ κ ρ σi σs W u ω)
+      = fun u => -fiscalLoad r σ κ ρ σs * ouNoise (lam2 ρ κ σ) (fun u => bmReal W u ω) u := by
+    funext u
+    simp only [iProc, iPath, piProc, piPath]
+    ring
+  simp only [isProc, kerProc]
+  rw [e, intervalIntegral.integral_const_mul]
+  field_simp
+  linear_combination (-fiscalLoad r σ κ ρ σs) * hI
+
+/-- Cochrane (2023), p. 163: the real-rate integral is integrable. -/
+theorem integrable_isProc (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hκ : 0 < κ) (hσ : 0 < σ) {t T : ℝ} (ht : 0 ≤ t) (htT : t ≤ T) :
+    Integrable (isProc r σ κ ρ σi σs W t T) P := by
+  have e : isProc r σ κ ρ σi σs W t T = fun ω => -(fiscalLoad r σ κ ρ σs / lam2 ρ κ σ)
+      * (kerProc W 1 (-1) (lam2 ρ κ σ) T ω - kerProc W 1 (-1) (lam2 ρ κ σ) t ω) := by
+    funext ω
+    exact isProc_eq hκ hσ hcont t T ω
+  rw [e]
+  exact ((integrable_kerProc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 _ _ _ (ht.trans htT)).sub
+    (integrable_kerProc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 _ _ _ ht)).const_mul _
+
+/-- **Cochrane (2023), p. 163: the forecast of the real-rate integral.** For `0 ≤ t ≤ T`, a.s.
+`E_t∫_t^T(i − π) = −(A/λ₂)(1 − e^{−λ₂(T−t)})Y_t`. -/
+theorem condExp_isProc (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hκ : 0 < κ) (hσ : 0 < σ) {t T : ℝ} (ht : 0 ≤ t) (htT : t ≤ T) :
+    P[isProc r σ κ ρ σi σs W t T | 𝓕 t] =ᵐ[P] fun ω =>
+      -(fiscalLoad r σ κ ρ σs / lam2 ρ κ σ) * (1 - exp (-(lam2 ρ κ σ * (T - t))))
+        * kerProc W 0 1 (lam2 ρ κ σ) t ω := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  set lm := lam2 ρ κ σ
+  have iT := integrable_kerProc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 1 (-1) lm (ht.trans htT)
+  have it := integrable_kerProc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 1 (-1) lm ht
+  have hm := aesm_kerProc hB hW h𝓕 hcont hW0 1 (-1) lm ht
+  have e : isProc r σ κ ρ σi σs W t T = (-(fiscalLoad r σ κ ρ σs / lm))
+      • (kerProc W 1 (-1) lm T - kerProc W 1 (-1) lm t) := by
+    funext ω
+    rw [isProc_eq hκ hσ hcont t T ω]
+    rfl
+  rw [e]
+  filter_upwards [condExp_smul (μ := P) (-(fiscalLoad r σ κ ρ σs / lm))
+      (kerProc W 1 (-1) lm T - kerProc W 1 (-1) lm t) (𝓕 t),
+    condExp_sub iT it (𝓕 t), condExp_kerProc hB hW h𝓕 hcont hW0 1 (-1) lm ht htT,
+    condExp_of_aestronglyMeasurable' (𝓕.le t) hm it] with ω h1 h2 h3 h4
+  rw [h1, Pi.smul_apply, h2, Pi.sub_apply, h3, h4]
+  simp only [kerProc, smul_eq_mul]
+  ring
+
+/-- Cochrane (2023), p. 163 (tool): `x_t − (ρ/κ)i_t = (σA/λ₂)Y_t` on every path. -/
+theorem x_sub_i (hκ : 0 < κ) (hσ : 0 < σ) (t : ℝ) (ω : Ω) :
+    xProc r σ κ ρ σi σs W t ω - ρ / κ * iProc σi W t ω
+      = σ * fiscalLoad r σ κ ρ σs / lam2 ρ κ σ * kerProc W 0 1 (lam2 ρ κ σ) t ω := by
+  have h2 := (lam2_pos (ρ := ρ) hκ hσ).ne'
+  have hm := lam_mul (ρ := ρ) hκ hσ
+  simp only [xProc, xPath, iProc, iPath, kerProc]
+  field_simp
+  linear_combination (fiscalLoad r σ κ ρ σs * ouNoise (lam2 ρ κ σ)
+    (fun u => bmReal W u ω) t) * hm
+
+/-- **Cochrane (2023), p. 163, corrected, under uncertainty.** For `κ, σ > 0` and `t ≥ 0`,
+`x_t − (ρ/κ)i_t + σE_t∫_t^T(i − π) → 0` in `L¹` as `T → ∞`: `x_t = (ρ/κ)i_t − σE_t∫_t^∞(i − π)`,
+the limit term being `(ρ/κ)E_t i_∞ = (ρ/κ)i_t`. -/
+theorem is_corrected_L1 (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hκ : 0 < κ) (hσ : 0 < σ) {t : ℝ} (ht : 0 ≤ t) :
+    Tendsto (fun T => ∫ ω, |xProc r σ κ ρ σi σs W t ω - ρ / κ * iProc σi W t ω
+      + σ * P[isProc r σ κ ρ σi σs W t T | 𝓕 t] ω| ∂P) atTop (𝓝 0) := by
+  set lm := lam2 ρ κ σ
+  have h2 := lam2_pos (ρ := ρ) hκ hσ
+  set c := σ * fiscalLoad r σ κ ρ σs / lm
+  set M := ∫ ω, |kerProc W 0 1 lm t ω| ∂P
+  have he : Tendsto (fun T => |c| * M * exp (-(lm * (T - t)))) atTop (𝓝 0) := by
+    have : Tendsto (fun T => lm * (T - t)) atTop atTop :=
+      (tendsto_atTop_add_const_right _ (-t) tendsto_id).const_mul_atTop h2
+    have := (Real.tendsto_exp_neg_atTop_nhds_zero.comp this).const_mul (|c| * M)
+    simpa using this
+  refine he.congr' ?_
+  filter_upwards [eventually_ge_atTop t] with T hT
+  symm
+  rw [show |c| * M * exp (-(lm * (T - t))) = ∫ ω, (|c| * exp (-(lm * (T - t))))
+      * |kerProc W 0 1 lm t ω| ∂P by rw [integral_const_mul]; ring]
+  refine integral_congr_ae ?_
+  filter_upwards [condExp_isProc (r := r) (σi := σi) (σs := σs) hB hW h𝓕 hcont hW0 hκ hσ ht hT]
+    with ω hω
+  rw [hω]
+  have e := x_sub_i (r := r) (ρ := ρ) (σi := σi) (σs := σs) (W := W) hκ hσ t ω
+  have key : xProc r σ κ ρ σi σs W t ω - ρ / κ * iProc σi W t ω + σ * (-(fiscalLoad r σ κ ρ σs
+      / lm) * (1 - exp (-(lm * (T - t)))) * kerProc W 0 1 lm t ω)
+      = c * exp (-(lm * (T - t))) * kerProc W 0 1 lm t ω := by
+    rw [e]
+    simp only [c]
+    ring
+  rw [key, abs_mul, abs_mul, abs_of_pos (exp_pos _)]
+
+/-- **Cochrane (2023), p. 163: the limit term is `lim_T E_t x_T = (ρ/κ)i_t`.** For `κ, σ > 0`,
+`t ≥ 0`, `E_t x_T → (ρ/κ)i_t` in `L¹` as `T → ∞`. -/
+theorem condExp_x_limit (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hκ : 0 < κ) (hσ : 0 < σ) {t : ℝ} (ht : 0 ≤ t) :
+    Tendsto (fun T => ∫ ω, |P[xProc r σ κ ρ σi σs W T | 𝓕 t] ω - ρ / κ * iProc σi W t ω| ∂P)
+      atTop (𝓝 0) := by
+  set lm := lam2 ρ κ σ
+  have h2 := lam2_pos (ρ := ρ) hκ hσ
+  set c := σ * fiscalLoad r σ κ ρ σs / lm
+  set M := ∫ ω, |kerProc W 0 1 lm t ω| ∂P
+  have he : Tendsto (fun T => |c| * M * exp (-(lm * (T - t)))) atTop (𝓝 0) := by
+    have : Tendsto (fun T => lm * (T - t)) atTop atTop :=
+      (tendsto_atTop_add_const_right _ (-t) tendsto_id).const_mul_atTop h2
+    have := (Real.tendsto_exp_neg_atTop_nhds_zero.comp this).const_mul (|c| * M)
+    simpa using this
+  refine he.congr' ?_
+  filter_upwards [eventually_ge_atTop t] with T hT
+  symm
+  rw [show |c| * M * exp (-(lm * (T - t))) = ∫ ω, (|c| * exp (-(lm * (T - t))))
+      * |kerProc W 0 1 lm t ω| ∂P by rw [integral_const_mul]; ring]
+  refine integral_congr_ae ?_
+  rw [xProc_eq_ker]
+  filter_upwards [condExp_kerProc hB hW h𝓕 hcont hW0 (ρ * σi / κ)
+    (lam1 ρ κ σ * fiscalLoad r σ κ ρ σs / κ) lm ht hT] with ω hω
+  rw [hω]
+  have hm := lam_mul (ρ := ρ) hκ hσ
+  have key : kerProc W (ρ * σi / κ) (lam1 ρ κ σ * fiscalLoad r σ κ ρ σs / κ
+      * exp (-(lm * (T - t)))) lm t ω - ρ / κ * iProc σi W t ω
+      = c * exp (-(lm * (T - t))) * kerProc W 0 1 lm t ω := by
+    simp only [kerProc, iProc, iPath, c, lm]
+    field_simp
+    linear_combination (fiscalLoad r σ κ ρ σs * exp (-(lam2 ρ κ σ * (T - t)))
+      * ouNoise (lam2 ρ κ σ) (fun u => bmReal W u ω) t) * hm
+  rw [key, abs_mul, abs_mul, abs_of_pos (exp_pos _)]
+
+/-- Cochrane (2023), §5.7 (tool): if `∫|f_T − g| → 0` then `∫|f_T| → ∫|g|`. -/
+theorem tendsto_integral_abs_of_L1 {f : ℝ → Ω → ℝ} {g : Ω → ℝ} (hf : ∀ T, Integrable (f T) P)
+    (hg : Integrable g P) (h : Tendsto (fun T => ∫ ω, |f T ω - g ω| ∂P) atTop (𝓝 0)) :
+    Tendsto (fun T => ∫ ω, |f T ω| ∂P) atTop (𝓝 (∫ ω, |g ω| ∂P)) := by
+  rw [tendsto_iff_norm_sub_tendsto_zero]
+  refine squeeze_zero (fun _ => norm_nonneg _) (fun T => ?_) h
+  rw [Real.norm_eq_abs, ← integral_sub (hf T).abs hg.abs]
+  refine (abs_integral_le_integral_abs).trans (integral_mono ((hf T).abs.sub hg.abs).abs
+    ((hf T).sub hg).abs fun ω => ?_)
+  exact abs_abs_sub_abs_le_abs_sub _ _
+
+/-- Cochrane (2023), §5.7, p. 164 (tool): for `t > 0`, `E|W_t| > 0` (from `E[W_t²] = t`). -/
+theorem integral_abs_bm_pos (hB : IsPreBrownianReal W P) (hW0 : ∀ ω, W 0 ω = 0) {t : ℝ}
+    (ht : 0 < t) : 0 < ∫ ω, |bmReal W t ω| ∂P := by
+  have hi : Integrable (bmReal W t) P := hB.integrable_eval _
+  refine lt_of_le_of_ne (integral_nonneg fun _ => abs_nonneg _) fun h0 => ?_
+  have hz : (fun ω => |bmReal W t ω|) =ᵐ[P] 0 :=
+    (integral_eq_zero_iff_of_nonneg (fun _ => abs_nonneg _) hi.abs).1 h0.symm
+  have hsq := integral_incr_sq hB le_rfl ht.le
+  have hb0 : ∀ ω, bmReal W 0 ω = 0 := fun ω => by simp [bmReal, hW0]
+  have e : (fun ω => incr W 0 t ω ^ 2) =ᵐ[P] 0 := by
+    filter_upwards [hz] with ω hω
+    simp only [Pi.zero_apply, abs_eq_zero] at hω
+    simp [incr, hω, hb0]
+  rw [integral_congr_ae e] at hsq
+  simp only [Pi.zero_apply, integral_zero] at hsq
+  linarith
+
+/-- **Cochrane (2023), §5.7, p. 163: the printed integrated IS curve fails under uncertainty.**
+For `κ, σ > 0`, `t > 0`, the `L¹` distance between `x(t)` and the printed
+`−σE_t∫_t^T(i − π)` converges to `|ρ/κ|·E|i_t|`, which is positive when `ρσ_i ≠ 0`. -/
+theorem printed_is_fails (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hκ : 0 < κ) (hσ : 0 < σ) (hρi : ρ * σi ≠ 0) {t : ℝ} (ht : 0 < t) :
+    Tendsto (fun T => ∫ ω, |xProc r σ κ ρ σi σs W t ω + σ * P[isProc r σ κ ρ σi σs W t T
+      | 𝓕 t] ω| ∂P) atTop (𝓝 (∫ ω, |ρ / κ * iProc σi W t ω| ∂P)) ∧
+      0 < ∫ ω, |ρ / κ * iProc σi W t ω| ∂P := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have hxi : Integrable (xProc r σ κ ρ σi σs W t) P := by
+    rw [xProc_eq_ker]
+    exact integrable_kerProc hB hW h𝓕 hcont hW0 _ _ _ ht.le
+  have hii : Integrable (iProc σi W t) P := by
+    rw [iProc_eq_ker σi 0]
+    exact integrable_kerProc hB hW h𝓕 hcont hW0 _ _ _ ht.le
+  refine ⟨tendsto_integral_abs_of_L1 (fun T => hxi.add (integrable_condExp.const_mul σ))
+    (hii.const_mul _) ?_, ?_⟩
+  · refine (is_corrected_L1 (r := r) (ρ := ρ) (σi := σi) (σs := σs) hB hW h𝓕 hcont hW0 hκ hσ
+    ht.le).congr fun T => ?_
+    refine integral_congr_ae (ae_of_all _ fun ω => ?_)
+    simp only
+    ring_nf
+  · have e : (fun ω => |ρ / κ * iProc σi W t ω|) = fun ω => |ρ / κ * σi| * |bmReal W t ω| := by
+      funext ω
+      simp only [iProc, iPath]
+      rw [← abs_mul]
+      ring_nf
+    rw [e, integral_const_mul]
+    have hc : 0 < |ρ / κ * σi| := by
+      rw [abs_pos]
+      intro h0
+      apply hρi
+      have := hκ.ne'
+      field_simp at h0
+      linarith
+    exact mul_pos hc (integral_abs_bm_pos hB hW0 ht)
+
+/-! ### The Phillips-curve form with Brownian shocks -/
+
+/-- Cochrane (2023), p. 163: `∫_t^T e^{−ρ(τ−t)}x_τ dτ` on the Brownian path. -/
+noncomputable def pcProc (r σ κ ρ σi σs : ℝ) (W : ℝ≥0 → Ω → ℝ) (t T : ℝ) (ω : Ω) : ℝ :=
+  ∫ τ in t..T, exp (-(ρ * (τ - t))) * xProc r σ κ ρ σi σs W τ ω
+
+/-- Cochrane (2023), (5.86), p. 162: the `C¹` part `π − R_π(0)w` has derivative `ρπ − κx`. -/
+theorem pi_sub_hasDerivAt {w : ℝ → ℝ} (hκ : 0 < κ) (hw : Continuous w) (t : ℝ) :
+    HasDerivAt (fun u => piPath r σ κ ρ σi σs w u - respPi r σ κ ρ σi σs 0 * w u)
+      (ρ * piPath r σ κ ρ σi σs w t - κ * xPath r σ κ ρ σi σs w t) t := by
+  have h := (hasDerivAt_sub_ouNoise (lam2 ρ κ σ) hw t).const_mul (-fiscalLoad r σ κ ρ σs)
+  have hf : (fun u => piPath r σ κ ρ σi σs w u - respPi r σ κ ρ σi σs 0 * w u)
+      = fun u => -fiscalLoad r σ κ ρ σs * (w u - ouNoise (lam2 ρ κ σ) w u) := by
+    funext u
+    simp only [piPath, respPi_zero]
+    ring
+  rw [hf]
+  refine h.congr_deriv ?_
+  have hs := lam_sub ρ κ σ
+  simp only [piPath, xPath]
+  field_simp
+  linear_combination (fiscalLoad r σ κ ρ σs * ouNoise (lam2 ρ κ σ) w t) * hs
+
+/-- **Cochrane (2023), p. 163, on every path**: `κ∫_t^T e^{−ρ(τ−t)}x_τ dτ
+= π_t − e^{−ρ(T−t)}π_T + R_π(0)∫_t^T e^{−ρ(τ−t)} dW_τ` (by parts). -/
+theorem pc_identity (hκ : 0 < κ) (hcont : ∀ ω, Continuous fun t => W t ω) (t T : ℝ) (ω : Ω) :
+    κ * pcProc r σ κ ρ σi σs W t T ω = piProc r σ κ ρ σi σs W t ω
+      - exp (-(ρ * (T - t))) * piProc r σ κ ρ σi σs W T ω
+      + respPi r σ κ ρ σi σs 0 * expWiener ρ W t T ω := by
+  have hw := continuous_bmReal (hcont ω)
+  set w := fun u => bmReal W u ω
+  have c1 := continuous_piPath (r := r) (σ := σ) (κ := κ) (ρ := ρ) (σi := σi) (σs := σs) hw
+  have c2 := continuous_xPath (r := r) (σ := σ) (κ := κ) (ρ := ρ) (σi := σi) (σs := σs) hw
+  have hB := discounted_byParts (fun x => pi_sub_hasDerivAt (r := r) (σ := σ) (ρ := ρ)
+    (σi := σi) (σs := σs) hκ hw x) ((c1.const_mul ρ).sub (c2.const_mul κ)) hw ρ
+    (respPi r σ κ ρ σi σs 0) t T
+  have e1 : ∀ τ, piPath r σ κ ρ σi σs w τ - respPi r σ κ ρ σi σs 0 * w τ
+      + respPi r σ κ ρ σi σs 0 * w τ = piPath r σ κ ρ σi σs w τ := fun τ => by ring
+  simp only [e1] at hB
+  have e2 : (fun τ => exp (-(ρ * (τ - t))) * (ρ * piPath r σ κ ρ σi σs w τ
+      - (ρ * piPath r σ κ ρ σi σs w τ - κ * xPath r σ κ ρ σi σs w τ)))
+      = fun τ => κ * (exp (-(ρ * (τ - t))) * xPath r σ κ ρ σi σs w τ) := by
+    funext τ
+    ring
+  rw [e2, intervalIntegral.integral_const_mul] at hB
+  simp only [pcProc, xProc, piProc, expWiener]
+  rw [hB]
+
+/-- **Cochrane (2023), p. 163, conditional on date-`t` information**: for `0 ≤ t ≤ T`,
+`κE_t∫_t^T e^{−ρ(τ−t)}x = π_t − e^{−ρ(T−t)}E_tπ_T` a.s. -/
+theorem condExp_pcProc (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hκ : 0 < κ) {t T : ℝ} (ht : 0 ≤ t) (htT : t ≤ T) :
+    (fun ω => κ * P[pcProc r σ κ ρ σi σs W t T | 𝓕 t] ω) =ᵐ[P] fun ω =>
+      piProc r σ κ ρ σi σs W t ω - exp (-(ρ * (T - t))) * P[piProc r σ κ ρ σi σs W T | 𝓕 t] ω := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have ip : ∀ τ, 0 ≤ τ → Integrable (piProc r σ κ ρ σi σs W τ) P := fun τ hτ => by
+    rw [piProc_eq_ker]
+    exact integrable_kerProc hB hW h𝓕 hcont hW0 _ _ _ hτ
+  have hpm : AEStronglyMeasurable[𝓕 t] (piProc r σ κ ρ σi σs W t) P := by
+    rw [piProc_eq_ker]
+    exact aesm_kerProc hB hW h𝓕 hcont hW0 _ _ _ ht
+  have iE := integrable_expWiener hB hW h𝓕 hcont ρ ht htT
+  have i1 := (ip t ht).sub ((ip T (ht.trans htT)).smul (exp (-(ρ * (T - t)))))
+  have e : pcProc r σ κ ρ σi σs W t T = κ⁻¹ • ((piProc r σ κ ρ σi σs W t
+      - (exp (-(ρ * (T - t)))) • piProc r σ κ ρ σi σs W T)
+        + (respPi r σ κ ρ σi σs 0) • expWiener ρ W t T) := by
+    funext ω
+    have := pc_identity (r := r) (σ := σ) (ρ := ρ) (σi := σi) (σs := σs) hκ hcont t T ω
+    simp only [Pi.smul_apply, Pi.add_apply, Pi.sub_apply, smul_eq_mul]
+    rw [← this]
+    field_simp
+  rw [e]
+  filter_upwards [condExp_smul (μ := P) κ⁻¹ ((piProc r σ κ ρ σi σs W t
+      - (exp (-(ρ * (T - t)))) • piProc r σ κ ρ σi σs W T)
+        + (respPi r σ κ ρ σi σs 0) • expWiener ρ W t T) (𝓕 t),
+    condExp_add i1 (iE.smul (respPi r σ κ ρ σi σs 0)) (𝓕 t),
+    condExp_sub (ip t ht) ((ip T (ht.trans htT)).smul (exp (-(ρ * (T - t))))) (𝓕 t),
+    condExp_of_aestronglyMeasurable' (𝓕.le t) hpm (ip t ht),
+    condExp_smul (μ := P) (exp (-(ρ * (T - t)))) (piProc r σ κ ρ σi σs W T) (𝓕 t),
+    condExp_smul (μ := P) (respPi r σ κ ρ σi σs 0) (expWiener ρ W t T) (𝓕 t),
+    condExp_expWiener hB hW h𝓕 hcont ρ ht htT] with ω h0 h1 h2 h3 h4 h5 h6
+  rw [h0, Pi.smul_apply, h1, Pi.add_apply, h2, Pi.sub_apply, h3, h4, h5]
+  simp only [Pi.smul_apply, smul_eq_mul, h6, Pi.zero_apply, mul_zero, add_zero]
+  field_simp
+
+/-- Cochrane (2023), (5.94), p. 164: inflation is the two-mode process with no second mode.
+Restates `TidyR7StochCTBrownian.piProc_eq_ker`. -/
+theorem piProc_eq_ker2 : piProc r σ κ ρ σi σs W
+    = fun t => ker2Proc W σi (fiscalLoad r σ κ ρ σs) (lam2 ρ κ σ) 0 0 t := by
+  funext t ω
+  simp [piProc, piPath, ker2Proc, kerProc]
+
+/-- **Cochrane (2023), p. 163: the integrated Phillips curve under uncertainty (`ρ > 0`).** For
+`κ, σ > 0`, `t ≥ 0`: `κE_t∫_t^T e^{−ρ(τ−t)}x_τ dτ → π_t` in `L¹` as `T → ∞`, i.e.
+`π_t = κE_t∫_0^∞ e^{−ρτ}x_{t+τ}dτ` as printed.
+The stochastic version of `CTSimple.ct_pc_integral`. -/
+theorem pc_integral_L1 (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hκ : 0 < κ) (hσ : 0 < σ) (hρ : 0 < ρ) {t : ℝ} (ht : 0 ≤ t) :
+    Tendsto (fun T => ∫ ω, |κ * P[pcProc r σ κ ρ σi σs W t T | 𝓕 t] ω
+      - piProc r σ κ ρ σi σs W t ω| ∂P) atTop (𝓝 0) := by
+  have h2 := lam2_pos (ρ := ρ) hκ hσ
+  set K := (|σi| + |fiscalLoad r σ κ ρ σs| + |(0 : ℝ)|) ^ 2
+  refine squeeze_zero' (Eventually.of_forall fun _ => integral_nonneg fun _ => abs_nonneg _)
+    ?_ (tendsto_exp_mul_affine hρ t K)
+  filter_upwards [eventually_ge_atTop t] with T hT
+  have hcond := condExp_pcProc (r := r) (σ := σ) (ρ := ρ) (σi := σi) (σs := σs)
+    hB hW h𝓕 hcont hW0 hκ ht hT
+  have e : ∫ ω, |κ * P[pcProc r σ κ ρ σi σs W t T | 𝓕 t] ω - piProc r σ κ ρ σi σs W t ω| ∂P
+      = exp (-(ρ * (T - t))) * ∫ ω, |P[piProc r σ κ ρ σi σs W T | 𝓕 t] ω| ∂P := by
+    rw [← integral_const_mul]
+    refine integral_congr_ae ?_
+    filter_upwards [hcond] with ω hω
+    rw [hω, sub_sub_cancel_left, abs_neg, abs_mul, abs_of_pos (exp_pos _)]
+  rw [e]
+  refine mul_le_mul_of_nonneg_left ((integral_abs_condExp_le _).trans ?_) (exp_pos _).le
+  rw [piProc_eq_ker2]
+  exact integral_abs_ker2Proc_le hB hW h𝓕 hcont hW0 h2.le le_rfl (ht.trans hT)
+
+/-- **Cochrane (2023), p. 163, at `ρ = 0`, under uncertainty: the corrected Phillips form.**
+For `κ, σ > 0`, `t ≥ 0`: `κE_t∫_t^T x_τ dτ + i_t → π_t` in `L¹` (`π_t = κE_t∫_0^∞ x + E_tπ_∞`,
+`E_tπ_∞ = i_t`). -/
+theorem pc_rho_zero_L1 (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hκ : 0 < κ) (hσ : 0 < σ) {t : ℝ} (ht : 0 ≤ t) :
+    Tendsto (fun T => ∫ ω, |κ * P[pcProc r σ κ 0 σi σs W t T | 𝓕 t] ω + iProc σi W t ω
+      - piProc r σ κ 0 σi σs W t ω| ∂P) atTop (𝓝 0) := by
+  set lm := lam2 0 κ σ
+  have h2 := lam2_pos (ρ := 0) hκ hσ
+  set c := fiscalLoad r σ κ 0 σs
+  set M := ∫ ω, |kerProc W 0 1 lm t ω| ∂P
+  have he : Tendsto (fun T => |c| * M * exp (-(lm * (T - t)))) atTop (𝓝 0) := by
+    have : Tendsto (fun T => lm * (T - t)) atTop atTop :=
+      (tendsto_atTop_add_const_right _ (-t) tendsto_id).const_mul_atTop h2
+    have := (Real.tendsto_exp_neg_atTop_nhds_zero.comp this).const_mul (|c| * M)
+    simpa using this
+  refine he.congr' ?_
+  filter_upwards [eventually_ge_atTop t] with T hT
+  symm
+  rw [show |c| * M * exp (-(lm * (T - t))) = ∫ ω, (|c| * exp (-(lm * (T - t))))
+      * |kerProc W 0 1 lm t ω| ∂P by rw [integral_const_mul]; ring]
+  refine integral_congr_ae ?_
+  have hpk := condExp_kerProc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 σi c lm ht hT
+  have epk : piProc r σ κ 0 σi σs W T = kerProc W σi c lm T := rfl
+  rw [← epk] at hpk
+  filter_upwards [condExp_pcProc (r := r) (σ := σ) (ρ := 0) (σi := σi) (σs := σs)
+    hB hW h𝓕 hcont hW0 hκ ht hT, hpk] with ω hω hk
+  rw [hω, hk]
+  simp only [kerProc, iProc, iPath, c, lm, zero_mul, neg_zero, exp_zero, one_mul, zero_add]
+  rw [show piProc r σ κ 0 σi σs W t ω - (σi * bmReal W t ω + fiscalLoad r σ κ 0 σs
+      * exp (-(lam2 0 κ σ * (T - t))) * ouNoise (lam2 0 κ σ) (fun u => bmReal W u ω) t)
+      + σi * bmReal W t ω - piProc r σ κ 0 σi σs W t ω = -(fiscalLoad r σ κ 0 σs)
+      * exp (-(lam2 0 κ σ * (T - t))) * ouNoise (lam2 0 κ σ) (fun u => bmReal W u ω) t by ring]
+  rw [abs_mul, abs_mul, abs_neg, abs_of_pos (exp_pos _)]
+
+/-! ### Non-vacuity -/
+
+/-- **Cochrane (2023), p. 163 (non-vacuity on the constructed motion `bmPath`)**: for
+`κ, σ > 0`, `ρσ_i ≠ 0` and `t > 0`, the printed IS form misses `x(t)` by a positive `L¹`
+distance in the limit, while the corrected form holds. -/
+theorem bmPath_printed_is_fails (hκ : 0 < κ) (hσ : 0 < σ) (hρi : ρ * σi ≠ 0) {t : ℝ}
+    (ht : 0 < t) :
+    0 < ∫ ω, |ρ / κ * iProc σi bmPath t ω| ∂gaussSeq ∧
+      Tendsto (fun T => ∫ ω, |xProc r σ κ ρ σi σs bmPath t ω - ρ / κ * iProc σi bmPath t ω
+        + σ * gaussSeq[isProc r σ κ ρ σi σs bmPath t T
+          | bmFiltrationReal bmPath measurable_bmPath t] ω| ∂gaussSeq) atTop (𝓝 0) := by
+  have hB := isPreBrownianReal_bmPath
+  have h𝓕 := bmFiltrationReal_isBM hB measurable_bmPath
+  exact ⟨(printed_is_fails (r := r) (σs := σs) hB measurable_bmPath h𝓕 continuous_bmPath
+      bmPath_zero hκ hσ hρi ht).2,
+    is_corrected_L1 hB measurable_bmPath h𝓕 continuous_bmPath bmPath_zero hκ hσ ht.le⟩
+
+end Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The frictionless limit `κ → ∞` of the stochastic price level
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 5, §5.7.1, p. 163 ("as
+`κ → ∞` ... `κ → ∞` is the frictionless limit") and p. 167 ("the frictionless limit is well
+behaved ... the price level path smoothly approaches the jump of the truly frictionless
+model"), and §5.7.4, pp. 172–174 (Fig. 5.10).
+
+The deterministic results are `CTSimple.ct_frictionless_limit` (cumulative inflation tends to
+the frictionless jump `v₀ − s̃₀/r`) and `CTSimple.ct_price_limit` (`p^κ_t → i₀t + v₀ − s̃₀/r`
+for every `t > 0`). With Brownian shocks `dε_m = σ_i dW`, `dε_s = σ_s dW` (T8's solution,
+`v₀ = 0`) the price level is `p^κ_T = σ_i∫_0^T W + A(W_T − Y^{λ₂}_T)/λ₂`, and the limit is
+the frictionless price level
+
+`p^∞_T = σ_i∫_0^T W_u du − (σ_s/r)W_T`, i.e. `dp^∞ = i dt − (σ_s/r) dW`,
+
+a diffusion: the frictionless price level absorbs the present value `σ_s/r` of each surplus
+innovation, exactly the jump of `CTSimple.ct_price_limit` arriving continuously.
+
+## Main results
+
+* `ouNoise_tendsto_zero`: on every continuous path with `w_0 = 0`, `Y^λ_T → 0` as `λ → ∞`
+  (the exponential kernel is an approximate identity, `CTSimple.approx_identity`).
+* `pPath_eq`, **`pPath_tendsto`**: on every continuous path, `p^κ_T → σ_i∫_0^T w − (σ_s/r)w_T`
+  as `κ → ∞` (for `r ≠ 0`, `σ > 0`, `T ≥ 0`); `pProc_tendsto` (on every Brownian path).
+* **`pProc_tendsto_L2`**: `E[(p^κ_T − p^∞_T)²] → 0` (in `L²` at each `T`), with the explicit
+  bound `pProc_sub_sq_le`, `E[(p^κ_T − p^∞_T)²] ≤ 2(σ_s/λ₂)²T + ((r + λ₂)σ_s/(rλ₂))²/λ₂`.
+* `inflation_variance_tendsto` (`E[(π^κ_T − i_T)²] → ∞` for `σ_s ≠ 0`, `T > 0`: "a larger and
+  larger rise in inflation, but one that lasts a shorter and shorter time" — under diffusion
+  inflation does not converge, only its integral does) and `output_tendsto_L2`
+  (`E[x^κ_T²] → 0`: "output variation becomes smaller").
+* Non-vacuity on `bmPath`: `bmPath_price_limit`.
+-/
+
+namespace Cochrane.StickyPriceFiscal.TidyR8StochCTLimit
+
+open Real MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.StickyPriceFiscal.TidyR7BrownianTools Cochrane.StickyPriceFiscal.TidyR7BrownianQV
+open Cochrane.StickyPriceFiscal.TidyR7ItoIntegral Cochrane.StickyPriceFiscal.TidyR7BrownianExist
+open Cochrane.StickyPriceFiscal.TidyR7BrownianSchauder
+open Cochrane.StickyPriceFiscal.TidyR7StochCTPath Cochrane.StickyPriceFiscal.TidyR7StochCTBrownian
+open Cochrane.StickyPriceFiscal.CTSimple
+open scoped ENNReal NNReal
+
+/-! ### The OU noise vanishes as the rate grows -/
+
+/-- Cochrane (2023), p. 167 (tool): for `a > 0`, `T ≥ 0` and `w` continuous with `w_0 = 0`,
+`∫_0^∞ e^{−aτ}w(clamp(T − τ))dτ = e^{−aT}∫_0^T e^{au}w_u du`, where the clamp to `[0, T]` makes
+the integrand vanish beyond `T`. -/
+theorem integral_clamp_eq {w : ℝ → ℝ} (hw : Continuous w) (hw0 : w 0 = 0) {a T : ℝ}
+    (hT : 0 ≤ T) :
+    ∫ τ in Set.Ioi 0, exp (-(a * τ)) * w (max (min (T - τ) T) 0)
+      = exp (-a * T) * ouPrim a w T := by
+  set f : ℝ → ℝ := fun τ => exp (-(a * τ)) * w (max (min (T - τ) T) 0) with hf
+  have hfc : Continuous f := by fun_prop
+  have hz : ∀ τ ∈ Set.Ioi T, f τ = 0 := fun τ hτ => by
+    have hτ' : T < τ := hτ
+    have h1 : min (T - τ) T = T - τ := min_eq_left (by linarith)
+    have h2 : max (T - τ) 0 = 0 := max_eq_right (by linarith)
+    simp only [hf, h1, h2, hw0, mul_zero]
+  have hI1 : IntegrableOn f (Set.Ioc 0 T) :=
+    (hfc.integrableOn_Icc (a := 0) (b := T)).mono_set Set.Ioc_subset_Icc_self
+  have hI2 : IntegrableOn f (Set.Ioi T) :=
+    integrableOn_zero.congr_fun (fun τ hτ => (hz τ hτ).symm) measurableSet_Ioi
+  have hsplit : ∫ τ in Set.Ioi 0, f τ = (∫ τ in Set.Ioc 0 T, f τ) + ∫ τ in Set.Ioi T, f τ := by
+    rw [← Set.Ioc_union_Ioi_eq_Ioi hT, setIntegral_union (Set.Ioc_disjoint_Ioi le_rfl)
+      measurableSet_Ioi hI1 hI2]
+  have h0 : ∫ τ in Set.Ioi T, f τ = 0 := setIntegral_eq_zero_of_forall_eq_zero hz
+  change ∫ τ in Set.Ioi 0, f τ = _
+  rw [hsplit, h0, add_zero, ← intervalIntegral.integral_of_le hT]
+  have hc : ∫ τ in (0 : ℝ)..T, f τ = ∫ τ in (0 : ℝ)..T, exp (-(a * τ)) * w (T - τ) := by
+    refine intervalIntegral.integral_congr fun τ hτ => ?_
+    rw [Set.uIcc_of_le hT] at hτ
+    have h1 : min (T - τ) T = T - τ := min_eq_left (by linarith [hτ.1])
+    have h2 : max (T - τ) 0 = T - τ := max_eq_left (by linarith [hτ.2])
+    simp only [hf, h1, h2]
+  rw [hc]
+  have hs := intervalIntegral.integral_comp_sub_left
+    (fun u => exp (-(a * (T - u))) * w u) (a := 0) (b := T) T
+  simp only [sub_sub_cancel, sub_self, sub_zero] at hs
+  rw [hs, ouPrim, ← intervalIntegral.integral_const_mul]
+  refine intervalIntegral.integral_congr fun u _ => ?_
+  rw [show -(a * (T - u)) = -a * T + a * u by ring, exp_add]
+  ring
+
+/-- **Cochrane (2023), p. 167: on every continuous path with `w_0 = 0`, the OU noise `Y^λ_T`
+tends to `0` as `λ → ∞`** (for each `T ≥ 0`).
+An application of `CTSimple.approx_identity`. -/
+theorem ouNoise_tendsto_zero {w : ℝ → ℝ} (hw : Continuous w) (hw0 : w 0 = 0) {T : ℝ}
+    (hT : 0 ≤ T) : Tendsto (fun a => ouNoise a w T) atTop (𝓝 0) := by
+  set g : ℝ → ℝ := fun τ => w (max (min (T - τ) T) 0) with hg
+  have hgc : Continuous g := by fun_prop
+  obtain ⟨C, hC⟩ := isCompact_Icc.exists_bound_of_continuousOn (s := Set.Icc 0 T)
+    hw.continuousOn
+  have hM : ∀ τ, |g τ| ≤ C := fun τ => by
+    have hm : max (min (T - τ) T) 0 ∈ Set.Icc 0 T :=
+      ⟨le_max_right _ _, max_le (min_le_right _ _) hT⟩
+    simpa [Real.norm_eq_abs] using hC _ hm
+  have hg0 : Tendsto g (𝓝[>] 0) (𝓝 (w T)) := by
+    have e : g 0 = w T := by simp [hg, max_eq_left hT]
+    rw [← e]
+    exact (hgc.tendsto 0).mono_left nhdsWithin_le_nhds
+  have hA := approx_identity hgc.measurable hM hg0
+  have hlim := hA.const_sub (w T)
+  rw [sub_self] at hlim
+  refine hlim.congr' ?_
+  filter_upwards [eventually_gt_atTop 0] with a _
+  rw [integral_clamp_eq hw hw0 hT, ouNoise]
+
+/-! ### The price level -/
+
+variable {r σ κ ρ σi σs : ℝ} {w : ℝ → ℝ}
+
+/-- Cochrane (2023), p. 167 (tool): `∫_0^T Y^λ = (w_T − Y^λ_T)/λ` when `w_0 = 0`, `λ ≠ 0`. -/
+theorem integral_ouNoise (hw : Continuous w) (hw0 : w 0 = 0) {η : ℝ} (hη : η ≠ 0) (T : ℝ) :
+    ∫ u in (0 : ℝ)..T, ouNoise η w u = (w T - ouNoise η w T) / η := by
+  have h := ouNoise_incr η hw 0 T
+  rw [ouNoise_zero, hw0] at h
+  field_simp
+  linarith
+
+/-- **Cochrane (2023), p. 167: the price level on a path**,
+`p_T = σ_i∫_0^T w + (A/λ₂)(w_T − Y^{λ₂}_T)` (`κ, σ > 0`, `w_0 = 0`). -/
+theorem pPath_eq (hκ : 0 < κ) (hσ : 0 < σ) (hw : Continuous w) (hw0 : w 0 = 0) (T : ℝ) :
+    pPath r σ κ ρ σi σs w T = σi * (∫ u in (0 : ℝ)..T, w u)
+      + fiscalLoad r σ κ ρ σs / lam2 ρ κ σ * (w T - ouNoise (lam2 ρ κ σ) w T) := by
+  have h2 := (lam2_pos (ρ := ρ) hκ hσ).ne'
+  have hY := continuous_ouNoise (lam2 ρ κ σ) hw
+  simp only [pPath, piPath]
+  rw [intervalIntegral.integral_add ((hw.const_mul σi).intervalIntegrable 0 T)
+    ((hY.const_mul _).intervalIntegrable 0 T), intervalIntegral.integral_const_mul,
+    intervalIntegral.integral_const_mul, integral_ouNoise hw hw0 h2]
+  ring
+
+/-- Cochrane (2023), p. 167: `A/λ₂ = −σ_s/r − σ_s/λ₂` (`r ≠ 0`, `λ₂ ≠ 0`). -/
+theorem fiscalLoad_div (hr : r ≠ 0) (hκ : 0 < κ) (hσ : 0 < σ) :
+    fiscalLoad r σ κ ρ σs / lam2 ρ κ σ = -(σs / r) - σs / lam2 ρ κ σ := by
+  have h2 := (lam2_pos (ρ := ρ) hκ hσ).ne'
+  simp only [fiscalLoad]
+  field_simp
+  ring
+
+/-- **Cochrane (2023), p. 167 ("the price level path smoothly approaches the jump of the truly
+frictionless model"), with diffusive shocks, on every path.** For `r ≠ 0`, `σ > 0`, `T ≥ 0`
+and a continuous path with `w_0 = 0`, as `κ → ∞`,
+`p^κ_T → σ_i∫_0^T w − (σ_s/r)w_T`.
+The stochastic version of `CTSimple.ct_price_limit`. -/
+theorem pPath_tendsto (hr : r ≠ 0) (hσ : 0 < σ) (hw : Continuous w) (hw0 : w 0 = 0) {T : ℝ}
+    (hT : 0 ≤ T) :
+    Tendsto (fun κ => pPath r σ κ ρ σi σs w T) atTop
+      (𝓝 (σi * (∫ u in (0 : ℝ)..T, w u) - σs / r * w T)) := by
+  have hL := lam2_tendsto_atTop (ρ := ρ) hσ
+  have hY := (ouNoise_tendsto_zero hw hw0 hT).comp hL
+  have hc : Tendsto (fun κ => -(σs / r) - σs / lam2 ρ κ σ) atTop (𝓝 (-(σs / r))) := by
+    have h0 : Tendsto (fun κ => σs / lam2 ρ κ σ) atTop (𝓝 0) := tendsto_const_nhds.div_atTop hL
+    have := h0.const_sub (-(σs / r))
+    simpa using this
+  have := (hc.mul (hY.const_sub (w T))).const_add (σi * ∫ u in (0 : ℝ)..T, w u)
+  rw [sub_zero] at this
+  rw [show σi * (∫ u in (0 : ℝ)..T, w u) - σs / r * w T
+    = σi * (∫ u in (0 : ℝ)..T, w u) + -(σs / r) * (w T) by ring]
+  refine this.congr' ?_
+  filter_upwards [eventually_gt_atTop 0] with κ hκ
+  rw [pPath_eq hκ hσ hw hw0, fiscalLoad_div hr hκ hσ]
+  rfl
+
+/-! ### With Brownian shocks -/
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {W : ℝ≥0 → Ω → ℝ}
+  {𝓕 : Filtration ℝ mΩ}
+
+/-- Cochrane (2023), p. 167: the frictionless price level `p^∞_T = σ_i∫_0^T W − (σ_s/r)W_T`. -/
+noncomputable def pLimProc (r σi σs : ℝ) (W : ℝ≥0 → Ω → ℝ) (T : ℝ) (ω : Ω) : ℝ :=
+  σi * (∫ u in (0 : ℝ)..T, bmReal W u ω) - σs / r * bmReal W T ω
+
+/-- **Cochrane (2023), p. 167, on every Brownian path**: `p^κ_T → p^∞_T` as `κ → ∞` (for
+`r ≠ 0`, `σ > 0`, `T ≥ 0`, continuous paths, `W_0 = 0`). -/
+theorem pProc_tendsto (hr : r ≠ 0) (hσ : 0 < σ) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) {T : ℝ} (hT : 0 ≤ T) (ω : Ω) :
+    Tendsto (fun κ => pProc r σ κ ρ σi σs W T ω) atTop (𝓝 (pLimProc r σi σs W T ω)) :=
+  pPath_tendsto hr hσ (continuous_bmReal (hcont ω)) (by simp [bmReal, hW0]) hT
+
+/-- Cochrane (2023), p. 167 (tool): `∫_0^T e^{−2λ(T−u)}du ≤ 1/(2λ)` for `λ > 0`, `T ≥ 0`. -/
+theorem integral_exp_two_le {l T : ℝ} (hl : 0 < l) :
+    ∫ u in (0 : ℝ)..T, exp (-(l * (T - u))) ^ 2 ≤ 1 / (2 * l) := by
+  have hs := intervalIntegral.integral_comp_sub_left
+    (fun s => exp (-(l * s)) ^ 2) (a := 0) (b := T) T
+  simp only [sub_self, sub_zero] at hs
+  rw [hs]
+  have e : (fun s => exp (-(l * s)) ^ 2) = fun s => exp (-((2 * l) * s)) := by
+    funext s
+    rw [← exp_nat_mul]
+    ring_nf
+  rw [e, intervalIntegral_exp (by positivity) T]
+  have : 0 < exp (-(2 * l * T)) := exp_pos _
+  rw [div_le_div_iff_of_pos_right (by positivity)]
+  linarith
+
+/-- **Cochrane (2023), p. 167 (tool): the second moment of `aW_T + dY^λ_T`** is at most
+`2a²T + d²/λ` for `λ > 0`, `T ≥ 0`. -/
+theorem integral_kerProc_sq_le (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (a d : ℝ) {l T : ℝ} (hl : 0 < l) (hT : 0 ≤ T) :
+    ∫ ω, kerProc W a d l T ω ^ 2 ∂P ≤ 2 * a ^ 2 * T + d ^ 2 / l := by
+  rw [integral_kerProc_sq (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 a d l hT]
+  have hc : Continuous fun u => exp (-(l * (T - u))) ^ 2 := by fun_prop
+  calc ∫ u in (0 : ℝ)..T, kerFn a d l (T - u) ^ 2
+      ≤ ∫ u in (0 : ℝ)..T, (2 * a ^ 2 + 2 * d ^ 2 * exp (-(l * (T - u))) ^ 2) := by
+        refine intervalIntegral.integral_mono_on hT
+          (((continuous_kerFn a d l T).pow 2).intervalIntegrable 0 T)
+          ((continuous_const.add (hc.const_mul _)).intervalIntegrable 0 T) fun u _ => ?_
+        simp only [kerFn]
+        nlinarith [sq_nonneg (a - d * exp (-(l * (T - u))))]
+    _ = 2 * a ^ 2 * T + 2 * d ^ 2 * ∫ u in (0 : ℝ)..T, exp (-(l * (T - u))) ^ 2 := by
+        rw [intervalIntegral.integral_add intervalIntegrable_const
+          ((hc.const_mul _).intervalIntegrable 0 T), intervalIntegral.integral_const,
+          intervalIntegral.integral_const_mul]
+        simp only [sub_zero, smul_eq_mul]
+        ring
+    _ ≤ 2 * a ^ 2 * T + 2 * d ^ 2 * (1 / (2 * l)) := by
+        gcongr
+        exact integral_exp_two_le hl
+    _ = 2 * a ^ 2 * T + d ^ 2 / l := by
+        field_simp
+
+/-- Cochrane (2023), p. 167: on every path the gap to the frictionless price level is
+`p^κ_T − p^∞_T = −(σ_s/λ₂)W_T + ((r + λ₂)σ_s/(rλ₂))Y^{λ₂}_T`. -/
+theorem pProc_sub_eq (hr : r ≠ 0) (hκ : 0 < κ) (hσ : 0 < σ) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (T : ℝ) (ω : Ω) :
+    pProc r σ κ ρ σi σs W T ω - pLimProc r σi σs W T ω
+      = kerProc W (-(σs / lam2 ρ κ σ)) ((r + lam2 ρ κ σ) * σs / (r * lam2 ρ κ σ))
+        (lam2 ρ κ σ) T ω := by
+  have h2 := (lam2_pos (ρ := ρ) hκ hσ).ne'
+  simp only [pProc, pLimProc, kerProc]
+  rw [pPath_eq hκ hσ (continuous_bmReal (hcont ω)) (by simp [bmReal, hW0]),
+    fiscalLoad_div hr hκ hσ]
+  field_simp
+  ring
+
+/-- **Cochrane (2023), p. 167: the explicit `L²` bound.** For `r ≠ 0`, `κ, σ > 0`, `T ≥ 0`:
+`E[(p^κ_T − p^∞_T)²] ≤ 2(σ_s/λ₂)²T + ((r + λ₂)σ_s/(rλ₂))²/λ₂`. -/
+theorem pProc_sub_sq_le (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hr : r ≠ 0) (hκ : 0 < κ) (hσ : 0 < σ) {T : ℝ} (hT : 0 ≤ T) :
+    ∫ ω, (pProc r σ κ ρ σi σs W T ω - pLimProc r σi σs W T ω) ^ 2 ∂P
+      ≤ 2 * (-(σs / lam2 ρ κ σ)) ^ 2 * T
+        + ((r + lam2 ρ κ σ) * σs / (r * lam2 ρ κ σ)) ^ 2 / lam2 ρ κ σ := by
+  simp only [pProc_sub_eq hr hκ hσ hcont hW0 T]
+  exact integral_kerProc_sq_le (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 _ _ (lam2_pos hκ hσ) hT
+
+/-- **Cochrane (2023), p. 167: the frictionless limit of the stochastic price level, in `L²`.**
+For `r ≠ 0`, `σ > 0`, `T ≥ 0`: `E[(p^κ_T − p^∞_T)²] → 0` as `κ → ∞`, where
+`p^∞_T = σ_i∫_0^T W − (σ_s/r)W_T` (a diffusion with loading `−σ_s/r`).
+The stochastic version of `CTSimple.ct_price_limit`. -/
+theorem pProc_tendsto_L2 (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hr : r ≠ 0) (hσ : 0 < σ) {T : ℝ} (hT : 0 ≤ T) :
+    Tendsto (fun κ => ∫ ω, (pProc r σ κ ρ σi σs W T ω - pLimProc r σi σs W T ω) ^ 2 ∂P)
+      atTop (𝓝 0) := by
+  have hL := lam2_tendsto_atTop (ρ := ρ) hσ
+  have hinv : Tendsto (fun κ => (lam2 ρ κ σ)⁻¹) atTop (𝓝 0) := tendsto_inv_atTop_zero.comp hL
+  have hb : Tendsto (fun κ => 2 * (-(σs * (lam2 ρ κ σ)⁻¹)) ^ 2 * T
+      + ((σs / r + σs * (lam2 ρ κ σ)⁻¹)) ^ 2 * (lam2 ρ κ σ)⁻¹) atTop (𝓝 0) := by
+    have := ((((hinv.const_mul σs).neg).pow 2).const_mul 2).mul_const T |>.add
+      ((((hinv.const_mul σs).const_add (σs / r)).pow 2).mul hinv)
+    simpa using this
+  refine squeeze_zero' (Eventually.of_forall fun _ => integral_nonneg fun _ => sq_nonneg _)
+    ?_ hb
+  filter_upwards [eventually_gt_atTop 0] with κ hκ
+  have h2 := (lam2_pos (ρ := ρ) hκ hσ).ne'
+  refine (pProc_sub_sq_le hB hW h𝓕 hcont hW0 hr hκ hσ hT).trans (le_of_eq ?_)
+  field_simp
+  ring
+
+/-- **Cochrane (2023), p. 167 ("a larger and larger rise in inflation, but one that lasts a
+shorter and shorter time"), with diffusive shocks**: for `r > 0`, `σ > 0`, `σ_s ≠ 0`, `T > 0`,
+`E[(π^κ_T − i_T)²] = A²(1 − e^{−2λ₂T})/(2λ₂) → ∞` as `κ → ∞`: inflation itself has no limit
+(it tends to white noise), only the price level does. -/
+theorem inflation_variance_tendsto (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hr : 0 < r) (hσ : 0 < σ) (hs : σs ≠ 0) {T : ℝ} (hT : 0 < T) :
+    Tendsto (fun κ => ∫ ω, (piProc r σ κ ρ σi σs W T ω - iProc σi W T ω) ^ 2 ∂P) atTop
+      atTop := by
+  have hL := lam2_tendsto_atTop (ρ := ρ) hσ
+  have hE : ∀ κ, 0 < κ → ∫ ω, (piProc r σ κ ρ σi σs W T ω - iProc σi W T ω) ^ 2 ∂P
+      = fiscalLoad r σ κ ρ σs ^ 2 * ((1 - exp (-(2 * lam2 ρ κ σ * T))) / (2 * lam2 ρ κ σ)) := by
+    intro κ hκ
+    have h2 := lam2_pos (ρ := ρ) hκ hσ
+    have e : (fun ω => (piProc r σ κ ρ σi σs W T ω - iProc σi W T ω) ^ 2)
+        = fun ω => kerProc W 0 (fiscalLoad r σ κ ρ σs) (lam2 ρ κ σ) T ω ^ 2 := by
+      funext ω
+      simp only [piProc, piPath, iProc, iPath, kerProc]
+      ring
+    rw [e, integral_kerProc_sq (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 _ _ _ hT.le]
+    have hs := intervalIntegral.integral_comp_sub_left
+      (fun s => kerFn 0 (fiscalLoad r σ κ ρ σs) (lam2 ρ κ σ) s ^ 2) (a := 0) (b := T) T
+    simp only [sub_self, sub_zero] at hs
+    rw [hs]
+    have e2 : (fun s => kerFn 0 (fiscalLoad r σ κ ρ σs) (lam2 ρ κ σ) s ^ 2)
+        = fun s => fiscalLoad r σ κ ρ σs ^ 2 * exp (-((2 * lam2 ρ κ σ) * s)) := by
+      funext s
+      simp only [kerFn, zero_add, mul_pow]
+      rw [← exp_nat_mul]
+      ring_nf
+    rw [e2, intervalIntegral.integral_const_mul, intervalIntegral_exp (by positivity) T]
+  have hA : ∀ κ, 0 < κ → fiscalLoad r σ κ ρ σs ^ 2 / (2 * lam2 ρ κ σ)
+      ≥ σs ^ 2 / (2 * r ^ 2) * lam2 ρ κ σ := by
+    intro κ hκ
+    have h2 := lam2_pos (ρ := ρ) hκ hσ
+    have key : fiscalLoad r σ κ ρ σs ^ 2 / (2 * lam2 ρ κ σ)
+        = σs ^ 2 * (r + lam2 ρ κ σ) ^ 2 / (2 * lam2 ρ κ σ * r ^ 2) := by
+      simp only [fiscalLoad]
+      field_simp
+    rw [key, ge_iff_le, div_mul_eq_mul_div, div_le_div_iff₀ (by positivity) (by positivity)]
+    have h3 : lam2 ρ κ σ ^ 2 ≤ (r + lam2 ρ κ σ) ^ 2 := by nlinarith
+    have h4 := mul_le_mul_of_nonneg_left h3 (by positivity : (0 : ℝ) ≤ 2 * r ^ 2 * σs ^ 2)
+    nlinarith
+  have hlow : Tendsto (fun κ => σs ^ 2 / (2 * r ^ 2) * lam2 ρ κ σ * (1 / 2)) atTop atTop := by
+    have hc : 0 < σs ^ 2 / (2 * r ^ 2) * (1 / 2) := by positivity
+    have := hL.const_mul_atTop hc
+    refine this.congr fun κ => by ring
+  refine tendsto_atTop_mono' _ ?_ hlow
+  have hexp : ∀ᶠ κ in atTop, exp (-(2 * lam2 ρ κ σ * T)) ≤ 1 / 2 := by
+    have : Tendsto (fun κ => exp (-(2 * lam2 ρ κ σ * T))) atTop (𝓝 0) :=
+      Real.tendsto_exp_neg_atTop_nhds_zero.comp
+        ((hL.const_mul_atTop two_pos).atTop_mul_const hT)
+    exact this.eventually (ge_mem_nhds (by norm_num))
+  filter_upwards [eventually_gt_atTop 0, hexp] with κ hκ he
+  rw [hE κ hκ]
+  have h2 := lam2_pos (ρ := ρ) hκ hσ
+  have := hA κ hκ
+  have hpos : 0 ≤ fiscalLoad r σ κ ρ σs ^ 2 / (2 * lam2 ρ κ σ) := by positivity
+  calc σs ^ 2 / (2 * r ^ 2) * lam2 ρ κ σ * (1 / 2)
+      ≤ fiscalLoad r σ κ ρ σs ^ 2 / (2 * lam2 ρ κ σ) * (1 / 2) := by
+        exact mul_le_mul_of_nonneg_right this (by norm_num)
+    _ ≤ fiscalLoad r σ κ ρ σs ^ 2 / (2 * lam2 ρ κ σ) * (1 - exp (-(2 * lam2 ρ κ σ * T))) :=
+        mul_le_mul_of_nonneg_left (by linarith) hpos
+    _ = fiscalLoad r σ κ ρ σs ^ 2 * ((1 - exp (-(2 * lam2 ρ κ σ * T))) / (2 * lam2 ρ κ σ)) := by
+        ring
+
+/-- **Cochrane (2023), p. 163 ("as `κ → ∞`, output variation becomes smaller")**: for
+`r ≠ 0`, `σ > 0`, `T ≥ 0`, `E[x^κ_T²] → 0` as `κ → ∞`.
+The stochastic version of `CTSimple.ct_flexible_limit`. -/
+theorem output_tendsto_L2 (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hr : r ≠ 0) (hσ : 0 < σ) {T : ℝ} (hT : 0 ≤ T) :
+    Tendsto (fun κ => ∫ ω, xProc r σ κ ρ σi σs W T ω ^ 2 ∂P) atTop (𝓝 0) := by
+  have hL := lam2_tendsto_atTop (ρ := ρ) hσ
+  have hinv : Tendsto (fun κ => (lam2 ρ κ σ)⁻¹) atTop (𝓝 0) := tendsto_inv_atTop_zero.comp hL
+  have hkinv : Tendsto (fun κ : ℝ => κ⁻¹) atTop (𝓝 0) := tendsto_inv_atTop_zero
+  have hb : Tendsto (fun κ => 2 * (ρ * σi * κ⁻¹) ^ 2 * T
+      + (σ * (σs / r + σs * (lam2 ρ κ σ)⁻¹)) ^ 2 * (lam2 ρ κ σ)⁻¹) atTop (𝓝 0) := by
+    have := ((((hkinv.const_mul (ρ * σi)).pow 2).const_mul 2).mul_const T).add
+      ((((((hinv.const_mul σs).const_add (σs / r))).const_mul σ).pow 2).mul hinv)
+    simpa using this
+  refine squeeze_zero' (Eventually.of_forall fun _ => integral_nonneg fun _ => sq_nonneg _)
+    ?_ hb
+  filter_upwards [eventually_gt_atTop 0] with κ hκ
+  have h2 := (lam2_pos (ρ := ρ) hκ hσ).ne'
+  have hm := lam_mul (ρ := ρ) hκ hσ
+  rw [xProc_eq_ker]
+  refine (integral_kerProc_sq_le (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 _ _ (lam2_pos hκ hσ) hT).trans
+    (le_of_eq ?_)
+  have hl1 : lam1 ρ κ σ / κ = σ / lam2 ρ κ σ := by
+    field_simp
+    linear_combination hm
+  have e : lam1 ρ κ σ * fiscalLoad r σ κ ρ σs / κ
+      = -(σ * (σs / r + σs * (lam2 ρ κ σ)⁻¹)) := by
+    rw [mul_comm, mul_div_assoc, hl1]
+    simp only [fiscalLoad]
+    field_simp
+    ring
+  rw [e]
+  field_simp
+
+/-! ### Non-vacuity -/
+
+/-- **Cochrane (2023), p. 167 (non-vacuity on the constructed motion `bmPath`)**: for `r ≠ 0`,
+`σ > 0`, `T ≥ 0`, the price level converges on every path and in `L²` to
+`σ_i∫_0^T W − (σ_s/r)W_T`. -/
+theorem bmPath_price_limit (hr : r ≠ 0) (hσ : 0 < σ) {T : ℝ} (hT : 0 ≤ T) :
+    (∀ ω, Tendsto (fun κ => pProc r σ κ ρ σi σs bmPath T ω) atTop
+      (𝓝 (pLimProc r σi σs bmPath T ω))) ∧
+    Tendsto (fun κ => ∫ ω, (pProc r σ κ ρ σi σs bmPath T ω - pLimProc r σi σs bmPath T ω) ^ 2
+      ∂gaussSeq) atTop (𝓝 0) := by
+  have hB := isPreBrownianReal_bmPath
+  have h𝓕 := bmFiltrationReal_isBM hB measurable_bmPath
+  exact ⟨pProc_tendsto hr hσ continuous_bmPath bmPath_zero hT,
+    pProc_tendsto_L2 hB measurable_bmPath h𝓕 continuous_bmPath bmPath_zero hr hσ hT⟩
+
+end Cochrane.StickyPriceFiscal.TidyR8StochCTLimit
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Long-term debt, policy rules and coordination with Brownian shocks
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 5, §§5.7.3–5.7.5,
+pp. 169–179, (5.105)–(5.117).
+
+`CTRules` and `CTRulesEquilibrium` treat (5.105)–(5.113) with the shocks `dε`, `dδ` as jumps at
+the news date. Here the monetary shock is a diffusion, `dε_i = σ_i dW`, and the expectational
+errors are processes.
+
+## Main results
+
+* **The partial-adjustment rate (5.107), (5.112)** with `θ_{iπ} = θ_{ix} = 0` (Figs. 5.11–5.13):
+  `rate_incr` (on every path `di = −ζ(i − u_i)dt + θσ_i dW`, `du_i = −ηu_i dt + σ_i dW`),
+  `rate_ito` (`i_T = ∫_0^T σ_i R_i(T − u) dW_u` a.s.) with the response `rateIRF` of
+  `CTRulesEquilibrium.fig511i` (`rateIRF_fig511`).
+* **The bond price (5.105) with a diffusive rate**, for any two-mode rate
+  `i = c₁Y^η + c₂Y^ζ`: `bond_incr` (on every path `dq = ((r+ω)q + i)dt + dδ_q` with
+  `dδ_q = δ dW`), `bondLoading_eq` (the bond-price innovation is minus the discounted rate
+  response, `δ = −∫_0^∞ e^{−(r+ω)τ}R_i(τ)dτ`), `bondKernel_eq_fwd` (the `dW`-loading of `q(T)` at
+  horizon `τ` is the deterministic bond price `−∫e^{−(r+ω)s}R_i(τ + s)ds` of
+  `CTRules.ct_bond_price`),
+  `bond_ito`, `bond_book_equation` (`E_t dq = ((r+ω)q + i)dt`), **`bond_valuation_L1`**
+  (`q_t = −E_t∫_t^∞ e^{−(r+ω)(τ−t)}i_τ dτ`) and **`bond_unique`** (every regular adapted solution
+  of the `E_t[·]`-equation is `q`).
+* **The `v − v*` elimination (p. 172) under diffusion**, `elim_stoch`: if the two debt
+  equations (5.106), (5.109) share the bond-price innovation, (5.110) holds as
+  `E_t[(π* − π)_T − (π* − π)_t] = 0`, all processes are regular (the stochastic
+  transversality condition) and `v*₀ = v₀` (E49), then `v* = v` and `π* = π` a.s. at every
+  date; so `dδ_π = dπ* − E_t dπ* = −β_s dε_s − β_i dε_i` (5.111).
+* **"Fiscal policy chooses only unexpected inflation" (p. 177) under diffusion**,
+  `pinned_by_innovation`: given the interest-rate process, two solutions of the `E_t[·]` IS
+  curve and the Phillips curve with the same inflation innovation process and the same `π₀` are
+  equal a.s. at every date — whatever the fiscal rules.
+* No covariation correction: in (5.105)–(5.113) the price level is `C¹` (`dp = π dt`), so the
+  only diffusive factors are `q`, `v`, `i`, `π`, which enter linearly; `bond_bracket` computes
+  `[q, W] = δ t` and `bond_price_level_bracket` shows `[q, p] = 0` for any `C¹` price level
+  (the nonlinear `QB/P` needs no Itô term).
+* Non-vacuity on `bmPath`: `bmPath_bond`.
+-/
+
+namespace Cochrane.StickyPriceFiscal.TidyR8StochCTRules
+
+open Real MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.StickyPriceFiscal.TidyR7StieltjesSums Cochrane.StickyPriceFiscal.TidyR7BrownianTools
+open Cochrane.StickyPriceFiscal.TidyR7BrownianQV Cochrane.StickyPriceFiscal.TidyR7ItoIntegral
+open Cochrane.StickyPriceFiscal.TidyR7ItoBridge Cochrane.StickyPriceFiscal.TidyR7BrownianExist
+open Cochrane.StickyPriceFiscal.TidyR7BrownianSchauder Cochrane.StickyPriceFiscal.TidyR7ItoSums
+open Cochrane.StickyPriceFiscal.TidyR7StieltjesCalculus
+open Cochrane.StickyPriceFiscal.TidyR7StochCTPath Cochrane.StickyPriceFiscal.TidyR7StochCTBrownian
+open Cochrane.StickyPriceFiscal.TidyR7StochCTUnique Cochrane.StickyPriceFiscal.TidyR8StochKernel
+open Cochrane.StickyPriceFiscal.CTSimple
+open scoped ENNReal NNReal
+
+/-! ### The partial-adjustment interest rate -/
+
+/-- Cochrane (2023), (5.107), (5.112), p. 169: the response of `i` to a unit monetary shock
+with partial adjustment `ζ`, disturbance persistence `η` and impact `θ = θ_{iε}`,
+`R_i(τ) = ζ/(ζ−η) e^{−ητ} + (θ − ζ/(ζ−η)) e^{−ζτ}`. -/
+noncomputable def rateIRF (θ ζ η τ : ℝ) : ℝ :=
+  ζ / (ζ - η) * exp (-(η * τ)) + (θ - ζ / (ζ - η)) * exp (-(ζ * τ))
+
+/-- Cochrane (2023), Figs. 5.11–5.13, p. 175: with `θ_{iε} = 1/4`, `ζ_i = 1`, `η_i = 0.3`,
+`R_i(τ)` is the rate path `CTRulesEquilibrium.fig511i`. -/
+theorem rateIRF_fig511 (τ : ℝ) :
+    rateIRF (1 / 4) 1 (3 / 10) τ = CTRulesEquilibrium.fig511i τ := by
+  simp only [rateIRF, CTRulesEquilibrium.fig511i]
+  norm_num
+  ring
+
+/-- Cochrane (2023), (5.112), p. 169: the disturbance `u_i = σ_iY^η`. -/
+noncomputable def uiPath (σi η : ℝ) (w : ℝ → ℝ) (t : ℝ) : ℝ := σi * ouNoise η w t
+
+/-- Cochrane (2023), (5.107), p. 169: the rate
+`i = σ_i(θY^ζ + ζ(Y^η − Y^ζ)/(ζ − η))`. -/
+noncomputable def ratePath (σi θ ζ η : ℝ) (w : ℝ → ℝ) (t : ℝ) : ℝ :=
+  σi * (θ * ouNoise ζ w t + ζ * (ouNoise η w t - ouNoise ζ w t) / (ζ - η))
+
+variable {w : ℝ → ℝ}
+
+/-- Cochrane (2023), (5.107), p. 169: the `C¹` part `i − θσ_i w` has derivative `−ζ(i − u_i)`. -/
+theorem rate_sub_hasDerivAt {σi θ ζ η : ℝ} (h : ζ - η ≠ 0) (hw : Continuous w) (t : ℝ) :
+    HasDerivAt (fun u => ratePath σi θ ζ η w u - θ * σi * w u)
+      (-ζ * (ratePath σi θ ζ η w t - uiPath σi η w t)) t := by
+  have h1 := hasDerivAt_sub_ouNoise ζ hw t
+  have h2 := hasDerivAt_sub_ouNoise η hw t
+  have hf : (fun u => ratePath σi θ ζ η w u - θ * σi * w u) = fun u =>
+      σi * (-θ * (w u - ouNoise ζ w u) + ζ * ((w u - ouNoise ζ w u)
+        - (w u - ouNoise η w u)) / (ζ - η)) := by
+    funext u
+    simp only [ratePath]
+    ring
+  rw [hf]
+  refine ((HasDerivAt.add (h1.const_mul (-θ)) (((HasDerivAt.sub h1 h2).const_mul ζ).div_const
+    (ζ - η))).const_mul σi).congr_deriv ?_
+  simp only [ratePath, uiPath]
+  field_simp
+  ring
+
+/-- **Cochrane (2023), (5.107), (5.112), p. 169, on every path**: over every `[a, b]`,
+`i_b − i_a = ∫_a^b −ζ(i − u_i) + θσ_i(w_b − w_a)` and
+`u_b − u_a = −η∫_a^b u_i + σ_i(w_b − w_a)`. -/
+theorem rate_incr {σi θ ζ η : ℝ} (h : ζ - η ≠ 0) (hw : Continuous w) (a b : ℝ) :
+    ratePath σi θ ζ η w b - ratePath σi θ ζ η w a
+        = (∫ u in a..b, -ζ * (ratePath σi θ ζ η w u - uiPath σi η w u)) + θ * σi * (w b - w a)
+      ∧ uiPath σi η w b - uiPath σi η w a
+        = -η * (∫ u in a..b, uiPath σi η w u) + σi * (w b - w a) := by
+  have hYz := continuous_ouNoise ζ hw
+  have hYe := continuous_ouNoise η hw
+  have hc : Continuous fun u => -ζ * (ratePath σi θ ζ η w u - uiPath σi η w u) := by
+    unfold ratePath uiPath
+    fun_prop
+  refine ⟨?_, ?_⟩
+  · rw [intervalIntegral.integral_eq_sub_of_hasDerivAt
+      (fun x _ => rate_sub_hasDerivAt (σi := σi) (θ := θ) h hw x) (hc.intervalIntegrable a b)]
+    ring
+  · have hI := ouNoise_incr η hw a b
+    simp only [uiPath]
+    rw [intervalIntegral.integral_const_mul]
+    linear_combination σi * hI
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {W : ℝ≥0 → Ω → ℝ}
+  {𝓕 : Filtration ℝ mΩ}
+
+/-- Cochrane (2023), (5.107), p. 169: the rate as a process. -/
+noncomputable def rateProc (σi θ ζ η : ℝ) (W : ℝ≥0 → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  ratePath σi θ ζ η (fun u => bmReal W u ω) t
+
+/-- Cochrane (2023), (5.107), p. 169: the rate is the two-mode process with loadings
+`σ_iζ/(ζ−η)` on `Y^η` and `σ_i(θ − ζ/(ζ−η))` on `Y^ζ`. -/
+theorem rateProc_eq_ker2 {σi θ ζ η : ℝ} (h : ζ - η ≠ 0) : rateProc σi θ ζ η W = fun t =>
+    ker2Proc W 0 (σi * (ζ / (ζ - η))) η (σi * (θ - ζ / (ζ - η))) ζ t := by
+  funext t ω
+  rw [ker2Proc_eq]
+  simp only [rateProc, ratePath]
+  field_simp
+  ring
+
+/-- **Cochrane (2023), (5.107), (5.112), p. 169, and Figs. 5.11–5.13: the rate is the response
+`R_i(τ)` integrated against `dW`.** For `ζ ≠ η` and `T ≥ 0`, a.s.
+`i_T = ∫_0^T σ_iR_i(T − u) dW_u`. -/
+theorem rate_ito (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) {σi θ ζ η : ℝ} (h : ζ - η ≠ 0) {T : ℝ} (hT : 0 ≤ T) :
+    rateProc σi θ ζ η W T =ᵐ[P] itoInt P 𝓕 W (fun u _ => σi * rateIRF θ ζ η (T - u)) 0 T := by
+  rw [rateProc_eq_ker2 h]
+  have e : (fun u (_ : Ω) => σi * rateIRF θ ζ η (T - u)) = fun u _ =>
+      ker2Fn 0 (σi * (ζ / (ζ - η))) η (σi * (θ - ζ / (ζ - η))) ζ (T - u) := by
+    funext u _
+    simp only [rateIRF, ker2Fn]
+    ring
+  rw [e]
+  exact ker2Proc_ae_eq_itoInt hB hW h𝓕 hcont hW0 _ _ _ _ _ hT
+
+/-! ### The bond price (5.105) -/
+
+/-- Cochrane (2023), (5.105), p. 169: a two-mode interest rate `i = c₁Y^η + c₂Y^ζ`. -/
+noncomputable def rate2Path (c₁ η c₂ ζ : ℝ) (w : ℝ → ℝ) (t : ℝ) : ℝ :=
+  c₁ * ouNoise η w t + c₂ * ouNoise ζ w t
+
+/-- Cochrane (2023), (5.105), p. 169: the bond price
+`q = −(c₁/(R+η) Y^η + c₂/(R+ζ) Y^ζ)` with `R = r + ω`. -/
+noncomputable def bondPath (R c₁ η c₂ ζ : ℝ) (w : ℝ → ℝ) (t : ℝ) : ℝ :=
+  -(c₁ / (R + η) * ouNoise η w t + c₂ / (R + ζ) * ouNoise ζ w t)
+
+/-- Cochrane (2023), (5.114), p. 170: the loading of the unexpected bond return,
+`δ = −(c₁/(R+η) + c₂/(R+ζ))` (`dδ_q = δ dW`). -/
+noncomputable def bondLoading (R c₁ η c₂ ζ : ℝ) : ℝ := -(c₁ / (R + η) + c₂ / (R + ζ))
+
+/-- Cochrane (2023), (5.105), p. 169: `q − δw` has derivative `Rq + i`. -/
+theorem bond_sub_hasDerivAt {R c₁ η c₂ ζ : ℝ} (h1 : R + η ≠ 0) (h2 : R + ζ ≠ 0)
+    (hw : Continuous w) (t : ℝ) :
+    HasDerivAt (fun u => bondPath R c₁ η c₂ ζ w u - bondLoading R c₁ η c₂ ζ * w u)
+      (R * bondPath R c₁ η c₂ ζ w t + rate2Path c₁ η c₂ ζ w t) t := by
+  have ha := hasDerivAt_sub_ouNoise η hw t
+  have hb := hasDerivAt_sub_ouNoise ζ hw t
+  have hf : (fun u => bondPath R c₁ η c₂ ζ w u - bondLoading R c₁ η c₂ ζ * w u) = fun u =>
+      c₁ / (R + η) * (w u - ouNoise η w u) + c₂ / (R + ζ) * (w u - ouNoise ζ w u) := by
+    funext u
+    simp only [bondPath, bondLoading]
+    ring
+  rw [hf]
+  refine (HasDerivAt.add (ha.const_mul _) (hb.const_mul _)).congr_deriv ?_
+  simp only [bondPath, rate2Path]
+  field_simp
+  ring
+
+/-- **Cochrane (2023), (5.105), p. 169, on every path**: over every `[a, b]`,
+`q_b − q_a = ∫_a^b ((r+ω)q + i) + δ(w_b − w_a)`: the bond price has the expectational error
+`dδ_q = δ dw`. -/
+theorem bond_incr {R c₁ η c₂ ζ : ℝ} (h1 : R + η ≠ 0) (h2 : R + ζ ≠ 0) (hw : Continuous w)
+    (a b : ℝ) :
+    bondPath R c₁ η c₂ ζ w b - bondPath R c₁ η c₂ ζ w a
+      = (∫ u in a..b, (R * bondPath R c₁ η c₂ ζ w u + rate2Path c₁ η c₂ ζ w u))
+        + bondLoading R c₁ η c₂ ζ * (w b - w a) := by
+  have hYe := continuous_ouNoise η hw
+  have hYz := continuous_ouNoise ζ hw
+  have hc : Continuous fun u => R * bondPath R c₁ η c₂ ζ w u + rate2Path c₁ η c₂ ζ w u := by
+    unfold bondPath rate2Path
+    fun_prop
+  rw [intervalIntegral.integral_eq_sub_of_hasDerivAt
+    (fun x _ => bond_sub_hasDerivAt h1 h2 hw x) (hc.intervalIntegrable a b)]
+  ring
+
+/-- **Cochrane (2023), (5.114), p. 170: the bond-price innovation is minus the discounted rate
+response**: for `R + η > 0`, `R + ζ > 0`,
+`δ = −∫_0^∞ e^{−Rτ}(c₁e^{−ητ} + c₂e^{−ζτ}) dτ`. -/
+theorem bondLoading_eq {R c₁ η c₂ ζ : ℝ} (h1 : 0 < R + η) (h2 : 0 < R + ζ) :
+    bondLoading R c₁ η c₂ ζ
+      = -∫ τ in Set.Ioi 0, exp (-(R * τ)) * (c₁ * exp (-(η * τ)) + c₂ * exp (-(ζ * τ))) := by
+  have h := (CTSurplus.hs_pv ![c₁, c₂] ![η, ζ] (r := R)
+    (fun k => by fin_cases k <;> simp [h1, h2]) 0).2
+  simp only [zero_add] at h
+  have e : (fun τ => exp (-(R * τ)) * (c₁ * exp (-(η * τ)) + c₂ * exp (-(ζ * τ))))
+      = fun τ => exp (-(R * τ)) * CTSurplus.expSum ![c₁, c₂] ![η, ζ] τ := by
+    funext τ
+    simp [CTSurplus.expSum, Fin.sum_univ_two]
+  rw [e, h]
+  simp [CTSurplus.expSum, Fin.sum_univ_two, bondLoading]
+
+/-- **Cochrane (2023), (5.105), p. 169, and `CTRules.ct_bond_price`: the bond-price kernel is
+the deterministic bond price.** For `R + η > 0`, `R + ζ > 0` and every horizon `τ`,
+`−(c₁/(R+η)e^{−ητ} + c₂/(R+ζ)e^{−ζτ}) = −∫_0^∞ e^{−Rs}R_i(τ + s) ds` with
+`R_i = c₁e^{−η·} + c₂e^{−ζ·}`. -/
+theorem bondKernel_eq_fwd {R c₁ η c₂ ζ : ℝ} (h1 : 0 < R + η) (h2 : 0 < R + ζ) (τ : ℝ) :
+    -(c₁ / (R + η) * exp (-(η * τ)) + c₂ / (R + ζ) * exp (-(ζ * τ)))
+      = -fwdInt R (fun s => c₁ * exp (-(η * s)) + c₂ * exp (-(ζ * s))) τ := by
+  have h := (CTSurplus.hs_pv ![c₁, c₂] ![η, ζ] (r := R)
+    (fun k => by fin_cases k <;> simp [h1, h2]) τ).2
+  have e : (fun s => exp (-(R * s)) * (c₁ * exp (-(η * (τ + s))) + c₂ * exp (-(ζ * (τ + s)))))
+      = fun s => exp (-(R * s)) * CTSurplus.expSum ![c₁, c₂] ![η, ζ] (τ + s) := by
+    funext s
+    simp [CTSurplus.expSum, Fin.sum_univ_two]
+  simp only [fwdInt]
+  rw [e, h]
+  simp [CTSurplus.expSum, Fin.sum_univ_two]
+
+/-- Cochrane (2023), (5.105), p. 169: the two-mode rate as a process. -/
+noncomputable def rate2Proc (c₁ η c₂ ζ : ℝ) (W : ℝ≥0 → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  rate2Path c₁ η c₂ ζ (fun u => bmReal W u ω) t
+
+/-- Cochrane (2023), (5.105), p. 169: the bond price as a process. -/
+noncomputable def bondProc (R c₁ η c₂ ζ : ℝ) (W : ℝ≥0 → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  bondPath R c₁ η c₂ ζ (fun u => bmReal W u ω) t
+
+/-- Cochrane (2023), (5.105), p. 169: the rate is a two-mode process. -/
+theorem rate2Proc_eq_ker2 {c₁ η c₂ ζ : ℝ} :
+    rate2Proc c₁ η c₂ ζ W = fun t => ker2Proc W 0 c₁ η c₂ ζ t := by
+  funext t ω
+  rw [ker2Proc_eq]
+  simp only [rate2Proc, rate2Path]
+  ring
+
+/-- Cochrane (2023), (5.105), p. 169: the bond price is a two-mode process. -/
+theorem bondProc_eq_ker2 {R c₁ η c₂ ζ : ℝ} : bondProc R c₁ η c₂ ζ W = fun t =>
+    ker2Proc W 0 (-(c₁ / (R + η))) η (-(c₂ / (R + ζ))) ζ t := by
+  funext t ω
+  rw [ker2Proc_eq]
+  simp only [bondProc, bondPath]
+  ring
+
+/-- **Cochrane (2023), (5.105), p. 169: the bond price is its deterministic response
+integrated against `dW`.** For `T ≥ 0`, a.s.
+`q_T = ∫_0^T −(c₁/(R+η)e^{−η(T−u)} + c₂/(R+ζ)e^{−ζ(T−u)}) dW_u`. -/
+theorem bond_ito (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (R c₁ η c₂ ζ : ℝ) {T : ℝ} (hT : 0 ≤ T) :
+    bondProc R c₁ η c₂ ζ W T =ᵐ[P] itoInt P 𝓕 W (fun u _ => -(c₁ / (R + η) * exp (-(η * (T - u)))
+      + c₂ / (R + ζ) * exp (-(ζ * (T - u))))) 0 T := by
+  rw [bondProc_eq_ker2]
+  have e : (fun u (_ : Ω) => -(c₁ / (R + η) * exp (-(η * (T - u)))
+      + c₂ / (R + ζ) * exp (-(ζ * (T - u))))) = fun u _ =>
+        ker2Fn 0 (-(c₁ / (R + η))) η (-(c₂ / (R + ζ))) ζ (T - u) := by
+    funext u _
+    simp only [ker2Fn]
+    ring
+  rw [e]
+  exact ker2Proc_ae_eq_itoInt hB hW h𝓕 hcont hW0 _ _ _ _ _ hT
+
+/-- **Cochrane (2023), (5.105), p. 169, in the book's `E_t d` form**: for `0 ≤ t ≤ T`,
+`E_t[q_T − q_t] = E_t∫_t^T ((r+ω)q + i)` a.s. -/
+theorem bond_book_equation (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) {R c₁ η c₂ ζ : ℝ} (h1 : R + η ≠ 0) (h2 : R + ζ ≠ 0) {t T : ℝ}
+    (ht : 0 ≤ t) (htT : t ≤ T) :
+    P[fun ω => bondProc R c₁ η c₂ ζ W T ω - bondProc R c₁ η c₂ ζ W t ω | 𝓕 t]
+      =ᵐ[P] P[fun ω => ∫ u in t..T, (R * bondProc R c₁ η c₂ ζ W u ω
+        + rate2Proc c₁ η c₂ ζ W u ω) | 𝓕 t] := by
+  have iq : ∀ τ, 0 ≤ τ → Integrable (bondProc R c₁ η c₂ ζ W τ) P := fun τ hτ => by
+    rw [bondProc_eq_ker2]
+    exact integrable_ker2Proc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 _ _ _ _ _ hτ
+  refine condExp_drift (c := bondLoading R c₁ η c₂ ζ) hB hW h𝓕 ht htT
+    ((iq T (ht.trans htT)).sub (iq t ht)) fun ω => ?_
+  have := bond_incr (c₁ := c₁) (c₂ := c₂) h1 h2 (continuous_bmReal (hcont ω)) t T
+  simp only [bondProc, rate2Proc, incr]
+  linarith
+
+/-- Cochrane (2023), (5.105), p. 169: on every path,
+`−∫_t^T e^{−R(τ−t)}i_τ dτ = q_t − e^{−R(T−t)}q_T + δ∫_t^T e^{−R(τ−t)}dW_τ`. -/
+theorem bond_pv_identity {R c₁ η c₂ ζ : ℝ} (h1 : R + η ≠ 0) (h2 : R + ζ ≠ 0)
+    (hcont : ∀ ω, Continuous fun t => W t ω) (t T : ℝ) (ω : Ω) :
+    -(∫ τ in t..T, exp (-(R * (τ - t))) * rate2Proc c₁ η c₂ ζ W τ ω)
+      = bondProc R c₁ η c₂ ζ W t ω - exp (-(R * (T - t))) * bondProc R c₁ η c₂ ζ W T ω
+        + bondLoading R c₁ η c₂ ζ * expWiener R W t T ω := by
+  have hw := continuous_bmReal (hcont ω)
+  set w := fun u => bmReal W u ω
+  have hYe := continuous_ouNoise η hw
+  have hYz := continuous_ouNoise ζ hw
+  have hc : Continuous fun u => R * bondPath R c₁ η c₂ ζ w u + rate2Path c₁ η c₂ ζ w u := by
+    unfold bondPath rate2Path
+    fun_prop
+  have hBP := discounted_byParts (fun x => bond_sub_hasDerivAt (c₁ := c₁) (c₂ := c₂) h1 h2 hw x)
+    hc hw R (bondLoading R c₁ η c₂ ζ) t T
+  have e1 : ∀ τ, bondPath R c₁ η c₂ ζ w τ - bondLoading R c₁ η c₂ ζ * w τ
+      + bondLoading R c₁ η c₂ ζ * w τ = bondPath R c₁ η c₂ ζ w τ := fun τ => by ring
+  simp only [e1] at hBP
+  have e2 : (fun τ => exp (-(R * (τ - t))) * (R * bondPath R c₁ η c₂ ζ w τ
+      - (R * bondPath R c₁ η c₂ ζ w τ + rate2Path c₁ η c₂ ζ w τ)))
+      = fun τ => -(exp (-(R * (τ - t))) * rate2Path c₁ η c₂ ζ w τ) := by
+    funext τ
+    ring
+  rw [e2, intervalIntegral.integral_neg] at hBP
+  simp only [rate2Proc, bondProc, expWiener]
+  rw [hBP]
+
+/-- **Cochrane (2023), (5.105), p. 169: the bond price is the expected discounted rate path,
+`q_t = −E_t∫_t^∞ e^{−(r+ω)(τ−t)}i_τ dτ`.** For `R = r + ω > 0`, `η, ζ ≥ 0`, `t ≥ 0`:
+`−E_t∫_t^T e^{−R(τ−t)}i_τ dτ → q_t` in `L¹` as `T → ∞`.
+The stochastic version of `CTRules.ct_bond_price`. -/
+theorem bond_valuation_L1 (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) {R c₁ η c₂ ζ : ℝ} (hR : 0 < R) (hη : 0 ≤ η) (hζ : 0 ≤ ζ) {t : ℝ}
+    (ht : 0 ≤ t) :
+    Tendsto (fun T => ∫ ω, |-P[fun ω => ∫ τ in t..T, exp (-(R * (τ - t)))
+      * rate2Proc c₁ η c₂ ζ W τ ω | 𝓕 t] ω - bondProc R c₁ η c₂ ζ W t ω| ∂P) atTop (𝓝 0) := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have h1 : R + η ≠ 0 := by linarith
+  have h2 : R + ζ ≠ 0 := by linarith
+  set K := (|(0 : ℝ)| + |-(c₁ / (R + η))| + |-(c₂ / (R + ζ))|) ^ 2
+  refine squeeze_zero' (Eventually.of_forall fun _ => integral_nonneg fun _ => abs_nonneg _)
+    ?_ (tendsto_exp_mul_affine hR t K)
+  filter_upwards [eventually_ge_atTop t] with T hT
+  have iq : ∀ τ, 0 ≤ τ → Integrable (bondProc R c₁ η c₂ ζ W τ) P := fun τ hτ => by
+    rw [bondProc_eq_ker2]
+    exact integrable_ker2Proc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 _ _ _ _ _ hτ
+  have hqm : AEStronglyMeasurable[𝓕 t] (bondProc R c₁ η c₂ ζ W t) P := by
+    rw [bondProc_eq_ker2]
+    exact aesm_ker2Proc hB hW h𝓕 hcont hW0 _ _ _ _ _ ht
+  have iE := integrable_expWiener hB hW h𝓕 hcont R ht hT
+  have e : (fun ω => ∫ τ in t..T, exp (-(R * (τ - t))) * rate2Proc c₁ η c₂ ζ W τ ω)
+      = (-1 : ℝ) • ((bondProc R c₁ η c₂ ζ W t
+        - (exp (-(R * (T - t)))) • bondProc R c₁ η c₂ ζ W T)
+          + (bondLoading R c₁ η c₂ ζ) • expWiener R W t T) := by
+    funext ω
+    have := bond_pv_identity (c₁ := c₁) (c₂ := c₂) h1 h2 hcont t T ω
+    simp only [Pi.smul_apply, Pi.add_apply, Pi.sub_apply, smul_eq_mul]
+    linarith
+  have i1 := (iq t ht).sub ((iq T (ht.trans hT)).smul (exp (-(R * (T - t)))))
+  have hcond : P[fun ω => ∫ τ in t..T, exp (-(R * (τ - t))) * rate2Proc c₁ η c₂ ζ W τ ω | 𝓕 t]
+      =ᵐ[P] fun ω => -(bondProc R c₁ η c₂ ζ W t ω
+        - exp (-(R * (T - t))) * P[bondProc R c₁ η c₂ ζ W T | 𝓕 t] ω) := by
+    rw [e]
+    filter_upwards [condExp_smul (μ := P) (-1 : ℝ) ((bondProc R c₁ η c₂ ζ W t
+        - (exp (-(R * (T - t)))) • bondProc R c₁ η c₂ ζ W T)
+          + (bondLoading R c₁ η c₂ ζ) • expWiener R W t T) (𝓕 t),
+      condExp_add i1 (iE.smul (bondLoading R c₁ η c₂ ζ)) (𝓕 t),
+      condExp_sub (iq t ht) ((iq T (ht.trans hT)).smul (exp (-(R * (T - t))))) (𝓕 t),
+      condExp_of_aestronglyMeasurable' (𝓕.le t) hqm (iq t ht),
+      condExp_smul (μ := P) (exp (-(R * (T - t)))) (bondProc R c₁ η c₂ ζ W T) (𝓕 t),
+      condExp_smul (μ := P) (bondLoading R c₁ η c₂ ζ) (expWiener R W t T) (𝓕 t),
+      condExp_expWiener hB hW h𝓕 hcont R ht hT] with ω h0 h1' h2' h3 h4 h5 h6
+    rw [h0, Pi.smul_apply, h1', Pi.add_apply, h2', Pi.sub_apply, h3, h4, h5]
+    simp only [Pi.smul_apply, smul_eq_mul, h6, Pi.zero_apply, mul_zero, add_zero]
+    ring
+  have e2 : ∫ ω, |-P[fun ω => ∫ τ in t..T, exp (-(R * (τ - t))) * rate2Proc c₁ η c₂ ζ W τ ω
+      | 𝓕 t] ω - bondProc R c₁ η c₂ ζ W t ω| ∂P
+      = exp (-(R * (T - t))) * ∫ ω, |P[bondProc R c₁ η c₂ ζ W T | 𝓕 t] ω| ∂P := by
+    rw [← integral_const_mul]
+    refine integral_congr_ae ?_
+    filter_upwards [hcond] with ω hω
+    rw [hω, neg_neg, sub_sub_cancel_left, abs_neg, abs_mul, abs_of_pos (exp_pos _)]
+  rw [e2]
+  refine mul_le_mul_of_nonneg_left ((integral_abs_condExp_le _).trans ?_) (exp_pos _).le
+  rw [bondProc_eq_ker2]
+  exact integral_abs_ker2Proc_le hB hW h𝓕 hcont hW0 hη hζ (ht.trans hT)
+
+/-- **Cochrane (2023), (5.105), p. 169: uniqueness of the bond price under uncertainty.** For
+`R = r + ω > 0`, `η, ζ ≥ 0`: every regular, adapted process `q'` satisfying the book's equation
+`E_t[q'_T − q'_t] = E_t∫_t^T(Rq' + i)` (with ANY expectational error) equals `q` a.s. at every
+date `t ≥ 0`: the unstable root `R` is solved forward.
+The stochastic version of `CTRules.ct_bond_price`. -/
+theorem bond_unique (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) {R c₁ η c₂ ζ : ℝ} (hR : 0 < R) (hη : 0 ≤ η) (hζ : 0 ≤ ζ)
+    {q' : ℝ → Ω → ℝ} (hq' : RegProc P q') (ha : ∀ t, 0 ≤ t → AEStronglyMeasurable[𝓕 t] (q' t) P)
+    (heq : ∀ t T, 0 ≤ t → t ≤ T → P[fun ω => q' T ω - q' t ω | 𝓕 t]
+      =ᵐ[P] P[fun ω => ∫ u in t..T, (R * q' u ω + rate2Proc c₁ η c₂ ζ W u ω) | 𝓕 t])
+    {t : ℝ} (ht : 0 ≤ t) : q' t =ᵐ[P] bondProc R c₁ η c₂ ζ W t := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have h1 : R + η ≠ 0 := by linarith
+  have h2 : R + ζ ≠ 0 := by linarith
+  have hq : RegProc P (bondProc R c₁ η c₂ ζ W) := by
+    rw [bondProc_eq_ker2]
+    exact regProc_ker2Proc hB hW h𝓕 hcont hW0 hη hζ _ _ _
+  have hi : RegProc P (rate2Proc c₁ η c₂ ζ W) := by
+    rw [rate2Proc_eq_ker2]
+    exact regProc_ker2Proc hB hW h𝓕 hcont hW0 hη hζ _ _ _
+  have hqm : AEStronglyMeasurable[𝓕 t] (bondProc R c₁ η c₂ ζ W t) P := by
+    rw [bondProc_eq_ker2]
+    exact aesm_ker2Proc hB hW h𝓕 hcont hW0 _ _ _ _ _ ht
+  have hG' : RegProc P fun u ω => R * q' u ω + 1 * rate2Proc c₁ η c₂ ζ W u ω := hq'.lin hi R 1
+  have hG : RegProc P fun u ω => R * bondProc R c₁ η c₂ ζ W u ω
+      + 1 * rate2Proc c₁ η c₂ ζ W u ω := hq.lin hi R 1
+  refine ae_eq_of_forall_setIntegral_eq_of_sigmaFinite' (𝓕.le t)
+    (fun _ _ _ => (hq'.2.2.1 t ht).integrableOn) (fun _ _ _ => (hq.2.2.1 t ht).integrableOn)
+    (fun A hA _ => ?_) (ha t ht) hqm
+  obtain ⟨C1, hC10, hC1⟩ := hq'.exists_nonneg
+  obtain ⟨C2, hC20, hC2⟩ := hq.exists_nonneg
+  set f := fun u => ∫ ω in A, q' u ω ∂P - ∫ ω in A, bondProc R c₁ η c₂ ζ W u ω ∂P with hf
+  have hmeas : Measurable f :=
+    (measurable_setIntegral_proc hq'.1 hq'.2.1 A).sub (measurable_setIntegral_proc hq.1 hq.2.1 A)
+  have hb : ∀ u, t ≤ u → |f u| ≤ (C1 + C2) * (1 + u) := fun u hu => by
+    have a1 := abs_setIntegral_le hq' hC1 A (ht.trans hu)
+    have a2 := abs_setIntegral_le hq hC2 A (ht.trans hu)
+    calc |f u| ≤ |∫ ω in A, q' u ω ∂P| + |∫ ω in A, bondProc R c₁ η c₂ ζ W u ω ∂P| :=
+          abs_sub _ _
+      _ ≤ C1 * (1 + u) + C2 * (1 + u) := add_le_add a1 a2
+      _ = (C1 + C2) * (1 + u) := by ring
+  have h0 := unstable_zero hmeas ht (add_nonneg hC10 hC20) hR hb fun τ hτ => by
+    have e1 := setIntegral_of_condExp hq' hG' ht hτ hA
+      ((heq t τ ht hτ).trans (by simp only [one_mul]; rfl))
+    have e2 := setIntegral_of_condExp hq hG ht hτ hA
+      ((bond_book_equation (c₁ := c₁) (c₂ := c₂) hB hW h𝓕 hcont hW0 h1 h2 ht hτ).trans
+        (by simp only [one_mul]; rfl))
+    have i1 := intervalIntegrable_setIntegral hG' A ht hτ
+    have i2 := intervalIntegrable_setIntegral hG A ht hτ
+    simp only [hf]
+    rw [show (∫ ω in A, q' τ ω ∂P - ∫ ω in A, bondProc R c₁ η c₂ ζ W τ ω ∂P)
+        - (∫ ω in A, q' t ω ∂P - ∫ ω in A, bondProc R c₁ η c₂ ζ W t ω ∂P)
+        = (∫ ω in A, q' τ ω ∂P - ∫ ω in A, q' t ω ∂P)
+          - (∫ ω in A, bondProc R c₁ η c₂ ζ W τ ω ∂P - ∫ ω in A, bondProc R c₁ η c₂ ζ W t ω ∂P)
+        by ring, e1, e2, ← intervalIntegral.integral_sub i1 i2,
+      ← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun u hu => ?_
+    rw [Set.uIcc_of_le hτ] at hu
+    have hu0 : 0 ≤ u := ht.trans hu.1
+    rw [setIntegral_lin hq' hi R 1 A hu0, setIntegral_lin hq hi R 1 A hu0]
+    ring
+  simp only [hf] at h0
+  linarith
+
+/-! ### Brackets: no covariation correction -/
+
+/-- Cochrane (2023), (5.114), p. 170: the bracket of the bond price with `W`: for
+`R + η ≠ 0`, `R + ζ ≠ 0`, `0 ≤ s < t`, a.s. along the dyadic partitions `Σ ΔqΔW → δ(t − s)`. -/
+theorem bond_bracket (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) {R c₁ η c₂ ζ : ℝ} (h1 : R + η ≠ 0)
+    (h2 : R + ζ ≠ 0) {s t : ℝ} (hs : 0 ≤ s) (hst : s < t) :
+    ∀ᵐ ω ∂P, Tendsto (fun k => crossSum (dyadic hst k) (fun u => bondProc R c₁ η c₂ ζ W u ω)
+      (fun u => bmReal W u ω)) atTop (𝓝 (bondLoading R c₁ η c₂ ζ * (t - s))) := by
+  have hT := tendsto_crossSum_affine (P := P) hB hW hcont hs hst (bondLoading R c₁ η c₂ ζ) 1
+    (F := fun ω u => bondProc R c₁ η c₂ ζ W u ω - bondLoading R c₁ η c₂ ζ * bmReal W u ω)
+    (F' := fun ω u => R * bondProc R c₁ η c₂ ζ W u ω + rate2Proc c₁ η c₂ ζ W u ω)
+    (G := fun _ _ => 0) (G' := fun _ _ => 0)
+    (fun ω x => bond_sub_hasDerivAt h1 h2 (continuous_bmReal (hcont ω)) x)
+    (fun ω => by
+      have hw := continuous_bmReal (hcont ω)
+      have := continuous_ouNoise η hw
+      have := continuous_ouNoise ζ hw
+      simp only [bondProc, rate2Proc, bondPath, rate2Path]
+      fun_prop)
+    (fun _ _ => hasDerivAt_const _ _) (fun _ => continuous_const)
+  filter_upwards [hT] with ω hω
+  simp only [mul_one, one_mul, add_zero] at hω
+  refine hω.congr fun k => ?_
+  congr 1
+  funext u
+  ring
+
+/-- **Cochrane (2023), (5.105)–(5.106), p. 170 (no covariation correction with long-term
+debt)**: for any price-level path `p` of class `C¹` (here `dp = π dt`), on every Brownian path
+`Σ ΔqΔp → 0` along any partitions with mesh `→ 0`: the nominal bond price and the price level
+have zero bracket, so `d(QB/P)` has no Itô cross term.
+From `TidyR7StieltjesCalculus.tendsto_crossSum_zero_of_continuousOn` and
+`TidyR7StochCTBrownian.bv_of_hasDerivAt`. -/
+theorem bond_price_level_bracket (hcont : ∀ ω, Continuous fun t => W t ω) {R c₁ η c₂ ζ : ℝ}
+    {p p' : ℝ → ℝ} (hp : ∀ x, HasDerivAt p (p' x) x) (hp' : Continuous p') (ω : Ω) {a b : ℝ}
+    (ps : ℕ → Partition a b) (hps : Tendsto (fun k => mesh (ps k)) atTop (𝓝 0)) :
+    Tendsto (fun k => crossSum (ps k) (fun u => bondProc R c₁ η c₂ ζ W u ω) p) atTop (𝓝 0) := by
+  have hw := continuous_bmReal (hcont ω)
+  have : Continuous fun u => bondProc R c₁ η c₂ ζ W u ω := by
+    have := continuous_ouNoise η hw
+    have := continuous_ouNoise ζ hw
+    simp only [bondProc, bondPath]
+    fun_prop
+  exact tendsto_crossSum_zero_of_continuousOn this.continuousOn
+    (bv_of_hasDerivAt hp hp' (a_le_b (ps 0))) ps hps
+
+/-! ### The `v − v*` elimination under diffusion -/
+
+/-- **Cochrane (2023), (5.106), (5.109)–(5.111), p. 172: the elimination of the starred
+variables with diffusive shocks.** Let `v, v*, π, π*` be regular processes (continuous paths,
+`E|·| ≤ C(1 + t)`: the stochastic transversality condition), `π, π*` adapted, `r > 0`, and
+suppose
+* the two debt equations share their bond-price innovation, so that on every path
+  `(v* − v)_T − (v* − v)_t = ∫_t^T (r(v* − v) − (π* − π))`;
+* (5.110): `E_t[(π* − π)_T − (π* − π)_t] = 0` for `0 ≤ t ≤ T`;
+* `v*₀ = v₀` (survey E49) on every path.
+Then for every `t ≥ 0`, a.s. `v*_t = v_t` and `π*_t = π_t`. In particular the inflation
+innovation is the target's, `dδ_π = −β_s dε_s − β_i dε_i` (5.111).
+Generalises `CTRules.ct_elim` to diffusion. -/
+theorem elim_stoch [IsProbabilityMeasure P] {r : ℝ} (hr : 0 < r) {v vs infl infls : ℝ → Ω → ℝ}
+    (hv : RegProc P v) (hvs : RegProc P vs) (hπ : RegProc P infl) (hπs : RegProc P infls)
+    (hvm : ∀ t, 0 ≤ t → AEStronglyMeasurable[𝓕 t] (v t) P)
+    (hvsm : ∀ t, 0 ≤ t → AEStronglyMeasurable[𝓕 t] (vs t) P)
+    (hπm : ∀ t, 0 ≤ t → AEStronglyMeasurable[𝓕 t] (infl t) P)
+    (hπsm : ∀ t, 0 ≤ t → AEStronglyMeasurable[𝓕 t] (infls t) P)
+    (hdebt : ∀ ω t T, (vs T ω - v T ω) - (vs t ω - v t ω)
+      = ∫ u in t..T, (r * (vs u ω - v u ω) - (infls u ω - infl u ω)))
+    (htarget : ∀ t T, 0 ≤ t → t ≤ T →
+      P[fun ω => (infls T ω - infl T ω) - (infls t ω - infl t ω) | 𝓕 t] =ᵐ[P] 0)
+    (h0 : ∀ ω, vs 0 ω = v 0 ω) {t : ℝ} (ht : 0 ≤ t) :
+    vs t =ᵐ[P] v t ∧ infls t =ᵐ[P] infl t := by
+  set D : ℝ → Ω → ℝ := fun u ω => 1 * vs u ω + (-1) * v u ω with hD
+  set M : ℝ → Ω → ℝ := fun u ω => 1 * infls u ω + (-1) * infl u ω with hM
+  have hDr : RegProc P D := hvs.lin hv 1 (-1)
+  have hMr : RegProc P M := hπs.lin hπ 1 (-1)
+  have hFr : RegProc P fun u ω => r * D u ω + (-1) * M u ω := hDr.lin hMr r (-1)
+  have hDm : ∀ u, 0 ≤ u → AEStronglyMeasurable[𝓕 u] (D u) P := fun u hu =>
+    ((hvsm u hu).const_mul 1).add ((hvm u hu).const_mul (-1))
+  have hMm : ∀ u, 0 ≤ u → AEStronglyMeasurable[𝓕 u] (M u) P := fun u hu =>
+    ((hπsm u hu).const_mul 1).add ((hπm u hu).const_mul (-1))
+  have hpath : ∀ ω t T, D T ω - D t ω = ∫ u in t..T, (r * D u ω + (-1) * M u ω) := by
+    intro ω t T
+    simp only [hD, hM]
+    rw [show 1 * vs T ω + -1 * v T ω - (1 * vs t ω + -1 * v t ω)
+      = (vs T ω - v T ω) - (vs t ω - v t ω) by ring, hdebt ω t T]
+    refine intervalIntegral.integral_congr fun u _ => ?_
+    ring
+  -- step 1: `D_s = M_s / r` a.s. at every date
+  have step1 : ∀ s, 0 ≤ s → D s =ᵐ[P] fun ω => r⁻¹ * M s ω := by
+    intro s hs
+    refine ae_eq_of_forall_setIntegral_eq_of_sigmaFinite' (𝓕.le s)
+      (fun _ _ _ => (hDr.2.2.1 s hs).integrableOn)
+      (fun _ _ _ => ((hMr.2.2.1 s hs).const_mul _).integrableOn) (fun A hA _ => ?_) (hDm s hs)
+      ((hMm s hs).const_mul _)
+    have hMconst : ∀ u, s ≤ u → ∫ ω in A, M u ω ∂P = ∫ ω in A, M s ω ∂P := by
+      intro u hu
+      have hi : Integrable (fun ω => M u ω - M s ω) P :=
+        (hMr.2.2.1 u (hs.trans hu)).sub (hMr.2.2.1 s hs)
+      have e := setIntegral_condExp (𝓕.le s) hi hA
+      have ef : (fun ω => M u ω - M s ω)
+          = fun ω => (infls u ω - infl u ω) - (infls s ω - infl s ω) := by
+        funext ω
+        simp only [hM]
+        ring
+      have hz : P[fun ω => M u ω - M s ω | 𝓕 s] =ᵐ[P] 0 := by
+        rw [ef]
+        exact htarget s u hs hu
+      rw [setIntegral_congr_ae (𝓕.le s A hA) (hz.mono fun ω hω _ => hω)] at e
+      simp only [Pi.zero_apply, integral_zero] at e
+      rw [integral_sub (hMr.2.2.1 u (hs.trans hu)).integrableOn
+        (hMr.2.2.1 s hs).integrableOn] at e
+      linarith
+    obtain ⟨C1, hC10, hC1⟩ := hDr.exists_nonneg
+    set c := ∫ ω in A, M s ω ∂P
+    set f := fun u => ∫ ω in A, D u ω ∂P - r⁻¹ * c with hf
+    have hmeas : Measurable f := (measurable_setIntegral_proc hDr.1 hDr.2.1 A).sub_const _
+    have hb : ∀ u, s ≤ u → |f u| ≤ (C1 + |r⁻¹ * c|) * (1 + u) := fun u hu => by
+      have a1 := abs_setIntegral_le hDr hC1 A (hs.trans hu)
+      have : |r⁻¹ * c| ≤ |r⁻¹ * c| * (1 + u) := le_mul_of_one_le_right (abs_nonneg _)
+        (by linarith [hs.trans hu])
+      calc |f u| ≤ |∫ ω in A, D u ω ∂P| + |r⁻¹ * c| := abs_sub _ _
+        _ ≤ C1 * (1 + u) + |r⁻¹ * c| * (1 + u) := add_le_add a1 this
+        _ = (C1 + |r⁻¹ * c|) * (1 + u) := by ring
+    have hz := unstable_zero hmeas hs (add_nonneg hC10 (abs_nonneg _)) hr hb fun τ hτ => by
+      have e1 := setIntegral_of_path (A := A) hDr hFr hs hτ (hpath · s τ)
+      have i1 := intervalIntegrable_setIntegral hFr A hs hτ
+      simp only [hf]
+      rw [show ∫ ω in A, D τ ω ∂P - r⁻¹ * c - (∫ ω in A, D s ω ∂P - r⁻¹ * c)
+        = ∫ ω in A, D τ ω ∂P - ∫ ω in A, D s ω ∂P by ring, e1,
+        ← intervalIntegral.integral_const_mul]
+      refine intervalIntegral.integral_congr fun u hu => ?_
+      rw [Set.uIcc_of_le hτ] at hu
+      have hu0 : 0 ≤ u := hs.trans hu.1
+      rw [setIntegral_lin hDr hMr r (-1) A hu0, hMconst u hu.1]
+      field_simp
+      ring
+    simp only [hf] at hz
+    rw [integral_const_mul]
+    linarith
+  -- step 2: `D_t = 0` a.s.
+  have hF0 : ∀ u, 0 ≤ u → ∀ A : Set Ω, ∫ ω in A, (r * D u ω + (-1) * M u ω) ∂P = 0 := by
+    intro u hu A
+    have hz : (fun ω => r * D u ω + (-1) * M u ω) =ᵐ[P] 0 := by
+      filter_upwards [step1 u hu] with ω hω
+      rw [hω]
+      simp only [Pi.zero_apply]
+      field_simp
+      ring
+    rw [integral_congr_ae (ae_restrict_of_ae hz)]
+    simp
+  have hDt : D t =ᵐ[P] 0 := by
+    refine ae_eq_of_forall_setIntegral_eq_of_sigmaFinite' (𝓕.le t)
+      (fun _ _ _ => (hDr.2.2.1 t ht).integrableOn) (fun _ _ _ => integrableOn_zero)
+      (fun A _ _ => ?_) (hDm t ht) aestronglyMeasurable_const
+    have e1 := setIntegral_of_path (A := A) hDr hFr le_rfl ht (hpath · 0 t)
+    have hD0 : ∫ ω in A, D 0 ω ∂P = 0 := by
+      have : D 0 = 0 := by
+        funext ω
+        simp only [hD, h0 ω, Pi.zero_apply]
+        ring
+      rw [this]
+      simp
+    rw [hD0, sub_zero, intervalIntegral.integral_congr (g := fun _ => (0 : ℝ))
+      (fun u hu => by
+        rw [Set.uIcc_of_le ht] at hu
+        exact hF0 u hu.1 A)] at e1
+    simp only [intervalIntegral.integral_zero] at e1
+    rw [e1]
+    simp
+  have hMt : M t =ᵐ[P] 0 := by
+    filter_upwards [step1 t ht, hDt] with ω h1 h2
+    rw [h2] at h1
+    simp only [Pi.zero_apply] at h1 ⊢
+    have := hr.ne'
+    have h3 : r⁻¹ * M t ω = 0 := h1.symm
+    rcases mul_eq_zero.1 h3 with h | h
+    · exact absurd h (inv_ne_zero this)
+    · exact h
+  refine ⟨?_, ?_⟩
+  · filter_upwards [hDt] with ω hω
+    simp only [hD, Pi.zero_apply] at hω
+    linarith
+  · filter_upwards [hMt] with ω hω
+    simp only [hM, Pi.zero_apply] at hω
+    linarith
+
+/-! ### Fiscal policy chooses only unexpected inflation -/
+
+/-- **Cochrane (2023), §5.7.5, p. 177 ("the interest-rate path sets the family of solutions.
+Fiscal policy chooses only unexpected inflation at time zero"), with diffusive shocks.** Let
+`I` be any regular interest-rate process and `(x, π)`, `(x', π')` regular adapted processes
+(`κ, σ > 0`) that both satisfy the `E_t[·]` IS curve `E_t[x_T − x_t] = E_t∫_t^T σ(I − π)` and the
+Phillips curve on every path with the SAME expectational error process `δ` (the same
+unexpected inflation), `π_T − π_t = ∫_t^T(ρπ − κx) + (δ_T − δ_t)`, and start from the same
+`π₀`. Then for every `t ≥ 0`, a.s. `π_t = π'_t` and `x_t = x'_t` — whatever the fiscal rules
+(`θ_s`, `α`, `u_s(t)`) that generated them.
+Generalises `CTRules.ct_rules_pinned`. -/
+theorem pinned_by_innovation [IsProbabilityMeasure P] {σ κ ρ : ℝ} (hκ : 0 < κ) (hσ : 0 < σ)
+    {I x infl x' infl' δ : ℝ → Ω → ℝ} (hI : RegProc P I) (hx : RegProc P x)
+    (hπ : RegProc P infl) (hx' : RegProc P x') (hπ' : RegProc P infl')
+    (hxm : ∀ t, 0 ≤ t → AEStronglyMeasurable[𝓕 t] (x t) P)
+    (hπm : ∀ t, 0 ≤ t → AEStronglyMeasurable[𝓕 t] (infl t) P)
+    (hxm' : ∀ t, 0 ≤ t → AEStronglyMeasurable[𝓕 t] (x' t) P)
+    (hπm' : ∀ t, 0 ≤ t → AEStronglyMeasurable[𝓕 t] (infl' t) P)
+    (hIS : ∀ t T, 0 ≤ t → t ≤ T → P[fun ω => x T ω - x t ω | 𝓕 t]
+      =ᵐ[P] P[fun ω => ∫ u in t..T, σ * (I u ω - infl u ω) | 𝓕 t])
+    (hIS' : ∀ t T, 0 ≤ t → t ≤ T → P[fun ω => x' T ω - x' t ω | 𝓕 t]
+      =ᵐ[P] P[fun ω => ∫ u in t..T, σ * (I u ω - infl' u ω) | 𝓕 t])
+    (hPC : ∀ ω t T, infl T ω - infl t ω
+      = (∫ u in t..T, (ρ * infl u ω - κ * x u ω)) + (δ T ω - δ t ω))
+    (hPC' : ∀ ω t T, infl' T ω - infl' t ω
+      = (∫ u in t..T, (ρ * infl' u ω - κ * x' u ω)) + (δ T ω - δ t ω))
+    (h0 : ∀ ω, infl 0 ω = infl' 0 ω) {t : ℝ} (ht : 0 ≤ t) :
+    infl t =ᵐ[P] infl' t ∧ x t =ᵐ[P] x' t := by
+  have h1 := lam1_pos (ρ := ρ) hκ hσ
+  have h2 := lam2_pos (ρ := ρ) hκ hσ
+  have hroot := lam1_root (ρ := ρ) hκ hσ
+  have hsub := lam_sub ρ κ σ
+  set EX : ℝ → Ω → ℝ := fun u ω => 1 * x u ω + (-1) * x' u ω with hEX
+  set EP : ℝ → Ω → ℝ := fun u ω => 1 * infl u ω + (-1) * infl' u ω with hEP
+  have hEXr : RegProc P EX := hx.lin hx' 1 (-1)
+  have hEPr : RegProc P EP := hπ.lin hπ' 1 (-1)
+  have hGP : RegProc P fun u ω => ρ * EP u ω + (-κ) * EX u ω := hEPr.lin hEXr ρ (-κ)
+  have hG1 : RegProc P fun u ω => σ * I u ω + (-σ) * infl u ω := hI.lin hπ σ (-σ)
+  have hG2 : RegProc P fun u ω => σ * I u ω + (-σ) * infl' u ω := hI.lin hπ' σ (-σ)
+  have hEXm : ∀ u, 0 ≤ u → AEStronglyMeasurable[𝓕 u] (EX u) P := fun u hu =>
+    ((hxm u hu).const_mul 1).add ((hxm' u hu).const_mul (-1))
+  have hEPm : ∀ u, 0 ≤ u → AEStronglyMeasurable[𝓕 u] (EP u) P := fun u hu =>
+    ((hπm u hu).const_mul 1).add ((hπm' u hu).const_mul (-1))
+  have hpath : ∀ ω a b, EP b ω - EP a ω = ∫ u in a..b, (ρ * EP u ω + (-κ) * EX u ω) := by
+    intro ω a b
+    have c1 : Continuous fun u => ρ * infl u ω - κ * x u ω :=
+      ((hπ.1 ω).const_mul ρ).sub ((hx.1 ω).const_mul κ)
+    have c2 : Continuous fun u => ρ * infl' u ω - κ * x' u ω :=
+      ((hπ'.1 ω).const_mul ρ).sub ((hx'.1 ω).const_mul κ)
+    have e := intervalIntegral.integral_sub (c1.intervalIntegrable (μ := volume) a b)
+      (c2.intervalIntegrable a b)
+    have p1 := hPC ω a b
+    have p2 := hPC' ω a b
+    have hint : (∫ u in a..b, (ρ * EP u ω + (-κ) * EX u ω))
+        = (∫ u in a..b, (ρ * infl u ω - κ * x u ω))
+          - ∫ u in a..b, (ρ * infl' u ω - κ * x' u ω) := by
+      rw [← e]
+      refine intervalIntegral.integral_congr fun u _ => ?_
+      simp only [hEP, hEX]
+      ring
+    rw [hint]
+    have hEPv : ∀ s, EP s ω = infl s ω - infl' s ω := fun s => by simp only [hEP]; ring
+    rw [hEPv, hEPv]
+    linarith
+  -- the unstable combination `λ₁(π − π') − κ(x − x')` vanishes
+  have hunst : ∀ s, 0 ≤ s → EX s =ᵐ[P] fun ω => lam1 ρ κ σ / κ * EP s ω := by
+    intro s hs
+    refine ae_eq_of_forall_setIntegral_eq_of_sigmaFinite' (𝓕.le s)
+      (fun _ _ _ => (hEXr.2.2.1 s hs).integrableOn)
+      (fun _ _ _ => ((hEPr.2.2.1 s hs).const_mul _).integrableOn) (fun A hA _ => ?_) (hEXm s hs)
+      ((hEPm s hs).const_mul _)
+    obtain ⟨C1, hC10, hC1⟩ := hEPr.exists_nonneg
+    obtain ⟨C2, hC20, hC2⟩ := hEXr.exists_nonneg
+    set f := fun u => lam1 ρ κ σ * ∫ ω in A, EP u ω ∂P - κ * ∫ ω in A, EX u ω ∂P with hf
+    have hmeas : Measurable f :=
+      ((measurable_setIntegral_proc hEPr.1 hEPr.2.1 A).const_mul _).sub
+        ((measurable_setIntegral_proc hEXr.1 hEXr.2.1 A).const_mul _)
+    have hb : ∀ u, s ≤ u → |f u| ≤ (|lam1 ρ κ σ| * C1 + |κ| * C2) * (1 + u) := fun u hu => by
+      have a1 := abs_setIntegral_le hEPr hC1 A (hs.trans hu)
+      have a2 := abs_setIntegral_le hEXr hC2 A (hs.trans hu)
+      calc |f u| ≤ |lam1 ρ κ σ| * |∫ ω in A, EP u ω ∂P| + |κ| * |∫ ω in A, EX u ω ∂P| := by
+            refine (abs_sub _ _).trans ?_
+            rw [abs_mul, abs_mul]
+        _ ≤ |lam1 ρ κ σ| * (C1 * (1 + u)) + |κ| * (C2 * (1 + u)) :=
+            add_le_add (mul_le_mul_of_nonneg_left a1 (abs_nonneg _))
+              (mul_le_mul_of_nonneg_left a2 (abs_nonneg _))
+        _ = (|lam1 ρ κ σ| * C1 + |κ| * C2) * (1 + u) := by ring
+    have hz := unstable_zero hmeas hs (add_nonneg (mul_nonneg (abs_nonneg _) hC10)
+      (mul_nonneg (abs_nonneg _) hC20)) h1 hb fun τ hτ => by
+      have eP := setIntegral_of_path (A := A) hEPr hGP hs hτ (hpath · s τ)
+      have ex1 := setIntegral_of_condExp hx hG1 hs hτ hA ((hIS s τ hs hτ).trans
+        (condExp_congr_ae (Eventually.of_forall fun ω => by
+          simp only
+          refine intervalIntegral.integral_congr fun u _ => ?_
+          ring)))
+      have ex2 := setIntegral_of_condExp hx' hG2 hs hτ hA ((hIS' s τ hs hτ).trans
+        (condExp_congr_ae (Eventually.of_forall fun ω => by
+          simp only
+          refine intervalIntegral.integral_congr fun u _ => ?_
+          ring)))
+      have iP := intervalIntegrable_setIntegral hGP A hs hτ
+      have i1 := intervalIntegrable_setIntegral hG1 A hs hτ
+      have i2 := intervalIntegrable_setIntegral hG2 A hs hτ
+      have eX : ∫ ω in A, EX τ ω ∂P - ∫ ω in A, EX s ω ∂P
+          = ∫ u in s..τ, ((∫ ω in A, (σ * I u ω + (-σ) * infl u ω) ∂P)
+            - ∫ ω in A, (σ * I u ω + (-σ) * infl' u ω) ∂P) := by
+        rw [intervalIntegral.integral_sub i1 i2, ← ex1, ← ex2,
+          setIntegral_lin hx hx' 1 (-1) A (hs.trans hτ), setIntegral_lin hx hx' 1 (-1) A hs]
+        ring
+      simp only [hf]
+      rw [show lam1 ρ κ σ * ∫ ω in A, EP τ ω ∂P - κ * ∫ ω in A, EX τ ω ∂P
+          - (lam1 ρ κ σ * ∫ ω in A, EP s ω ∂P - κ * ∫ ω in A, EX s ω ∂P)
+          = lam1 ρ κ σ * (∫ ω in A, EP τ ω ∂P - ∫ ω in A, EP s ω ∂P)
+            - κ * (∫ ω in A, EX τ ω ∂P - ∫ ω in A, EX s ω ∂P) by ring, eP, eX,
+        ← intervalIntegral.integral_const_mul, ← intervalIntegral.integral_const_mul,
+        ← intervalIntegral.integral_sub (iP.const_mul _) ((i1.sub i2).const_mul _),
+        ← intervalIntegral.integral_const_mul]
+      refine intervalIntegral.integral_congr fun u hu => ?_
+      rw [Set.uIcc_of_le hτ] at hu
+      have hu0 : 0 ≤ u := hs.trans hu.1
+      rw [setIntegral_lin hEPr hEXr ρ (-κ) A hu0, setIntegral_lin hI hπ σ (-σ) A hu0,
+        setIntegral_lin hI hπ' σ (-σ) A hu0]
+      have eEP : ∫ ω in A, EP u ω ∂P = ∫ ω in A, infl u ω ∂P - ∫ ω in A, infl' u ω ∂P := by
+        rw [setIntegral_lin hπ hπ' 1 (-1) A hu0]
+        ring
+      rw [eEP]
+      linear_combination (-(∫ ω in A, infl u ω ∂P - ∫ ω in A, infl' u ω ∂P)) * hroot
+    simp only [hf] at hz
+    rw [integral_const_mul]
+    have hk := hκ.ne'
+    field_simp
+    linarith
+  -- the stable root: `π − π'` starts at `0` and decays
+  have hEP0 : ∀ τ, 0 ≤ τ → ∀ A : Set Ω, ∫ ω in A, EP τ ω ∂P = 0 := by
+    intro τ hτ A
+    obtain ⟨C1, hC10, hC1⟩ := hEPr.exists_nonneg
+    have hmeas := measurable_setIntegral_proc (P := P) hEPr.1 hEPr.2.1 A
+    refine stable_zero (c := -lam2 ρ κ σ) hmeas hC10 (fun u hu => abs_setIntegral_le hEPr hC1 A hu)
+      (fun τ' hτ' => ?_) hτ
+    have eP := setIntegral_of_path (A := A) hEPr hGP le_rfl hτ' (hpath · 0 τ')
+    have hz0 : ∫ ω in A, EP 0 ω ∂P = 0 := by
+      have : EP 0 = 0 := by
+        funext ω
+        simp only [hEP, h0 ω, Pi.zero_apply]
+        ring
+      rw [this]
+      simp
+    rw [hz0, sub_zero] at eP
+    rw [eP, ← intervalIntegral.integral_const_mul]
+    refine intervalIntegral.integral_congr fun u hu => ?_
+    rw [Set.uIcc_of_le hτ'] at hu
+    rw [setIntegral_lin hEPr hEXr ρ (-κ) A hu.1,
+      integral_congr_ae (ae_restrict_of_ae (hunst u hu.1)), integral_const_mul]
+    have hk := hκ.ne'
+    have e : -κ * (lam1 ρ κ σ / κ * ∫ ω in A, EP u ω ∂P)
+        = -lam1 ρ κ σ * ∫ ω in A, EP u ω ∂P := by field_simp
+    rw [e]
+    linear_combination (-(∫ ω in A, EP u ω ∂P)) * hsub
+  have hEPt : EP t =ᵐ[P] 0 :=
+    ae_eq_of_forall_setIntegral_eq_of_sigmaFinite' (𝓕.le t)
+      (fun _ _ _ => (hEPr.2.2.1 t ht).integrableOn) (fun _ _ _ => integrableOn_zero)
+      (fun A _ _ => by rw [hEP0 t ht A]; simp) (hEPm t ht) aestronglyMeasurable_const
+  refine ⟨?_, ?_⟩
+  · filter_upwards [hEPt] with ω hω
+    simp only [hEP, Pi.zero_apply] at hω
+    linarith
+  · filter_upwards [hEPt, hunst t ht] with ω hω hx0
+    simp only [hEP, Pi.zero_apply] at hω
+    simp only [hEX] at hx0
+    rw [show EP t ω = 0 from hω, mul_zero] at hx0
+    linarith
+
+/-! ### Non-vacuity -/
+
+/-- **Cochrane (2023), (5.105), p. 169, and Figs. 5.11–5.13 (non-vacuity on the constructed
+motion `bmPath`)**: with the rate of Figs. 5.11–5.13 (`θ_{iε} = 1/4`, `ζ_i = 1`, `η_i = 0.3`)
+and `r + ω > 0`, the bond price is the expected discounted rate path in `L¹`, and every regular
+adapted solution of the bond-price equation is the explicit one. -/
+theorem bmPath_bond {R σi : ℝ} (hR : 0 < R) {t : ℝ} (ht : 0 ≤ t) :
+    Tendsto (fun T => ∫ ω, |-gaussSeq[fun ω => ∫ τ in t..T, exp (-(R * (τ - t)))
+      * rate2Proc (σi * (1 / (1 - 3 / 10))) (3 / 10) (σi * (1 / 4 - 1 / (1 - 3 / 10))) 1
+        bmPath τ ω | bmFiltrationReal bmPath measurable_bmPath t] ω
+      - bondProc R (σi * (1 / (1 - 3 / 10))) (3 / 10) (σi * (1 / 4 - 1 / (1 - 3 / 10))) 1
+        bmPath t ω| ∂gaussSeq) atTop (𝓝 0) ∧
+    rateProc σi (1 / 4) 1 (3 / 10) bmPath
+      = rate2Proc (σi * (1 / (1 - 3 / 10))) (3 / 10) (σi * (1 / 4 - 1 / (1 - 3 / 10))) 1
+        bmPath := by
+  have hB := isPreBrownianReal_bmPath
+  have h𝓕 := bmFiltrationReal_isBM hB measurable_bmPath
+  refine ⟨bond_valuation_L1 hB measurable_bmPath h𝓕 continuous_bmPath bmPath_zero hR
+    (by norm_num) zero_le_one ht, ?_⟩
+  rw [rateProc_eq_ker2 (by norm_num), rate2Proc_eq_ker2]
+
+/-- **Cochrane (2023), §5.7.5, p. 177 (non-vacuity of `pinned_by_innovation` on `bmPath`)**:
+for `r, κ, σ > 0`, the equilibrium of §5.7.1 with Brownian shocks (`TidyR7StochCTUnique`)
+satisfies its hypotheses on the constructed motion: `i`, `x`, `π` are regular and adapted, the
+`E_t[·]` IS curve holds, and the Phillips curve holds on every path with the innovation process
+`δ = R_π(0)W`. -/
+theorem bmPath_pinned_hypotheses {r σ κ ρ σi σs : ℝ} (hr : 0 < r) (hκ : 0 < κ) (hσ : 0 < σ) :
+    RegProc gaussSeq (iProc σi bmPath) ∧ RegProc gaussSeq (xProc r σ κ ρ σi σs bmPath) ∧
+      RegProc gaussSeq (piProc r σ κ ρ σi σs bmPath) ∧
+      (∀ t, 0 ≤ t → AEStronglyMeasurable[bmFiltrationReal bmPath measurable_bmPath t]
+        (piProc r σ κ ρ σi σs bmPath t) gaussSeq) ∧
+      (∀ t T, 0 ≤ t → t ≤ T → gaussSeq[fun ω => xProc r σ κ ρ σi σs bmPath T ω
+          - xProc r σ κ ρ σi σs bmPath t ω | bmFiltrationReal bmPath measurable_bmPath t]
+        =ᵐ[gaussSeq] gaussSeq[fun ω => ∫ u in t..T, σ * (iProc σi bmPath u ω
+          - piProc r σ κ ρ σi σs bmPath u ω) | bmFiltrationReal bmPath measurable_bmPath t]) ∧
+      ∀ ω t T, piProc r σ κ ρ σi σs bmPath T ω - piProc r σ κ ρ σi σs bmPath t ω
+        = (∫ u in t..T, (ρ * piProc r σ κ ρ σi σs bmPath u ω - κ * xProc r σ κ ρ σi σs bmPath u ω))
+          + (respPi r σ κ ρ σi σs 0 * bmReal bmPath T ω
+            - respPi r σ κ ρ σi σs 0 * bmReal bmPath t ω) := by
+  have hB := isPreBrownianReal_bmPath
+  have h𝓕 := bmFiltrationReal_isBM hB measurable_bmPath
+  have hE := stochCTEq_exists (ρ := ρ) (σi := σi) (σs := σs) hB measurable_bmPath h𝓕
+    continuous_bmPath bmPath_zero hr hκ hσ
+  refine ⟨regProc_iProc hB measurable_bmPath h𝓕 continuous_bmPath bmPath_zero σi, hE.regX,
+    hE.regPi, hE.adaptPi, hE.isCurve, fun ω t T => ?_⟩
+  have := (expectational_errors (r := r) (ρ := ρ) (σi := σi) (σs := σs) hκ hσ continuous_bmPath
+    t T ω).2
+  simp only [incr] at this
+  linarith
+
+end Cochrane.StickyPriceFiscal.TidyR8StochCTRules
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# S-shaped surpluses with a Brownian surplus shock
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 5, §5.7.2, pp. 167–169,
+(5.97)–(5.104).
+
+The surplus process (5.97)–(5.99), `s = αv* + u`, `dv* = (rv* − s)dt + β_s dε`,
+`du = −ηu dt + dε` (the corrected (5.98)–(5.99), survey E45, E48, as in `CTSurplus`), is solved
+here with a diffusive shock `dε = σ_s dW`. With `a = α − r` and the OU noises `Y^η`, `Y^a`
+(`TidyR7StochCTPath.ouNoise`) the solution on every continuous path is
+
+`u = σ_sY^η`, `v* = σ_s(β_sY^a − (Y^η − Y^a)/(a − η))`,
+`s = σ_s((η+r)/(η+r−α) Y^η − (α/(η+r−α) − αβ_s) Y^a)` (5.101),
+
+and the flexible-price (log) price level of p. 167 is `p* = −β_sσ_sW`.
+
+## Main results
+
+* `u_incr`, **`vstar_incr`** ((5.98)–(5.99) on every path: `dv* = (rv* − s)dt + β_sσ_s dW`),
+  `surplus_5_101` ((5.101) on every path).
+* **`responses_surplus`**: a.s. `s_T = ∫_0^T σ_s s^{IRF}(T − u) dW_u`,
+  `v*_T = ∫_0^T σ_s v*^{IRF}(T − u) dW_u`, `u_T = ∫_0^T σ_s e^{−η(T−u)} dW_u`
+  (`CTSurplus.surplusIRF`, `CTSurplus.vstarIRF`): the moving average (5.101) with past shocks
+  `dε_{t−τ}` (E46), and the s-shape of `CTSurplus.ct_s_shape` is the shape of the `dW` loading.
+* Hansen–Sargent under uncertainty: `pv_identity_surplus` (every path),
+  `condExp_pv_surplus`, **`valuation_surplus_L1`** (`E_t∫_t^T e^{−r(τ−t)}s_τ dτ → v*_t` in `L¹`):
+  `v*` is the present value of surpluses at every date.
+* **The innovation in the present value is `L(r)σ_s dW = +β_sσ_s dW`**:
+  `innovation_eq_L_r` (on every path) and `bracket_vstar_W` (`[v*, W]_t = β_sσ_s t` a.s.);
+  `innovation_printed_iff` (the printed `L(r) = −β_s`, E47, would make it `−β_sσ_s`, which
+  holds only if `β_sσ_s = 0`).
+* **The price-level diffusion (p. 168)**: `pstar_debt` (`dv* = (rv* − s)dt − dp*`),
+  `condExp_pstar_incr` (`E_t dp* = 0`), **`bracket_pstar_W`** (`[p*, W]_t = −β_sσ_s t` a.s.,
+  i.e. `dP/P = −β_s dε` as on p. 167). The printed `−Δ(1/P)/(1/P) = β_s dε_s` has the wrong
+  sign: `−Δ(1/P)/(1/P)` is the innovation of `log P`, which is `−β_s dε` (`pstar_loading`).
+* No covariation correction in the linearised model (`bracket_vstar_pstar`: the bracket of
+  the two diffusive states is the product of their loadings, `−(β_sσ_s)²t`, and enters nothing in
+  (5.97)–(5.104)).
+* Non-vacuity on `bmPath`: `bmPath_surplus`.
+-/
+
+namespace Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus
+
+open Real MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.StickyPriceFiscal.TidyR7StieltjesSums Cochrane.StickyPriceFiscal.TidyR7BrownianTools
+open Cochrane.StickyPriceFiscal.TidyR7BrownianQV Cochrane.StickyPriceFiscal.TidyR7ItoIntegral
+open Cochrane.StickyPriceFiscal.TidyR7ItoBridge Cochrane.StickyPriceFiscal.TidyR7BrownianExist
+open Cochrane.StickyPriceFiscal.TidyR7StochCTPath Cochrane.StickyPriceFiscal.TidyR7StochCTBrownian
+open Cochrane.StickyPriceFiscal.TidyR8StochKernel Cochrane.StickyPriceFiscal.CTSurplus
+open Cochrane.StickyPriceFiscal.TidyR7BrownianSchauder
+open scoped ENNReal NNReal
+
+/-! ### The solution on a path -/
+
+/-- Cochrane (2023), (5.99), p. 167: the AR(1) surplus disturbance `u = σ_sY^η`
+(`du = −ηu dt + σ_s dw`). -/
+noncomputable def uPath (σs η : ℝ) (w : ℝ → ℝ) (t : ℝ) : ℝ := σs * ouNoise η w t
+
+/-- Cochrane (2023), (5.98), p. 167: the state variable
+`v* = σ_s(β_sY^{α−r} − (Y^η − Y^{α−r})/(α − r − η))`. -/
+noncomputable def vsPath (r α η βs σs : ℝ) (w : ℝ → ℝ) (t : ℝ) : ℝ :=
+  σs * (βs * ouNoise (α - r) w t - (ouNoise η w t - ouNoise (α - r) w t) / (α - r - η))
+
+/-- Cochrane (2023), (5.97), p. 167: the surplus `s = αv* + u`. -/
+noncomputable def ssPath (r α η βs σs : ℝ) (w : ℝ → ℝ) (t : ℝ) : ℝ :=
+  α * vsPath r α η βs σs w t + uPath σs η w t
+
+/-- Cochrane (2023), p. 167: the flexible-price log price level `p* = −β_sσ_s w`
+("allowing a price level diffusion or jump `dP/P = −β_s dε_s`"). -/
+def pstarPath (βs σs : ℝ) (w : ℝ → ℝ) (t : ℝ) : ℝ := -(βs * σs * w t)
+
+variable {r α η βs σs : ℝ} {w : ℝ → ℝ}
+
+/-- **Cochrane (2023), (5.99), p. 167, on a path**: `u_b − u_a = σ_s(w_b − w_a) − η∫_a^b u`. -/
+theorem u_incr (hw : Continuous w) (a b : ℝ) :
+    uPath σs η w b - uPath σs η w a = σs * (w b - w a) - η * ∫ u in a..b, uPath σs η w u := by
+  have h := ouNoise_incr η hw a b
+  simp only [uPath]
+  rw [intervalIntegral.integral_const_mul]
+  linear_combination σs * h
+
+/-- Cochrane (2023), (5.98), p. 167: the `C¹` part `v* − β_sσ_s w` has derivative `rv* − s`. -/
+theorem vs_sub_hasDerivAt (h : η + r - α ≠ 0) (hw : Continuous w) (t : ℝ) :
+    HasDerivAt (fun u => vsPath r α η βs σs w u - βs * σs * w u)
+      (r * vsPath r α η βs σs w t - ssPath r α η βs σs w t) t := by
+  have hd : α - r - η ≠ 0 := fun h0 => h (by linarith)
+  have h1 := hasDerivAt_sub_ouNoise (α - r) hw t
+  have h2 := hasDerivAt_sub_ouNoise η hw t
+  have hf : (fun u => vsPath r α η βs σs w u - βs * σs * w u) = fun u =>
+      σs * (-βs * (w u - ouNoise (α - r) w u)
+        - ((w u - ouNoise (α - r) w u) - (w u - ouNoise η w u)) / (α - r - η)) := by
+    funext u
+    simp only [vsPath]
+    ring
+  rw [hf]
+  refine ((HasDerivAt.sub (h1.const_mul (-βs)) ((HasDerivAt.sub h1 h2).div_const
+    (α - r - η))).const_mul σs).congr_deriv ?_
+  simp only [ssPath, vsPath, uPath]
+  field_simp
+  ring
+
+/-- Cochrane (2023), (5.97)–(5.98), p. 167: `v*` and `s` are continuous. -/
+theorem continuous_vs_ss (hw : Continuous w) :
+    Continuous (vsPath r α η βs σs w) ∧ Continuous (ssPath r α η βs σs w) := by
+  have := continuous_ouNoise η hw
+  have := continuous_ouNoise (α - r) hw
+  refine ⟨?_, ?_⟩
+  · unfold vsPath
+    fun_prop
+  · unfold ssPath vsPath uPath
+    fun_prop
+
+/-- **Cochrane (2023), (5.98), p. 167, on a path**: over every `[a, b]`,
+`v*_b − v*_a = ∫_a^b (rv* − s) + β_sσ_s(w_b − w_a)`: the state variable is the value of debt of
+the flexible-price model, with innovation `β_sσ_s dw`. -/
+theorem vstar_incr (h : η + r - α ≠ 0) (hw : Continuous w) (a b : ℝ) :
+    vsPath r α η βs σs w b - vsPath r α η βs σs w a
+      = (∫ u in a..b, (r * vsPath r α η βs σs w u - ssPath r α η βs σs w u))
+        + βs * σs * (w b - w a) := by
+  obtain ⟨c1, c2⟩ := continuous_vs_ss (r := r) (α := α) (η := η) (βs := βs) (σs := σs) hw
+  have hF := intervalIntegral.integral_eq_sub_of_hasDerivAt
+    (fun x _ => vs_sub_hasDerivAt (βs := βs) (σs := σs) h hw x)
+    (((c1.const_mul r).sub c2).intervalIntegrable a b)
+  rw [hF]
+  ring
+
+/-- **Cochrane (2023), (5.101), p. 168, on a path**:
+`s = σ_s((η+r)/(η+r−α) Y^η − (α/(η+r−α) − αβ_s) Y^{α−r})`. -/
+theorem surplus_5_101 (h : η + r - α ≠ 0) (t : ℝ) :
+    ssPath r α η βs σs w t = σs * ((η + r) / (η + r - α) * ouNoise η w t
+      - (α / (η + r - α) - α * βs) * ouNoise (α - r) w t) := by
+  have hd : α - r - η ≠ 0 := fun h0 => h (by linarith)
+  simp only [ssPath, vsPath, uPath]
+  field_simp
+  ring
+
+/-! ### Processes and Wiener integrals -/
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {W : ℝ≥0 → Ω → ℝ}
+  {𝓕 : Filtration ℝ mΩ}
+
+/-- Cochrane (2023), (5.98), p. 167: `v*` as a process on the Brownian path. -/
+noncomputable def vsProc (r α η βs σs : ℝ) (W : ℝ≥0 → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  vsPath r α η βs σs (fun u => bmReal W u ω) t
+
+/-- Cochrane (2023), (5.97), p. 167: the surplus as a process. -/
+noncomputable def ssProc (r α η βs σs : ℝ) (W : ℝ≥0 → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  ssPath r α η βs σs (fun u => bmReal W u ω) t
+
+/-- Cochrane (2023), (5.99), p. 167: the disturbance as a process. -/
+noncomputable def uProc (σs η : ℝ) (W : ℝ≥0 → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  uPath σs η (fun u => bmReal W u ω) t
+
+/-- Cochrane (2023), p. 167: the flexible-price log price level as a process. -/
+def pstarProc (βs σs : ℝ) (W : ℝ≥0 → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  pstarPath βs σs (fun u => bmReal W u ω) t
+
+/-- Cochrane (2023), (5.98), p. 167: `v*` is the two-mode process with loadings
+`σ_s/(η+r−α)` on `Y^η` and `σ_s(β_s − 1/(η+r−α))` on `Y^{α−r}`. -/
+theorem vsProc_eq_ker2 (h : η + r - α ≠ 0) : vsProc r α η βs σs W = fun t =>
+    ker2Proc W 0 (σs / (η + r - α)) η (σs * (βs - 1 / (η + r - α))) (α - r) t := by
+  have hd : α - r - η ≠ 0 := fun h0 => h (by linarith)
+  funext t ω
+  rw [ker2Proc_eq]
+  simp only [vsProc, vsPath]
+  field_simp
+  ring
+
+/-- Cochrane (2023), (5.101), p. 168: the surplus is the two-mode process with loadings
+`σ_s(η+r)/(η+r−α)` on `Y^η` and `−σ_s(α/(η+r−α) − αβ_s)` on `Y^{α−r}`. -/
+theorem ssProc_eq_ker2 (h : η + r - α ≠ 0) : ssProc r α η βs σs W = fun t =>
+    ker2Proc W 0 (σs * ((η + r) / (η + r - α))) η (-(σs * (α / (η + r - α) - α * βs)))
+      (α - r) t := by
+  funext t ω
+  rw [ker2Proc_eq]
+  simp only [ssProc]
+  rw [surplus_5_101 h]
+  ring
+
+/-- Cochrane (2023), (5.98), p. 167: the kernel of `v*` is `σ_s v*^{IRF}`. -/
+theorem ker2_vstar (h : η + r - α ≠ 0) (τ : ℝ) :
+    ker2Fn 0 (σs / (η + r - α)) η (σs * (βs - 1 / (η + r - α))) (α - r) τ
+      = σs * vstarIRF r α η βs τ := by
+  simp only [ker2Fn, vstarIRF]
+  field_simp
+  ring
+
+/-- Cochrane (2023), (5.101), p. 168: the kernel of `s` is `σ_s s^{IRF}`. -/
+theorem ker2_surplus (τ : ℝ) :
+    ker2Fn 0 (σs * ((η + r) / (η + r - α))) η (-(σs * (α / (η + r - α) - α * βs))) (α - r) τ
+      = σs * surplusIRF r α η βs τ := by
+  simp only [ker2Fn, surplusIRF]
+  ring
+
+/-- **Cochrane (2023), (5.99)–(5.101), pp. 167–168: the responses to a diffusive surplus
+shock.** For `η + r − α ≠ 0` and `T ≥ 0`, a.s.
+`s_T = ∫_0^T σ_s s^{IRF}(T − u) dW_u`, `v*_T = ∫_0^T σ_s v*^{IRF}(T − u) dW_u` and
+`u_T = ∫_0^T σ_s e^{−η(T−u)} dW_u` (`u_t = ∫ e^{−ητ} dε_{t−τ}`, past shocks). -/
+theorem responses_surplus (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (h : η + r - α ≠ 0) {T : ℝ} (hT : 0 ≤ T) :
+    ssProc r α η βs σs W T
+        =ᵐ[P] itoInt P 𝓕 W (fun u _ => σs * surplusIRF r α η βs (T - u)) 0 T ∧
+      vsProc r α η βs σs W T
+        =ᵐ[P] itoInt P 𝓕 W (fun u _ => σs * vstarIRF r α η βs (T - u)) 0 T ∧
+      uProc σs η W T =ᵐ[P] itoInt P 𝓕 W (fun u _ => σs * exp (-(η * (T - u)))) 0 T := by
+  refine ⟨?_, ?_, ?_⟩
+  · rw [ssProc_eq_ker2 h]
+    simp only [← ker2_surplus (r := r) (α := α) (η := η) (βs := βs) (σs := σs)]
+    exact ker2Proc_ae_eq_itoInt hB hW h𝓕 hcont hW0 _ _ _ _ _ hT
+  · rw [vsProc_eq_ker2 h]
+    simp only [← ker2_vstar (r := r) (α := α) (η := η) (βs := βs) (σs := σs) h]
+    exact ker2Proc_ae_eq_itoInt hB hW h𝓕 hcont hW0 _ _ _ _ _ hT
+  · have e : uProc σs η W = fun t => kerProc W 0 σs η t := by
+      funext t ω
+      simp [uProc, uPath, kerProc]
+    have ek : (fun u (_ : Ω) => σs * exp (-(η * (T - u)))) = fun u _ => kerFn 0 σs η (T - u) := by
+      funext u _
+      simp [kerFn]
+    rw [e, ek]
+    exact kerProc_ae_eq_itoInt hB hW h𝓕 hcont hW0 0 σs η hT
+
+/-! ### Hansen–Sargent: the present value of surpluses -/
+
+/-- Cochrane (2023), p. 168: the present value of surpluses from `t` to `T`,
+`∫_t^T e^{−r(τ−t)} s_τ dτ`, on the Brownian path. -/
+noncomputable def pvSurplus (r α η βs σs : ℝ) (W : ℝ≥0 → Ω → ℝ) (t T : ℝ) (ω : Ω) : ℝ :=
+  ∫ τ in t..T, exp (-(r * (τ - t))) * ssProc r α η βs σs W τ ω
+
+/-- **Cochrane (2023), p. 168, on every path**: `∫_t^T e^{−r(τ−t)}s_τ dτ
+= v*_t − e^{−r(T−t)}v*_T + β_sσ_s∫_t^T e^{−r(τ−t)} dW_τ` (by parts, `TidyR8StochKernel.expWiener`).
+The diffusion of `v*` leaves a martingale term.
+Parallels `TidyR7StochCTBrownian.pv_identity`. -/
+theorem pv_identity_surplus (h : η + r - α ≠ 0) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (t T : ℝ) (ω : Ω) :
+    pvSurplus r α η βs σs W t T ω = vsProc r α η βs σs W t ω
+      - exp (-(r * (T - t))) * vsProc r α η βs σs W T ω + βs * σs * expWiener r W t T ω := by
+  have hw := continuous_bmReal (hcont ω)
+  set w := fun u => bmReal W u ω
+  obtain ⟨c1, c2⟩ := continuous_vs_ss (r := r) (α := α) (η := η) (βs := βs) (σs := σs) hw
+  have hB := discounted_byParts (fun x => vs_sub_hasDerivAt (βs := βs) (σs := σs) h hw x)
+    ((c1.const_mul r).sub c2) hw r (βs * σs) t T
+  have e1 : ∀ τ, vsPath r α η βs σs w τ - βs * σs * w τ + βs * σs * w τ
+      = vsPath r α η βs σs w τ := fun τ => by ring
+  simp only [e1] at hB
+  have e2 : (fun τ => exp (-(r * (τ - t))) * (r * vsPath r α η βs σs w τ
+      - (r * vsPath r α η βs σs w τ - ssPath r α η βs σs w τ)))
+      = fun τ => exp (-(r * (τ - t))) * ssPath r α η βs σs w τ := by
+    funext τ
+    ring
+  rw [e2] at hB
+  simp only [pvSurplus, ssProc, vsProc, expWiener]
+  rw [hB]
+
+/-- Cochrane (2023), p. 168: the finite-horizon present value is integrable. -/
+theorem integrable_pvSurplus (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (h : η + r - α ≠ 0) {t T : ℝ} (ht : 0 ≤ t) (htT : t ≤ T) :
+    Integrable (pvSurplus r α η βs σs W t T) P := by
+  have iv : ∀ τ, 0 ≤ τ → Integrable (vsProc r α η βs σs W τ) P := fun τ hτ => by
+    rw [vsProc_eq_ker2 h]
+    exact integrable_ker2Proc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 _ _ _ _ _ hτ
+  have e : pvSurplus r α η βs σs W t T = fun ω => vsProc r α η βs σs W t ω
+      - exp (-(r * (T - t))) * vsProc r α η βs σs W T ω + βs * σs * expWiener r W t T ω := by
+    funext ω
+    exact pv_identity_surplus h hcont t T ω
+  rw [e]
+  exact ((iv t ht).sub ((iv T (ht.trans htT)).const_mul _)).add
+    ((integrable_expWiener hB hW h𝓕 hcont r ht htT).const_mul _)
+
+/-- **Cochrane (2023), p. 168, conditional on date-`t` information**: for `0 ≤ t ≤ T`,
+`E_t∫_t^T e^{−r(τ−t)}s_τ dτ = v*_t − e^{−r(T−t)}E_t v*_T` a.s.
+Parallels `TidyR7StochCTBrownian.condExp_pv`. -/
+theorem condExp_pv_surplus (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (h : η + r - α ≠ 0) {t T : ℝ} (ht : 0 ≤ t) (htT : t ≤ T) :
+    P[pvSurplus r α η βs σs W t T | 𝓕 t] =ᵐ[P] fun ω => vsProc r α η βs σs W t ω
+      - exp (-(r * (T - t))) * P[vsProc r α η βs σs W T | 𝓕 t] ω := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have iv : ∀ τ, 0 ≤ τ → Integrable (vsProc r α η βs σs W τ) P := fun τ hτ => by
+    rw [vsProc_eq_ker2 h]
+    exact integrable_ker2Proc (𝓕 := 𝓕) hB hW h𝓕 hcont hW0 _ _ _ _ _ hτ
+  have hvm : AEStronglyMeasurable[𝓕 t] (vsProc r α η βs σs W t) P := by
+    rw [vsProc_eq_ker2 h]
+    exact aesm_ker2Proc hB hW h𝓕 hcont hW0 _ _ _ _ _ ht
+  have iE := integrable_expWiener hB hW h𝓕 hcont r ht htT
+  have i1 := (iv t ht).sub ((iv T (ht.trans htT)).smul (exp (-(r * (T - t)))))
+  have e : pvSurplus r α η βs σs W t T = (vsProc r α η βs σs W t
+      - (exp (-(r * (T - t)))) • vsProc r α η βs σs W T) + (βs * σs) • expWiener r W t T := by
+    funext ω
+    rw [pv_identity_surplus h hcont t T ω]
+    rfl
+  rw [e]
+  filter_upwards [condExp_add i1 (iE.smul (βs * σs)) (𝓕 t),
+    condExp_sub (iv t ht) ((iv T (ht.trans htT)).smul (exp (-(r * (T - t))))) (𝓕 t),
+    condExp_of_aestronglyMeasurable' (𝓕.le t) hvm (iv t ht),
+    condExp_smul (μ := P) (exp (-(r * (T - t)))) (vsProc r α η βs σs W T) (𝓕 t),
+    condExp_smul (μ := P) (βs * σs) (expWiener r W t T) (𝓕 t),
+    condExp_expWiener hB hW h𝓕 hcont r ht htT] with ω h1 h2 h3 h4 h5 h6
+  rw [h1, Pi.add_apply, h2, Pi.sub_apply, h3, h4, h5]
+  simp only [Pi.smul_apply, smul_eq_mul, h6, Pi.zero_apply, mul_zero, add_zero]
+
+/-- **Cochrane (2023), p. 168 (Hansen–Sargent), under uncertainty: `v*` is the present value of
+surpluses at every date.** For `r > 0`, `η ≥ 0`, `α ≥ r`, `η + r − α ≠ 0` and `t ≥ 0`,
+`E_t∫_t^T e^{−r(τ−t)}s_τ dτ → v*_t` in `L¹` as `T → ∞`.
+The stochastic version of `CTSurplus.ct_pv_eq_vstar`. -/
+theorem valuation_surplus_L1 (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (hr : 0 < r) (hη : 0 ≤ η) (hα : r ≤ α) (h : η + r - α ≠ 0) {t : ℝ}
+    (ht : 0 ≤ t) :
+    Tendsto (fun T => ∫ ω, |P[pvSurplus r α η βs σs W t T | 𝓕 t] ω - vsProc r α η βs σs W t ω|
+      ∂P) atTop (𝓝 0) := by
+  set K := (|0| + |σs / (η + r - α)| + |σs * (βs - 1 / (η + r - α))|) ^ 2
+  refine squeeze_zero' (Eventually.of_forall fun _ => integral_nonneg fun _ => abs_nonneg _)
+    ?_ (tendsto_exp_mul_affine hr t K)
+  filter_upwards [eventually_ge_atTop t] with T hT
+  have hcond := condExp_pv_surplus (βs := βs) (σs := σs) hB hW h𝓕 hcont hW0 h ht hT
+  have e : ∫ ω, |P[pvSurplus r α η βs σs W t T | 𝓕 t] ω - vsProc r α η βs σs W t ω| ∂P
+      = exp (-(r * (T - t))) * ∫ ω, |P[vsProc r α η βs σs W T | 𝓕 t] ω| ∂P := by
+    rw [← integral_const_mul]
+    refine integral_congr_ae ?_
+    filter_upwards [hcond] with ω hω
+    rw [hω, sub_sub_cancel_left, abs_neg, abs_mul, abs_of_pos (exp_pos _)]
+  rw [e]
+  refine mul_le_mul_of_nonneg_left ((integral_abs_condExp_le _).trans ?_) (exp_pos _).le
+  rw [vsProc_eq_ker2 h]
+  exact integral_abs_ker2Proc_le hB hW h𝓕 hcont hW0 hη (by linarith) (ht.trans hT)
+
+/-! ### The innovation of the present value and the price-level diffusion -/
+
+/-- **Cochrane (2023), p. 168 ("the shock ... of the present value is `L(r)Dε_s`"), on every
+path**: for `α ≠ 0`, `η + r ≠ 0`, `η + r − α ≠ 0`,
+`v*_b − v*_a − ∫_a^b (rv* − s) = L(r)σ_s(w_b − w_a)` with `L(r) = β_s`
+(`CTSurplus.surplus_L_r`). -/
+theorem innovation_eq_L_r (hα : α ≠ 0) (h1 : η + r ≠ 0) (h : η + r - α ≠ 0)
+    (hw : Continuous w) (a b : ℝ) :
+    vsPath r α η βs σs w b - vsPath r α η βs σs w a
+        - ∫ u in a..b, (r * vsPath r α η βs σs w u - ssPath r α η βs σs w u)
+      = surplusL r α η βs r * σs * (w b - w a) := by
+  rw [vstar_incr h hw a b, surplus_L_r hα h1 h]
+  ring
+
+/-- Cochrane (2023), p. 168 (survey E47 under diffusion): the loading of the present-value
+innovation equals the printed `L(r)σ_s = −β_sσ_s` iff `β_sσ_s = 0`.
+The diffusion version of `CTSurplus.printed_L_r_wrong`. -/
+theorem innovation_printed_iff (hα : α ≠ 0) (h1 : η + r ≠ 0) (h : η + r - α ≠ 0) :
+    surplusL r α η βs r * σs = -βs * σs ↔ βs * σs = 0 := by
+  rw [surplus_L_r hα h1 h]
+  constructor <;> intro h' <;> linarith
+
+/-- **Cochrane (2023), p. 168: the bracket of `v*` with `W`.** For `η + r − α ≠ 0` and
+`0 ≤ s < t`, a.s. along the dyadic partitions of `[s, t]`, `Σ Δv*ΔW → β_sσ_s(t − s)`.
+An instance of `TidyR8StochKernel.tendsto_crossSum_affine`. -/
+theorem bracket_vstar_W (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (h : η + r - α ≠ 0) {s t : ℝ} (hs : 0 ≤ s)
+    (hst : s < t) :
+    ∀ᵐ ω ∂P, Tendsto (fun k => crossSum (dyadic hst k) (fun u => vsProc r α η βs σs W u ω)
+      (fun u => bmReal W u ω)) atTop (𝓝 (βs * σs * (t - s))) := by
+  have hT := tendsto_crossSum_affine (P := P) hB hW hcont hs hst (βs * σs) 1
+    (F := fun ω u => vsProc r α η βs σs W u ω - βs * σs * bmReal W u ω)
+    (F' := fun ω u => r * vsProc r α η βs σs W u ω - ssProc r α η βs σs W u ω)
+    (G := fun _ _ => 0) (G' := fun _ _ => 0)
+    (fun ω x => vs_sub_hasDerivAt h (continuous_bmReal (hcont ω)) x)
+    (fun ω => by
+      obtain ⟨c1, c2⟩ := continuous_vs_ss (r := r) (α := α) (η := η) (βs := βs) (σs := σs)
+        (continuous_bmReal (hcont ω))
+      exact (c1.const_mul r).sub c2)
+    (fun _ _ => hasDerivAt_const _ _) (fun _ => continuous_const)
+  filter_upwards [hT] with ω hω
+  simp only [mul_one, one_mul, add_zero] at hω
+  refine hω.congr fun k => ?_
+  congr 1
+  funext u
+  ring
+
+/-- **Cochrane (2023), p. 167 and p. 168: the flexible-price debt equation with a diffusive
+price level**, on every path: `v*_b − v*_a = ∫_a^b (rv* − s) − (p*_b − p*_a)` (the price-level
+diffusion `dp* = −β_sσ_s dw` revalues the debt). -/
+theorem pstar_debt (h : η + r - α ≠ 0) (hw : Continuous w) (a b : ℝ) :
+    vsPath r α η βs σs w b - vsPath r α η βs σs w a
+      = (∫ u in a..b, (r * vsPath r α η βs σs w u - ssPath r α η βs σs w u))
+        - (pstarPath βs σs w b - pstarPath βs σs w a) := by
+  rw [vstar_incr h hw a b]
+  simp only [pstarPath]
+  ring
+
+/-- Cochrane (2023), p. 168: **`−Δ(1/P)/(1/P)` (the innovation of `log P`) is `−L(r)dε_s`**, and
+with `L(r) = β_s` (E47) it is `−β_s dε_s`: the `dw` loading of `p*` is `−L(r)σ_s`. The printed
+right-hand side `β_s dε_s` has the wrong sign (it contradicts `dP/P = −β_s dε_s` of p. 167). -/
+theorem pstar_loading (hα : α ≠ 0) (h1 : η + r ≠ 0) (h : η + r - α ≠ 0) (a b : ℝ) :
+    pstarPath βs σs w b - pstarPath βs σs w a = -(surplusL r α η βs r) * σs * (w b - w a) := by
+  rw [surplus_L_r hα h1 h]
+  simp only [pstarPath]
+  ring
+
+/-- Cochrane (2023), p. 167 (constant real rate, `E_t dP/P = 0` up to the linearisation): for
+`0 ≤ t ≤ T`, `E_t[p*_T − p*_t] = 0` a.s.
+An instance of `TidyR7StochCTBrownian.condExp_incr`. -/
+theorem condExp_pstar_incr (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration P W 𝓕) {t T : ℝ} (ht : 0 ≤ t) (htT : t ≤ T) :
+    P[fun ω => pstarProc βs σs W T ω - pstarProc βs σs W t ω | 𝓕 t] =ᵐ[P] 0 := by
+  have e : (fun ω => pstarProc βs σs W T ω - pstarProc βs σs W t ω)
+      = (-(βs * σs)) • incr W t T := by
+    funext ω
+    simp only [pstarProc, pstarPath, incr, Pi.smul_apply, smul_eq_mul]
+    ring
+  rw [e]
+  filter_upwards [condExp_smul (μ := P) (-(βs * σs)) (incr W t T) (𝓕 t),
+    condExp_incr hB hW h𝓕 ht htT] with ω h1 h2
+  rw [h1, Pi.smul_apply, h2]
+  simp
+
+/-- **Cochrane (2023), p. 167 ("`dP/P = −β_s dε_s`") and p. 168: the price-level diffusion.**
+For `0 ≤ s < t`, a.s. along the dyadic partitions, `Σ Δp*ΔW → −β_sσ_s(t − s)`.
+An instance of `TidyR8StochKernel.tendsto_crossSum_affine`. -/
+theorem bracket_pstar_W (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) {s t : ℝ} (hs : 0 ≤ s) (hst : s < t) :
+    ∀ᵐ ω ∂P, Tendsto (fun k => crossSum (dyadic hst k) (fun u => pstarProc βs σs W u ω)
+      (fun u => bmReal W u ω)) atTop (𝓝 (-(βs * σs) * (t - s))) := by
+  have hT := tendsto_crossSum_affine (P := P) hB hW hcont hs hst (-(βs * σs)) 1
+    (F := fun _ _ => 0) (F' := fun _ _ => 0) (G := fun _ _ => 0) (G' := fun _ _ => 0)
+    (fun _ _ => hasDerivAt_const _ _) (fun _ => continuous_const)
+    (fun _ _ => hasDerivAt_const _ _) (fun _ => continuous_const)
+  filter_upwards [hT] with ω hω
+  simp only [mul_one, one_mul, add_zero] at hω
+  refine hω.congr fun k => ?_
+  congr 1
+  funext u
+  simp only [pstarProc, pstarPath]
+  ring
+
+/-- Cochrane (2023), p. 168 (the covariation of the two diffusive states): for
+`η + r − α ≠ 0`, `0 ≤ s < t`, a.s. `Σ Δv*Δp* → −(β_sσ_s)²(t − s)`. In the linearised model
+of (5.97)–(5.104) no product of `v*` and `p*` appears, so this bracket corrects nothing.
+An instance of `TidyR8StochKernel.tendsto_crossSum_affine`. -/
+theorem bracket_vstar_pstar (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (h : η + r - α ≠ 0) {s t : ℝ} (hs : 0 ≤ s)
+    (hst : s < t) :
+    ∀ᵐ ω ∂P, Tendsto (fun k => crossSum (dyadic hst k) (fun u => vsProc r α η βs σs W u ω)
+      (fun u => pstarProc βs σs W u ω)) atTop (𝓝 (-(βs * σs) ^ 2 * (t - s))) := by
+  have hT := tendsto_crossSum_affine (P := P) hB hW hcont hs hst (βs * σs) (-(βs * σs))
+    (F := fun ω u => vsProc r α η βs σs W u ω - βs * σs * bmReal W u ω)
+    (F' := fun ω u => r * vsProc r α η βs σs W u ω - ssProc r α η βs σs W u ω)
+    (G := fun _ _ => 0) (G' := fun _ _ => 0)
+    (fun ω x => vs_sub_hasDerivAt h (continuous_bmReal (hcont ω)) x)
+    (fun ω => by
+      obtain ⟨c1, c2⟩ := continuous_vs_ss (r := r) (α := α) (η := η) (βs := βs) (σs := σs)
+        (continuous_bmReal (hcont ω))
+      exact (c1.const_mul r).sub c2)
+    (fun _ _ => hasDerivAt_const _ _) (fun _ => continuous_const)
+  filter_upwards [hT] with ω hω
+  have e : βs * σs * -(βs * σs) * (t - s) = -(βs * σs) ^ 2 * (t - s) := by ring
+  rw [e] at hω
+  refine hω.congr fun k => ?_
+  congr 1
+  · funext u
+    ring
+  · funext u
+    simp only [pstarProc, pstarPath]
+    ring
+
+/-! ### Non-vacuity -/
+
+/-- **Cochrane (2023), §5.7.2, pp. 167–168 (non-vacuity on the constructed motion `bmPath`)**:
+for `r > 0`, `η ≥ 0`, `α ≥ r`, `η + r − α ≠ 0`, `0 ≤ s < t`: the Hansen–Sargent valuation holds
+in `L¹`, and a.s. `[p*, W]` over `[s, t]` is `−β_sσ_s(t − s)`. -/
+theorem bmPath_surplus (hr : 0 < r) (hη : 0 ≤ η) (hα : r ≤ α) (h : η + r - α ≠ 0) {s t : ℝ}
+    (hs : 0 ≤ s) (hst : s < t) :
+    Tendsto (fun T => ∫ ω, |gaussSeq[pvSurplus r α η βs σs bmPath s T
+        | bmFiltrationReal bmPath measurable_bmPath s] ω - vsProc r α η βs σs bmPath s ω|
+      ∂gaussSeq) atTop (𝓝 0) ∧
+    ∀ᵐ ω ∂gaussSeq, Tendsto (fun k => crossSum (dyadic hst k)
+      (fun u => pstarProc βs σs bmPath u ω) (fun u => bmReal bmPath u ω)) atTop
+      (𝓝 (-(βs * σs) * (t - s))) := by
+  have hB := isPreBrownianReal_bmPath
+  have h𝓕 := bmFiltrationReal_isBM hB measurable_bmPath
+  exact ⟨valuation_surplus_L1 hB measurable_bmPath h𝓕 continuous_bmPath bmPath_zero hr hη hα h
+      hs,
+    bracket_pstar_W hB measurable_bmPath continuous_bmPath hs hst⟩
+
+end Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus
+
 set_option linter.style.longLine false
 #print axioms Cochrane.StickyPriceFiscal.SchurStable
 #print axioms Cochrane.StickyPriceFiscal.disc
@@ -44756,3 +47468,131 @@ set_option linter.style.longLine false
 #print axioms Cochrane.StickyPriceFiscal.TidyR7StochCTUnique.stochCTEq_exists
 #print axioms Cochrane.StickyPriceFiscal.TidyR7StochCTUnique.stochCTEq_unique
 #print axioms Cochrane.StickyPriceFiscal.TidyR7StochCTUnique.bmPath_stochCTEq
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.ker2Fn
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.ker2Proc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.ker2Fn_eq
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.continuous_ker2Fn
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.ker2Proc_eq
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.ker2Proc_ae_eq_itoInt
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.memLp_ker2Proc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.integrable_ker2Proc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.aesm_ker2Proc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.condExp_ker2Proc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.condExp_ker2Proc_itoInt
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.integral_ker2Proc_sq
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.abs_ker2Fn_le
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.integral_abs_ker2Proc_le
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.regProc_ker2Proc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.tendsto_condExp_exp_ker2
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.expWiener
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.exists_itoIntegrand_exp
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.expWiener_ae_eq_itoInt
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.condExp_expWiener
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.integrable_expWiener
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.discounted_byParts
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.crossSum_affine
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochKernel.tendsto_crossSum_affine
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.is_integral_general
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.is_printed_iff
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.fisherian_equilibrium
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.printed_is_counterexample
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.step_is_corrected
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.pc_rho_zero_corrected
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.printed_pc_counterexample_rho_zero
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.isProc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.isProc_eq
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.integrable_isProc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.condExp_isProc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.x_sub_i
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.is_corrected_L1
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.condExp_x_limit
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.tendsto_integral_abs_of_L1
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.integral_abs_bm_pos
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.printed_is_fails
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.pcProc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.pi_sub_hasDerivAt
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.pc_identity
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.condExp_pcProc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.piProc_eq_ker2
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.pc_integral_L1
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.pc_rho_zero_L1
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTIntegralForms.bmPath_printed_is_fails
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.integral_clamp_eq
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.ouNoise_tendsto_zero
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.integral_ouNoise
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.pPath_eq
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.fiscalLoad_div
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.pPath_tendsto
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.pLimProc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.pProc_tendsto
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.integral_exp_two_le
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.integral_kerProc_sq_le
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.pProc_sub_eq
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.pProc_sub_sq_le
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.pProc_tendsto_L2
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.inflation_variance_tendsto
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.output_tendsto_L2
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTLimit.bmPath_price_limit
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.rateIRF
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.rateIRF_fig511
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.uiPath
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.ratePath
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.rate_sub_hasDerivAt
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.rate_incr
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.rateProc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.rateProc_eq_ker2
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.rate_ito
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.rate2Path
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bondPath
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bondLoading
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bond_sub_hasDerivAt
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bond_incr
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bondLoading_eq
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bondKernel_eq_fwd
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.rate2Proc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bondProc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.rate2Proc_eq_ker2
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bondProc_eq_ker2
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bond_ito
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bond_book_equation
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bond_pv_identity
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bond_valuation_L1
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bond_unique
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bond_bracket
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bond_price_level_bracket
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.elim_stoch
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.pinned_by_innovation
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bmPath_bond
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTRules.bmPath_pinned_hypotheses
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.uPath
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.vsPath
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.ssPath
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.pstarPath
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.u_incr
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.vs_sub_hasDerivAt
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.continuous_vs_ss
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.vstar_incr
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.surplus_5_101
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.vsProc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.ssProc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.uProc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.pstarProc
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.vsProc_eq_ker2
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.ssProc_eq_ker2
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.ker2_vstar
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.ker2_surplus
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.responses_surplus
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.pvSurplus
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.pv_identity_surplus
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.integrable_pvSurplus
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.condExp_pv_surplus
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.valuation_surplus_L1
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.innovation_eq_L_r
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.innovation_printed_iff
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.bracket_vstar_W
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.pstar_debt
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.pstar_loading
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.condExp_pstar_incr
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.bracket_pstar_W
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.bracket_vstar_pstar
+#print axioms Cochrane.StickyPriceFiscal.TidyR8StochCTSurplus.bmPath_surplus

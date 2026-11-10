@@ -67,3 +67,8 @@ import StickyPriceFiscal.TidyR7ItoBridge
 import StickyPriceFiscal.TidyR7StochCTPath
 import StickyPriceFiscal.TidyR7StochCTBrownian
 import StickyPriceFiscal.TidyR7StochCTUnique
+import StickyPriceFiscal.TidyR8StochKernel
+import StickyPriceFiscal.TidyR8StochCTIntegralForms
+import StickyPriceFiscal.TidyR8StochCTLimit
+import StickyPriceFiscal.TidyR8StochCTRules
+import StickyPriceFiscal.TidyR8StochCTSurplus

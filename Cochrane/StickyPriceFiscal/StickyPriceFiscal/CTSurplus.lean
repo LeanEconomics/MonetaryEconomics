@@ -228,9 +228,10 @@ noncomputable def surplusL (r α η βs z : ℝ) : ℝ :=
   lagOp ![(η + r) / (η + r - α), -(α / (η + r - α) - α * βs)] ![η, α - r] z
 
 /-- Cochrane (2023), p. 168 (survey E47): **`L(r) = +β_s`** (for `α ≠ 0`, `η + r ≠ 0`,
-`η + r − α ≠ 0`). The book prints `L(r) = −β_s`; with its second sign slip
-(`−Δ(1/P)/(1/P) = −L(r)dε`) the price-level line `Δ(1/P)/(1/P) = β_s dε` is nevertheless
-right. -/
+`η + r − α ≠ 0`). The book prints `L(r) = −β_s`. Its price-level line
+`−Δ(1/P)/(1/P) = −L(r)dε = β_s dε` is right in its first equality but wrong in its last:
+with `L(r) = +β_s` it reads `−Δ(1/P)/(1/P) = −β_s dε`, i.e. `Δ(1/P)/(1/P) = β_s dε` and
+`dP/P = −β_s dε`, as on p. 167 (`TidyR8StochCTSurplus.pstar_loading`). -/
 theorem surplus_L_r {r α η βs : ℝ} (hα : α ≠ 0) (h1 : η + r ≠ 0) (h3 : η + r - α ≠ 0) :
     surplusL r α η βs r = βs := by
   simp only [surplusL, lagOp, Fin.sum_univ_two, Matrix.cons_val_zero, Matrix.cons_val_one]
