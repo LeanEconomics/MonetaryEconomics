@@ -16,16 +16,17 @@ deterministic paths `ℝ → ℝ`, exact derivatives off a countable set of date
 improper integrals; its stochastic version uses processes on a filtered probability space, with
 the expectational equations in integrated form and Mathlib's conditional expectation. In both, an equilibrium is a solution of the model
 equations, "determinate" means exactly one bounded solution, and the fiscal theory selects instead through the valuation
-equation. The library contains **1667 theorems**, including the shared core and its
+equation. The library contains **1767 theorems**, including the shared core and its
 measure-theoretic copy (`TidyR6ExpectationsMeasure`, `TidyR6ExpectationsMeasureIID`, 108) and the
 Brownian-motion, Itô and Ornstein–Uhlenbeck tools copied from the Monetarism and FiscalConstraints
-projects (seventeen modules, 455); 996 of them are in the thirty-two chapter modules, 124 of
+projects (eighteen modules, 464); 1087 of them are in the thirty-eight chapter modules, 124 of
 these in verbatim copies of Woodford results
 (`GlobalDynamics`, 49, from Chapter 2; `TidyR6WoodfordSequences` and `TidyR6WoodfordZLB`, 75,
 from Chapter 6), 305 in the seven modules on Galí's and Woodford's treatments of the bound
 (`LinksGaliWoodford`, `LinksGaliWoodfordLimit`, `LiftoffTiming`, `LiftoffStructure`,
-`LiftoffRhoZero`, `TidyR6CommonModel`, `TidyR6CommonModelExist`), and 80 in the six modules on
-the Werning model under uncertainty (`TidyR7StochWerning` and its five companions).
+`LiftoffRhoZero`, `TidyR6CommonModel`, `TidyR6CommonModelExist`), and 171 in the twelve modules on
+the Werning model under uncertainty (`TidyR7StochWerning`, its five companions and the six
+TidyR8StochWerning modules).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E1–E11 and E20 refer to
@@ -139,9 +140,28 @@ Headline results, in the namespace `Cochrane.ZeroBound`:
   fiscal `π_0 = 0` pins only the mean path (`TidyR7StochWerningSelect.pi0_not_selects`). Under a
   mean-reverting natural-rate shock the unstable combination `λ^fπ − κx` responds by
   `−κσ/(λ^f + η)` (`TidyR7StochWerningNatural.unstable_natural`), non-vacuously
-  (`TidyR7StochWerningNaturalExist.natural_nonvacuous`). The Brownian-motion and Itô modules are
-  copied from the Monetarism project (via the FiscalConstraints copies) and the Ornstein–Uhlenbeck
-  modules from the FiscalConstraints project.
+  (`TidyR7StochWerningNaturalExist.natural_nonvacuous`). For `b ≠ 0` almost every path of the
+  Ornstein–Uhlenbeck equilibria is unbounded, `sup_{t≥0} π_t = +∞` and `inf_{t≥0} π_t = −∞`
+  (`TidyR8StochWerningRecurrence.eqPi_sup_inf`). With the zero rate during the trap and the active
+  rule after it in one model, every bounded equilibrium is the chosen path almost surely, and that
+  path is an equilibrium (`TidyR8StochWerningActiveTrap.active_trap_selects`,
+  `TidyR8StochWerningActiveTrap.active_trap_exists`). The equilibria of the experiment are exactly
+  the continuous martingales `M_t = e^{λ^b t}(π_t − wPi(0)_t)` with `e^{−λ^b t}M_t` bounded in
+  `L¹` (`TidyR8StochWerningMartingale.martingale_of_isStochEqm`,
+  `TidyR8StochWerningMartingale.isStochEqm_of_martingale`), and every `C¹` time-varying loading
+  gives a mean-square-bounded equilibrium (`TidyR8StochWerningMartingale.isStochEqm_loading`). The
+  standard multiplier and the deflation without limit hold state by state
+  (`TidyR8StochWerningLimits.nk_multiplier_stoch`, `TidyR8StochWerningLimits.nk_frictionless_stoch`);
+  under `π_0 = 0` the no-jump multiplier and the smooth frictionless limit hold in mean
+  (`TidyR8StochWerningLimits.nj_mean_multiplier`, `TidyR8StochWerningLimits.nj_frictionless_stoch`). Under natural-rate shocks
+  `E_sπ_t = wPi(0)_t + e^{−λ^b(t−s)}(π_s − wPi(0)_s) + d k(t − s)ν_s`
+  (`TidyR8StochWerningNaturalMean.condExp_pi_nat`) and the equilibria are bounded in mean square
+  (`TidyR8StochWerningNaturalMean.bddL2_natPi`); when the rate tracks the natural rate after the
+  trap, as on p. 474, the news acts only through the remaining trap
+  (`TidyR8StochWerningNaturalTrack.unstable_track`, `TidyR8StochWerningNaturalTrack.condExp_pi_track`),
+  and such equilibria exist (`TidyR8StochWerningNaturalTrack.isStochEqmTrack_trackPi`). The
+  Brownian-motion and Itô modules are copied from the Monetarism project (via the
+  FiscalConstraints copies) and the Ornstein–Uhlenbeck modules from the FiscalConstraints project.
 * **Welfare at the zero bound.** E9: with exact Calvo dispersion, the zero-bound steady state
   `Π_L = β` is better than `Π*` iff `βΠ* > 1` (`ZLBWelfare.zlb_better_iff`,
   `ZLBWelfare.e9_counterexample`); the book's calibration satisfies the condition
@@ -203,7 +223,7 @@ The weak inequality `t_C ≥ t_Z`, Galí's guess, holds at every optimum (`Lifto
 and with a zero post-shock natural rate the rate lifts off iff `σκ < ϑ`
 (`LiftoffStructure.rho_zero_no_liftoff`, `LiftoffRhoZero.rho_zero_liftoff_iff`).
 
-Four statements are made precise. The claim of p. 473 that undershooting equilibria "return
+Five statements are made precise. The claim of p. 473 that undershooting equilibria "return
 back to zero inflation and zero interest rates" holds under perfect foresight and on finite trees
 but fails under genuine uncertainty (`TidyR6OrbitStochastic.cex_not_ae_tendsto_zero`). The
 linearised valuation equation predicts `1/13` for the helicopter of p. 488, against the exact
@@ -212,7 +232,11 @@ eigenvalues is confirmed (`TidyR6RegimeEigen.path_crosses`). Under uncertainty t
 selection `π_0 = 0` of p. 476 pins only the mean path, so it must specify the inflation innovation
 at every date, while the choice of `π_T` and the active rule (20.7) remove all randomness
 (`TidyR7StochWerningSelect.pi0_not_selects`, `TidyR7StochWerningSelect.nk_selection`,
-`TidyR7StochWerningSelect.active_rule_selects`).
+`TidyR7StochWerningSelect.active_rule_selects`); so the fiscal selection carries the frictionless
+limit and the multipliers only for means, the `π_T` selection state by state
+(`TidyR8StochWerningLimits.nj_mean_multiplier`, `TidyR8StochWerningLimits.nk_multiplier_stoch`).
+When the rate tracks the random natural rate after the trap, natural-rate news affects inflation
+and output only through the remaining trap (`TidyR8StochWerningNaturalTrack.unstable_track`).
 
 Not formalised:
 * the empirical and narrative parts of Chapters 20–21: the U.S. and Japanese experience, QE, the
@@ -231,20 +255,19 @@ Not formalised:
   deflation" (p. 477), which has no precise statement;
 * the illustrative numbers of Figures 20.4–20.6 (`π_0 = −132.46%`, `π_T ≈ 1.01%`, multipliers of
   66 and 528); only the E20 point `T = 1` is formalised;
-* parts of the stochastic versions of §§20.2.2–20.2.5, which the `TidyR7StochWerning` modules
-  otherwise give on the natural filtration of a Brownian motion with the `TidyR7StochWerning.BddL1` and
-  `TidyR7StochWerning.BddL2` selections: the almost-sure unboundedness of the paths of the
-  Ornstein–Uhlenbeck equilibria on `[0, ∞)`, which needs a recurrence argument such as the one for
-  sampled Ornstein–Uhlenbeck processes in the FiscalConstraints project, not ported (`L²`
-  boundedness and `L^∞` unboundedness are proved); which innovation processes occur: every
-  `L¹`-bounded equilibrium has `π_s = wPi(E_sπ_T)_s`, but existence is shown only for constant
-  loadings `b`, and a full description needs martingale representation; the active rule after `T`
-  and the trap before `T` composed in one model; separate stochastic theorems for the frictionless
-  limit of §20.2.3 and the multipliers of §20.2.5, which apply to expectations through
-  `TidyR7StochWerningTrap.condExp_pi_eq_wPi`, `TidyR7StochWerningTrap.condExp_x_eq_wX` and
-  `TidyR7StochWerningTrap.mean_eq_wPi`; and, for natural-rate shocks, `E_sπ_t` itself (only the
-  unstable combination is characterised), a rate other than zero after `T`, and `L²` bounds (the
-  natural-rate equilibria are shown `L¹`-bounded);
+* parts of the stochastic versions of §§20.2.2–20.2.5, which the `TidyR7StochWerning` and
+  TidyR8StochWerning modules otherwise give on the natural filtration of a Brownian motion with
+  the `TidyR7StochWerning.BddL1` and `TidyR7StochWerning.BddL2` selections (proved: the
+  almost-sure unboundedness of the Ornstein–Uhlenbeck equilibria, the active rule and the trap in
+  one model, the frictionless limit and the multipliers, `E_sπ_t` and `L²` bounds under
+  natural-rate shocks, the tracking rate after `T`, and every equilibrium as a martingale):
+  martingale representation on the Brownian filtration, `M = M_0 + ∫H dW`, so the martingales
+  are not written as stochastic integrals; existence for loadings that are continuous but not
+  `C¹`, which needs the Itô integral as an adapted continuous process; almost-sure unboundedness
+  beyond constant loadings; conditional (not only mean) multipliers under the fiscal `π_0 = 0`
+  selection; and, in the tracking model, an added stable-direction innovation (only `b = 0`),
+  the martingale description (proved for the trap with `ν = 0` only) and a separate statement of
+  `E_sx_t`;
 * a nonlinear sticky-price valuation equation: the linearisation with remainder is of the
   frictionless `P = B/S` of Chapter 21, and the sticky-price (5.13) is linked to it only through
   the frictionless limit of the impact coefficient (`Links.fiscal_impact_frictionless`);
@@ -300,6 +323,13 @@ Not formalised:
 | [TidyR7StochWerningSelect](ZeroBound/TidyR7StochWerningSelect.lean) | 6 | (20.7) and p. 476 under uncertainty: the active rule and the choice of `π_T` select state by state; `π_0 = 0` pins only the mean path |
 | [TidyR7StochWerningNatural](ZeroBound/TidyR7StochWerningNatural.lean) | 3 | (20.8)–(20.10) with a mean-reverting natural-rate shock: the unstable combination pinned state by state, response `−κσ/(λ^f + η)` |
 | [TidyR7StochWerningNaturalExist](ZeroBound/TidyR7StochWerningNaturalExist.lean) | 20 | Natural-rate shocks: explicit `L¹`-bounded equilibria on a Brownian motion with an Ornstein–Uhlenbeck shock, the pathwise smoothing `chiProc`, non-vacuity |
+| [TidyR7OUSampled](ZeroBound/TidyR7OUSampled.lean) | 9 | The Ornstein–Uhlenbeck process sampled at integer dates: an AR(1) with i.i.d. Gaussian innovations (the innovation part, copied from the FiscalConstraints project) |
+| [TidyR8StochWerningActiveTrap](ZeroBound/TidyR8StochWerningActiveTrap.lean) | 7 | (20.7) and pp. 475–476 under uncertainty: the trap and the active rule in one model, unique equilibrium almost surely and pathwise, existence, non-vacuity |
+| [TidyR8StochWerningLimits](ZeroBound/TidyR8StochWerningLimits.lean) | 7 | §§20.2.3, 20.2.5 under uncertainty: the standard multiplier and deflation without limit state by state; the no-jump multiplier and the square-wave limit in mean; the deterministic case |
+| [TidyR8StochWerningNaturalMean](ZeroBound/TidyR8StochWerningNaturalMean.lean) | 21 | Natural-rate shocks: `E_sν_t`, `E_sπ_t` and `E_sx_t` in every bounded equilibrium; `L²` bounds for the smoothing and the explicit equilibria, non-vacuity |
+| [TidyR8StochWerningMartingale](ZeroBound/TidyR8StochWerningMartingale.lean) | 16 | §20.2.2 under uncertainty: the equilibria are exactly the martingales `e^{λ^b t}(π_t − wPi(0)_t)`; Wiener-integral martingales and equilibria with `C¹` time-varying loadings, non-vacuity |
+| [TidyR8StochWerningNaturalTrack](ZeroBound/TidyR8StochWerningNaturalTrack.lean) | 19 | Natural-rate shocks with the rate tracking the natural rate after the trap: the unstable combination state by state, `E_sπ_t`, existence and `L²` bounds, non-vacuity |
+| [TidyR8StochWerningRecurrence](ZeroBound/TidyR8StochWerningRecurrence.lean) | 21 | §20.2.2 under uncertainty: recurrence of the sampled Ornstein–Uhlenbeck process (0-1 law), almost every equilibrium path with `b ≠ 0` has `sup π = +∞`, `inf π = −∞`, non-vacuity |
 
 ## Modelling conventions
 
@@ -516,7 +546,10 @@ one model.
   `TidyR7OUPath`, `TidyR7WienerGaussian` and `TidyR7OrnsteinUhlenbeck` are copies of
   FiscalConstraints' own modules, all with only the namespace renamed and proofs unchanged; the
   docstrings say "Restated from the Cochrane Monetarism project" or "Restated from the Cochrane
-  FiscalConstraints project" and name the original. There the Ornstein–Uhlenbeck process is the
+  FiscalConstraints project" and name the original. `TidyR7OUSampled` copies only the innovation
+  part of FiscalConstraints' module of that name, and the four tail-event tools at the start of
+  `TidyR8StochWerningRecurrence` are restated from its DebtLimitStochasticMeasure module, where
+  they give the almost-sure unboundedness of debt. There the Ornstein–Uhlenbeck process is the
   AR(1) surplus of p. 197; here it is the stable-direction inflation innovation and the
   natural-rate shock of the stochastic Werning model.
 * **Chapter 22 (`ObservationalEquivalence`).** That project owns the observational-equivalence

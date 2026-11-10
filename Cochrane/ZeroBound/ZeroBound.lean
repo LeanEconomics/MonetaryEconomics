@@ -58,3 +58,10 @@ import ZeroBound.TidyR7StochWerningExist
 import ZeroBound.TidyR7StochWerningSelect
 import ZeroBound.TidyR7StochWerningNatural
 import ZeroBound.TidyR7StochWerningNaturalExist
+import ZeroBound.TidyR7OUSampled
+import ZeroBound.TidyR8StochWerningActiveTrap
+import ZeroBound.TidyR8StochWerningLimits
+import ZeroBound.TidyR8StochWerningNaturalMean
+import ZeroBound.TidyR8StochWerningMartingale
+import ZeroBound.TidyR8StochWerningNaturalTrack
+import ZeroBound.TidyR8StochWerningRecurrence

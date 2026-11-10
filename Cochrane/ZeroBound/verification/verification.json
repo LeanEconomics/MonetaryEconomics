@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-11-08T04:20:44.144596+00:00",
-  "theorems": 1667,
+  "checked_at_utc": "2026-11-10T21:45:43.915883+00:00",
+  "theorems": 1767,
   "module_theorems": {
     "ZeroBound/Determinacy.lean": 23,
     "ZeroBound/Expectations.lean": 20,
@@ -56,9 +56,16 @@
     "ZeroBound/TidyR7StochWerningExist.lean": 20,
     "ZeroBound/TidyR7StochWerningSelect.lean": 6,
     "ZeroBound/TidyR7StochWerningNatural.lean": 3,
-    "ZeroBound/TidyR7StochWerningNaturalExist.lean": 20
+    "ZeroBound/TidyR7StochWerningNaturalExist.lean": 20,
+    "ZeroBound/TidyR7OUSampled.lean": 9,
+    "ZeroBound/TidyR8StochWerningActiveTrap.lean": 7,
+    "ZeroBound/TidyR8StochWerningLimits.lean": 7,
+    "ZeroBound/TidyR8StochWerningNaturalMean.lean": 21,
+    "ZeroBound/TidyR8StochWerningMartingale.lean": 16,
+    "ZeroBound/TidyR8StochWerningNaturalTrack.lean": 19,
+    "ZeroBound/TidyR8StochWerningRecurrence.lean": 21
   },
-  "audited_declarations": 2060,
+  "audited_declarations": 2179,
   "declarations": [
     {
       "name": "Cochrane.ZeroBound.SchurStable",
@@ -10359,6 +10366,601 @@
       "name": "Cochrane.ZeroBound.TidyR7StochWerningNaturalExist.natural_nonvacuous",
       "kind": "theorem",
       "module": "ZeroBound/TidyR7StochWerningNaturalExist.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7OUSampled.ouInnov",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7OUSampled.ouProc_succ",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7OUSampled.ouInnov_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7OUSampled.ouInnov_hasLaw",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7OUSampled.aemeasurable_ouInnov",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7OUSampled.memLp_ouInnov",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7OUSampled.integral_ouInnov",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7OUSampled.covariance_ouInnov",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7OUSampled.isGaussianProcess_ouInnov",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7OUSampled.iIndepFun_ouInnov",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.ruleRate",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningActiveTrap.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.IsActiveTrapEqm",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningActiveTrap.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.ae_forall_Ici_of_forall_ae",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningActiveTrap.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.expDriftFrom_of_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningActiveTrap.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.expDrift_of_ae_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningActiveTrap.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.active_trap_selects",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningActiveTrap.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.active_trap_selects_paths",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningActiveTrap.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.active_trap_exists",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningActiveTrap.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.bmPath_active_trap",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningActiveTrap.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningLimits.nk_multiplier_stoch",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningLimits.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningLimits.nk_frictionless_stoch",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningLimits.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningLimits.mean_piT_nj",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningLimits.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningLimits.nj_mean_multiplier",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningLimits.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningLimits.nj_mean_multiplier_bounds",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningLimits.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningLimits.nj_frictionless_stoch",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningLimits.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningLimits.det_nj_multiplier",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningLimits.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.integrableOn_setIntegral",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.setIntegral_nu",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.condExp_nu",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.natK",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.natK_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.hasDerivAt_natK",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.continuous_natK",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.setIntegral_affine",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.setIntegral_pi_nat",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.condExp_pi_nat",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.condExp_x_nat",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.BddL2.add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.BddL2.const_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_det",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.sq_integral_weight_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.chiProc_eq_integral",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.sq_chiProc_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_chiProc",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_ou",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_natPi",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_natX",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bmPath_condExp_pi_nat",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalMean.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.expDrift_of_bracket_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.zPi",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.zX",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.isStochEqm_of_zeta",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.setIntegral_intervalIntegral_swap",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.integral_exp_neg",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.expDrift_zeta_of_martingale",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.isStochEqm_of_martingale",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.martingale_of_isStochEqm",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.condExp_wienerBP",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.loadH",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.loadH'",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.hasDerivAt_loadH",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.continuous_loadH'",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.wienerM",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.wienerM_sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.regular_wienerM",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.martingale_wienerM",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.zetaB",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.integral_zetaB_sq_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.isStochEqm_loading",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningMartingale.bmPath_loading_cos",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningMartingale.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackRate",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.IsStochEqmTrack",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackRate_sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackD",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackK",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackK_self",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.hasDerivAt_trackK",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.continuous_trackK",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.continuous_trackD",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackD_of_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.abs_trackD_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.hasDerivAt_trackD",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.setIntegral_swap_weight",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.expDrift_mul_det",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.expDrift_x_track",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.track_mean_forms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.unstable_track",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.setIntegral_pi_track",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.condExp_pi_track",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackChi",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackPi",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackX",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.isStochEqmTrack_trackPi",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.bddL2_mul_det",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.regular_bddL2_track",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.bmPath_track",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningNaturalTrack.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.frequently_shift_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.frequently_near_of_tendsto",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurableSet_frequently_near",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.le_measure_frequently",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouProc_succ_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouProc_at",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouInnov",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.innovSigma",
+      "kind": "abbrev",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.innovSigma_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouInnov_sigma",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.iIndep_innovSigma",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouFrom",
+      "kind": "def",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouProc_shift",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouFrom",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouProc_past",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.prob_ouProc_gt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouProc_frequently_gt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouProc_frequently_lt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.det_add_ou_unbounded",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.eqPi_unbounded",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.eqX_unbounded",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.eqPi_sup_inf",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.bmPath_eqPi_sup_inf",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
     }
   ],
   "full_build": "passed",
@@ -20662,6 +21264,601 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7OUSampled.ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7OUSampled.ouProc_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7OUSampled.ouInnov_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7OUSampled.ouInnov_hasLaw": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7OUSampled.aemeasurable_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7OUSampled.memLp_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7OUSampled.integral_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7OUSampled.covariance_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7OUSampled.isGaussianProcess_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7OUSampled.iIndepFun_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.ruleRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.IsActiveTrapEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.ae_forall_Ici_of_forall_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.expDriftFrom_of_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.expDrift_of_ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.active_trap_selects": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.active_trap_selects_paths": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.active_trap_exists": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.bmPath_active_trap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningLimits.nk_multiplier_stoch": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningLimits.nk_frictionless_stoch": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningLimits.mean_piT_nj": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningLimits.nj_mean_multiplier": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningLimits.nj_mean_multiplier_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningLimits.nj_frictionless_stoch": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningLimits.det_nj_multiplier": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.integrableOn_setIntegral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.setIntegral_nu": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.condExp_nu": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.natK": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.natK_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.hasDerivAt_natK": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.continuous_natK": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.setIntegral_affine": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.setIntegral_pi_nat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.condExp_pi_nat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.condExp_x_nat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.BddL2.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.BddL2.const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.sq_integral_weight_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.chiProc_eq_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.sq_chiProc_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_chiProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_ou": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_natPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_natX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bmPath_condExp_pi_nat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.expDrift_of_bracket_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.zPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.zX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.isStochEqm_of_zeta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.setIntegral_intervalIntegral_swap": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.integral_exp_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.expDrift_zeta_of_martingale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.isStochEqm_of_martingale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.martingale_of_isStochEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.condExp_wienerBP": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.loadH": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.loadH'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.hasDerivAt_loadH": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.continuous_loadH'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.wienerM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.wienerM_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.regular_wienerM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.martingale_wienerM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.zetaB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.integral_zetaB_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.isStochEqm_loading": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningMartingale.bmPath_loading_cos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackRate": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.IsStochEqmTrack": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackRate_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackK": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackK_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.hasDerivAt_trackK": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.continuous_trackK": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.continuous_trackD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackD_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.abs_trackD_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.hasDerivAt_trackD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.setIntegral_swap_weight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.expDrift_mul_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.expDrift_x_track": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.track_mean_forms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.unstable_track": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.setIntegral_pi_track": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.condExp_pi_track": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackChi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.isStochEqmTrack_trackPi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.bddL2_mul_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.regular_bddL2_track": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.bmPath_track": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.frequently_shift_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.frequently_near_of_tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurableSet_frequently_near": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.le_measure_frequently": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouProc_succ_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouProc_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouInnov": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.innovSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.innovSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouInnov_sigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.iIndep_innovSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouFrom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouProc_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouFrom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouProc_past": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.prob_ouProc_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouProc_frequently_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouProc_frequently_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.det_add_ou_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.eqPi_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.eqX_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.eqPi_sup_inf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.bmPath_eqPi_sup_inf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -20720,15 +21917,22 @@
     "ZeroBound/TidyR7StochWerningSelect.lean": "55c11bc06636d489265ae8129ece91c40aee3fbcf8be17afe06cf42901c448b4",
     "ZeroBound/TidyR7StochWerningNatural.lean": "277e156e3b0617c3e111c56738fe0aee4139b57608c3fb446014b73f63da5c2c",
     "ZeroBound/TidyR7StochWerningNaturalExist.lean": "e0f7c588d81f312e0ab3ea691513847722210efdf772cdc2729b52c83570783f",
-    "ZeroBound.lean": "0b4b91d9cdc0713fa3bbcec5cdf5386f94ac2fe71b53a8af5dbc690e181994ca",
+    "ZeroBound/TidyR7OUSampled.lean": "94ffcdc3047db2e17b7190846c8d708784bbd393e2775af05d1e0a35b369fea1",
+    "ZeroBound/TidyR8StochWerningActiveTrap.lean": "72d66b5efc332634aba0505c20a2f71651152d3188662a1018724ed0befc3415",
+    "ZeroBound/TidyR8StochWerningLimits.lean": "00abe1978900e12990d35c3bd3ba2062eceb7756e042fb3500b0f16c246e1313",
+    "ZeroBound/TidyR8StochWerningNaturalMean.lean": "370f8cdf932a5bda14176abe2432bd54a370af0ae052f7f501f00cf6948dcfdd",
+    "ZeroBound/TidyR8StochWerningMartingale.lean": "3cb172a8d5496b7af056138a8f86893bdb0f4ee0afc839eb06db343edf968f26",
+    "ZeroBound/TidyR8StochWerningNaturalTrack.lean": "6b363a3c42d7270fbec60d2e8dfbf07c8b5eb50582a11b2fb34ba3a8e9294779",
+    "ZeroBound/TidyR8StochWerningRecurrence.lean": "870a1ac26b40707618661277312029a606a7bd230b9a8be6c158bfbdc87bd542",
+    "ZeroBound.lean": "f1e57e23427ac36cd4e8099ccc062d91bbfd695b3aea470c732df91705555762",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "7ef77f0cb3da29c46a8a062c4c8b974cf418e49cf41e435f74ac0f4ddfacc5ed",
     "lake-manifest.json": "b69d55f3c11b62b0f7b40bcc8cbee17a9071adc355272601c2b0faddab148f14",
-    "proof-manifest.json": "15b5f205fb7c55cb03b8fd23b5523f507bcba1ca29355a77ebc135d75ea119e0",
+    "proof-manifest.json": "18db22ff8864c1447bc9bbe8fa0120cfa7b87b63639d07f5bd5f2f54d157f336",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "aee1b652d812af5a2c658495df56705b1d01e3ec98700fe2bf8b7945d48caa9f",
+  "fresh_audit_sha256": "c45572355cb015da18b668bcc8fbfbc0654d8941e195817f8889d9940d0cb252",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 20-21 (with Chapter 24 future-selection claims): The zero bound and Covid inflation. The new Keynesian model at a peg (roots straddle the unit circle, a continuum of sunspot equilibria; fiscal valuation makes the peg determinate, stable and quiet); the zero-bound rule (20.1)-(20.4) with the kink corrected (E1), the steady-state existence condition and no steady state at the Figure 20.3 values (E2), the selected path with early lift-off (E3), global versus local uniqueness; future selection by a deterministic regime switch, monetary and fiscal; the Gabaix model (determinacy iff (1-M)(1-beta M^f) > sigma kappa, E8 counterexamples); the continuous-time Werning model (20.5)-(20.10) with the bounded equilibria a one-parameter family, the pi_T = 0 and pi_0 = 0 equilibria, the discontinuity at the frictionless limit, the jump as a fiscal innovation, forward guidance and delayed lift-off, fiscal multipliers (E20: not greater than one for short traps) and the zero-bound welfare comparison (E9: the zero-bound steady state is better iff beta Pi* > 1); Covid helicopter arithmetic exact and first order (E10, E11); links between the discrete and continuous models; links to Gali (optimal commitment at the zero bound as delayed lift-off, the discretionary path as the end-of-shock lift-off, the commitment path strictly above both, the sign condition behind Gali (42)-(43) characterised and shown to fail at an exact optimum, discrete trap paths converging to the continuous Werning paths) and to Woodford (his interest-rate-variance constraint and the pathwise zero bound: neither implies the other; the zero-bound steady state under Woodford welfare). The Gali commitment optimum is fully characterised: it exists and is unique, the optimality conditions are necessary, the zero bound binds on the whole shock (t_C >= t_Z), the zero-rate spell is an initial interval with a positive rate after lift-off (rho > 0; at rho = 0 a dichotomy, and the rate never lifts off when sigma kappa = vartheta), and every hypothesis of Gali algorithm holds at the optimum. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 20, pp. 465-485, Chapter 21, pp. 486-494, and Chapter 24, pp. 522-524."

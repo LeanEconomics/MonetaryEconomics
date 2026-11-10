@@ -86,6 +86,8 @@ import Mathlib.MeasureTheory.Measure.CharacteristicFunction.TaylorExpansion
 import Mathlib.LinearAlgebra.Finsupp.LinearCombination
 import Mathlib.Topology.ContinuousMap.Bounded.Basic
 import Mathlib.MeasureTheory.Integral.Prod
+import Mathlib.Probability.Independence.Basic
+import Mathlib.Probability.Independence.ZeroOne
 set_option autoImplicit false
 
 /-
@@ -34906,6 +34908,3167 @@ theorem natural_nonvacuous :
 
 end Cochrane.ZeroBound.TidyR7StochWerningNaturalExist
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The OU process sampled at integer dates: i.i.d. Gaussian innovations
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 6, §6.4.1, p. 197, used here
+for Chapter 20, §20.2.2, p. 474 (the Ornstein–Uhlenbeck inflation of the stochastic zero-bound
+equilibria). Restated (the innovation part only) from the Cochrane FiscalConstraints project
+(module TidyR7OUSampled there; its AR(1) transfer to the product space and the debt results
+are not copied). With `ρ = e^{−η}` and `v₁ = σ²(1 − e^{−2η})/(2η)`,
+
+* `ouProc_succ`: `s_{n+1} − s̄ = ρ(s_n − s̄) + ε_{n+1}` path by path, with the innovation
+  `ε_{n+1} = σe^{−η(n+1)}∫_n^{n+1} e^{ηu}dW_u` (`ouInnov`, `ouInnov_eq`);
+* `ouInnov_hasLaw`: `ε_{n+1} ~ N(0, v₁)`; `covariance_ouInnov`: distinct innovations are
+  uncorrelated; `isGaussianProcess_ouInnov`: they are jointly Gaussian;
+* **`iIndepFun_ouInnov`**: the innovations are independent.
+-/
+
+namespace Cochrane.ZeroBound.TidyR7OUSampled
+
+open Real MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.ZeroBound.TidyR7OUPath Cochrane.ZeroBound.TidyR7WienerGaussian
+open Cochrane.ZeroBound.TidyR7OrnsteinUhlenbeck
+open Cochrane.ZeroBound.TidyR7BrownianTools
+open scoped ENNReal NNReal
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {W : ℝ≥0 → Ω → ℝ}
+
+/-- Cochrane (2023), p. 197: the innovation `ε_{n+1}` of the OU surplus over `[n, n + 1]`.
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.TidyR7OUSampled.ouInnov). -/
+noncomputable def ouInnov (η σ : ℝ) (W : ℝ≥0 → Ω → ℝ) (n : ℕ) (ω : Ω) : ℝ :=
+  σ * ouStep η (fun u => bmReal W u ω) n 1
+
+/-- **Cochrane (2023), p. 197: the sampled OU surplus is an AR(1) with `ρ = e^{−η}`**, path by
+path: `s_{n+1} − s̄ = e^{−η}(s_n − s̄) + ε_{n+1}`.
+`TidyR7OUPath.ouPath_step` at `h = 1`.
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.TidyR7OUSampled.ouProc_succ). -/
+theorem ouProc_succ (hcont : ∀ ω, Continuous fun t => W t ω) (η sbar s0 σ : ℝ) (n : ℕ)
+    (ω : Ω) :
+    ouProc η sbar s0 σ W ((n : ℝ) + 1) ω - sbar
+      = exp (-η) * (ouProc η sbar s0 σ W n ω - sbar) + ouInnov η σ W n ω := by
+  have h := ouPath_step (η := η) (sbar := sbar) (s0 := s0) (σ := σ)
+    (continuous_bmReal (hcont ω)) (n : ℝ) 1
+  rw [mul_one] at h
+  exact h
+
+/-- Cochrane (2023), p. 197: the innovation is `σe^{−η(n+1)}` times the Wiener integral
+`∫_n^{n+1} e^{ηu} dW_u` (by parts), path by path.
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.TidyR7OUSampled.ouInnov_eq). -/
+theorem ouInnov_eq (η σ : ℝ) (n : ℕ) :
+    ouInnov η σ W n = fun ω => σ * exp (-η * ((n : ℝ) + 1))
+      * wienerBP W (fun u => exp (η * u)) (fun u => exp (η * u) * η) n ((n : ℝ) + 1) ω := by
+  funext ω
+  have hint : (∫ u in (n : ℝ)..((n : ℝ) + 1), bmReal W u ω * (exp (η * u) * η))
+      = η * ∫ u in (n : ℝ)..((n : ℝ) + 1), exp (η * u) * bmReal W u ω := by
+    rw [← intervalIntegral.integral_const_mul]
+    congr 1
+    funext u
+    ring
+  have e1 : exp (-η * ((n : ℝ) + 1)) * exp (η * ((n : ℝ) + 1)) = 1 := by
+    rw [← exp_add]; ring_nf; exact exp_zero
+  have e2 : exp (-η * ((n : ℝ) + 1)) * exp (η * n) = exp (-η) := by
+    rw [← exp_add]; ring_nf
+  simp only [ouInnov, ouStep, wienerBP, hint, mul_one]
+  linear_combination (-(σ * bmReal W ((n : ℝ) + 1) ω)) * e1 + (σ * bmReal W n ω) * e2
+
+/-- Cochrane (2023), p. 197: the one-period innovation variance
+`v₁ = σ²(1 − e^{−2η})/(2η)` is `ouVar η σ 1`.
+Precisely: `P.map ouInnov = N(0, ouVar η σ 1)`.
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.TidyR7OUSampled.ouInnov_hasLaw). -/
+theorem ouInnov_hasLaw (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) {η : ℝ} (hη : 0 < η) (σ : ℝ) (n : ℕ) :
+    P.map (ouInnov η σ W n) = gaussianReal 0 (ouVar η σ 1) := by
+  have hn : (0 : ℝ) ≤ n := Nat.cast_nonneg n
+  have hlt : (n : ℝ) < n + 1 := by linarith
+  have hY := (memLp_wienerBP (P := P) hB hW hcont (hasDerivAt_expMul η)
+    (by fun_prop : Continuous fun u => exp (η * u) * η) hn hlt).aestronglyMeasurable
+    |>.aemeasurable
+  have hlaw := map_wienerBP (P := P) hB hW hcont (hasDerivAt_expMul η)
+    (by fun_prop : Continuous fun u => exp (η * u) * η) hn hlt
+  have h := map_affine_gaussian hY hlaw 0 (σ * exp (-η * ((n : ℝ) + 1)))
+  simp only [zero_add] at h
+  rw [ouInnov_eq, h]
+  congr 1
+  have hI := integral_exp_sq hη.ne' (n : ℝ) ((n : ℝ) + 1)
+  have hpos : 0 ≤ ∫ u in (n : ℝ)..((n : ℝ) + 1), exp (η * u) ^ 2 :=
+    intervalIntegral.integral_nonneg hlt.le fun u _ => sq_nonneg _
+  have hv : 0 ≤ σ ^ 2 * (1 - exp (-2 * η * 1)) / (2 * η) := by
+    have : exp (-2 * η * 1) ≤ 1 := exp_le_one_iff.2 (by nlinarith)
+    exact div_nonneg (mul_nonneg (sq_nonneg σ) (by linarith)) (by positivity)
+  apply NNReal.eq
+  rw [NNReal.coe_mul, NNReal.coe_mk, Real.coe_toNNReal _ hpos, ouVar, Real.coe_toNNReal _ hv, hI]
+  have e1 : exp (-η * ((n : ℝ) + 1)) ^ 2 * exp (2 * η * ((n : ℝ) + 1)) = 1 := by
+    rw [sq, ← exp_add, ← exp_add]; ring_nf; exact exp_zero
+  have e2 : exp (-η * ((n : ℝ) + 1)) ^ 2 * exp (2 * η * n) = exp (-2 * η * 1) := by
+    rw [sq, ← exp_add, ← exp_add]; ring_nf
+  rw [mul_pow]
+  have e3 : σ ^ 2 * exp (-η * ((n : ℝ) + 1)) ^ 2
+      * ((exp (2 * η * ((n : ℝ) + 1)) - exp (2 * η * n)) / (2 * η))
+      = σ ^ 2 * (exp (-η * ((n : ℝ) + 1)) ^ 2 * exp (2 * η * ((n : ℝ) + 1))
+        - exp (-η * ((n : ℝ) + 1)) ^ 2 * exp (2 * η * n)) / (2 * η) := by ring
+  rw [e3, e1, e2]
+
+/-- Cochrane (2023), p. 197: the innovations are almost everywhere measurable.
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.TidyR7OUSampled.aemeasurable_ouInnov). -/
+theorem aemeasurable_ouInnov (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (η σ : ℝ) (n : ℕ) :
+    AEMeasurable (ouInnov η σ W n) P := by
+  have hn : (0 : ℝ) ≤ n := Nat.cast_nonneg n
+  have hlt : (n : ℝ) < n + 1 := by linarith
+  have := (memLp_wienerBP (P := P) hB hW hcont (hasDerivAt_expMul η)
+    (by fun_prop : Continuous fun u => exp (η * u) * η) hn hlt).aestronglyMeasurable
+    |>.aemeasurable
+  rw [ouInnov_eq]
+  fun_prop
+
+/-- Cochrane (2023), p. 197: the innovations are square integrable.
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.TidyR7OUSampled.memLp_ouInnov). -/
+theorem memLp_ouInnov (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (η σ : ℝ) (n : ℕ) :
+    MemLp (ouInnov η σ W n) 2 P := by
+  have hn : (0 : ℝ) ≤ n := Nat.cast_nonneg n
+  have hlt : (n : ℝ) < n + 1 := by linarith
+  rw [ouInnov_eq]
+  exact (memLp_wienerBP (P := P) hB hW hcont (hasDerivAt_expMul η)
+    (by fun_prop : Continuous fun u => exp (η * u) * η) hn hlt).const_mul _
+
+/-- Cochrane (2023), p. 197: the innovations have mean zero.
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.TidyR7OUSampled.integral_ouInnov). -/
+theorem integral_ouInnov (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) {η : ℝ} (hη : 0 < η) (σ : ℝ) (n : ℕ) :
+    ∫ ω, ouInnov η σ W n ω ∂P = 0 := by
+  calc ∫ ω, ouInnov η σ W n ω ∂P = ∫ x, x ∂(P.map (ouInnov η σ W n)) :=
+        (integral_map (aemeasurable_ouInnov hB hW hcont η σ n) aestronglyMeasurable_id).symm
+    _ = 0 := by rw [ouInnov_hasLaw hB hW hcont hη σ n, integral_id_gaussianReal]
+
+/-- **Cochrane (2023), p. 197: distinct innovations are uncorrelated.**
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.TidyR7OUSampled.covariance_ouInnov). -/
+theorem covariance_ouInnov (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) {η : ℝ} (hη : 0 < η) (σ : ℝ) {m n : ℕ}
+    (hmn : m ≠ n) : cov[ouInnov η σ W m, ouInnov η σ W n; P] = 0 := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have key : ∀ m n : ℕ, m < n → ∫ ω, ouInnov η σ W m ω * ouInnov η σ W n ω ∂P = 0 := by
+    intro m n hlt
+    have h0 := integral_mul_wienerBP_eq_zero (P := P) hB hW hcont (hasDerivAt_expMul η)
+      (by fun_prop : Continuous fun u => exp (η * u) * η) (hasDerivAt_expMul η)
+      (by fun_prop : Continuous fun u => exp (η * u) * η) (Nat.cast_nonneg m)
+      (by linarith : (m : ℝ) < m + 1) (by exact_mod_cast hlt : (m : ℝ) + 1 ≤ n)
+      (by linarith : (n : ℝ) < n + 1)
+    rw [ouInnov_eq, ouInnov_eq]
+    simp only
+    have e : ∀ ω, σ * exp (-η * ((m : ℝ) + 1))
+        * wienerBP W (fun u => exp (η * u)) (fun u => exp (η * u) * η) m ((m : ℝ) + 1) ω
+        * (σ * exp (-η * ((n : ℝ) + 1))
+          * wienerBP W (fun u => exp (η * u)) (fun u => exp (η * u) * η) n ((n : ℝ) + 1) ω)
+        = (σ * exp (-η * ((m : ℝ) + 1)) * (σ * exp (-η * ((n : ℝ) + 1))))
+          * (wienerBP W (fun u => exp (η * u)) (fun u => exp (η * u) * η) m ((m : ℝ) + 1) ω
+          * wienerBP W (fun u => exp (η * u)) (fun u => exp (η * u) * η) n ((n : ℝ) + 1) ω) :=
+      fun ω => by ring
+    simp_rw [e]
+    rw [integral_const_mul, h0, mul_zero]
+  rw [covariance_eq_sub (memLp_ouInnov hB hW hcont η σ m) (memLp_ouInnov hB hW hcont η σ n),
+    integral_ouInnov hB hW hcont hη σ m, integral_ouInnov hB hW hcont hη σ n, mul_zero, sub_zero]
+  rcases lt_or_gt_of_ne hmn with hlt | hlt
+  · exact key m n hlt
+  · have := key n m hlt
+    simp_rw [mul_comm (ouInnov η σ W n _)] at this
+    exact this
+
+/-- **Cochrane (2023), p. 197: the innovations are jointly Gaussian** (every finite linear
+combination is a linear combination of Wiener integrals,
+`TidyR7WienerGaussian.exists_map_sum_wienerBP`).
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.TidyR7OUSampled.isGaussianProcess_ouInnov). -/
+theorem isGaussianProcess_ouInnov (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (η σ : ℝ) :
+    IsGaussianProcess (fun (p : (_ : ℕ) × Unit) ω => ouInnov η σ W p.1 ω) P where
+  hasGaussianLaw I := by
+    have hV : AEMeasurable (fun ω => I.restrict (fun p : (_ : ℕ) × Unit => ouInnov η σ W p.1 ω))
+        P := AEMeasurable.of_eval fun i => aemeasurable_ouInnov hB hW hcont η σ i.1.1
+    refine ⟨hV, isGaussian_of_map_eq_gaussianReal fun L => ?_⟩
+    rw [AEMeasurable.map_map_of_aemeasurable L.continuous.measurable.aemeasurable hV]
+    set d : I → ℝ := fun i => L (fun j => if i = j then 1 else 0)
+      * (σ * exp (-η * (((i : (_ : ℕ) × Unit).1 : ℝ) + 1)))
+    obtain ⟨v, hv⟩ := exists_map_sum_wienerBP (P := P) hB hW hcont Finset.univ d
+      (h := fun _ => fun u => exp (η * u)) (h' := fun _ => fun u => exp (η * u) * η)
+      (fun _ => hasDerivAt_expMul η) (fun _ => by fun_prop)
+      (s := fun i => ((i : (_ : ℕ) × Unit).1 : ℝ)) (t := fun i => ((i : (_ : ℕ) × Unit).1 : ℝ) + 1)
+      (fun _ => by linarith)
+    refine ⟨0, v, ?_⟩
+    rw [← hv]
+    congr 1
+    funext ω
+    simp only [Function.comp_apply]
+    rw [show L (I.restrict fun p : (_ : ℕ) × Unit => ouInnov η σ W p.1 ω)
+      = L.toLinearMap (I.restrict fun p : (_ : ℕ) × Unit => ouInnov η σ W p.1 ω) from rfl,
+      LinearMap.pi_apply_eq_sum_univ]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    simp only [Finset.restrict, smul_eq_mul, d, ouInnov_eq, ContinuousLinearMap.coe_coe]
+    ring
+
+/-- **Cochrane (2023), p. 197: the innovations are independent.** Jointly Gaussian and
+uncorrelated (`ProbabilityTheory.IsGaussianProcess.iIndepFun_of_covariance_eq_zero`).
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.TidyR7OUSampled.iIndepFun_ouInnov). -/
+theorem iIndepFun_ouInnov (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) {η : ℝ} (hη : 0 < η) (σ : ℝ) :
+    iIndepFun (fun n => ouInnov η σ W n) P := by
+  have h := IsGaussianProcess.iIndepFun_of_covariance_eq_zero
+    (X := fun (n : ℕ) (_ : Unit) ω => ouInnov η σ W n ω)
+    (isGaussianProcess_ouInnov hB hW hcont η σ)
+    (fun n _ => aemeasurable_ouInnov hB hW hcont η σ n)
+    (fun m n hmn _ _ => covariance_ouInnov hB hW hcont hη σ hmn)
+  exact h.comp (fun _ f => f ()) (fun _ => measurable_pi_apply ())
+
+end Cochrane.ZeroBound.TidyR7OUSampled
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The trap and the active rule in one stochastic model
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 20, §20.2.2, pp. 474–476
+(equation (20.7) and the new-Keynesian choice of `π_T`), §20.2.4, pp. 478–479 (forward guidance:
+a "glide path" after the trap), under uncertainty.
+
+TidyR7StochWerningSelect treats the active rule after `T` (`active_rule_selects`) and the trap
+before `T` (`nk_selection`) separately. Here they are one model on `[0, ∞)`: the interest rate is
+`0` during the trap and follows the active rule (20.7) `i_t = i*_t + φ(π_t − π*_t)` after it,
+with `i* = 0` (the natural rate after the trap) and target `π* = wPi(c)` — the member of the
+family of Figure 20.4 with `π_T = c` (`c = 0` is the new-Keynesian choice, `c ≠ 0` a glide path
+of forward guidance, e.g. the no-jump path of p. 476). The interest rate is random: it responds
+to inflation after `T` (`ruleRate`, `IsActiveTrapEqm`).
+
+## Main results
+
+* `ae_forall_Ici_of_forall_ae`: a process with continuous paths that equals a continuous
+  deterministic path almost surely at every date `t ≥ T` equals it on all of `[T, ∞)` for almost
+  every path.
+* **`active_trap_selects`**: for `σ, κ, ρ > 0`, `φ > 1`, `T ≥ 0`, every regular `L¹`-bounded
+  stochastic equilibrium of the composed model is `π_t = wPi(c)_t`, `x_t = wX(c)_t` almost surely
+  at every date `t ≥ 0`; `active_trap_selects_paths`: almost every path equals the chosen path
+  on all of `[0, ∞)`. All uncertainty is removed, before and after `T`.
+* **`active_trap_exists`**: the chosen path is an equilibrium of the composed model (regular,
+  bounded). Together: the composed model has exactly one equilibrium.
+* Non-vacuity at the book's calibration on bmPath: `bmPath_active_trap` (existence, and the
+  Ornstein–Uhlenbeck equilibrium of TidyR7StochWerningExist with unit loading, an equilibrium of
+  the trap with `i = 0` throughout, is not an equilibrium of the composed model).
+-/
+
+namespace Cochrane.ZeroBound.TidyR8StochWerningActiveTrap
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.ZeroBound.ContinuousTimeNK Cochrane.ZeroBound.WerningModel
+open Cochrane.ZeroBound.TidyR7StochWerning Cochrane.ZeroBound.TidyR7StochWerningTrap
+open Cochrane.ZeroBound.TidyR7StochWerningExist Cochrane.ZeroBound.TidyR7StochWerningSelect
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω}
+
+/-- Cochrane (2023), (20.7), p. 474, composed with the trap: the interest rate `0` before `T`
+and `φ(π_t − π*_t)` from `T` on (`i* = 0`, the natural rate after the trap). -/
+noncomputable def ruleRate (φ T : ℝ) (πs : ℝ → ℝ) (π : ℝ → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  if t < T then 0 else φ * (π t ω - πs t)
+
+/-- Cochrane (2023), (20.5)–(20.7), pp. 474–476, under uncertainty: **an equilibrium of the
+composed model** — the trap experiment (natural rate `u` and disturbance `g` on `[0, T)`) with
+the zero rate before `T` and the active rule `i = φ(π − wPi(c))` after `T`:
+`E_t dx = σ(i_t − π_t − u_{r,t})dt`, `E_t dπ = (ρπ_t − κ(x_t + g_t))dt`. -/
+def IsActiveTrapEqm (σ ρ κ φ : ℝ) (P : Measure Ω) (𝓕 : Filtration ℝ mΩ) (T u g c : ℝ)
+    (x π : ℝ → Ω → ℝ) : Prop :=
+  ExpDrift P 𝓕 x (fun r ω =>
+      σ * (ruleRate φ T (wPi σ κ ρ T u g c) π r ω - π r ω - trapStep u T r)) ∧
+    ExpDrift P 𝓕 π (fun r ω => ρ * π r ω - κ * (x r ω + trapStep g T r))
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): **from "almost surely at every date" to "almost every
+path"**. If `Z` has continuous paths, `f` is continuous and `Z_t = f(t)` almost surely for every
+`t ≥ T`, then almost every path has `Z_t = f(t)` for all `t ≥ T` (through the rational dates). -/
+theorem ae_forall_Ici_of_forall_ae {Z : ℝ → Ω → ℝ} (hZ : ∀ ω, Continuous fun t => Z t ω)
+    {f : ℝ → ℝ} (hf : Continuous f) {T : ℝ} (h : ∀ t, T ≤ t → Z t =ᵐ[P] fun _ => f t) :
+    ∀ᵐ ω ∂P, ∀ t, T ≤ t → Z t ω = f t := by
+  have hq : ∀ᵐ ω ∂P, ∀ q : ℚ, T < (q : ℝ) → Z q ω = f q := ae_all_iff.2 fun q => by
+    by_cases hTq : T < (q : ℝ)
+    · filter_upwards [h q hTq.le] with ω hω _
+      exact hω
+    · exact Eventually.of_forall fun _ h' => absurd h' hTq
+  filter_upwards [hq] with ω hω t ht
+  have hcl : IsClosed {r : ℝ | Z r ω = f r} := isClosed_eq (hZ ω) hf
+  have hsub : Set.Ioi T ∩ Set.range ((↑) : ℚ → ℝ) ⊆ {r : ℝ | Z r ω = f r} := by
+    rintro r ⟨hr, q, rfl⟩
+    exact hω q hr
+  have h1 : Set.Ioi T ⊆ {r : ℝ | Z r ω = f r} :=
+    (Rat.denseRange_cast.open_subset_closure_inter isOpen_Ioi).trans
+      (hcl.closure_subset_iff.2 hsub)
+  have h2 : closure (Set.Ioi T) ⊆ {r : ℝ | Z r ω = f r} := hcl.closure_subset_iff.2 h1
+  rw [closure_Ioi] at h2
+  exact h2 ht
+
+/-- Cochrane (2023), (20.5)–(20.7), p. 474 (tool): `E_t dZ = D dt` from `0` on gives it from
+`T ≥ 0` on for any drift `D'` that agrees with `D` from `T` on. -/
+theorem expDriftFrom_of_eq {𝓕 : Filtration ℝ mΩ} {Z D D' : ℝ → Ω → ℝ} (h : ExpDrift P 𝓕 Z D)
+    {T : ℝ} (hT : 0 ≤ T) (hD : ∀ r ω, T ≤ r → D r ω = D' r ω) : ExpDriftFrom P 𝓕 T Z D' := by
+  intro s t hs hst
+  have e : (fun ω => Z t ω - Z s ω - ∫ r in s..t, D r ω) =
+      fun ω => Z t ω - Z s ω - ∫ r in s..t, D' r ω := by
+    funext ω
+    congr 1
+    refine intervalIntegral.integral_congr fun r hr => ?_
+    rw [Set.uIcc_of_le hst] at hr
+    exact hD r ω (hs.trans hr.1)
+  have h1 := h s t (hT.trans hs) hst
+  rw [e] at h1
+  exact h1
+
+/-- Cochrane (2023), (20.5)–(20.7), p. 474 (tool): `E_t dZ = D dt` is unchanged when the drift is
+changed on a null set of paths only. -/
+theorem expDrift_of_ae_eq {𝓕 : Filtration ℝ mΩ} {Z D D' : ℝ → Ω → ℝ} (h : ExpDrift P 𝓕 Z D)
+    (hD : ∀ᵐ ω ∂P, ∀ r, 0 ≤ r → D r ω = D' r ω) : ExpDrift P 𝓕 Z D' := by
+  intro s t hs hst
+  have e : (fun ω => Z t ω - Z s ω - ∫ r in s..t, D r ω) =ᵐ[P]
+      fun ω => Z t ω - Z s ω - ∫ r in s..t, D' r ω := by
+    filter_upwards [hD] with ω hω
+    congr 1
+    refine intervalIntegral.integral_congr fun r hr => ?_
+    rw [Set.uIcc_of_le hst] at hr
+    exact hω r (hs.trans hr.1)
+  obtain ⟨h1, h2⟩ := h s t hs hst
+  exact ⟨h1.congr e, (condExp_congr_ae e.symm).trans h2⟩
+
+/-- **Cochrane (2023), (20.7), p. 474, and pp. 475–476, under uncertainty: the active rule after
+the trap selects a unique equilibrium of the whole model.** For `σ, κ, ρ > 0`, `φ > 1` and
+`T ≥ 0`, every regular `L¹`-bounded equilibrium of the composed model (`IsActiveTrapEqm`) has
+`π_t = wPi(c)_t` and `x_t = wX(c)_t` almost surely at every date `t ≥ 0`. After `T` this is
+`TidyR7StochWerningSelect.active_rule_selects`; it pins `π_T = c` almost surely, and before `T`
+the trap characterisation (`TidyR7StochWerningSelect.nk_selection`) then removes all
+uncertainty. -/
+theorem active_trap_selects [IsProbabilityMeasure P] {σ κ ρ φ T : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    (hρ : 0 < ρ) (hφ : 1 < φ) (hT : 0 ≤ T) {𝓕 : Filtration ℝ mΩ} {u g c : ℝ}
+    {x π : ℝ → Ω → ℝ} (hx : Regular 𝓕 x) (hxb : BddL1 P x) (hπ : Regular 𝓕 π)
+    (hπb : BddL1 P π) (h : IsActiveTrapEqm σ ρ κ φ P 𝓕 T u g c x π) {t : ℝ} (ht : 0 ≤ t) :
+    π t =ᵐ[P] (fun _ => wPi σ κ ρ T u g c t) ∧ x t =ᵐ[P] (fun _ => wX σ κ ρ T u g c t) := by
+  have hWc := wPi_continuous σ κ ρ T u g c hκ hσ
+  have hXc := wX_continuous σ κ ρ T u g c hκ hσ
+  -- after `T`: the active rule
+  have hafter : ∀ t, T ≤ t →
+      π t =ᵐ[P] (fun _ => wPi σ κ ρ T u g c t) ∧ x t =ᵐ[P] (fun _ => wX σ κ ρ T u g c t) :=
+    fun t ht => active_rule_selects (istar := fun _ => 0) (u := trapStep u T)
+      (g := trapStep g T) hσ hκ hρ hφ hT (fun a b => integrableOn_zero)
+      (fun a b => trapStep_integrableOn u T measure_Ioc_lt_top.ne)
+      (fun a b => trapStep_integrableOn g T measure_Ioc_lt_top.ne) hXc hWc
+      (wPath_bdd (ρ := ρ) hκ hσ T u g c).1 (wPath_bdd (ρ := ρ) hκ hσ T u g c).2
+      (fun s t hs hst => wPath_intForm (ρ := ρ) hκ hσ T u g c (hT.trans hs) hst)
+      hx hxb hπ hπb
+      (expDriftFrom_of_eq h.1 hT fun r ω hr => by
+        simp only [ruleRate, not_lt.2 hr, ↓reduceIte, zero_add])
+      (fun s t hs hst => h.2 s t (hT.trans hs) hst) ht
+  -- almost every path follows the chosen path after `T`
+  have hpath : ∀ᵐ ω ∂P, ∀ r, T ≤ r → π r ω = wPi σ κ ρ T u g c r :=
+    ae_forall_Ici_of_forall_ae hπ.1 hWc fun r hr => (hafter r hr).1
+  -- so the composed model is the trap model with `i = 0` throughout
+  have htrap : IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep g T)
+      (fun _ _ => 0) x π := by
+    refine ⟨expDrift_of_ae_eq h.1 ?_, h.2⟩
+    filter_upwards [hpath] with ω hω r _
+    rcases lt_or_ge r T with hr | hr
+    · simp [ruleRate, hr]
+    · simp [ruleRate, not_lt.2 hr, hω r hr]
+  have hcT : π T =ᵐ[P] fun _ => c := by
+    filter_upwards [(hafter T le_rfl).1] with ω hω
+    rw [hω, wPi_T hκ hσ]
+  rcases le_total t T with htT | htT
+  · exact nk_selection hσ hκ hx hxb hπ hπb htrap c hcT ht htT
+  · exact hafter t htT
+
+/-- Cochrane (2023), (20.7), p. 474, under uncertainty: **pathwise selection** — almost every
+path of every regular `L¹`-bounded equilibrium of the composed model is the chosen path on all
+of `[0, ∞)`. -/
+theorem active_trap_selects_paths [IsProbabilityMeasure P] {σ κ ρ φ T : ℝ} (hσ : 0 < σ)
+    (hκ : 0 < κ) (hρ : 0 < ρ) (hφ : 1 < φ) (hT : 0 ≤ T) {𝓕 : Filtration ℝ mΩ} {u g c : ℝ}
+    {x π : ℝ → Ω → ℝ} (hx : Regular 𝓕 x) (hxb : BddL1 P x) (hπ : Regular 𝓕 π)
+    (hπb : BddL1 P π) (h : IsActiveTrapEqm σ ρ κ φ P 𝓕 T u g c x π) :
+    ∀ᵐ ω ∂P, ∀ t, 0 ≤ t → π t ω = wPi σ κ ρ T u g c t ∧ x t ω = wX σ κ ρ T u g c t := by
+  filter_upwards [ae_forall_Ici_of_forall_ae hπ.1 (wPi_continuous σ κ ρ T u g c hκ hσ)
+      fun t ht => (active_trap_selects hσ hκ hρ hφ hT hx hxb hπ hπb h ht).1,
+    ae_forall_Ici_of_forall_ae hx.1 (wX_continuous σ κ ρ T u g c hκ hσ)
+      fun t ht => (active_trap_selects hσ hκ hρ hφ hT hx hxb hπ hπb h ht).2] with ω h1 h2 t ht
+  exact ⟨h1 t ht, h2 t ht⟩
+
+/-- **Cochrane (2023), (20.7), p. 474, under uncertainty: existence.** The chosen path
+`(wX(c), wPi(c))`, as a deterministic process, is a regular, `L¹`-bounded equilibrium of the
+composed model on every filtered probability space; along it the rule sets `i = 0`. -/
+theorem active_trap_exists [IsProbabilityMeasure P] {σ κ ρ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    (𝓕 : Filtration ℝ mΩ) (φ T u g c : ℝ) :
+    IsActiveTrapEqm σ ρ κ φ P 𝓕 T u g c (fun t _ => wX σ κ ρ T u g c t)
+        (fun t _ => wPi σ κ ρ T u g c t) ∧
+      Regular 𝓕 (fun t (_ : Ω) => wX σ κ ρ T u g c t) ∧
+      Regular 𝓕 (fun t (_ : Ω) => wPi σ κ ρ T u g c t) ∧
+      BddL1 P (fun t (_ : Ω) => wX σ κ ρ T u g c t) ∧
+      BddL1 P (fun t (_ : Ω) => wPi σ κ ρ T u g c t) := by
+  have hrate : ∀ r (ω : Ω), ruleRate φ T (wPi σ κ ρ T u g c)
+      (fun t _ => wPi σ κ ρ T u g c t) r ω = 0 := fun r ω => by
+    unfold ruleRate
+    split_ifs <;> simp
+  obtain ⟨⟨KX, hKX⟩, ⟨KW, hKW⟩⟩ := wPath_bdd (ρ := ρ) hκ hσ T u g c
+  refine ⟨⟨?_, ?_⟩, ⟨fun _ => wX_continuous σ κ ρ T u g c hκ hσ, fun _ =>
+      stronglyMeasurable_const⟩, ⟨fun _ => wPi_continuous σ κ ρ T u g c hκ hσ, fun _ =>
+      stronglyMeasurable_const⟩, ⟨KX, fun t ht => ⟨integrable_const _, by simpa using hKX t ht⟩⟩,
+    ⟨KW, fun t ht => ⟨integrable_const _, by simpa using hKW t ht⟩⟩⟩
+  · simp only [hrate]
+    exact expDrift_det_iff.2 fun s t hs hst => (wPath_intForm (ρ := ρ) hκ hσ T u g c hs hst).1
+  · exact expDrift_det_iff.2 fun s t hs hst => (wPath_intForm (ρ := ρ) hκ hσ T u g c hs hst).2
+
+/-! ## Non-vacuity -/
+
+open Cochrane.ZeroBound.TidyR7BrownianExist Cochrane.ZeroBound.TidyR7BrownianSchauder
+open Cochrane.ZeroBound.TidyR7BrownianTools
+
+/-- Cochrane (2023), (20.7), p. 474 (non-vacuity): at the book's calibration (`ρ = 0.05`,
+`σ = κ = 1`, `T = 5`, `u_r = −2%`, `g = 0`), with `φ = 3/2` and the new-Keynesian target
+`c = 0`, on the bmPath filtration: the chosen path is an equilibrium of the composed model, and
+the Ornstein–Uhlenbeck process with unit loading (an `L²`-bounded equilibrium of the trap with
+`i = 0` forever, `TidyR7StochWerningExist.isStochEqm_eq`) is not one. -/
+theorem bmPath_active_trap :
+    IsActiveTrapEqm 1 (1 / 20) 1 (3 / 2) gaussSeq (bmFiltrationReal bmPath measurable_bmPath) 5
+        (-2 / 100) 0 0 (fun t _ => wX 1 1 (1 / 20) 5 (-2 / 100) 0 0 t)
+        (fun t _ => wPi 1 1 (1 / 20) 5 (-2 / 100) 0 0 t) ∧
+      ¬ IsActiveTrapEqm 1 (1 / 20) 1 (3 / 2) gaussSeq (bmFiltrationReal bmPath measurable_bmPath)
+        5 (-2 / 100) 0 0 (eqX 1 1 (1 / 20) 5 (-2 / 100) 0 0 1 bmPath)
+        (eqPi 1 1 (1 / 20) 5 (-2 / 100) 0 0 1 bmPath) := by
+  have := isProbabilityMeasure_gaussSeq
+  refine ⟨(active_trap_exists one_pos one_pos _ _ _ _ _ _).1, fun h => ?_⟩
+  have hsel := fun t (ht : (0 : ℝ) ≤ t) => (active_trap_selects one_pos one_pos (by norm_num)
+    (by norm_num) (by norm_num) (regular_eqX measurable_bmPath continuous_bmPath one_pos one_pos
+      _ _ _ _ _) (bddL2_eqX isPreBrownianReal_bmPath measurable_bmPath continuous_bmPath
+      bmPath_zero one_pos one_pos _ _ _ _ _).bddL1
+    (regular_eqPi measurable_bmPath continuous_bmPath one_pos one_pos _ _ _ _ _)
+    (bddL2_eqPi isPreBrownianReal_bmPath measurable_bmPath continuous_bmPath bmPath_zero one_pos
+      one_pos _ _ _ _ _).bddL1 h ht).1
+  have := (eqPi_inj isPreBrownianReal_bmPath measurable_bmPath continuous_bmPath bmPath_zero
+    one_pos one_pos (πT := 0) (πT' := 0) (b := 0) (b' := 1) fun t ht => by
+      filter_upwards [hsel t ht] with ω hω
+      rw [hω]
+      simp only [eqPi, TidyR7StochWerningExist.ouProc_loading _ 0, zero_mul, add_zero]).2
+  norm_num at this
+
+end Cochrane.ZeroBound.TidyR8StochWerningActiveTrap
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The frictionless limit and the multipliers under uncertainty
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 20, §20.2.3, pp. 477–478 (the
+puzzling frictionless limit) and §20.2.5, pp. 480–482 (magical multipliers), under uncertainty.
+
+ZLBSelection and Multipliers prove the deterministic statements. In a stochastic equilibrium
+(TidyR7StochWerning) the two selections act differently:
+
+* the new-Keynesian selection `π_T = 0` (a.s.) removes all uncertainty during the trap
+  (TidyR7StochWerningSelect.nk_selection), so the deterministic results hold **state by
+  state**: `nk_multiplier_stoch` (`x_t(g) = x_t(0) + g · multNK_t` almost surely on `[0, T]`, and in
+  mean at every date) and `nk_frictionless_stoch` (for every family of equilibria indexed by
+  `κ`, almost surely `π_t → −∞` as `κ → ∞` at every `t ∈ [0, T)`, the discontinuity of
+  p. 478);
+* the fiscal no-jump selection `π_0 = 0` pins only the mean path
+  (TidyR7StochWerningSelect.fiscal_pi0_mean), so the deterministic results hold **for the means**:
+  `mean_piT_nj` (`Eπ_T = π_T^{nj}(g)`), `nj_mean_multiplier` (`E x_t(g) = E x_t(0) + g · multNJ_t`,
+  with `−1 < multNJ_t < 0` during the trap, `nj_mean_multiplier_bounds`) and
+  `nj_frictionless_stoch` (`E π_t → −u` on `(0, T)` and `→ 0` after `T` as `κ → ∞`: the smooth
+  square-wave limit), whatever the innovations;
+* conditional expectations follow the same family with `π_T` replaced by `E_sπ_T`
+  (TidyR7StochWerningTrap.condExp_pi_eq_wPi, condExp_x_eq_wX).
+
+The deterministic results are the case of processes constant in `ω` (`σ = 0` noise):
+`det_nj_multiplier` recovers `Multipliers.xNJ_affine` for every bounded deterministic path with
+`π_0 = 0` from the stochastic theorem (on the one-point probability space).
+-/
+
+namespace Cochrane.ZeroBound.TidyR8StochWerningLimits
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.ZeroBound.ContinuousTimeNK Cochrane.ZeroBound.WerningModel
+open Cochrane.ZeroBound.TidyR7StochWerning Cochrane.ZeroBound.TidyR7StochWerningTrap
+open Cochrane.ZeroBound.TidyR7StochWerningSelect
+open Cochrane.ZeroBound.ZLBSelection Cochrane.ZeroBound.Multipliers
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω}
+
+/-! ## The new-Keynesian selection: state by state -/
+
+/-- **Cochrane (2023), §20.2.5, p. 481, under uncertainty: the standard multiplier holds state by
+state.** In every regular `L¹`-bounded equilibrium of the experiment with disturbance `g` and
+`π_T = 0` almost surely, `x_t = x^{NK}_t(0) + g · multNK_t` almost surely for `0 ≤ t ≤ T`, and in
+mean, `E x_t = x^{NK}_t(0) + g · multNK_t`, at every `t ≥ 0`.
+The stochastic `Multipliers.xNK_affine`. -/
+theorem nk_multiplier_stoch [IsProbabilityMeasure P] {σ ρ κ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    {𝓕 : Filtration ℝ mΩ} {T u g : ℝ} (hT : 0 ≤ T) {x π : ℝ → Ω → ℝ} (hx : Regular 𝓕 x)
+    (hxb : BddL1 P x) (hπ : Regular 𝓕 π) (hπb : BddL1 P π)
+    (h : IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep g T) (fun _ _ => 0) x π)
+    (hπT : π T =ᵐ[P] fun _ => 0) :
+    (∀ t, 0 ≤ t → t ≤ T →
+      x t =ᵐ[P] fun _ => xNK σ κ ρ T u 0 t + g * multNK σ κ ρ T t) ∧
+    ∀ t, 0 ≤ t → ∫ ω, x t ω ∂P = xNK σ κ ρ T u 0 t + g * multNK σ κ ρ T t := by
+  refine ⟨fun t ht htT => ?_, fun t ht => ?_⟩
+  · filter_upwards [(nk_selection hσ hκ hx hxb hπ hπb h 0 hπT ht htT).2] with ω hω
+    rw [hω, ← xNK_affine hσ hκ]
+    rfl
+  · have hm := (mean_eq_wPi hσ hκ hx hxb hπ hπb h hT ht).2
+    rw [integral_congr_ae hπT, integral_const, smul_zero] at hm
+    rw [hm, ← xNK_affine hσ hκ]
+    rfl
+
+/-- **Cochrane (2023), §20.2.3, pp. 477–478, under uncertainty: deflation without limit, state by
+state.** Let `(x^κ, π^κ)` be, for each `κ > 0`, a regular `L¹`-bounded equilibrium of the trap
+(`g = 0`, `u < 0`, `ρ ≥ 0`) with `π^κ_T = 0` almost surely. Then at every `t ∈ [0, T)`, for every
+level `M`, eventually in `κ` the inflation `π^κ_t` is below `M` almost surely.
+The stochastic `ZLBSelection.nk_tendsto_kappa`. -/
+theorem nk_frictionless_stoch [IsProbabilityMeasure P] {σ ρ : ℝ} (hσ : 0 < σ) (hρ : 0 ≤ ρ)
+    {𝓕 : Filtration ℝ mΩ} {T u : ℝ} (hu : u < 0) {x π : ℝ → ℝ → Ω → ℝ}
+    (hx : ∀ κ, 0 < κ → Regular 𝓕 (x κ)) (hxb : ∀ κ, 0 < κ → BddL1 P (x κ))
+    (hπ : ∀ κ, 0 < κ → Regular 𝓕 (π κ)) (hπb : ∀ κ, 0 < κ → BddL1 P (π κ))
+    (h : ∀ κ, 0 < κ →
+      IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep 0 T) (fun _ _ => 0) (x κ) (π κ))
+    (hπT : ∀ κ, 0 < κ → π κ T =ᵐ[P] fun _ => 0) {t : ℝ} (ht : 0 ≤ t) (htT : t < T) (M : ℝ) :
+    ∀ᶠ κ in atTop, ∀ᵐ ω ∂P, π κ t ω < M := by
+  filter_upwards [(nk_tendsto_kappa hσ hρ hu htT).eventually (eventually_lt_atBot M),
+    eventually_gt_atTop 0] with κ hκ hκ0
+  filter_upwards [(nk_selection hσ hκ0 (hx κ hκ0) (hxb κ hκ0) (hπ κ hκ0) (hπb κ hκ0) (h κ hκ0) 0
+    (hπT κ hκ0) ht htT.le).1] with ω hω
+  rw [hω]
+  exact hκ
+
+/-! ## The fiscal no-jump selection: the means -/
+
+/-- Cochrane (2023), §20.2.2, p. 476, and §20.2.5, p. 481, under uncertainty: **with `π_0 = 0`
+the expected end-of-trap inflation is the no-jump value**, `Eπ_T = π_T^{nj}(g)`
+(`Multipliers.piTnjg`). -/
+theorem mean_piT_nj [IsProbabilityMeasure P] {σ ρ κ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    {𝓕 : Filtration ℝ mΩ} {T u g : ℝ} (hT : 0 ≤ T) {x π : ℝ → Ω → ℝ} (hx : Regular 𝓕 x)
+    (hxb : BddL1 P x) (hπ : Regular 𝓕 π) (hπb : BddL1 P π)
+    (h : IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep g T) (fun _ _ => 0) x π)
+    (hπ0 : π 0 =ᵐ[P] fun _ => 0) : ∫ ω, π T ω ∂P = piTnjg σ κ ρ T u g := by
+  have hm := (mean_eq_wPi hσ hκ hx hxb hπ hπb h hT le_rfl).1
+  rw [integral_congr_ae hπ0, integral_const, smul_zero] at hm
+  have h2 := nj_g_pi0 (σ := σ) (κ := κ) (ρ := ρ) (u := u) (g := g) hT
+  rw [wPi_shift] at hm h2
+  have hpos : 0 < Real.exp (lamb ρ κ σ * (T - 0)) := Real.exp_pos _
+  have := mul_right_cancel₀ hpos.ne' (show (∫ ω, π T ω ∂P) * Real.exp (lamb ρ κ σ * (T - 0)) =
+    piTnjg σ κ ρ T u g * Real.exp (lamb ρ κ σ * (T - 0)) by linarith)
+  exact this
+
+/-- **Cochrane (2023), §20.2.5, p. 481, under uncertainty: the no-jump multiplier holds for the
+means.** In every regular `L¹`-bounded equilibrium with disturbance `g` and `π_0 = 0` almost
+surely (any innovations), at every `t ≥ 0`: `E π_t = wPi(π_T^{nj}(g))_t` and
+`E x_t = x^{NJ}_t(0) + g · multNJ_t`.
+The stochastic `Multipliers.xNJ_affine`. -/
+theorem nj_mean_multiplier [IsProbabilityMeasure P] {σ ρ κ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    {𝓕 : Filtration ℝ mΩ} {T u g : ℝ} (hT : 0 ≤ T) {x π : ℝ → Ω → ℝ} (hx : Regular 𝓕 x)
+    (hxb : BddL1 P x) (hπ : Regular 𝓕 π) (hπb : BddL1 P π)
+    (h : IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep g T) (fun _ _ => 0) x π)
+    (hπ0 : π 0 =ᵐ[P] fun _ => 0) {t : ℝ} (ht : 0 ≤ t) :
+    ∫ ω, π t ω ∂P = wPi σ κ ρ T u g (piTnjg σ κ ρ T u g) t ∧
+      ∫ ω, x t ω ∂P = xNJ σ κ ρ T u 0 t + g * multNJ σ κ ρ T t := by
+  have hm := mean_eq_wPi hσ hκ hx hxb hπ hπb h hT ht
+  rw [mean_piT_nj hσ hκ hT hx hxb hπ hπb h hπ0] at hm
+  refine ⟨hm.1, ?_⟩
+  rw [hm.2, ← xNJ_affine hσ hκ]
+  rfl
+
+/-- Cochrane (2023), §20.2.5, p. 481 ("the multiplier in the no-jump equilibrium is small"), under
+uncertainty: for two equilibria with `π_0 = 0` a.s., disturbances `g` and `0`, the mean
+multiplier `(E x_t(g) − E x_t(0))/g` lies in `(−1, 0)` during the trap (`g ≠ 0`, `T > 0`).
+The stochastic `Multipliers.multNJ_bounds`. -/
+theorem nj_mean_multiplier_bounds [IsProbabilityMeasure P] {σ ρ κ : ℝ} (hσ : 0 < σ)
+    (hκ : 0 < κ) {𝓕 : Filtration ℝ mΩ} {T u g : ℝ} (hT : 0 < T) {x π x0 π0 : ℝ → Ω → ℝ}
+    (hx : Regular 𝓕 x) (hxb : BddL1 P x) (hπ : Regular 𝓕 π) (hπb : BddL1 P π)
+    (h : IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep g T) (fun _ _ => 0) x π)
+    (hπ0 : π 0 =ᵐ[P] fun _ => 0) (hx0 : Regular 𝓕 x0) (hxb0 : BddL1 P x0) (hπ' : Regular 𝓕 π0)
+    (hπb0 : BddL1 P π0)
+    (h0 : IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep 0 T) (fun _ _ => 0) x0 π0)
+    (hπ00 : π0 0 =ᵐ[P] fun _ => 0) (hg : g ≠ 0) {t : ℝ} (ht : 0 ≤ t) (htT : t ≤ T) :
+    -1 < (∫ ω, x t ω ∂P - ∫ ω, x0 t ω ∂P) / g ∧ (∫ ω, x t ω ∂P - ∫ ω, x0 t ω ∂P) / g < 0 := by
+  have e1 := (nj_mean_multiplier hσ hκ hT.le hx hxb hπ hπb h hπ0 ht).2
+  have e0 := (nj_mean_multiplier hσ hκ hT.le hx0 hxb0 hπ' hπb0 h0 hπ00 ht).2
+  rw [e1, e0, zero_mul, add_zero, add_sub_cancel_left, mul_div_cancel_left₀ _ hg]
+  exact multNJ_bounds hσ hκ hT ht htT
+
+/-- **Cochrane (2023), §20.2.3, p. 478, under uncertainty: the smooth frictionless limit of the
+no-jump selection, in mean.** Let `(x^κ, π^κ)` be, for each `κ > 0`, a regular `L¹`-bounded
+equilibrium of the trap (`g = 0`, `u < 0`) with `π^κ_0 = 0` almost surely (any innovations).
+Then `E π^κ_t → −u` for `t ∈ (0, T)` and `E π^κ_t → 0` for `t > T`, as `κ → ∞`.
+The stochastic `ZLBSelection.nj_limit_trap` and `ZLBSelection.nj_limit_after`. -/
+theorem nj_frictionless_stoch [IsProbabilityMeasure P] {σ ρ : ℝ} (hσ : 0 < σ)
+    {𝓕 : Filtration ℝ mΩ} {T u : ℝ} (hT : 0 < T) (hu : u < 0) {x π : ℝ → ℝ → Ω → ℝ}
+    (hx : ∀ κ, 0 < κ → Regular 𝓕 (x κ)) (hxb : ∀ κ, 0 < κ → BddL1 P (x κ))
+    (hπ : ∀ κ, 0 < κ → Regular 𝓕 (π κ)) (hπb : ∀ κ, 0 < κ → BddL1 P (π κ))
+    (h : ∀ κ, 0 < κ →
+      IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep 0 T) (fun _ _ => 0) (x κ) (π κ))
+    (hπ0 : ∀ κ, 0 < κ → π κ 0 =ᵐ[P] fun _ => 0) :
+    (∀ t, 0 < t → t < T → Tendsto (fun κ => ∫ ω, π κ t ω ∂P) atTop (𝓝 (-u))) ∧
+      ∀ t, T < t → Tendsto (fun κ => ∫ ω, π κ t ω ∂P) atTop (𝓝 0) := by
+  have hmean : ∀ t, 0 ≤ t → (fun κ => wPi σ κ ρ T u 0 (piTnj σ κ ρ T u) t) =ᶠ[atTop]
+      fun κ => ∫ ω, π κ t ω ∂P := fun t ht => by
+    filter_upwards [eventually_gt_atTop 0] with κ hκ
+    rw [(nj_mean_multiplier hσ hκ hT.le (hx κ hκ) (hxb κ hκ) (hπ κ hκ) (hπb κ hκ) (h κ hκ)
+      (hπ0 κ hκ) ht).1]
+    congr 1
+    simp only [piTnjg, piTnj, mul_zero]
+    ring
+  exact ⟨fun t ht htT => (nj_limit_trap hσ hu ht htT).congr' (hmean t ht.le),
+    fun t ht => (nj_limit_after hσ hu hT ht).congr' (hmean t (hT.le.trans ht.le))⟩
+
+/-! ## The deterministic case -/
+
+/-- Cochrane (2023), §20.2.5, p. 481 (the case without uncertainty): **the deterministic no-jump
+multiplier as a special case.** For a bounded continuous deterministic path `(x, π)` of the
+experiment (`IsPath`) with `π_0 = 0`, `x_t = x^{NJ}_t(0) + g · multNJ_t` for `t ≥ 0` — derived
+from `nj_mean_multiplier` on the one-point probability space, where every process is
+deterministic (`TidyR7StochWerningTrap.det_bdd_iff`). -/
+theorem det_nj_multiplier {σ ρ κ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) {T u g : ℝ} (hT : 0 ≤ T)
+    {x π : ℝ → ℝ} (hxc : Continuous x) (hπc : Continuous π)
+    (hp : IsPath σ ρ κ (fun _ => 0) (trapStep u T) (trapStep g T) {T} x π) (hxb : BddOnIci x)
+    (hπb : BddOnIci π) (hπ0 : π 0 = 0) {t : ℝ} (ht : 0 ≤ t) :
+    x t = xNJ σ κ ρ T u 0 t + g * multNJ σ κ ρ T t := by
+  let P1 : Measure Unit := Measure.dirac ()
+  let F1 : Filtration ℝ (inferInstance : MeasurableSpace Unit) := ⊥
+  have hbd : ∀ f : ℝ → ℝ, BddOnIci f → BddL1 P1 (fun t _ => f t) := fun f ⟨K, hK⟩ =>
+    ⟨K, fun t ht => ⟨integrable_const _, by simpa using hK t ht⟩⟩
+  have hreg : ∀ f : ℝ → ℝ, Continuous f → Regular F1 (fun t (_ : Unit) => f t) := fun f hf =>
+    ⟨fun _ => hf, fun _ => stronglyMeasurable_const⟩
+  have heq := (isStochEqm_det_iff (P := P1) (𝓕 := F1) hxc hπc).2 hp
+  have := (nj_mean_multiplier hσ hκ hT (hreg x hxc) (hbd x hxb) (hreg π hπc) (hbd π hπb) heq
+    (Eventually.of_forall fun _ => hπ0) ht).2
+  simpa [P1] using this
+
+end Cochrane.ZeroBound.TidyR8StochWerningLimits
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Natural-rate shocks: conditional expectations and mean-square bounds
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 20, §20.2.2, pp. 474–475,
+equations (20.5)–(20.10), §20.2.4, p. 479 (news), with the natural rate `trapStep u T + ν` and a
+mean-reverting shock `E_t dν = −ην dt`; the interest rate is zero throughout (the model of
+TidyR7StochWerningNatural; the variant in which the rate tracks the natural rate after the trap
+is TidyR8StochWerningNaturalTrack).
+
+TidyR7StochWerningNatural pins the unstable combination `λ^f π − κx` state by state. Here we
+characterise the conditional expectations themselves, in every regular `L¹`-bounded
+equilibrium, on any filtration:
+
+* `condExp_nu`: `E_s ν_t = e^{−η(t−s)} ν_s`;
+* **`condExp_pi_nat`**: `E_s π_t = wPi(0)_t + e^{−λ^b(t−s)}(π_s − wPi(0)_s) + d k(t − s) ν_s`,
+  with `d = −κσ/(λ^f + η)` and `k(τ) = ∫_0^τ e^{−λ^b(τ−v)} e^{−ηv} dv` (`natK`): the news `ν_s`
+  moves expected inflation along the deterministic response to a natural-rate path
+  `ν_s e^{−ητ}`; the free part `π_s − wPi(0)_s` decays at `λ^b` as without shocks;
+* **`condExp_x_nat`**: `E_s x_t = wX(0)_t + (λ^f/κ)(E_sπ_t − wPi(0)_t) − (d/κ)e^{−η(t−s)}ν_s`.
+
+On a Brownian motion the explicit equilibria of TidyR7StochWerningNaturalExist are **bounded in
+mean square** (`bddL2_natPi`, `bddL2_natX`), not only in `L¹`: the pathwise smoothing
+`χ = chiProc λ ν` satisfies `χ_t² ≤ chiProc λ (ν²)_t / λ` (Cauchy–Schwarz, `sq_chiProc_le`).
+Non-vacuity on bmPath at the book's calibration: `bmPath_condExp_pi_nat`.
+-/
+
+namespace Cochrane.ZeroBound.TidyR8StochWerningNaturalMean
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.ZeroBound.ContinuousTimeNK Cochrane.ZeroBound.WerningModel
+open Cochrane.ZeroBound.TidyR7StochWerning Cochrane.ZeroBound.TidyR7StochWerningTrap
+open Cochrane.ZeroBound.TidyR7StochWerningExist Cochrane.ZeroBound.TidyR7StochWerningNatural
+open Cochrane.ZeroBound.TidyR7StochWerningNaturalExist
+open Cochrane.ZeroBound.TidyR7OUPath Cochrane.ZeroBound.TidyR7OrnsteinUhlenbeck
+open Cochrane.ZeroBound.TidyR7BrownianTools
+open scoped NNReal
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω}
+
+/-! ## Conditional means as deterministic functions of time -/
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): the conditional mean `r ↦ ∫_A Z_r` of a process with
+continuous paths, measurable sections and bounded first moments is integrable on every
+`[s, b]`, `s ≥ 0`. -/
+theorem integrableOn_setIntegral [IsFiniteMeasure P] {Z : ℝ → Ω → ℝ}
+    (hc : ∀ ω, Continuous fun t => Z t ω) (hm : ∀ t, Measurable (Z t)) {K : ℝ}
+    (hK : ∀ t, 0 ≤ t → Integrable (Z t) P ∧ ∫ ω, |Z t ω| ∂P ≤ K) (A : Set Ω) {s : ℝ}
+    (hs : 0 ≤ s) (b : ℝ) : IntegrableOn (fun r => ∫ ω in A, Z r ω ∂P) (Set.Icc s b) :=
+  Measure.integrableOn_of_bounded measure_Icc_lt_top.ne
+    (stronglyMeasurable_setIntegral hc hm A).aestronglyMeasurable
+    (ae_restrict_of_forall_mem measurableSet_Icc fun r hr => by
+      rw [Real.norm_eq_abs]; exact abs_setIntegral_le hK A (hs.trans hr.1))
+
+/-- Cochrane (2023), §20.2.2, p. 474: **the conditional mean of the shock decays**: for
+`A ∈ 𝓕_s`, `∫_A ν_t = e^{−η(t−s)} ∫_A ν_s` for `t ≥ s ≥ 0`. -/
+theorem setIntegral_nu [IsProbabilityMeasure P] {η : ℝ} {𝓕 : Filtration ℝ mΩ}
+    {ν : ℝ → Ω → ℝ} (hν : Regular 𝓕 ν) (hνb : BddL1 P ν)
+    (hνd : ExpDrift P 𝓕 ν (fun r ω => -(η * ν r ω))) {s : ℝ} (hs : 0 ≤ s) {A : Set Ω}
+    (hA : MeasurableSet[𝓕 s] A) {t : ℝ} (hst : s ≤ t) :
+    ∫ ω in A, ν t ω ∂P = Real.exp (-η * (t - s)) * ∫ ω in A, ν s ω ∂P := by
+  obtain ⟨Kν, hKν⟩ := hνb
+  have hmν : ∀ t, Measurable (ν t) := fun t => ((hν.2 t).mono (𝓕.le t)).measurable
+  set mν : ℝ → ℝ := fun r => ∫ ω in A, ν r ω ∂P
+  have hiν := integrableOn_setIntegral hν.1 hmν hKν A hs
+  have hfν : ∀ t, s ≤ t → mν t - mν s = ∫ r in s..t, -(η * mν r) := fun t ht => by
+    have pν := integrable_prod_proc (P := P) hν.1 hmν hKν hs (b := t)
+    rw [setIntegral_expDrift hνd hs ht hA (hKν s hs).1 (hKν t (hs.trans ht)).1
+      (pν.const_mul η).neg]
+    refine intervalIntegral.integral_congr fun r _ => ?_
+    rw [integral_neg, integral_const_mul]
+  have hcν : ContinuousOn mν (Set.Ici s) :=
+    continuousOn_of_intForm (fun b => ((hiν b).const_mul η).neg) hfν
+  exact linear_ode_Ici (a := -η) (S := ∅) Set.countable_empty hcν
+    (fun r hr _ => (hasDerivAt_of_intForm (G := fun r => -(η * mν r))
+      (continuousOn_const.mul hcν).neg hfν hr).congr_deriv (by ring)) t hst
+
+/-- Cochrane (2023), §20.2.2, p. 474: **`E_s ν_t = e^{−η(t−s)} ν_s`** for a regular
+`L¹`-bounded shock with `E_t dν = −ην dt`. -/
+theorem condExp_nu [IsProbabilityMeasure P] {η : ℝ} {𝓕 : Filtration ℝ mΩ} {ν : ℝ → Ω → ℝ}
+    (hν : Regular 𝓕 ν) (hνb : BddL1 P ν) (hνd : ExpDrift P 𝓕 ν (fun r ω => -(η * ν r ω)))
+    {s t : ℝ} (hs : 0 ≤ s) (hst : s ≤ t) :
+    P[ν t | 𝓕 s] =ᵐ[P] fun ω => Real.exp (-η * (t - s)) * ν s ω := by
+  obtain ⟨Kν, hKν⟩ := hνb
+  have h1 : (fun ω => Real.exp (-η * (t - s)) * ν s ω) =ᵐ[P] P[ν t | 𝓕 s] :=
+    ae_eq_condExp_of_forall_setIntegral_eq (𝓕.le s) (hKν t (hs.trans hst)).1
+      (fun _ _ _ => ((hKν s hs).1.const_mul _).integrableOn)
+      (fun A hA _ => by
+        rw [integral_const_mul, setIntegral_nu hν ⟨Kν, hKν⟩ hνd hs hA hst])
+      (stronglyMeasurable_const.mul (hν.2 s)).aestronglyMeasurable
+  exact h1.symm
+
+/-! ## The response kernel -/
+
+/-- Cochrane (2023), (20.8), p. 474, with a mean-reverting natural-rate shock: the response of
+expected inflation at horizon `τ` to the shock, per unit of `d`,
+`k(τ) = e^{−λ^b τ}∫_0^τ e^{(λ^b − η)v} dv = ∫_0^τ e^{−λ^b(τ−v)}e^{−ηv} dv`. -/
+noncomputable def natK (lb η τ : ℝ) : ℝ :=
+  Real.exp (-(lb * τ)) * ∫ v in (0 : ℝ)..τ, Real.exp ((lb - η) * v)
+
+/-- Cochrane (2023), (20.8), p. 474: `k(0) = 0`. -/
+theorem natK_zero (lb η : ℝ) : natK lb η 0 = 0 := by simp [natK]
+
+/-- Cochrane (2023), (20.8), p. 474: `k' = −λ^b k + e^{−ητ}`. -/
+theorem hasDerivAt_natK (lb η τ : ℝ) :
+    HasDerivAt (natK lb η) (-lb * natK lb η τ + Real.exp (-(η * τ))) τ := by
+  have h1 : HasDerivAt (fun τ => Real.exp (-(lb * τ))) (Real.exp (-(lb * τ)) * -lb) τ := by
+    simpa using ((hasDerivAt_id' τ).const_mul lb).neg.exp
+  have h2 := ((by fun_prop : Continuous fun v => Real.exp ((lb - η) * v)).integral_hasStrictDerivAt
+    0 τ).hasDerivAt
+  refine (h1.mul h2).congr_deriv ?_
+  have he : Real.exp (-(lb * τ)) * Real.exp ((lb - η) * τ) = Real.exp (-(η * τ)) := by
+    rw [← Real.exp_add]
+    ring_nf
+  simp only [natK]
+  linear_combination he
+
+/-- Cochrane (2023), (20.8), p. 474: `k` is continuous. -/
+theorem continuous_natK (lb η : ℝ) : Continuous (natK lb η) :=
+  continuous_iff_continuousAt.2 fun τ => (hasDerivAt_natK lb η τ).continuousAt
+
+/-! ## Expected inflation and output under natural-rate shocks -/
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): the conditional mean of an affine combination,
+`∫_A (a + b f + c g) = P(A)a + b∫_A f + c∫_A g`. -/
+theorem setIntegral_affine [IsFiniteMeasure P] {f g : Ω → ℝ} (hf : Integrable f P)
+    (hg : Integrable g P) (a b c : ℝ) (A : Set Ω) :
+    ∫ ω in A, (a + b * f ω + c * g ω) ∂P = P.real A * a + b * ∫ ω in A, f ω ∂P +
+      c * ∫ ω in A, g ω ∂P := by
+  have h1 : Integrable (fun ω => a + b * f ω) (P.restrict A) :=
+    ((integrable_const a).add (hf.const_mul b)).integrableOn
+  have h2 : Integrable (fun ω => c * g ω) (P.restrict A) := (hg.const_mul c).integrableOn
+  have h3 : Integrable (fun ω => b * f ω) (P.restrict A) := (hf.const_mul b).integrableOn
+  calc ∫ ω in A, (a + b * f ω + c * g ω) ∂P
+      = ∫ ω in A, (a + b * f ω) ∂P + ∫ ω in A, c * g ω ∂P := integral_add h1 h2
+    _ = (∫ ω in A, a ∂P + ∫ ω in A, b * f ω ∂P) + ∫ ω in A, c * g ω ∂P := by
+        rw [integral_add (integrable_const a) h3]
+    _ = _ := by rw [integral_const_mul, integral_const_mul, setIntegral_const, smul_eq_mul]
+
+/-- Cochrane (2023), (20.8)–(20.10), pp. 474–475, under natural-rate shocks: **conditional
+means of inflation.** In a regular `L¹`-bounded equilibrium with `i = 0`, natural rate
+`trapStep u T + ν` (`E_t dν = −ην dt`, `η ≥ 0`) and disturbance `trapStep g T`, for `A ∈ 𝓕_s`
+and `t ≥ s ≥ 0`: `∫_A π_t = P(A)wPi(0)_t + e^{−λ^b(t−s)}(∫_A π_s − P(A)wPi(0)_s) +
+d k(t − s)∫_A ν_s`.
+Generalises `TidyR7StochWerningTrap.setIntegral_trap` (the case `ν = 0`). -/
+theorem setIntegral_pi_nat [IsProbabilityMeasure P] {σ ρ κ η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    (hη : 0 ≤ η) {𝓕 : Filtration ℝ mΩ} {T u g : ℝ} {ν x π : ℝ → Ω → ℝ} (hν : Regular 𝓕 ν)
+    (hνb : BddL1 P ν) (hνd : ExpDrift P 𝓕 ν (fun r ω => -(η * ν r ω))) (hx : Regular 𝓕 x)
+    (hxb : BddL1 P x) (hπ : Regular 𝓕 π) (hπb : BddL1 P π)
+    (h : IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep g T) ν x π) {s : ℝ}
+    (hs : 0 ≤ s) {A : Set Ω} (hA : MeasurableSet[𝓕 s] A) {t : ℝ} (hst : s ≤ t) :
+    ∫ ω in A, π t ω ∂P = P.real A * wPi σ κ ρ T u g 0 t +
+      Real.exp (-(lamb ρ κ σ * (t - s))) * (∫ ω in A, π s ω ∂P - P.real A * wPi σ κ ρ T u g 0 s) +
+      natD σ κ ρ η * natK (lamb ρ κ σ) η (t - s) * ∫ ω in A, ν s ω ∂P := by
+  obtain ⟨Kν, hKν⟩ := hνb
+  obtain ⟨Kx, hKx⟩ := hxb
+  obtain ⟨Kπ, hKπ⟩ := hπb
+  have hmν : ∀ t, Measurable (ν t) := fun t => ((hν.2 t).mono (𝓕.le t)).measurable
+  have hmx : ∀ t, Measurable (x t) := fun t => ((hx.2 t).mono (𝓕.le t)).measurable
+  have hmπ : ∀ t, Measurable (π t) := fun t => ((hπ.2 t).mono (𝓕.le t)).measurable
+  have hsub := lamf_sub_lamb ρ κ σ
+  set lf := lamf ρ κ σ
+  set lb := lamb ρ κ σ
+  set d := natD σ κ ρ η
+  set p := P.real A
+  set mx : ℝ → ℝ := fun r => ∫ ω in A, x r ω ∂P
+  set mπ : ℝ → ℝ := fun r => ∫ ω in A, π r ω ∂P
+  set mν : ℝ → ℝ := fun r => ∫ ω in A, ν r ω ∂P
+  set W0 := wPi σ κ ρ T u g 0
+  set X0 := wX σ κ ρ T u g 0
+  have hix := integrableOn_setIntegral hx.1 hmx hKx A hs
+  have hiπ := integrableOn_setIntegral hπ.1 hmπ hKπ A hs
+  have hiν := integrableOn_setIntegral hν.1 hmν hKν A hs
+  have itr : ∀ c b, IntegrableOn (trapStep c T) (Set.Icc s b) := fun c b =>
+    trapStep_integrableOn c T measure_Icc_lt_top.ne
+  have hcm := fun t (ht : s ≤ t) => condMean_integral_eq (P := P)
+    (fun a b => integrableOn_zero) (fun a b => trapStep_integrableOn u T measure_Ioc_lt_top.ne)
+    (fun a b => trapStep_integrableOn g T measure_Ioc_lt_top.ne) hν ⟨Kν, hKν⟩
+    hx ⟨Kx, hKx⟩ hπ ⟨Kπ, hKπ⟩ h hs hA t ht
+  have hGx : ∀ b, IntegrableOn (fun r => σ * (p * 0 - mπ r - (p * trapStep u T r + mν r)))
+      (Set.Icc s b) := fun b =>
+    ((((integrableOn_const (by simp)).sub (hiπ b)).sub (((itr u b).const_mul p).add
+      (hiν b))).const_mul σ)
+  have hGπ : ∀ b, IntegrableOn (fun r => ρ * mπ r - κ * (mx r + p * trapStep g T r))
+      (Set.Icc s b) := fun b =>
+    ((hiπ b).const_mul ρ).sub (((hix b).add ((itr g b).const_mul p)).const_mul κ)
+  have hcx : ContinuousOn mx (Set.Ici s) := continuousOn_of_intForm hGx fun t ht => (hcm t ht).1
+  have hcπ : ContinuousOn mπ (Set.Ici s) :=
+    continuousOn_of_intForm hGπ fun t ht => (hcm t ht).2
+  -- the unstable combination, integrated over `A`
+  have hun : ∀ r, s ≤ r → lf * mπ r - κ * mx r = p * (lf * W0 r - κ * X0 r) + d * mν r := by
+    intro r hr
+    have hr0 := hs.trans hr
+    have e := integral_congr_ae (μ := P.restrict A) (ae_restrict_of_ae
+      (unstable_natural hσ hκ hη hν ⟨Kν, hKν⟩ hνd hx ⟨Kx, hKx⟩ hπ ⟨Kπ, hKπ⟩ h hr0))
+    rw [integral_sub ((hKπ r hr0).1.integrableOn.const_mul lf)
+        ((hKx r hr0).1.integrableOn.const_mul κ),
+      integral_add (integrable_const _) ((hKν r hr0).1.integrableOn.const_mul d),
+      integral_const_mul, integral_const_mul, integral_const_mul, setIntegral_const,
+      smul_eq_mul] at e
+    simp only [mx, mπ, mν, W0, X0, p, lf, d]
+    linarith
+  have hnu : ∀ r, s ≤ r → mν r = Real.exp (-η * (r - s)) * mν s := fun r hr =>
+    setIntegral_nu hν ⟨Kν, hKν⟩ hνd hs hA hr
+  -- the deviation `G = mπ − p W0 − d mν(s) k(· − s)` decays at `λ^b`
+  have hp := wPath_isPath (ρ := ρ) hκ hσ T u g 0
+  set G : ℝ → ℝ := fun r => mπ r - p * W0 r - d * mν s * natK lb η (r - s) with hGdef
+  have hGc : ContinuousOn G (Set.Ici s) :=
+    (hcπ.sub (continuousOn_const.mul (wPi_continuous σ κ ρ T u g 0 hκ hσ).continuousOn)).sub
+      (continuousOn_const.mul ((continuous_natK lb η).comp
+        (continuous_id.sub continuous_const)).continuousOn)
+  have hGd : ∀ r, s < r → r ∉ ({T} : Set ℝ) → HasDerivAt G (-lb * G r) r := by
+    intro r hr hrT
+    have hrT' : r ≠ T := hrT
+    have ca : ∀ {m : ℝ → ℝ}, ContinuousOn m (Set.Ici s) → ContinuousAt m r := fun hm =>
+      hm.continuousAt (Ici_mem_nhds hr)
+    have dπ := TidyR7StochWerningNatural.hasDerivAt_of_intForm_at hGπ (fun t ht => (hcm t ht).2)
+      hr (((ca hcπ).const_mul ρ).sub (((ca hcx).add ((trapStep_continuousAt g hrT').const_mul
+        p)).const_mul κ))
+    have dW := (hp.2.2 r (hs.trans_lt hr) hrT).2
+    have dk : HasDerivAt (fun r => natK lb η (r - s))
+        (-lb * natK lb η (r - s) + Real.exp (-(η * (r - s)))) r := by
+      exact (hasDerivAt_natK lb η (r - s)).comp_sub_const r s
+    refine ((dπ.sub (dW.const_mul p)).sub (dk.const_mul (d * mν s))).congr_deriv ?_
+    have h1 := hun r hr.le
+    have h2 := hnu r hr.le
+    have he : Real.exp (-η * (r - s)) = Real.exp (-(η * (r - s))) := by ring_nf
+    rw [he] at h2
+    simp only [G]
+    linear_combination h1 - (mπ r - p * W0 r) * hsub + d * h2
+  have hsol := linear_ode_Ici (Set.countable_singleton T) hGc hGd t hst
+  simp only [G, sub_self, natK_zero, mul_zero, sub_zero] at hsol
+  have he : Real.exp (-lb * (t - s)) = Real.exp (-(lb * (t - s))) := by ring_nf
+  rw [he] at hsol
+  change mπ t = _
+  linarith
+
+/-- **Cochrane (2023), (20.8)–(20.10), pp. 474–475, §20.2.4, p. 479, under natural-rate shocks:
+expected inflation.** In every regular `L¹`-bounded equilibrium with `i = 0`, natural rate
+`trapStep u T + ν` (`E_t dν = −ην dt`, `η ≥ 0`) and disturbance `trapStep g T`,
+`E_s π_t = wPi(0)_t + e^{−λ^b(t−s)}(π_s − wPi(0)_s) + d k(t − s) ν_s` almost surely, for
+`t ≥ s ≥ 0`, with `d = −κσ/(λ^f + η)` (`TidyR7StochWerningNatural.natD`) and `k = natK`.
+With `ν = 0` this is `TidyR7StochWerningTrap.condExp_pi_eq`. -/
+theorem condExp_pi_nat [IsProbabilityMeasure P] {σ ρ κ η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    (hη : 0 ≤ η) {𝓕 : Filtration ℝ mΩ} {T u g : ℝ} {ν x π : ℝ → Ω → ℝ} (hν : Regular 𝓕 ν)
+    (hνb : BddL1 P ν) (hνd : ExpDrift P 𝓕 ν (fun r ω => -(η * ν r ω))) (hx : Regular 𝓕 x)
+    (hxb : BddL1 P x) (hπ : Regular 𝓕 π) (hπb : BddL1 P π)
+    (h : IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep g T) ν x π) {s t : ℝ}
+    (hs : 0 ≤ s) (hst : s ≤ t) :
+    P[π t | 𝓕 s] =ᵐ[P] fun ω => wPi σ κ ρ T u g 0 t +
+      Real.exp (-(lamb ρ κ σ * (t - s))) * (π s ω - wPi σ κ ρ T u g 0 s) +
+      natD σ κ ρ η * natK (lamb ρ κ σ) η (t - s) * ν s ω := by
+  obtain ⟨Kν, hKν⟩ := hνb
+  obtain ⟨Kπ, hKπ⟩ := hπb
+  have hπs := (hKπ s hs).1
+  have hνs := (hKν s hs).1
+  have hint : Integrable (fun ω => wPi σ κ ρ T u g 0 t +
+      Real.exp (-(lamb ρ κ σ * (t - s))) * (π s ω - wPi σ κ ρ T u g 0 s) +
+      natD σ κ ρ η * natK (lamb ρ κ σ) η (t - s) * ν s ω) P :=
+    ((integrable_const _).add ((hπs.sub (integrable_const _)).const_mul _)).add
+      (hνs.const_mul _)
+  have h1 : (fun ω => wPi σ κ ρ T u g 0 t +
+      Real.exp (-(lamb ρ κ σ * (t - s))) * (π s ω - wPi σ κ ρ T u g 0 s) +
+      natD σ κ ρ η * natK (lamb ρ κ σ) η (t - s) * ν s ω) =ᵐ[P] P[π t | 𝓕 s] :=
+    ae_eq_condExp_of_forall_setIntegral_eq (𝓕.le s) (hKπ t (hs.trans hst)).1
+      (fun _ _ _ => hint.integrableOn)
+      (fun A hA _ => by
+        calc ∫ ω in A, (wPi σ κ ρ T u g 0 t +
+              Real.exp (-(lamb ρ κ σ * (t - s))) * (π s ω - wPi σ κ ρ T u g 0 s) +
+              natD σ κ ρ η * natK (lamb ρ κ σ) η (t - s) * ν s ω) ∂P
+            = ∫ ω in A, ((wPi σ κ ρ T u g 0 t - Real.exp (-(lamb ρ κ σ * (t - s))) *
+                wPi σ κ ρ T u g 0 s) + Real.exp (-(lamb ρ κ σ * (t - s))) * π s ω +
+              natD σ κ ρ η * natK (lamb ρ κ σ) η (t - s) * ν s ω) ∂P := by
+                congr 1; funext ω; ring
+          _ = _ := setIntegral_affine hπs hνs _ _ _ A
+          _ = ∫ ω in A, π t ω ∂P := by
+                rw [setIntegral_pi_nat hσ hκ hη hν ⟨Kν, hKν⟩ hνd hx hxb hπ ⟨Kπ, hKπ⟩ h hs hA
+                  hst]
+                ring)
+      ((stronglyMeasurable_const.add (stronglyMeasurable_const.mul ((hπ.2 s).sub
+        stronglyMeasurable_const))).add
+          (stronglyMeasurable_const.mul (hν.2 s))).aestronglyMeasurable
+  exact h1.symm
+
+/-- **Cochrane (2023), (20.10), p. 475, under natural-rate shocks: expected output.** In the
+setting of `condExp_pi_nat`,
+`E_s x_t = wX(0)_t + (λ^f/κ)(e^{−λ^b(t−s)}(π_s − wPi(0)_s) + d k(t − s) ν_s) −
+(d/κ)e^{−η(t−s)} ν_s` almost surely.
+Generalises `TidyR7StochWerningTrap.condExp_x_eq`. -/
+theorem condExp_x_nat [IsProbabilityMeasure P] {σ ρ κ η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    (hη : 0 ≤ η) {𝓕 : Filtration ℝ mΩ} {T u g : ℝ} {ν x π : ℝ → Ω → ℝ} (hν : Regular 𝓕 ν)
+    (hνb : BddL1 P ν) (hνd : ExpDrift P 𝓕 ν (fun r ω => -(η * ν r ω))) (hx : Regular 𝓕 x)
+    (hxb : BddL1 P x) (hπ : Regular 𝓕 π) (hπb : BddL1 P π)
+    (h : IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep g T) ν x π) {s t : ℝ}
+    (hs : 0 ≤ s) (hst : s ≤ t) :
+    P[x t | 𝓕 s] =ᵐ[P] fun ω => wX σ κ ρ T u g 0 t + lamf ρ κ σ / κ *
+      (Real.exp (-(lamb ρ κ σ * (t - s))) * (π s ω - wPi σ κ ρ T u g 0 s) +
+        natD σ κ ρ η * natK (lamb ρ κ σ) η (t - s) * ν s ω) -
+      natD σ κ ρ η / κ * (Real.exp (-η * (t - s)) * ν s ω) := by
+  obtain ⟨Kν, hKν⟩ := hνb
+  obtain ⟨Kπ, hKπ⟩ := hπb
+  obtain ⟨Kx, hKx⟩ := hxb
+  have ht0 := hs.trans hst
+  have hπs := (hKπ s hs).1
+  have hνs := (hKν s hs).1
+  have hκ0 := hκ.ne'
+  set lf := lamf ρ κ σ
+  set lb := lamb ρ κ σ
+  set d := natD σ κ ρ η
+  have hint : Integrable (fun ω => wX σ κ ρ T u g 0 t + lf / κ *
+      (Real.exp (-(lb * (t - s))) * (π s ω - wPi σ κ ρ T u g 0 s) +
+        d * natK lb η (t - s) * ν s ω) - d / κ * (Real.exp (-η * (t - s)) * ν s ω)) P :=
+    ((integrable_const _).add ((((hπs.sub (integrable_const _)).const_mul _).add
+      (hνs.const_mul _)).const_mul _)).sub ((hνs.const_mul _).const_mul _)
+  have h1 : (fun ω => wX σ κ ρ T u g 0 t + lf / κ *
+      (Real.exp (-(lb * (t - s))) * (π s ω - wPi σ κ ρ T u g 0 s) +
+        d * natK lb η (t - s) * ν s ω) - d / κ * (Real.exp (-η * (t - s)) * ν s ω))
+      =ᵐ[P] P[x t | 𝓕 s] := by
+    refine ae_eq_condExp_of_forall_setIntegral_eq (𝓕.le s) (hKx t ht0).1
+      (fun _ _ _ => hint.integrableOn) (fun A hA _ => ?_)
+      (((stronglyMeasurable_const.add (stronglyMeasurable_const.mul
+        ((stronglyMeasurable_const.mul ((hπ.2 s).sub stronglyMeasurable_const)).add
+          (stronglyMeasurable_const.mul (hν.2 s))))).sub (stronglyMeasurable_const.mul
+            (stronglyMeasurable_const.mul (hν.2 s)))).aestronglyMeasurable)
+    have hπt := setIntegral_pi_nat hσ hκ hη hν ⟨Kν, hKν⟩ hνd hx ⟨Kx, hKx⟩ hπ ⟨Kπ, hKπ⟩ h hs
+      hA hst
+    have hνt := setIntegral_nu (P := P) hν ⟨Kν, hKν⟩ hνd hs hA hst
+    have e := integral_congr_ae (μ := P.restrict A) (ae_restrict_of_ae
+      (unstable_natural hσ hκ hη hν ⟨Kν, hKν⟩ hνd hx ⟨Kx, hKx⟩ hπ ⟨Kπ, hKπ⟩ h ht0))
+    rw [integral_sub ((hKπ t ht0).1.integrableOn.const_mul lf)
+        ((hKx t ht0).1.integrableOn.const_mul κ),
+      integral_add (integrable_const _) ((hKν t ht0).1.integrableOn.const_mul d),
+      integral_const_mul, integral_const_mul, integral_const_mul, setIntegral_const,
+      smul_eq_mul] at e
+    have ea : (fun ω => wX σ κ ρ T u g 0 t + lf / κ *
+        (Real.exp (-(lb * (t - s))) * (π s ω - wPi σ κ ρ T u g 0 s) +
+          d * natK lb η (t - s) * ν s ω) - d / κ * (Real.exp (-η * (t - s)) * ν s ω)) =
+        fun ω => (wX σ κ ρ T u g 0 t - lf / κ * (Real.exp (-(lb * (t - s))) *
+          wPi σ κ ρ T u g 0 s)) + lf / κ * Real.exp (-(lb * (t - s))) * π s ω +
+          (lf / κ * (d * natK lb η (t - s)) - d / κ * Real.exp (-η * (t - s))) * ν s ω := by
+      funext ω; ring
+    rw [ea, setIntegral_affine hπs hνs]
+    have key : κ * ∫ ω in A, x t ω ∂P = lf * ∫ ω in A, π t ω ∂P -
+        P.real A * (lf * wPi σ κ ρ T u g 0 t - κ * wX σ κ ρ T u g 0 t) -
+        d * ∫ ω in A, ν t ω ∂P := by linarith
+    have hq1 : κ * (lf / κ) = lf := mul_div_cancel₀ _ hκ0
+    have hq2 : κ * (d / κ) = d := mul_div_cancel₀ _ hκ0
+    apply mul_left_cancel₀ hκ0
+    rw [key, hπt, hνt]
+    linear_combination (Real.exp (-(lb * (t - s))) * ∫ ω in A, π s ω ∂P -
+      P.real A * Real.exp (-(lb * (t - s))) * wPi σ κ ρ T u g 0 s +
+      d * natK lb η (t - s) * ∫ ω in A, ν s ω ∂P) * hq1 -
+      (Real.exp (-η * (t - s)) * ∫ ω in A, ν s ω ∂P) * hq2
+  exact h1.symm
+
+/-! ## Mean-square bounds for the explicit equilibria -/
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): sums of `L²`-bounded processes are
+`L²`-bounded.
+The `L²` analogue of `TidyR7StochWerningNaturalExist.BddL1.add`. -/
+theorem BddL2.add {Z₁ Z₂ : ℝ → Ω → ℝ} (h₁ : BddL2 P Z₁) (h₂ : BddL2 P Z₂) :
+    BddL2 P (fun t ω => Z₁ t ω + Z₂ t ω) := by
+  obtain ⟨K₁, hK₁⟩ := h₁
+  obtain ⟨K₂, hK₂⟩ := h₂
+  refine ⟨2 * K₁ + 2 * K₂, fun t ht => ⟨(hK₁ t ht).1.add (hK₂ t ht).1, ?_⟩⟩
+  have i1 := (hK₁ t ht).1.integrable_sq
+  have i2 := (hK₂ t ht).1.integrable_sq
+  calc ∫ ω, (Z₁ t ω + Z₂ t ω) ^ 2 ∂P ≤ ∫ ω, (2 * Z₁ t ω ^ 2 + 2 * Z₂ t ω ^ 2) ∂P := by
+        refine integral_mono ((hK₁ t ht).1.add (hK₂ t ht).1).integrable_sq
+          ((i1.const_mul 2).add (i2.const_mul 2)) fun ω => ?_
+        nlinarith [sq_nonneg (Z₁ t ω - Z₂ t ω)]
+    _ = 2 * ∫ ω, Z₁ t ω ^ 2 ∂P + 2 * ∫ ω, Z₂ t ω ^ 2 ∂P := by
+        rw [integral_add (i1.const_mul 2) (i2.const_mul 2), integral_const_mul,
+          integral_const_mul]
+    _ ≤ 2 * K₁ + 2 * K₂ := by linarith [(hK₁ t ht).2, (hK₂ t ht).2]
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): multiples of `L²`-bounded processes are
+`L²`-bounded.
+The `L²` analogue of `TidyR7StochWerningNaturalExist.BddL1.const_mul`. -/
+theorem BddL2.const_mul {Z : ℝ → Ω → ℝ} (h : BddL2 P Z) (c : ℝ) :
+    BddL2 P (fun t ω => c * Z t ω) := by
+  obtain ⟨K, hK⟩ := h
+  refine ⟨c ^ 2 * K, fun t ht => ⟨(hK t ht).1.const_mul c, ?_⟩⟩
+  calc ∫ ω, (c * Z t ω) ^ 2 ∂P = c ^ 2 * ∫ ω, Z t ω ^ 2 ∂P := by
+        rw [← integral_const_mul]; congr 1; funext ω; ring
+    _ ≤ c ^ 2 * K := mul_le_mul_of_nonneg_left (hK t ht).2 (sq_nonneg c)
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): a bounded deterministic path is `L²`-bounded.
+The `L²` analogue of `TidyR7StochWerningNaturalExist.bddL1_det`. -/
+theorem bddL2_det [IsProbabilityMeasure P] {f : ℝ → ℝ} (hf : BddOnIci f) :
+    BddL2 P (fun t _ => f t) := by
+  obtain ⟨K, hK⟩ := hf
+  refine ⟨K ^ 2, fun t ht => ⟨memLp_const _, ?_⟩⟩
+  simp only [integral_const, probReal_univ, one_smul]
+  have := hK t ht
+  nlinarith [abs_nonneg (f t), sq_abs (f t)]
+
+/-- Cochrane (2023), §20.2.2, p. 475 (tool): **Cauchy–Schwarz for the smoothing**,
+`(∫_0^t w f)² ≤ (∫_0^t w)(∫_0^t w f²)` for a positive continuous weight `w` and continuous `f`,
+`t > 0`.
+A case of Mathlib `integral_mul_le_Lp_mul_Lq_of_nonneg`. -/
+theorem sq_integral_weight_le {w f : ℝ → ℝ} (hw : Continuous w) (hwp : ∀ u, 0 < w u)
+    (hf : Continuous f) {t : ℝ} (ht : 0 < t) :
+    (∫ u in (0 : ℝ)..t, w u * f u) ^ 2 ≤
+      (∫ u in (0 : ℝ)..t, w u) * ∫ u in (0 : ℝ)..t, w u * f u ^ 2 := by
+  set Wt := ∫ u in (0 : ℝ)..t, w u
+  set I := ∫ u in (0 : ℝ)..t, w u * f u
+  set J := ∫ u in (0 : ℝ)..t, w u * f u ^ 2
+  have hW : 0 < Wt := intervalIntegral.intervalIntegral_pos_of_pos_on
+    (hw.intervalIntegrable 0 t) (fun u _ => hwp u) ht
+  have i1 : IntervalIntegrable (fun u => w u * f u ^ 2) volume 0 t :=
+    (hw.mul (hf.pow 2)).intervalIntegrable 0 t
+  have i2 : IntervalIntegrable (fun u => w u * f u) volume 0 t :=
+    (hw.mul hf).intervalIntegrable 0 t
+  have i3 : IntervalIntegrable w volume 0 t := hw.intervalIntegrable 0 t
+  have h0 : 0 ≤ ∫ u in (0 : ℝ)..t, w u * (Wt * f u - I) ^ 2 :=
+    intervalIntegral.integral_nonneg ht.le fun u _ => mul_nonneg (hwp u).le (sq_nonneg _)
+  have e : (∫ u in (0 : ℝ)..t, w u * (Wt * f u - I) ^ 2) = Wt ^ 2 * J - 2 * Wt * I * I +
+      I ^ 2 * Wt := by
+    have e1 : (fun u => w u * (Wt * f u - I) ^ 2) =
+        fun u => Wt ^ 2 * (w u * f u ^ 2) - 2 * Wt * I * (w u * f u) + I ^ 2 * w u := by
+      funext u
+      ring
+    rw [e1, intervalIntegral.integral_add ((i1.const_mul _).sub (i2.const_mul _))
+        (i3.const_mul _), intervalIntegral.integral_sub (i1.const_mul _) (i2.const_mul _),
+      intervalIntegral.integral_const_mul, intervalIntegral.integral_const_mul,
+      intervalIntegral.integral_const_mul]
+  rw [e] at h0
+  have : 0 ≤ Wt * (Wt * J - I ^ 2) := by nlinarith
+  nlinarith [(mul_nonneg_iff_of_pos_left hW).1 this]
+
+/-- Cochrane (2023), §20.2.2, p. 475: the smoothing as a weighted integral,
+`chiProc λ Z_t = ∫_0^t e^{−λ(t−u)} Z_u du`. -/
+theorem chiProc_eq_integral (lam : ℝ) (Z : ℝ → Ω → ℝ) (t : ℝ) (ω : Ω) :
+    chiProc lam Z t ω = ∫ u in (0 : ℝ)..t, Real.exp (-(lam * (t - u))) * Z u ω := by
+  simp only [chiProc, ouPrim]
+  rw [← intervalIntegral.integral_const_mul]
+  refine intervalIntegral.integral_congr fun u _ => ?_
+  change Real.exp (-lam * t) * (Real.exp (lam * u) * Z u ω) = _
+  rw [← mul_assoc, ← Real.exp_add]
+  ring_nf
+
+/-- Cochrane (2023), §20.2.2, p. 475: **`χ_t² ≤ chiProc λ (Z²)_t / λ`** for `λ > 0`, `t ≥ 0` and
+continuous paths. -/
+theorem sq_chiProc_le {lam : ℝ} (hlam : 0 < lam) {Z : ℝ → Ω → ℝ}
+    (hZ : ∀ ω, Continuous fun t => Z t ω) {t : ℝ} (ht : 0 ≤ t) (ω : Ω) :
+    chiProc lam Z t ω ^ 2 ≤ (1 / lam) * chiProc lam (fun r ω => Z r ω ^ 2) t ω := by
+  rw [chiProc_eq_integral, chiProc_eq_integral]
+  rcases ht.eq_or_lt with h0 | hpos
+  · subst h0
+    simp
+  have hwc : Continuous fun u => Real.exp (-(lam * (t - u))) := by fun_prop
+  have hcs := sq_integral_weight_le hwc (fun u => Real.exp_pos _) (hZ ω) hpos
+  have hJ : 0 ≤ ∫ u in (0 : ℝ)..t, Real.exp (-(lam * (t - u))) * Z u ω ^ 2 :=
+    intervalIntegral.integral_nonneg hpos.le fun u _ => mul_nonneg (Real.exp_pos _).le
+      (sq_nonneg _)
+  exact hcs.trans (mul_le_mul_of_nonneg_right (integral_exp_decay_le hlam t) hJ)
+
+variable {W : ℝ≥0 → Ω → ℝ}
+
+/-- Cochrane (2023), §20.2.2, p. 475: **the smoothing of an `L²`-bounded regular process is
+`L²`-bounded** (`λ > 0`), on the Brownian filtration. -/
+theorem bddL2_chiProc [IsProbabilityMeasure P] (hW : ∀ t, Measurable (W t)) {Z : ℝ → Ω → ℝ}
+    (hZ : Regular (bmFiltrationReal W hW) Z) (hZb : BddL2 P Z) {lam : ℝ} (hlam : 0 < lam) :
+    BddL2 P (chiProc lam Z) := by
+  obtain ⟨K, hK⟩ := hZb
+  have hZ2 : Regular (bmFiltrationReal W hW) (fun r ω => Z r ω ^ 2) :=
+    ⟨fun ω => (hZ.1 ω).pow 2, fun t => (hZ.2 t).pow 2⟩
+  have hZ2b : BddL1 P (fun r ω => Z r ω ^ 2) := ⟨K, fun t ht => ⟨(hK t ht).1.integrable_sq, by
+    simp only [abs_pow, sq_abs]; exact (hK t ht).2⟩⟩
+  obtain ⟨K', hK'⟩ := bddL1_chiProc hW hZ2 hZ2b hlam
+  refine ⟨(1 / lam) * K', fun t ht => ?_⟩
+  have hχm : AEStronglyMeasurable (chiProc lam Z t) P :=
+    ((regular_chiProc hW hZ lam).2 t).mono ((bmFiltrationReal W hW).le t) |>.aestronglyMeasurable
+  have hb := sq_chiProc_le hlam hZ.1 ht
+  have hi := ((hK' t ht).1.const_mul (1 / lam))
+  have hsq : Integrable (fun ω => chiProc lam Z t ω ^ 2) P :=
+    hi.mono' (hχm.pow 2) (Eventually.of_forall fun ω => by
+      rw [Real.norm_eq_abs, abs_of_nonneg (sq_nonneg _)]
+      exact hb ω)
+  refine ⟨(memLp_two_iff_integrable_sq hχm).2 hsq, ?_⟩
+  calc ∫ ω, chiProc lam Z t ω ^ 2 ∂P ≤ ∫ ω, (1 / lam) * chiProc lam (fun r ω => Z r ω ^ 2) t ω ∂P :=
+        integral_mono hsq hi hb
+    _ ≤ ∫ ω, (1 / lam) * |chiProc lam (fun r ω => Z r ω ^ 2) t ω| ∂P :=
+        integral_mono hi ((hK' t ht).1.abs.const_mul _) fun ω =>
+          mul_le_mul_of_nonneg_left (le_abs_self _) (by positivity)
+    _ = (1 / lam) * ∫ ω, |chiProc lam (fun r ω => Z r ω ^ 2) t ω| ∂P := integral_const_mul _ _
+    _ ≤ (1 / lam) * K' := mul_le_mul_of_nonneg_left (hK' t ht).2 (by positivity)
+
+/-- Cochrane (2023), §20.2.2, p. 474: the OU process is `L²`-bounded (`η > 0`).
+Restates `TidyR7StochWerningExist.ouProc_sq_le`; a special case of
+`TidyR7StochWerningExist.bddL2_add_ou`. -/
+theorem bddL2_ou [IsProbabilityMeasure P] (hB : IsPreBrownianReal W P)
+    (hW : ∀ t, Measurable (W t)) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) {η : ℝ} (hη : 0 < η) (sν : ℝ) : BddL2 P (ouProc η 0 0 sν W) :=
+  ⟨sν ^ 2 / (2 * η), fun _ ht => ouProc_sq_le hB hW hcont hW0 hη sν ht⟩
+
+/-- **Cochrane (2023), §20.2.2, p. 474, with natural-rate shocks: the inflation process is
+bounded in mean square** (`η > 0`).
+Strengthens `TidyR7StochWerningNaturalExist.bddL1_natPi`. -/
+theorem bddL2_natPi [IsProbabilityMeasure P] (hB : IsPreBrownianReal W P)
+    (hW : ∀ t, Measurable (W t)) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) {σ ρ κ η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hη : 0 < η)
+    (sν T u g πT b : ℝ) : BddL2 P (natPi σ κ ρ η sν T u g πT b W) := by
+  have hlb := lamb_pos (ρ := ρ) hκ hσ
+  exact BddL2.add (BddL2.add (bddL2_det (wPath_bdd (ρ := ρ) hκ hσ T u g πT).2)
+    (BddL2.const_mul (bddL2_chiProc hW (regular_ouProc hW hcont η 0 0 sν)
+      (bddL2_ou hB hW hcont hW0 hη sν) hlb) _)) (bddL2_ou hB hW hcont hW0 hlb b)
+
+/-- **Cochrane (2023), (20.10), p. 475, with natural-rate shocks: the output process is bounded
+in mean square** (`η > 0`).
+Strengthens `TidyR7StochWerningNaturalExist.bddL1_natX`. -/
+theorem bddL2_natX [IsProbabilityMeasure P] (hB : IsPreBrownianReal W P)
+    (hW : ∀ t, Measurable (W t)) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) {σ ρ κ η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hη : 0 < η)
+    (sν T u g πT b : ℝ) : BddL2 P (natX σ κ ρ η sν T u g πT b W) := by
+  have hlb := lamb_pos (ρ := ρ) hκ hσ
+  exact BddL2.add (BddL2.add (BddL2.add (bddL2_det (wPath_bdd (ρ := ρ) hκ hσ T u g πT).1)
+    (BddL2.const_mul (bddL2_chiProc hW (regular_ouProc hW hcont η 0 0 sν)
+      (bddL2_ou hB hW hcont hW0 hη sν) hlb) _))
+    (BddL2.const_mul (bddL2_ou hB hW hcont hW0 hlb b) _))
+    (BddL2.const_mul (bddL2_ou hB hW hcont hW0 hη sν) _)
+
+/-! ## Non-vacuity on the constructed Brownian motion -/
+
+open Cochrane.ZeroBound.TidyR7BrownianExist Cochrane.ZeroBound.TidyR7BrownianSchauder
+
+/-- Cochrane (2023), §20.2.2, pp. 474–475 (non-vacuity): on bmPath at the book's calibration
+(`ρ = 0.05`, `σ = κ = 1`, `T = 5`, `u = −2%`, `g = 0`) with the OU natural-rate shock
+`η = 1/2`, `s_ν = 1/100`, the explicit equilibrium with `π_T = 0`, `b = 0` is bounded in mean
+square and its expected inflation obeys `condExp_pi_nat` at every `0 ≤ s ≤ t`. -/
+theorem bmPath_condExp_pi_nat :
+    BddL2 gaussSeq (natPi 1 1 (1 / 20) (1 / 2) (1 / 100) 5 (-2 / 100) 0 0 0 bmPath) ∧
+      BddL2 gaussSeq (natX 1 1 (1 / 20) (1 / 2) (1 / 100) 5 (-2 / 100) 0 0 0 bmPath) ∧
+      ∀ s t, 0 ≤ s → s ≤ t →
+        gaussSeq[natPi 1 1 (1 / 20) (1 / 2) (1 / 100) 5 (-2 / 100) 0 0 0 bmPath t |
+          bmFiltrationReal bmPath measurable_bmPath s] =ᵐ[gaussSeq] fun ω =>
+          wPi 1 1 (1 / 20) 5 (-2 / 100) 0 0 t + Real.exp (-(lamb (1 / 20) 1 1 * (t - s))) *
+            (natPi 1 1 (1 / 20) (1 / 2) (1 / 100) 5 (-2 / 100) 0 0 0 bmPath s ω -
+              wPi 1 1 (1 / 20) 5 (-2 / 100) 0 0 s) +
+          natD 1 1 (1 / 20) (1 / 2) * natK (lamb (1 / 20) 1 1) (1 / 2) (t - s) *
+            ouProc (1 / 2) 0 0 (1 / 100) bmPath s ω := by
+  have := isProbabilityMeasure_gaussSeq
+  have hB := isPreBrownianReal_bmPath
+  have hη : (0 : ℝ) < 1 / 2 := by norm_num
+  refine ⟨bddL2_natPi hB measurable_bmPath continuous_bmPath bmPath_zero one_pos one_pos hη
+      _ _ _ _ _ _, bddL2_natX hB measurable_bmPath continuous_bmPath bmPath_zero one_pos one_pos
+      hη _ _ _ _ _ _, fun s t hs hst => ?_⟩
+  exact condExp_pi_nat one_pos one_pos hη.le
+    (regular_ouProc measurable_bmPath continuous_bmPath (1 / 2) 0 0 (1 / 100))
+    (bddL1_ou hB measurable_bmPath continuous_bmPath bmPath_zero hη _)
+    (expDrift_ou hB measurable_bmPath continuous_bmPath _ _)
+    (regular_natX measurable_bmPath continuous_bmPath one_pos one_pos _ _ _ _ _ _ _)
+    (bddL1_natX hB measurable_bmPath continuous_bmPath bmPath_zero one_pos one_pos hη
+      (ρ := 1 / 20) _ _ _ _ _ _)
+    (regular_natPi measurable_bmPath continuous_bmPath one_pos one_pos _ _ _ _ _ _ _)
+    (bddL1_natPi hB measurable_bmPath continuous_bmPath bmPath_zero one_pos one_pos hη
+      (ρ := 1 / 20) _ _ _ _ _ _)
+    (isStochEqm_nat hB measurable_bmPath continuous_bmPath one_pos one_pos hη.le _ _ _ _ _ _)
+    hs hst
+
+end Cochrane.ZeroBound.TidyR8StochWerningNaturalMean
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Which innovation processes occur: the equilibria are the martingales
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 20, §20.2.2, pp. 474–476
+(Figure 20.4: "multiple forward-stable equilibrium inflation paths, indexed by the free
+constant `C`", and the fiscal innovation of p. 476), under uncertainty.
+
+TidyR7StochWerningTrap shows that every regular `L¹`-bounded equilibrium of the trap experiment
+has `E_sπ_t = wPi(0)_t + e^{−λ^b(t−s)}(π_s − wPi(0)_s)`; TidyR7StochWerningExist builds
+equilibria with constant innovation loadings `b`. Here we describe **all** of them: with
+`M_t = e^{λ^b t}(π_t − wPi(0)_t)`,
+
+* **`martingale_of_isStochEqm`**: in every regular `L¹`-bounded equilibrium `M` is a continuous
+  adapted martingale (`E_s M_t = M_s`), `e^{−λ^b t}M_t` is `L¹`-bounded,
+  `π_t = wPi(0)_t + e^{−λ^b t}M_t` and `x_t = wX(0)_t + (λ^f/κ)e^{−λ^b t}M_t` almost surely;
+* **`isStochEqm_of_martingale`**: conversely every continuous adapted martingale `M` with
+  `e^{−λ^b t}M_t` bounded in `L¹` gives an equilibrium (`zPi`, `zX`), on any filtration.
+
+So the free constant `C` (equivalently `π_T`) of Figure 20.4 becomes a free martingale; the
+"innovation processes that occur" are exactly the increments of such martingales. Which
+martingales exist on the natural filtration of a Brownian motion is the content of the
+martingale representation theorem (`M_t = M_0 + ∫_0^t H dW` with `H` adapted), which is not
+available here; we do not need it for the description above, only to express `M` as a
+stochastic integral.
+
+Existence with **deterministic time-varying loadings** `b(u)` (`C¹`, bounded with its
+derivative continuous) through Wiener integrals: `M_t = ∫_0^t e^{λ^b u} b(u) dW_u`, in the
+pathwise by-parts form `wienerBP` (`wienerM`), is a continuous adapted martingale
+(`condExp_wienerBP`, `martingale_wienerM`), and `ζ_t = e^{−λ^b t}M_t` is bounded in mean square
+(`integral_zetaB_sq_le`); hence **`isStochEqm_loading`**: the equilibrium with
+innovations `dπ_t = b(t) dW_t`, `dx_t = (λ^f/κ)b(t) dW_t` exists and is `L²`-bounded. Continuous
+loadings that are not `C¹` would need the Itô integral as a continuous adapted process (its
+continuous modification is not shown adapted here). Non-vacuity on bmPath with `b = cos`:
+`bmPath_loading_cos`.
+-/
+
+namespace Cochrane.ZeroBound.TidyR8StochWerningMartingale
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.ZeroBound.ContinuousTimeNK Cochrane.ZeroBound.WerningModel
+open Cochrane.ZeroBound.TidyR7StochWerning Cochrane.ZeroBound.TidyR7StochWerningTrap
+open Cochrane.ZeroBound.TidyR7StochWerningExist Cochrane.ZeroBound.TidyR7StochWerningNaturalExist
+open Cochrane.ZeroBound.TidyR8StochWerningNaturalMean
+open Cochrane.ZeroBound.TidyR7BrownianTools Cochrane.ZeroBound.TidyR7WienerGaussian
+open Cochrane.ZeroBound.TidyR7ItoIntegral
+open scoped NNReal
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω}
+
+/-! ## Brackets -/
+
+/-- Cochrane (2023), (20.5)–(20.6), p. 474 (tool): if the bracket of `Z'` is `c` times the
+bracket of `Z` and `E_t dZ = D dt`, then `E_t dZ' = D' dt`. -/
+theorem expDrift_of_bracket_eq {𝓕 : Filtration ℝ mΩ} {Z D Z' D' : ℝ → Ω → ℝ}
+    (h : ExpDrift P 𝓕 Z D) (c : ℝ)
+    (he : ∀ s t, 0 ≤ s → s ≤ t → ∀ ω, Z' t ω - Z' s ω - ∫ r in s..t, D' r ω =
+      c * (Z t ω - Z s ω - ∫ r in s..t, D r ω)) : ExpDrift P 𝓕 Z' D' := by
+  intro s t hs hst
+  obtain ⟨h1, h2⟩ := h s t hs hst
+  have e : (fun ω => Z' t ω - Z' s ω - ∫ r in s..t, D' r ω) =
+      c • fun ω => Z t ω - Z s ω - ∫ r in s..t, D r ω := by
+    funext ω
+    simp [he s t hs hst ω]
+  rw [e]
+  refine ⟨h1.const_mul c, ?_⟩
+  filter_upwards [condExp_smul (μ := P) c (fun ω => Z t ω - Z s ω - ∫ r in s..t, D r ω)
+    (𝓕 s), h2] with ω e1 e2
+  rw [e1, Pi.smul_apply, e2]
+  simp
+
+/-- Cochrane (2023), §20.2.2, p. 475: the inflation process `π = wPi(π_T) + ζ` driven by a
+stable-direction innovation process `ζ`. -/
+noncomputable def zPi (σ κ ρ T u g πT : ℝ) (ζ : ℝ → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  wPi σ κ ρ T u g πT t + ζ t ω
+
+/-- Cochrane (2023), (20.10), p. 475: the output process `x = wX(π_T) + (λ^f/κ)ζ`. -/
+noncomputable def zX (σ κ ρ T u g πT : ℝ) (ζ : ℝ → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  wX σ κ ρ T u g πT t + lamf ρ κ σ / κ * ζ t ω
+
+/-- **Cochrane (2023), (20.5)–(20.6), p. 474: any stable-direction innovation gives an
+equilibrium.** If `ζ` has continuous paths and `E_t dζ = −λ^b ζ dt`, then
+`(wX(π_T) + (λ^f/κ)ζ, wPi(π_T) + ζ)` is a stochastic equilibrium of the trap experiment.
+Generalises `TidyR7StochWerningExist.isStochEqm_eq`. -/
+theorem isStochEqm_of_zeta {σ ρ κ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) {𝓕 : Filtration ℝ mΩ}
+    (T u g πT : ℝ) {ζ : ℝ → Ω → ℝ} (hζc : ∀ ω, Continuous fun t => ζ t ω)
+    (hζ : ExpDrift P 𝓕 ζ (fun r ω => -(lamb ρ κ σ * ζ r ω))) :
+    IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep g T) (fun _ _ => 0)
+      (zX σ κ ρ T u g πT ζ) (zPi σ κ ρ T u g πT ζ) := by
+  have hsub := lamf_sub_lamb ρ κ σ
+  have hc : lamf ρ κ σ / κ * lamb ρ κ σ = σ := by
+    have := lamf_mul_lamb (ρ := ρ) hκ hσ
+    field_simp
+    linarith
+  have hWc := wPi_continuous σ κ ρ T u g πT hκ hσ
+  have hXc := wX_continuous σ κ ρ T u g πT hκ hσ
+  refine ⟨expDrift_of_bracket_eq hζ (lamf ρ κ σ / κ) fun s t hs hst ω => ?_,
+    expDrift_of_bracket_eq hζ 1 fun s t hs hst ω => ?_⟩
+  · obtain ⟨d1, -⟩ := wPath_intForm (ρ := ρ) hκ hσ T u g πT hs hst
+    have i1 : IntervalIntegrable (fun r => σ * (0 - wPi σ κ ρ T u g πT r - trapStep u T r))
+        volume s t := ((intervalIntegrable_const.sub (hWc.intervalIntegrable s t)).sub
+          (trapStep_intervalIntegrable u T s t)).const_mul σ
+    have i2 : IntervalIntegrable (fun r => σ * ζ r ω) volume s t :=
+      ((hζc ω).intervalIntegrable s t).const_mul σ
+    have e : (∫ r in s..t, σ * (0 - zPi σ κ ρ T u g πT ζ r ω - (trapStep u T r + 0))) =
+        (∫ r in s..t, σ * (0 - wPi σ κ ρ T u g πT r - trapStep u T r)) -
+          σ * ∫ r in s..t, ζ r ω := by
+      rw [← intervalIntegral.integral_const_mul, ← intervalIntegral.integral_sub i1 i2]
+      refine intervalIntegral.integral_congr fun r _ => ?_
+      simp only [zPi]
+      ring
+    have e2 : (∫ r in s..t, -(lamb ρ κ σ * ζ r ω)) = -(lamb ρ κ σ * ∫ r in s..t, ζ r ω) := by
+      rw [intervalIntegral.integral_neg, intervalIntegral.integral_const_mul]
+    simp only [zX]
+    rw [e, e2, ← d1]
+    linear_combination (-(∫ r in s..t, ζ r ω)) * hc
+  · obtain ⟨-, d2⟩ := wPath_intForm (ρ := ρ) hκ hσ T u g πT hs hst
+    have i1 : IntervalIntegrable (fun r => ρ * wPi σ κ ρ T u g πT r -
+        κ * (wX σ κ ρ T u g πT r + trapStep g T r)) volume s t :=
+      ((hWc.intervalIntegrable s t).const_mul ρ).sub (((hXc.intervalIntegrable s t).add
+        (trapStep_intervalIntegrable g T s t)).const_mul κ)
+    have i2 : IntervalIntegrable (fun r => (ρ - lamf ρ κ σ) * ζ r ω) volume s t :=
+      ((hζc ω).intervalIntegrable s t).const_mul _
+    have e : (∫ r in s..t, (ρ * zPi σ κ ρ T u g πT ζ r ω -
+        κ * (zX σ κ ρ T u g πT ζ r ω + trapStep g T r))) =
+        (∫ r in s..t, (ρ * wPi σ κ ρ T u g πT r - κ * (wX σ κ ρ T u g πT r + trapStep g T r))) +
+          (ρ - lamf ρ κ σ) * ∫ r in s..t, ζ r ω := by
+      rw [← intervalIntegral.integral_const_mul, ← intervalIntegral.integral_add i1 i2]
+      refine intervalIntegral.integral_congr fun r _ => ?_
+      simp only [zPi, zX]
+      field_simp
+      ring
+    have e2 : (∫ r in s..t, -(lamb ρ κ σ * ζ r ω)) = -(lamb ρ κ σ * ∫ r in s..t, ζ r ω) := by
+      rw [intervalIntegral.integral_neg, intervalIntegral.integral_const_mul]
+    rw [e, e2]
+    simp only [zPi]
+    rw [← d2]
+    linear_combination (∫ u in s..t, ζ u ω) * hsub
+
+/-! ## From martingales to equilibria -/
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): for a process with continuous paths, measurable
+time sections and bounded first moments, `∫_A ∫_s^t Z_r dr = ∫_s^t ∫_A Z_r dr` (Fubini). -/
+theorem setIntegral_intervalIntegral_swap [IsFiniteMeasure P] {Z : ℝ → Ω → ℝ}
+    (hc : ∀ ω, Continuous fun t => Z t ω) (hm : ∀ t, Measurable (Z t)) {K : ℝ}
+    (hK : ∀ t, 0 ≤ t → Integrable (Z t) P ∧ ∫ ω, |Z t ω| ∂P ≤ K) {s t : ℝ} (hs : 0 ≤ s)
+    (hst : s ≤ t) (A : Set Ω) :
+    ∫ ω in A, (∫ r in s..t, Z r ω) ∂P = ∫ r in s..t, ∫ ω in A, Z r ω ∂P := by
+  have hD := integrable_prod_proc (P := P) hc hm hK hs (b := t)
+  simp only [intervalIntegral.integral_of_le hst]
+  have hDA : Integrable (Function.uncurry Z)
+      ((volume.restrict (Set.Ioc s t)).prod (P.restrict A)) := by
+    have he : (volume.restrict (Set.Ioc s t)).prod (P.restrict A)
+        = ((volume.restrict (Set.Ioc s t)).prod P).restrict (Set.univ ×ˢ A) := by
+      rw [← Measure.prod_restrict, Measure.restrict_univ]
+    rw [he]
+    exact hD.restrict
+  exact (integral_integral_swap hDA).symm
+
+/-- Cochrane (2023), §20.2.2, p. 475: `∫_s^t e^{−λr} dr = (e^{−λs} − e^{−λt})/λ`.
+`WerningModel.integral_exp_fwd` at `c = 1`, `t = 0`. -/
+theorem integral_exp_neg (lam : ℝ) (hlam : lam ≠ 0) (s t : ℝ) :
+    ∫ r in s..t, Real.exp (-(lam * r)) = (Real.exp (-(lam * s)) - Real.exp (-(lam * t))) / lam := by
+  have hd : ∀ x ∈ Set.uIcc s t, HasDerivAt (fun r => -Real.exp (-(lam * r)) / lam)
+      (Real.exp (-(lam * x))) x := fun x _ => by
+    have h1 : HasDerivAt (fun r => Real.exp (-(lam * r))) (Real.exp (-(lam * x)) * -lam) x := by
+      simpa using ((hasDerivAt_id' x).const_mul lam).neg.exp
+    refine (h1.neg.div_const lam).congr_deriv ?_
+    field_simp
+  rw [intervalIntegral.integral_eq_sub_of_hasDerivAt hd
+    ((by fun_prop : Continuous fun r => Real.exp (-(lam * r))).intervalIntegrable s t)]
+  ring
+
+/-- **Cochrane (2023), §20.2.2, p. 475: a martingale gives a stable-direction innovation.** If
+`M` has continuous paths and measurable sections, is a martingale on `[0, ∞)`
+(`E_s M_t = M_s`) and `ζ_t = e^{−λt}M_t` is `L¹`-bounded, then `E_t dζ = −λζ dt`. -/
+theorem expDrift_zeta_of_martingale [IsProbabilityMeasure P] {𝓕 : Filtration ℝ mΩ}
+    {lam : ℝ} (hlam : 0 < lam) {M : ℝ → Ω → ℝ} (hMc : ∀ ω, Continuous fun t => M t ω)
+    (hMm : ∀ t, StronglyMeasurable[𝓕 t] (M t))
+    (hmart : ∀ s t, 0 ≤ s → s ≤ t → P[M t | 𝓕 s] =ᵐ[P] M s)
+    (hζb : BddL1 P (fun t ω => Real.exp (-(lam * t)) * M t ω)) :
+    ExpDrift P 𝓕 (fun t ω => Real.exp (-(lam * t)) * M t ω)
+      (fun r ω => -(lam * (Real.exp (-(lam * r)) * M r ω))) := by
+  obtain ⟨K, hK⟩ := hζb
+  set ζ : ℝ → Ω → ℝ := fun t ω => Real.exp (-(lam * t)) * M t ω with hζdef
+  have hζc : ∀ ω, Continuous fun t => ζ t ω := fun ω => (by fun_prop : Continuous fun t : ℝ =>
+    Real.exp (-(lam * t))).mul (hMc ω)
+  have hζm : ∀ t, Measurable (ζ t) := fun t =>
+    (stronglyMeasurable_const.mul ((hMm t).mono (𝓕.le t))).measurable
+  have hMi : ∀ t, 0 ≤ t → Integrable (M t) P := fun t ht => by
+    have := (hK t ht).1.const_mul (Real.exp (lam * t))
+    refine this.congr (Eventually.of_forall fun ω => ?_)
+    simp only [hζdef, ← mul_assoc, ← Real.exp_add]
+    simp
+  intro s t hs hst
+  have hI : Integrable (fun ω => ∫ r in s..t, ζ r ω) P := by
+    have := (integrable_prod_proc (P := P) hζc hζm hK hs (b := t)).integral_prod_right
+    refine this.congr (Eventually.of_forall fun ω => ?_)
+    simp only [Function.uncurry_apply_pair, intervalIntegral.integral_of_le hst]
+  have hB : Integrable (fun ω => ζ t ω - ζ s ω - ∫ r in s..t, -(lam * ζ r ω)) P := by
+    have : (fun ω => ζ t ω - ζ s ω - ∫ r in s..t, -(lam * ζ r ω)) =
+        fun ω => ζ t ω - ζ s ω + lam * ∫ r in s..t, ζ r ω := by
+      funext ω
+      rw [intervalIntegral.integral_neg, intervalIntegral.integral_const_mul]
+      ring
+    rw [this]
+    exact (((hK t (hs.trans hst)).1.sub (hK s hs).1)).add (hI.const_mul lam)
+  refine ⟨hB, ?_⟩
+  have h0 : (fun _ => (0 : ℝ)) =ᵐ[P]
+      P[fun ω => ζ t ω - ζ s ω - ∫ r in s..t, -(lam * ζ r ω) | 𝓕 s] := by
+    refine ae_eq_condExp_of_forall_setIntegral_eq (𝓕.le s) hB (fun _ _ _ => integrableOn_const
+      (by simp)) (fun A hA _ => ?_) stronglyMeasurable_const.aestronglyMeasurable
+    have hA' : MeasurableSet A := 𝓕.le s A hA
+    have hmA : ∀ r, s ≤ r → ∫ ω in A, M r ω ∂P = ∫ ω in A, M s ω ∂P := fun r hr => by
+      rw [← setIntegral_condExp (𝓕.le s) (hMi r (hs.trans hr)) hA]
+      exact setIntegral_congr_ae hA' ((hmart s r hs hr).mono fun ω hω _ => hω)
+    have hζA : ∀ r, s ≤ r → ∫ ω in A, ζ r ω ∂P =
+        Real.exp (-(lam * r)) * ∫ ω in A, M s ω ∂P := fun r hr => by
+      rw [integral_const_mul, hmA r hr]
+    have hswap := setIntegral_intervalIntegral_swap (P := P) hζc hζm hK hs hst A
+    have hint : ∫ r in s..t, ∫ ω in A, ζ r ω ∂P =
+        ∫ r in s..t, Real.exp (-(lam * r)) * ∫ ω in A, M s ω ∂P := by
+      refine intervalIntegral.integral_congr fun r hr => ?_
+      rw [Set.uIcc_of_le hst] at hr
+      exact hζA r hr.1
+    rw [intervalIntegral.integral_mul_const, integral_exp_neg lam hlam.ne' s t] at hint
+    have e : (fun ω => ζ t ω - ζ s ω - ∫ r in s..t, -(lam * ζ r ω)) =
+        fun ω => ζ t ω - ζ s ω + lam * ∫ r in s..t, ζ r ω := by
+      funext ω
+      rw [intervalIntegral.integral_neg, intervalIntegral.integral_const_mul]
+      ring
+    have i1 : Integrable (fun ω => ζ t ω - ζ s ω) (P.restrict A) :=
+      ((hK t (hs.trans hst)).1.sub (hK s hs).1).integrableOn
+    have i2 : Integrable (fun ω => lam * ∫ r in s..t, ζ r ω) (P.restrict A) :=
+      (hI.const_mul lam).integrableOn
+    have i3 : Integrable (fun ω => ζ t ω) (P.restrict A) := (hK t (hs.trans hst)).1.integrableOn
+    have i4 : Integrable (fun ω => ζ s ω) (P.restrict A) := (hK s hs).1.integrableOn
+    rw [e, integral_add i1 i2, integral_sub i3 i4, hζA t hst, hζA s le_rfl,
+      integral_const_mul lam (fun ω => ∫ r in s..t, ζ r ω), hswap, hint]
+    simp only [integral_zero]
+    field_simp
+    ring
+  exact h0.symm
+
+/-- **Cochrane (2023), §20.2.2, pp. 474–476: every martingale gives an equilibrium.** On any
+filtration, if `M` is a continuous adapted martingale on `[0, ∞)` with `e^{−λ^b t}M_t` bounded in
+`L¹`, then with `ζ_t = e^{−λ^b t}M_t` the processes `zX(0) ζ`, `zPi(0) ζ` are a regular
+`L¹`-bounded stochastic equilibrium of the trap experiment. -/
+theorem isStochEqm_of_martingale [IsProbabilityMeasure P] {σ ρ κ : ℝ} (hσ : 0 < σ)
+    (hκ : 0 < κ) {𝓕 : Filtration ℝ mΩ} (T u g : ℝ) {M : ℝ → Ω → ℝ}
+    (hMc : ∀ ω, Continuous fun t => M t ω) (hMm : ∀ t, StronglyMeasurable[𝓕 t] (M t))
+    (hmart : ∀ s t, 0 ≤ s → s ≤ t → P[M t | 𝓕 s] =ᵐ[P] M s)
+    (hζb : BddL1 P (fun t ω => Real.exp (-(lamb ρ κ σ * t)) * M t ω)) :
+    IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep g T) (fun _ _ => 0)
+        (zX σ κ ρ T u g 0 fun t ω => Real.exp (-(lamb ρ κ σ * t)) * M t ω)
+        (zPi σ κ ρ T u g 0 fun t ω => Real.exp (-(lamb ρ κ σ * t)) * M t ω) ∧
+      Regular 𝓕 (zX σ κ ρ T u g 0 fun t ω => Real.exp (-(lamb ρ κ σ * t)) * M t ω) ∧
+      Regular 𝓕 (zPi σ κ ρ T u g 0 fun t ω => Real.exp (-(lamb ρ κ σ * t)) * M t ω) ∧
+      BddL1 P (zX σ κ ρ T u g 0 fun t ω => Real.exp (-(lamb ρ κ σ * t)) * M t ω) ∧
+      BddL1 P (zPi σ κ ρ T u g 0 fun t ω => Real.exp (-(lamb ρ κ σ * t)) * M t ω) := by
+  have hreg : Regular 𝓕 (fun t ω => Real.exp (-(lamb ρ κ σ * t)) * M t ω) :=
+    ⟨fun ω => (by fun_prop : Continuous fun t : ℝ => Real.exp (-(lamb ρ κ σ * t))).mul (hMc ω),
+      fun t => stronglyMeasurable_const.mul (hMm t)⟩
+  refine ⟨isStochEqm_of_zeta hσ hκ T u g 0 hreg.1
+      (expDrift_zeta_of_martingale (lamb_pos hκ hσ) hMc hMm hmart hζb), ?_, ?_, ?_, ?_⟩
+  · exact Regular.add (regular_det 𝓕 (wX_continuous σ κ ρ T u g 0 hκ hσ))
+      (Regular.const_mul hreg _)
+  · exact Regular.add (regular_det 𝓕 (wPi_continuous σ κ ρ T u g 0 hκ hσ)) hreg
+  · exact BddL1.add (bddL1_det (wPath_bdd (ρ := ρ) hκ hσ T u g 0).1) (BddL1.const_mul hζb _)
+  · exact BddL1.add (bddL1_det (wPath_bdd (ρ := ρ) hκ hσ T u g 0).2) hζb
+
+/-! ## From equilibria to martingales -/
+
+/-- **Cochrane (2023), §20.2.2, pp. 474–476: every equilibrium is given by a martingale.** In
+every regular `L¹`-bounded stochastic equilibrium of the trap experiment, on any filtration,
+`M_t = e^{λ^b t}(π_t − wPi(0)_t)` is a continuous adapted martingale on `[0, ∞)`,
+`e^{−λ^b t}M_t` is `L¹`-bounded, `π = wPi(0) + e^{−λ^b t}M` on every path, and
+`x_t = wX(0)_t + (λ^f/κ)e^{−λ^b t}M_t` almost surely at every date. With
+`isStochEqm_of_martingale` this describes all equilibria.
+Refines `TidyR7StochWerningTrap.condExp_pi_eq`. -/
+theorem martingale_of_isStochEqm [IsProbabilityMeasure P] {σ ρ κ : ℝ} (hσ : 0 < σ)
+    (hκ : 0 < κ) {𝓕 : Filtration ℝ mΩ} {T u g : ℝ} {x π : ℝ → Ω → ℝ} (hx : Regular 𝓕 x)
+    (hxb : BddL1 P x) (hπ : Regular 𝓕 π) (hπb : BddL1 P π)
+    (h : IsStochEqm σ ρ κ P 𝓕 (fun _ => 0) (trapStep u T) (trapStep g T) (fun _ _ => 0) x π) :
+    let M : ℝ → Ω → ℝ := fun t ω => Real.exp (lamb ρ κ σ * t) * (π t ω - wPi σ κ ρ T u g 0 t)
+    (∀ ω, Continuous fun t => M t ω) ∧ (∀ t, StronglyMeasurable[𝓕 t] (M t)) ∧
+      (∀ s t, 0 ≤ s → s ≤ t → P[M t | 𝓕 s] =ᵐ[P] M s) ∧
+      BddL1 P (fun t ω => Real.exp (-(lamb ρ κ σ * t)) * M t ω) ∧
+      (∀ t ω, π t ω = wPi σ κ ρ T u g 0 t + Real.exp (-(lamb ρ κ σ * t)) * M t ω) ∧
+      ∀ t, 0 ≤ t → x t =ᵐ[P] fun ω =>
+        wX σ κ ρ T u g 0 t + lamf ρ κ σ / κ * (Real.exp (-(lamb ρ κ σ * t)) * M t ω) := by
+  intro M
+  have hWc := wPi_continuous σ κ ρ T u g 0 hκ hσ
+  have hinv : ∀ t, Real.exp (-(lamb ρ κ σ * t)) * Real.exp (lamb ρ κ σ * t) = 1 := fun t => by
+    rw [← Real.exp_add]; simp
+  have hrep : ∀ t ω, π t ω = wPi σ κ ρ T u g 0 t + Real.exp (-(lamb ρ κ σ * t)) * M t ω :=
+    fun t ω => by
+      simp only [M]
+      linear_combination (wPi σ κ ρ T u g 0 t - π t ω) * hinv t
+  obtain ⟨Kπ, hKπ⟩ := hπb
+  have hζ : BddL1 P (fun t ω => Real.exp (-(lamb ρ κ σ * t)) * M t ω) := by
+    obtain ⟨KW, hKW⟩ := (wPath_bdd (ρ := ρ) hκ hσ T u g 0).2
+    have := BddL1.add (P := P) ⟨Kπ, hKπ⟩ (BddL1.const_mul (bddL1_det (P := P) ⟨KW, hKW⟩) (-1))
+    refine (show (fun t ω => π t ω + -1 * wPi σ κ ρ T u g 0 t) =
+      (fun t ω => Real.exp (-(lamb ρ κ σ * t)) * M t ω) from ?_) ▸ this
+    funext t ω
+    rw [hrep t ω]
+    ring
+  refine ⟨fun ω => (by fun_prop : Continuous fun t : ℝ => Real.exp (lamb ρ κ σ * t)).mul
+      ((hπ.1 ω).sub hWc), fun t => stronglyMeasurable_const.mul ((hπ.2 t).sub
+      stronglyMeasurable_const), fun s t hs hst => ?_, hζ, hrep, fun t ht => ?_⟩
+  · have hMi : ∀ t, 0 ≤ t → Integrable (M t) P := fun t ht =>
+      (((hKπ t ht).1.sub (integrable_const _)).const_mul _)
+    have h1 : M s =ᵐ[P] P[M t | 𝓕 s] := by
+      refine ae_eq_condExp_of_forall_setIntegral_eq (𝓕.le s) (hMi t (hs.trans hst))
+        (fun _ _ _ => (hMi s hs).integrableOn) (fun A hA _ => ?_)
+        (stronglyMeasurable_const.mul ((hπ.2 s).sub
+          stronglyMeasurable_const)).aestronglyMeasurable
+      obtain ⟨a1, -⟩ := setIntegral_trap hσ hκ hx hxb hπ ⟨Kπ, hKπ⟩ h hs hA t hst
+      simp only [M]
+      rw [integral_const_mul, integral_const_mul,
+        integral_sub (hKπ s hs).1.integrableOn (integrable_const _),
+        integral_sub (hKπ t (hs.trans hst)).1.integrableOn (integrable_const _),
+        setIntegral_const, setIntegral_const, smul_eq_mul, smul_eq_mul, a1]
+      have e : Real.exp (lamb ρ κ σ * t) * Real.exp (-(lamb ρ κ σ * (t - s))) =
+          Real.exp (lamb ρ κ σ * s) := by rw [← Real.exp_add]; ring_nf
+      linear_combination (-(∫ ω in A, π s ω ∂P - P.real A * wPi σ κ ρ T u g 0 s)) * e
+    exact h1.symm
+  · filter_upwards [x_eq_of_pi hσ hκ hx hxb hπ ⟨Kπ, hKπ⟩ h ht] with ω hω
+    rw [hω]
+    simp only [M]
+    linear_combination (lamf ρ κ σ / κ * (wPi σ κ ρ T u g 0 t - π t ω)) * hinv t
+
+/-! ## Time-varying deterministic loadings through Wiener integrals -/
+
+variable {W : ℝ≥0 → Ω → ℝ}
+
+/-- Cochrane (2023), §20.2.2, p. 475 (tool): **Wiener integrals have zero conditional mean**:
+for a `C¹` integrand `h` (derivative `h'` continuous) and `0 ≤ s ≤ t`,
+`E_s[∫_s^t h dW] = 0`, in the by-parts form `wienerBP W h h' s t`. From
+`TidyR7WienerGaussian.itoInt_ae_eq_wienerBP` and `TidyR7ItoIntegral.condExp_itoInt`. -/
+theorem condExp_wienerBP (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) {h h' : ℝ → ℝ} (hh : ∀ x, HasDerivAt h (h' x) x)
+    (hh' : Continuous h') {s t : ℝ} (hs : 0 ≤ s) (hst : s ≤ t) :
+    Integrable (wienerBP W h h' s t) P ∧
+      P[wienerBP W h h' s t | bmFiltrationReal W hW s] =ᵐ[P] 0 := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  rcases hst.eq_or_lt with heq | hlt
+  · subst heq
+    have e : wienerBP W h h' s s = 0 := by funext ω; simp [wienerBP]
+    rw [e]
+    exact ⟨integrable_zero _ _ _, by simp⟩
+  have h𝓕 := TidyR7BrownianQV.bmFiltrationReal_isBM hB hW
+  have hhc : Continuous h := continuous_iff_continuousAt.2 fun x => (hh x).continuousAt
+  obtain ⟨C, hC⟩ := isCompact_Icc.exists_bound_of_continuousOn (s := Set.Icc s t) hhc.continuousOn
+  have hI : ItoIntegrand P (bmFiltrationReal W hW) (fun u _ => h u) s t C :=
+    TidyR7ItoBridge.itoIntegrand_deterministic hhc.continuousOn fun u hu => by
+      simpa [Real.norm_eq_abs] using hC u hu
+  have hae := itoInt_ae_eq_wienerBP hB hW h𝓕 hcont hh hh' hs hlt
+  refine ⟨(memLp_wienerBP hB hW hcont hh hh' hs hlt).integrable one_le_two, ?_⟩
+  have h1 := condExp_itoInt hB hW h𝓕 hs le_rfl hst hI
+  rw [itoInt_of_le le_rfl] at h1
+  exact (condExp_congr_ae hae.symm).trans h1
+
+/-- Cochrane (2023), §20.2.2, p. 475: the integrand `h(u) = e^{λu} b(u)` of the Wiener
+integral `∫ e^{λu} b(u) dW_u`. -/
+noncomputable def loadH (lam : ℝ) (b : ℝ → ℝ) (u : ℝ) : ℝ := Real.exp (lam * u) * b u
+
+/-- Cochrane (2023), §20.2.2, p. 475: its derivative `h'(u) = e^{λu}(λb(u) + b'(u))`. -/
+noncomputable def loadH' (lam : ℝ) (b b' : ℝ → ℝ) (u : ℝ) : ℝ :=
+  Real.exp (lam * u) * (lam * b u + b' u)
+
+/-- Cochrane (2023), §20.2.2, p. 475: `h' ` is the derivative of `h`. -/
+theorem hasDerivAt_loadH {lam : ℝ} {b b' : ℝ → ℝ} (hb : ∀ x, HasDerivAt b (b' x) x) (x : ℝ) :
+    HasDerivAt (loadH lam b) (loadH' lam b b' x) x := by
+  have h1 : HasDerivAt (fun u => Real.exp (lam * u)) (Real.exp (lam * x) * lam) x := by
+    simpa using ((hasDerivAt_id' x).const_mul lam).exp
+  refine (h1.mul (hb x)).congr_deriv ?_
+  simp only [loadH']
+  ring
+
+/-- Cochrane (2023), §20.2.2, p. 475: `h'` is continuous when `b, b'` are. -/
+theorem continuous_loadH' {lam : ℝ} {b b' : ℝ → ℝ} (hbc : Continuous b) (hb'c : Continuous b') :
+    Continuous (loadH' lam b b') := by
+  unfold loadH'
+  fun_prop
+
+/-- Cochrane (2023), §20.2.2, p. 475: the martingale `M_t = ∫_0^t e^{λu} b(u) dW_u`, in the
+pathwise by-parts form. -/
+noncomputable def wienerM (lam : ℝ) (b b' : ℝ → ℝ) (W : ℝ≥0 → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  wienerBP W (loadH lam b) (loadH' lam b b') 0 t ω
+
+/-- Cochrane (2023), §20.2.2, p. 475: the by-parts integrals add over adjacent intervals:
+`M_t − M_s = ∫_s^t h dW`. -/
+theorem wienerM_sub (hcont : ∀ ω, Continuous fun t => W t ω) (lam : ℝ) {b b' : ℝ → ℝ}
+    (hbc : Continuous b) (hb'c : Continuous b') (s t : ℝ) (ω : Ω) :
+    wienerM lam b b' W t ω - wienerM lam b b' W s ω =
+      wienerBP W (loadH lam b) (loadH' lam b b') s t ω := by
+  have hc : Continuous fun u => bmReal W u ω * loadH' lam b b' u :=
+    (continuous_bmReal (hcont ω)).mul (continuous_loadH' hbc hb'c)
+  simp only [wienerM, wienerBP]
+  rw [← intervalIntegral.integral_interval_sub_left (hc.intervalIntegrable 0 t)
+    (hc.intervalIntegrable 0 s)]
+  ring
+
+/-- Cochrane (2023), §20.2.2, p. 475: `M` is regular (continuous adapted paths). -/
+theorem regular_wienerM (hW : ∀ t, Measurable (W t)) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (lam : ℝ) {b b' : ℝ → ℝ} (hbc : Continuous b) (hb'c : Continuous b') :
+    Regular (bmFiltrationReal W hW) (wienerM lam b b' W) := by
+  have hbm : Regular (bmFiltrationReal W hW) (bmReal W) :=
+    ⟨fun ω => continuous_bmReal (hcont ω), fun t => stronglyMeasurable_bmReal_le hW le_rfl⟩
+  have hhc : Continuous (loadH lam b) := by unfold loadH; fun_prop
+  refine ⟨fun ω => ?_, fun t => ?_⟩
+  · have hc : Continuous fun u => bmReal W u ω * loadH' lam b b' u :=
+      (continuous_bmReal (hcont ω)).mul (continuous_loadH' hbc hb'c)
+    simp only [wienerM, wienerBP]
+    exact ((hhc.mul (continuous_bmReal (hcont ω))).sub continuous_const).sub
+      (intervalIntegral.continuous_primitive (fun a b => hc.intervalIntegrable a b) 0)
+  · have e : wienerM lam b b' W t = fun ω => loadH lam b t * bmReal W t ω -
+        loadH lam b 0 * bmReal W 0 ω - ∫ u in (0 : ℝ)..t, loadH' lam b b' u * bmReal W u ω := by
+      funext ω
+      simp only [wienerM, wienerBP]
+      congr 1
+      refine intervalIntegral.integral_congr fun u _ => ?_
+      ring
+    rw [e]
+    have h0 : StronglyMeasurable[bmFiltrationReal W hW t] (bmReal W 0) := by
+      by_cases ht : 0 ≤ t
+      · exact stronglyMeasurable_bmReal_le hW (Real.toNNReal_le_toNNReal ht)
+      · exact stronglyMeasurable_bmReal_le hW (by
+          rw [Real.toNNReal_zero]; exact bot_le)
+    exact ((stronglyMeasurable_const.mul (hbm.2 t)).sub (stronglyMeasurable_const.mul h0)).sub
+      (stronglyMeasurable_integral_adapted hW hbm (continuous_loadH' hbc hb'c) t)
+
+/-- **Cochrane (2023), §20.2.2, p. 475: `M` is a martingale** on `[0, ∞)`:
+`E_s M_t = M_s` for `0 ≤ s ≤ t`, and `M_t` is integrable. -/
+theorem martingale_wienerM (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (lam : ℝ) {b b' : ℝ → ℝ}
+    (hb : ∀ x, HasDerivAt b (b' x) x) (hb'c : Continuous b') {s t : ℝ} (hs : 0 ≤ s)
+    (hst : s ≤ t) :
+    Integrable (wienerM lam b b' W t) P ∧
+      P[wienerM lam b b' W t | bmFiltrationReal W hW s] =ᵐ[P] wienerM lam b b' W s := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have hbc : Continuous b := continuous_iff_continuousAt.2 fun x => (hb x).continuousAt
+  have hh := hasDerivAt_loadH (lam := lam) hb
+  have hh' := continuous_loadH' (lam := lam) hbc hb'c
+  have i0t : Integrable (wienerM lam b b' W t) P :=
+    (condExp_wienerBP hB hW hcont hh hh' le_rfl (hs.trans hst)).1
+  have i0s : Integrable (wienerM lam b b' W s) P :=
+    (condExp_wienerBP hB hW hcont hh hh' le_rfl hs).1
+  obtain ⟨ist, cst⟩ := condExp_wienerBP hB hW hcont hh hh' hs hst
+  refine ⟨i0t, ?_⟩
+  have e : wienerM lam b b' W t = wienerM lam b b' W s + wienerBP W (loadH lam b)
+      (loadH' lam b b') s t := by
+    funext ω
+    rw [Pi.add_apply, ← wienerM_sub hcont lam hbc hb'c s t ω]
+    ring
+  rw [e]
+  filter_upwards [condExp_add (m := bmFiltrationReal W hW s) i0s ist, cst] with ω h1 h2
+  rw [h1, Pi.add_apply, h2, condExp_of_stronglyMeasurable ((bmFiltrationReal W hW).le s)
+    ((regular_wienerM hW hcont lam hbc hb'c).2 s) i0s]
+  simp
+
+/-- Cochrane (2023), §20.2.2, p. 475: the stable-direction innovation with loading `b`,
+`ζ^b_t = e^{−λt}∫_0^t e^{λu}b(u)dW_u = ∫_0^t e^{−λ(t−u)}b(u)dW_u`. -/
+noncomputable def zetaB (lam : ℝ) (b b' : ℝ → ℝ) (W : ℝ≥0 → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  Real.exp (-(lam * t)) * wienerM lam b b' W t ω
+
+/-- Cochrane (2023), §20.2.2, p. 475: **`ζ^b` is bounded in mean square**: for `λ > 0`,
+`|b| ≤ B` on `[0, ∞)` and `t ≥ 0`, `E(ζ^b_t)² ≤ B²/(2λ)` (Wiener isometry).
+Generalises `TidyR7StochWerningExist.ouProc_sq_le` (constant loading). -/
+theorem integral_zetaB_sq_le (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) {lam : ℝ} (hlam : 0 < lam) {b b' : ℝ → ℝ}
+    (hb : ∀ x, HasDerivAt b (b' x) x) (hb'c : Continuous b') {B : ℝ}
+    (hbB : ∀ u, 0 ≤ u → |b u| ≤ B) {t : ℝ} (ht : 0 ≤ t) :
+    MemLp (zetaB lam b b' W t) 2 P ∧ ∫ ω, zetaB lam b b' W t ω ^ 2 ∂P ≤ B ^ 2 / (2 * lam) := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have hbc : Continuous b := continuous_iff_continuousAt.2 fun x => (hb x).continuousAt
+  have hh := hasDerivAt_loadH (lam := lam) hb
+  have hh' := continuous_loadH' (lam := lam) hbc hb'c
+  rcases ht.eq_or_lt with h0 | hpos
+  · subst h0
+    have e : zetaB lam b b' W 0 = fun _ => 0 := by funext ω; simp [zetaB, wienerM, wienerBP]
+    rw [e]
+    exact ⟨memLp_const 0, by
+      simp only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow, integral_zero]
+      positivity⟩
+  have hmem := memLp_wienerBP (P := P) hB hW hcont hh hh' le_rfl hpos
+  have hsq := integral_wienerBP_sq (P := P) hB hW hcont hh hh' le_rfl hpos
+  refine ⟨hmem.const_mul _, ?_⟩
+  have e1 : ∫ ω, zetaB lam b b' W t ω ^ 2 ∂P =
+      Real.exp (-(lam * t)) ^ 2 * ∫ u in (0 : ℝ)..t, loadH lam b u ^ 2 := by
+    rw [← hsq, ← integral_const_mul]
+    congr 1
+    funext ω
+    simp only [zetaB, wienerM]
+    ring
+  have hB0 : 0 ≤ B := (abs_nonneg _).trans (hbB 0 le_rfl)
+  have e2 : ∫ u in (0 : ℝ)..t, loadH lam b u ^ 2 ≤
+      ∫ u in (0 : ℝ)..t, B ^ 2 * Real.exp (lam * u) ^ 2 := by
+    refine intervalIntegral.integral_mono_on hpos.le
+      ((by unfold loadH; fun_prop : Continuous fun u => loadH lam b u ^ 2).intervalIntegrable
+        0 t) ((by fun_prop : Continuous fun u => B ^ 2 * Real.exp (lam * u) ^ 2).intervalIntegrable
+        0 t) fun u hu => ?_
+    simp only [loadH, mul_pow]
+    rw [mul_comm]
+    have : b u ^ 2 ≤ B ^ 2 := by
+      have := hbB u hu.1
+      nlinarith [abs_nonneg (b u), sq_abs (b u)]
+    exact mul_le_mul_of_nonneg_right this (sq_nonneg _)
+  rw [intervalIntegral.integral_const_mul, TidyR7OrnsteinUhlenbeck.integral_exp_sq hlam.ne'] at e2
+  rw [e1]
+  have hexp : Real.exp (-(lam * t)) ^ 2 * Real.exp (2 * lam * t) = 1 := by
+    rw [← Real.exp_nat_mul, ← Real.exp_add]; push_cast; ring_nf; exact Real.exp_zero
+  have hpos2 : 0 < Real.exp (-(lam * t)) ^ 2 := by positivity
+  calc Real.exp (-(lam * t)) ^ 2 * ∫ u in (0 : ℝ)..t, loadH lam b u ^ 2
+      ≤ Real.exp (-(lam * t)) ^ 2 * (B ^ 2 * ((Real.exp (2 * lam * t) -
+          Real.exp (2 * lam * 0)) / (2 * lam))) := mul_le_mul_of_nonneg_left e2 hpos2.le
+    _ = B ^ 2 * (1 - Real.exp (-(lam * t)) ^ 2) / (2 * lam) := by
+        rw [mul_zero, Real.exp_zero]
+        have e3 : Real.exp (-(lam * t)) ^ 2 * (B ^ 2 * ((Real.exp (2 * lam * t) - 1) /
+            (2 * lam))) = B ^ 2 * (Real.exp (-(lam * t)) ^ 2 * Real.exp (2 * lam * t) -
+              Real.exp (-(lam * t)) ^ 2) / (2 * lam) := by ring
+        rw [e3, hexp]
+    _ ≤ B ^ 2 / (2 * lam) := by
+        apply div_le_div_of_nonneg_right _ (by positivity)
+        nlinarith [sq_nonneg B]
+
+/-- **Cochrane (2023), (20.5)–(20.6), p. 474: equilibria with time-varying innovation
+loadings.** For a `C¹` loading `b` (derivative continuous, `|b| ≤ B` on `[0, ∞)`), the processes
+`π = wPi(π_T) + ζ^b`, `x = wX(π_T) + (λ^f/κ)ζ^b` (innovations `dπ_t = b(t)dW_t`,
+`dx_t = (λ^f/κ)b(t)dW_t`) are a regular stochastic equilibrium of the trap experiment, bounded
+in mean square.
+Generalises `TidyR7StochWerningExist.isStochEqm_eq` and `TidyR7StochWerningExist.bddL2_eqPi`. -/
+theorem isStochEqm_loading (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) {σ ρ κ : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    (T u g πT : ℝ) {b b' : ℝ → ℝ} (hb : ∀ x, HasDerivAt b (b' x) x) (hb'c : Continuous b')
+    {B : ℝ} (hbB : ∀ u, 0 ≤ u → |b u| ≤ B) :
+    IsStochEqm σ ρ κ P (bmFiltrationReal W hW) (fun _ => 0) (trapStep u T) (trapStep g T)
+        (fun _ _ => 0) (zX σ κ ρ T u g πT (zetaB (lamb ρ κ σ) b b' W))
+        (zPi σ κ ρ T u g πT (zetaB (lamb ρ κ σ) b b' W)) ∧
+      Regular (bmFiltrationReal W hW) (zPi σ κ ρ T u g πT (zetaB (lamb ρ κ σ) b b' W)) ∧
+      Regular (bmFiltrationReal W hW) (zX σ κ ρ T u g πT (zetaB (lamb ρ κ σ) b b' W)) ∧
+      BddL2 P (zPi σ κ ρ T u g πT (zetaB (lamb ρ κ σ) b b' W)) ∧
+      BddL2 P (zX σ κ ρ T u g πT (zetaB (lamb ρ κ σ) b b' W)) := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have hbc : Continuous b := continuous_iff_continuousAt.2 fun x => (hb x).continuousAt
+  have hlb := lamb_pos (ρ := ρ) hκ hσ
+  have hM := regular_wienerM hW hcont (lamb ρ κ σ) hbc hb'c
+  have hζ2 : BddL2 P (zetaB (lamb ρ κ σ) b b' W) :=
+    ⟨B ^ 2 / (2 * lamb ρ κ σ), fun t ht => integral_zetaB_sq_le hB hW hcont hlb hb hb'c hbB ht⟩
+  have hreg : Regular (bmFiltrationReal W hW) (zetaB (lamb ρ κ σ) b b' W) :=
+    ⟨fun ω => (by fun_prop : Continuous fun t : ℝ => Real.exp (-(lamb ρ κ σ * t))).mul (hM.1 ω),
+      fun t => stronglyMeasurable_const.mul (hM.2 t)⟩
+  refine ⟨isStochEqm_of_zeta hσ hκ T u g πT hreg.1
+      (expDrift_zeta_of_martingale hlb hM.1 hM.2
+        (fun s t hs hst => (martingale_wienerM hB hW hcont _ hb hb'c hs hst).2)
+        hζ2.bddL1), ?_, ?_, ?_, ?_⟩
+  · exact Regular.add (regular_det _ (wPi_continuous σ κ ρ T u g πT hκ hσ)) hreg
+  · exact Regular.add (regular_det _ (wX_continuous σ κ ρ T u g πT hκ hσ))
+      (Regular.const_mul hreg _)
+  · exact BddL2.add (bddL2_det (wPath_bdd (ρ := ρ) hκ hσ T u g πT).2) hζ2
+  · exact BddL2.add (bddL2_det (wPath_bdd (ρ := ρ) hκ hσ T u g πT).1) (BddL2.const_mul hζ2 _)
+
+/-! ## Non-vacuity on the constructed Brownian motion -/
+
+open Cochrane.ZeroBound.TidyR7BrownianExist Cochrane.ZeroBound.TidyR7BrownianSchauder
+
+/-- Cochrane (2023), §20.2.2, p. 475 (non-vacuity): on bmPath at the book's calibration
+(`ρ = 0.05`, `σ = κ = 1`, `T = 5`, `u_r = −2%`, `g = 0`, `π_T = 0`), the loading `b = cos`
+(innovation `dπ_t = cos(t) dW_t`) gives a regular, mean-square-bounded equilibrium. -/
+theorem bmPath_loading_cos :
+    IsStochEqm 1 (1 / 20) 1 gaussSeq (bmFiltrationReal bmPath measurable_bmPath) (fun _ => 0)
+        (trapStep (-2 / 100) 5) (trapStep 0 5) (fun _ _ => 0)
+        (zX 1 1 (1 / 20) 5 (-2 / 100) 0 0 (zetaB (lamb (1 / 20) 1 1) Real.cos
+          (fun u => -Real.sin u) bmPath))
+        (zPi 1 1 (1 / 20) 5 (-2 / 100) 0 0 (zetaB (lamb (1 / 20) 1 1) Real.cos
+          (fun u => -Real.sin u) bmPath)) ∧
+      BddL2 gaussSeq (zPi 1 1 (1 / 20) 5 (-2 / 100) 0 0 (zetaB (lamb (1 / 20) 1 1) Real.cos
+          (fun u => -Real.sin u) bmPath)) := by
+  have h := isStochEqm_loading (P := gaussSeq) isPreBrownianReal_bmPath measurable_bmPath
+    continuous_bmPath one_pos one_pos (ρ := 1 / 20) 5 (-2 / 100) 0 0 Real.hasDerivAt_cos
+    (by fun_prop) (B := 1) fun u _ => Real.abs_cos_le_one u
+  exact ⟨h.1, h.2.2.2.1⟩
+
+end Cochrane.ZeroBound.TidyR8StochWerningMartingale
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Natural-rate shocks when the interest rate tracks the natural rate after the trap
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 20, §20.2.2, p. 474 ("The
+equilibrium nominal interest rate is zero up to period `T`, and then rises back to the natural
+rate `i_t = u_{r,t}`, for `t ≥ T`"), equations (20.5)–(20.10), with a random natural rate
+`u_{r,t} = trapStep u T t + ν_t`, `E_t dν = −ην dt`. The book's rate rule after the trap is
+`i = u_r`; with a random natural rate the interest rate is random after `T` (`trackRate`,
+`IsStochEqmTrack`). (TidyR7StochWerningNatural keeps `i = 0` throughout.)
+
+Now the natural-rate shock matters only during the trap, and the response of the unstable
+combination is time varying:
+
+* **`unstable_track`**: in every regular `L¹`-bounded equilibrium, almost surely at every date,
+  `λ^f π_s − κx_s = (λ^f wPi(0)_s − κ wX(0)_s) + c(s) ν_s`, with
+  `c(s) = d(1 − e^{−(λ^f+η)(T−s)})` before `T` and `0` after (`trackD`, `d = −κσ/(λ^f + η)`): news
+  about the natural rate moves the unstable combination by the deterministic forward solution
+  `−κσ∫_s^T e^{−(λ^f+η)(r−s)}dr`, and not at all after the trap;
+* **`condExp_pi_track`**: `E_sπ_t = wPi(0)_t + e^{−λ^b(t−s)}(π_s − wPi(0)_s) + K(s,t)ν_s` with
+  `K(s,t) = ∫_s^t e^{−λ^b(t−r)}c(r)e^{−η(r−s)}dr` (`trackK`);
+* **existence** (`isStochEqmTrack_trackPi`, `regular_bddL2_track`): on a Brownian
+  filtration, for every regular `L²`-bounded shock with `E_t dν = −ην dt` (e.g. the OU shock),
+  `π = wPi(π_T) + χ`, `κx = κ wX(π_T) + λ^f χ − cν` with `χ' = −λ^bχ + cν` is an equilibrium,
+  bounded in mean square. The key tool is `expDrift_mul_det`: `E_t d(c_tν_t) = (c' − ηc)ν dt`
+  for a piecewise-`C¹` deterministic `c` (no Itô calculus: conditional Fubini and
+  `E_sν_r = e^{−η(r−s)}ν_s`);
+* non-vacuity on bmPath at the book's calibration: `bmPath_track`.
+-/
+
+namespace Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.ZeroBound.ContinuousTimeNK Cochrane.ZeroBound.WerningModel
+open Cochrane.ZeroBound.TidyR7StochWerning Cochrane.ZeroBound.TidyR7StochWerningTrap
+open Cochrane.ZeroBound.TidyR7StochWerningExist Cochrane.ZeroBound.TidyR7StochWerningNatural
+open Cochrane.ZeroBound.TidyR7StochWerningNaturalExist
+open Cochrane.ZeroBound.TidyR8StochWerningNaturalMean
+open Cochrane.ZeroBound.TidyR8StochWerningMartingale
+open Cochrane.ZeroBound.TidyR8StochWerningActiveTrap
+open Cochrane.ZeroBound.TidyR7OUPath Cochrane.ZeroBound.TidyR7OrnsteinUhlenbeck
+open Cochrane.ZeroBound.TidyR7BrownianTools
+open scoped NNReal
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω}
+
+/-! ## The model -/
+
+/-- Cochrane (2023), §20.2.2, p. 474: the interest rate `0` during the trap and the natural rate
+`u_{r,t}` from `T` on. -/
+noncomputable def trackRate (T : ℝ) (ur : ℝ → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  if t < T then 0 else ur t ω
+
+/-- Cochrane (2023), (20.5)–(20.6), p. 474, under uncertainty: **an equilibrium when the rate
+tracks the random natural rate after the trap**: natural rate `u_r = trapStep u T + ν`, interest
+rate `trackRate T u_r`, disturbance `trapStep g T`. -/
+def IsStochEqmTrack (σ ρ κ : ℝ) (P : Measure Ω) (𝓕 : Filtration ℝ mΩ) (T u g : ℝ)
+    (ν x π : ℝ → Ω → ℝ) : Prop :=
+  ExpDrift P 𝓕 x (fun r ω => σ * (trackRate T (fun t ω => trapStep u T t + ν t ω) r ω -
+      π r ω - (trapStep u T r + ν r ω))) ∧
+    ExpDrift P 𝓕 π (fun r ω => ρ * π r ω - κ * (x r ω + trapStep g T r))
+
+/-- Cochrane (2023), §20.2.2, p. 474: the real-rate gap under the tracking rule,
+`i − u_r = −(u + ν)` during the trap and `0` after. -/
+theorem trackRate_sub (T u : ℝ) (ν : ℝ → Ω → ℝ) (r : ℝ) (ω : Ω) :
+    trackRate T (fun t ω => trapStep u T t + ν t ω) r ω - (trapStep u T r + ν r ω) =
+      -(trapStep u T r + trapStep 1 T r * ν r ω) := by
+  by_cases h : r < T
+  · simp only [trackRate, trapStep, h, ↓reduceIte]
+    ring
+  · simp only [trackRate, trapStep, h, ↓reduceIte]
+    ring
+
+/-- Cochrane (2023), (20.8)–(20.10), p. 475, under the tracking rule: the response of the
+unstable combination to the natural-rate shock, `c(t) = d(1 − e^{−(λ^f+η)(T−t)⁺})` with
+`d = −κσ/(λ^f + η)`: `−κσ∫_t^T e^{−(λ^f+η)(r−t)}dr` during the trap, `0` after. -/
+noncomputable def trackD (σ κ ρ η T t : ℝ) : ℝ :=
+  natD σ κ ρ η * (1 - Real.exp (-((lamf ρ κ σ + η) * max (T - t) 0)))
+
+/-- Cochrane (2023), (20.8), p. 474: the response kernel of expected inflation,
+`K(s,t) = e^{−λt}∫_s^t e^{λr}c(r)e^{−η(r−s)}dr = ∫_s^t e^{−λ(t−r)}c(r)e^{−η(r−s)}dr`.
+Generalises `TidyR8StochWerningNaturalMean.natK` (the case `c ≡ 1`). -/
+noncomputable def trackK (lam η : ℝ) (c : ℝ → ℝ) (s t : ℝ) : ℝ :=
+  Real.exp (-(lam * t)) * ∫ r in s..t, Real.exp (lam * r) * (c r * Real.exp (-(η * (r - s))))
+
+/-- Cochrane (2023), (20.8), p. 474: `K(s, s) = 0`. -/
+theorem trackK_self (lam η : ℝ) (c : ℝ → ℝ) (s : ℝ) : trackK lam η c s s = 0 := by
+  simp [trackK]
+
+/-- Cochrane (2023), (20.8), p. 474: `∂_t K(s,t) = −λK(s,t) + c(t)e^{−η(t−s)}` for continuous
+`c`.
+Generalises `TidyR8StochWerningNaturalMean.hasDerivAt_natK`. -/
+theorem hasDerivAt_trackK (lam η : ℝ) {c : ℝ → ℝ} (hc : Continuous c) (s t : ℝ) :
+    HasDerivAt (trackK lam η c s) (-lam * trackK lam η c s t +
+      c t * Real.exp (-(η * (t - s)))) t := by
+  have h1 : HasDerivAt (fun τ => Real.exp (-(lam * τ))) (Real.exp (-(lam * t)) * -lam) t := by
+    simpa using ((hasDerivAt_id' t).const_mul lam).neg.exp
+  have h2 := ((by fun_prop : Continuous fun r => Real.exp (lam * r) *
+    (c r * Real.exp (-(η * (r - s))))).integral_hasStrictDerivAt s t).hasDerivAt
+  refine (h1.mul h2).congr_deriv ?_
+  have he : Real.exp (-(lam * t)) * Real.exp (lam * t) = 1 := by
+    rw [← Real.exp_add]; simp
+  simp only [trackK]
+  linear_combination (c t * Real.exp (-(η * (t - s)))) * he
+
+/-- Cochrane (2023), (20.8), p. 474: `K(s, ·)` is continuous. -/
+theorem continuous_trackK (lam η : ℝ) {c : ℝ → ℝ} (hc : Continuous c) (s : ℝ) :
+    Continuous (trackK lam η c s) :=
+  continuous_iff_continuousAt.2 fun t => (hasDerivAt_trackK lam η hc s t).continuousAt
+
+/-- Cochrane (2023), (20.8), p. 475: `c` is continuous (it vanishes at `T` from both sides). -/
+theorem continuous_trackD (σ κ ρ η T : ℝ) : Continuous (trackD σ κ ρ η T) := by
+  unfold trackD
+  fun_prop
+
+/-- Cochrane (2023), (20.8), p. 475: `c = 0` after the trap. -/
+theorem trackD_of_le {σ κ ρ η T t : ℝ} (ht : T ≤ t) : trackD σ κ ρ η T t = 0 := by
+  simp [trackD, max_eq_right (by linarith : T - t ≤ 0)]
+
+/-- Cochrane (2023), (20.8), p. 475: `|c| ≤ |d|` (for `λ^f + η ≥ 0`). -/
+theorem abs_trackD_le {σ κ ρ η T : ℝ} (hl : 0 ≤ lamf ρ κ σ + η) (t : ℝ) :
+    |trackD σ κ ρ η T t| ≤ |natD σ κ ρ η| := by
+  unfold trackD
+  rw [abs_mul]
+  have h1 : 0 < Real.exp (-((lamf ρ κ σ + η) * max (T - t) 0)) := Real.exp_pos _
+  have h2 : Real.exp (-((lamf ρ κ σ + η) * max (T - t) 0)) ≤ 1 :=
+    Real.exp_le_one_iff.2 (by nlinarith [le_max_right (T - t) 0])
+  have : |1 - Real.exp (-((lamf ρ κ σ + η) * max (T - t) 0))| ≤ 1 := by
+    rw [abs_le]; constructor <;> linarith
+  exact mul_le_of_le_one_right (abs_nonneg _) this
+
+/-- Cochrane (2023), (20.8)–(20.10), p. 475: **`c' = (λ^f + η)c + κσ·1{t < T}`** off `T`. -/
+theorem hasDerivAt_trackD {σ κ ρ η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ) (hη : 0 ≤ η) {T t : ℝ}
+    (ht : t ≠ T) :
+    HasDerivAt (trackD σ κ ρ η T)
+      ((lamf ρ κ σ + η) * trackD σ κ ρ η T t + κ * σ * trapStep 1 T t) t := by
+  have hd := natD_eq (ρ := ρ) hσ hκ hη
+  rcases lt_or_gt_of_ne ht with h | h
+  · have hev : (fun τ => natD σ κ ρ η * (1 - Real.exp (-((lamf ρ κ σ + η) * (T - τ))))) =ᶠ[𝓝 t]
+        trackD σ κ ρ η T := by
+      filter_upwards [Iio_mem_nhds h] with τ hτ
+      simp only [trackD, max_eq_left (by linarith [show τ < T from hτ] : 0 ≤ T - τ)]
+    have hD : HasDerivAt (fun τ => natD σ κ ρ η * (1 - Real.exp (-((lamf ρ κ σ + η) * (T - τ)))))
+        (natD σ κ ρ η * -(Real.exp (-((lamf ρ κ σ + η) * (T - t))) * (lamf ρ κ σ + η))) t := by
+      have h0 : HasDerivAt (fun τ => -((lamf ρ κ σ + η) * (T - τ))) (lamf ρ κ σ + η) t := by
+        have e : (fun τ => -((lamf ρ κ σ + η) * (T - τ))) =
+            fun τ => (lamf ρ κ σ + η) * τ - (lamf ρ κ σ + η) * T := by
+          funext τ; ring
+        rw [e]
+        simpa using ((hasDerivAt_id t).const_mul (lamf ρ κ σ + η)).sub_const
+          ((lamf ρ κ σ + η) * T)
+      exact ((hasDerivAt_const t (1 : ℝ)).sub h0.exp).const_mul _ |>.congr_deriv (by ring)
+    refine (hD.congr_of_eventuallyEq hev.symm).congr_deriv ?_
+    simp only [trackD, max_eq_left (by linarith : 0 ≤ T - t), trapStep, h, ↓reduceIte]
+    linear_combination -hd
+  · have hev : (fun _ => (0 : ℝ)) =ᶠ[𝓝 t] trackD σ κ ρ η T := by
+      filter_upwards [Ioi_mem_nhds h] with τ hτ
+      exact (trackD_of_le (le_of_lt hτ)).symm
+    refine ((hasDerivAt_const t (0 : ℝ)).congr_of_eventuallyEq hev.symm).congr_deriv ?_
+    simp [trackD_of_le h.le, trapStep, not_lt.2 h.le]
+
+/-! ## `E_t d(c_tν_t)` for a deterministic `c` -/
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): Fubini with a bounded measurable weight,
+`∫_A ∫_s^t w(r)Z_r dr = ∫_s^t w(r)∫_A Z_r dr`, for a process with continuous paths, measurable
+time sections and bounded first moments.
+Generalises `TidyR8StochWerningMartingale.setIntegral_intervalIntegral_swap` (the case `w ≡ 1`). -/
+theorem setIntegral_swap_weight [IsFiniteMeasure P] {Z : ℝ → Ω → ℝ}
+    (hc : ∀ ω, Continuous fun t => Z t ω) (hm : ∀ t, Measurable (Z t)) {K : ℝ}
+    (hK : ∀ t, 0 ≤ t → Integrable (Z t) P ∧ ∫ ω, |Z t ω| ∂P ≤ K) {w : ℝ → ℝ}
+    (hw : Measurable w) {C : ℝ} (hwC : ∀ r, |w r| ≤ C) {s t : ℝ} (hs : 0 ≤ s) (hst : s ≤ t)
+    (A : Set Ω) :
+    Integrable (fun ω => ∫ r in s..t, w r * Z r ω) P ∧
+    ∫ ω in A, (∫ r in s..t, w r * Z r ω) ∂P = ∫ r in s..t, w r * ∫ ω in A, Z r ω ∂P := by
+  have hZp := integrable_prod_proc (P := P) hc hm hK hs (b := t)
+  have hD : Integrable (Function.uncurry fun r ω => w r * Z r ω)
+      ((volume.restrict (Set.Ioc s t)).prod P) :=
+    hZp.bdd_mul (hw.comp measurable_fst).aestronglyMeasurable
+      (Eventually.of_forall fun p => by rw [Real.norm_eq_abs]; exact hwC p.1)
+  refine ⟨?_, ?_⟩
+  · refine hD.integral_prod_right.congr (Eventually.of_forall fun ω => ?_)
+    simp only [Function.uncurry_apply_pair, intervalIntegral.integral_of_le hst]
+  simp only [intervalIntegral.integral_of_le hst]
+  have hDA : Integrable (Function.uncurry fun r ω => w r * Z r ω)
+      ((volume.restrict (Set.Ioc s t)).prod (P.restrict A)) := by
+    have he : (volume.restrict (Set.Ioc s t)).prod (P.restrict A)
+        = ((volume.restrict (Set.Ioc s t)).prod P).restrict (Set.univ ×ˢ A) := by
+      rw [← Measure.prod_restrict, Measure.restrict_univ]
+    rw [he]
+    exact hD.restrict
+  have := (integral_integral_swap hDA).symm
+  rw [this]
+  refine integral_congr_ae (Eventually.of_forall fun r => ?_)
+  simp only
+  rw [integral_const_mul]
+
+/-- **Cochrane (2023), §20.2.2, p. 474 (tool): `E_t d(c_tν_t) = (c'_t − ηc_t)ν_t dt`** for
+`η ≥ 0`, a continuous, bounded deterministic `c`, differentiable off a countable set with
+bounded measurable derivative `c'`, and a regular `L¹`-bounded `ν` with `E_t dν = −ην dt`,
+on any filtration. -/
+theorem expDrift_mul_det [IsProbabilityMeasure P] {η : ℝ} (hη : 0 ≤ η)
+    {𝓕 : Filtration ℝ mΩ}
+    {ν : ℝ → Ω → ℝ} (hν : Regular 𝓕 ν) (hνb : BddL1 P ν)
+    (hνd : ExpDrift P 𝓕 ν (fun r ω => -(η * ν r ω))) {c c' : ℝ → ℝ} (hcc : Continuous c)
+    {S : Set ℝ} (hS : S.Countable) (hcd : ∀ r, r ∉ S → HasDerivAt c (c' r) r)
+    (hc'm : Measurable c') {C : ℝ} (hcC : ∀ r, |c r| ≤ C) (hc'C : ∀ r, |c' r| ≤ C) :
+    ExpDrift P 𝓕 (fun t ω => c t * ν t ω) (fun r ω => (c' r - η * c r) * ν r ω) := by
+  obtain ⟨Kν, hKν⟩ := hνb
+  have hmν : ∀ t, Measurable (ν t) := fun t => ((hν.2 t).mono (𝓕.le t)).measurable
+  have hwm : Measurable fun r => c' r - η * c r := hc'm.sub (hcc.measurable.const_mul η)
+  have hwC : ∀ r, |c' r - η * c r| ≤ C + |η| * C := fun r => by
+    calc |c' r - η * c r| ≤ |c' r| + |η * c r| := abs_sub _ _
+      _ ≤ C + |η| * C := by
+          rw [abs_mul]
+          exact add_le_add (hc'C r) (mul_le_mul_of_nonneg_left (hcC r) (abs_nonneg η))
+  intro s t hs hst
+  obtain ⟨hI, -⟩ := setIntegral_swap_weight hν.1 hmν hKν hwm hwC hs hst Set.univ
+  have hB : Integrable (fun ω => c t * ν t ω - c s * ν s ω -
+      ∫ r in s..t, (c' r - η * c r) * ν r ω) P :=
+    (((hKν t (hs.trans hst)).1.const_mul _).sub ((hKν s hs).1.const_mul _)).sub hI
+  refine ⟨hB, ?_⟩
+  have h0 : (fun _ => (0 : ℝ)) =ᵐ[P] P[fun ω => c t * ν t ω - c s * ν s ω -
+      ∫ r in s..t, (c' r - η * c r) * ν r ω | 𝓕 s] := by
+    refine ae_eq_condExp_of_forall_setIntegral_eq (𝓕.le s) hB (fun _ _ _ => integrableOn_const
+      (by simp)) (fun A hA _ => ?_) stronglyMeasurable_const.aestronglyMeasurable
+    obtain ⟨-, hsw⟩ := setIntegral_swap_weight hν.1 hmν hKν hwm hwC hs hst A
+    have hnu : ∀ r, s ≤ r → ∫ ω in A, ν r ω ∂P = Real.exp (-η * (r - s)) * ∫ ω in A, ν s ω ∂P :=
+      fun r hr => setIntegral_nu hν ⟨Kν, hKν⟩ hνd hs hA hr
+    have hint : ∫ r in s..t, (c' r - η * c r) * ∫ ω in A, ν r ω ∂P =
+        (∫ r in s..t, (c' r - η * c r) * Real.exp (-η * (r - s))) * ∫ ω in A, ν s ω ∂P := by
+      rw [← intervalIntegral.integral_mul_const]
+      refine intervalIntegral.integral_congr fun r hr => ?_
+      rw [Set.uIcc_of_le hst] at hr
+      rw [hnu r hr.1]
+      ring
+    -- the FTC for `φ(r) = c(r)e^{−η(r−s)}`
+    have hφ : ∫ r in s..t, (c' r - η * c r) * Real.exp (-η * (r - s)) =
+        c t * Real.exp (-η * (t - s)) - c s * Real.exp (-η * (s - s)) := by
+      refine integral_eq_of_hasDerivAt_off_countable_of_le
+        (fun r => c r * Real.exp (-η * (r - s))) _ hst hS
+        ((hcc.mul (by fun_prop : Continuous fun r => Real.exp (-η * (r - s)))).continuousOn)
+        (fun r hr => ?_) ?_
+      · have he : HasDerivAt (fun r => Real.exp (-η * (r - s)))
+            (Real.exp (-η * (r - s)) * -η) r := by
+          simpa using (((hasDerivAt_id' r).sub_const s).const_mul (-η)).exp
+        exact ((hcd r hr.2).mul he).congr_deriv (by ring)
+      · refine (intervalIntegrable_iff_integrableOn_Ioc_of_le hst).2
+          (Measure.integrableOn_of_bounded (M := (C + |η| * C) * 1) measure_Ioc_lt_top.ne
+          (hwm.mul (by fun_prop : Continuous fun r => Real.exp (-η * (r - s))).measurable
+            ).aestronglyMeasurable ?_)
+        refine ae_restrict_of_forall_mem measurableSet_Ioc fun r hr => ?_
+        change ‖(c' r - η * c r) * Real.exp (-η * (r - s))‖ ≤ _
+        rw [Real.norm_eq_abs, abs_mul]
+        refine mul_le_mul (hwC r) ?_ (abs_nonneg _) ((abs_nonneg _).trans (hwC r))
+        rw [abs_of_pos (Real.exp_pos _), Real.exp_le_one_iff]
+        have := mul_nonneg hη (sub_nonneg.2 hr.1.le)
+        linarith
+    have i1 : Integrable (fun ω => c t * ν t ω - c s * ν s ω) (P.restrict A) :=
+      (((hKν t (hs.trans hst)).1.const_mul _).sub ((hKν s hs).1.const_mul _)).integrableOn
+    have i2 : Integrable (fun ω => ∫ r in s..t, (c' r - η * c r) * ν r ω) (P.restrict A) :=
+      hI.integrableOn
+    have i3 : Integrable (fun ω => c t * ν t ω) (P.restrict A) :=
+      ((hKν t (hs.trans hst)).1.const_mul _).integrableOn
+    have i4 : Integrable (fun ω => c s * ν s ω) (P.restrict A) :=
+      ((hKν s hs).1.const_mul _).integrableOn
+    rw [integral_sub i1 i2, integral_sub i3 i4, integral_const_mul, integral_const_mul, hsw,
+      hint, hφ, hnu t hst]
+    simp only [integral_zero, sub_self, mul_zero, Real.exp_zero, mul_one]
+    ring
+  exact h0.symm
+
+/-! ## The unstable combination and expected inflation -/
+
+/-- Cochrane (2023), (20.5), p. 474 (tool): under the tracking rule the IS curve has the drift
+`σ(0 − π − (u + 1{t<T}ν))`. -/
+theorem expDrift_x_track {σ ρ κ : ℝ} {𝓕 : Filtration ℝ mΩ} {T u g : ℝ} {ν x π : ℝ → Ω → ℝ}
+    (h : IsStochEqmTrack σ ρ κ P 𝓕 T u g ν x π) :
+    ExpDrift P 𝓕 x (fun r ω => σ * (0 - π r ω - (trapStep u T r + trapStep 1 T r * ν r ω))) :=
+  expDrift_of_ae_eq h.1 (Eventually.of_forall fun ω r _ => by
+    have := trackRate_sub T u ν r ω
+    linear_combination σ * this)
+
+/-- Cochrane (2023), (20.5)–(20.6), p. 474, under the tracking rule: **the conditional means
+solve the deterministic model** with the natural-rate forcing `1{t<T}∫_A ν_t`: for `A ∈ 𝓕_s`,
+`t ≥ s ≥ 0`, the integral forms of `∫_A x`, `∫_A π` and `∫_A ν`.
+The analogue of `TidyR7StochWerning.condMean_integral_eq`. -/
+theorem track_mean_forms [IsProbabilityMeasure P] {σ ρ κ η : ℝ} {𝓕 : Filtration ℝ mΩ}
+    {T u g : ℝ} {ν x π : ℝ → Ω → ℝ} (hν : Regular 𝓕 ν) (hνb : BddL1 P ν)
+    (hνd : ExpDrift P 𝓕 ν (fun r ω => -(η * ν r ω))) (hx : Regular 𝓕 x) (hxb : BddL1 P x)
+    (hπ : Regular 𝓕 π) (hπb : BddL1 P π) (h : IsStochEqmTrack σ ρ κ P 𝓕 T u g ν x π) {s : ℝ}
+    (hs : 0 ≤ s) {A : Set Ω} (hA : MeasurableSet[𝓕 s] A) (t : ℝ) (hst : s ≤ t) :
+    ∫ ω in A, x t ω ∂P - ∫ ω in A, x s ω ∂P = ∫ r in s..t, σ * (P.real A * 0 -
+        ∫ ω in A, π r ω ∂P - (P.real A * trapStep u T r + trapStep 1 T r * ∫ ω in A, ν r ω ∂P)) ∧
+      ∫ ω in A, π t ω ∂P - ∫ ω in A, π s ω ∂P = ∫ r in s..t, (ρ * ∫ ω in A, π r ω ∂P -
+        κ * (∫ ω in A, x r ω ∂P + P.real A * trapStep g T r)) ∧
+      ∫ ω in A, ν t ω ∂P - ∫ ω in A, ν s ω ∂P = ∫ r in s..t, -(η * ∫ ω in A, ν r ω ∂P) := by
+  obtain ⟨Kν, hKν⟩ := hνb
+  obtain ⟨Kx, hKx⟩ := hxb
+  obtain ⟨Kπ, hKπ⟩ := hπb
+  have hmν : ∀ t, Measurable (ν t) := fun t => ((hν.2 t).mono (𝓕.le t)).measurable
+  have hmx : ∀ t, Measurable (x t) := fun t => ((hx.2 t).mono (𝓕.le t)).measurable
+  have hmπ : ∀ t, Measurable (π t) := fun t => ((hπ.2 t).mono (𝓕.le t)).measurable
+  have pν := integrable_prod_proc (P := P) hν.1 hmν hKν hs (b := t)
+  have px := integrable_prod_proc (P := P) hx.1 hmx hKx hs (b := t)
+  have pπ := integrable_prod_proc (P := P) hπ.1 hmπ hKπ hs (b := t)
+  have p0 := integrable_prod_det (P := P) (integrableOn_zero (s := Set.Ioc s t))
+  have pu := integrable_prod_det (P := P) (trapStep_integrableOn u T (S := Set.Ioc s t)
+    measure_Ioc_lt_top.ne)
+  have pg := integrable_prod_det (P := P) (trapStep_integrableOn g T (S := Set.Ioc s t)
+    measure_Ioc_lt_top.ne)
+  have phν : Integrable (fun p : ℝ × Ω => trapStep 1 T p.1 * Function.uncurry ν p)
+      ((volume.restrict (Set.Ioc s t)).prod P) :=
+    pν.bdd_mul ((trapStep_measurable 1 T).comp measurable_fst).aestronglyMeasurable
+      (Eventually.of_forall fun p => by
+        rw [Real.norm_eq_abs]; simpa using trapStep_abs_le 1 T p.1)
+  refine ⟨?_, ?_, ?_⟩
+  · rw [setIntegral_expDrift (expDrift_x_track h) hs hst hA (hKx s hs).1
+      (hKx t (hs.trans hst)).1 (((p0.sub pπ).sub (pu.add phν)).const_mul σ)]
+    refine intervalIntegral.integral_congr fun r hr => ?_
+    have hr0 : 0 ≤ r := hs.trans (by rw [Set.uIcc_of_le hst] at hr; exact hr.1)
+    calc ∫ ω in A, σ * (0 - π r ω - (trapStep u T r + trapStep 1 T r * ν r ω)) ∂P
+        = ∫ ω in A, (σ * (0 - trapStep u T r) + (-σ) * π r ω +
+            (-(σ * trapStep 1 T r)) * ν r ω) ∂P := by
+          congr 1; funext ω; ring
+      _ = _ := setIntegral_affine (hKπ r hr0).1 (hKν r hr0).1 _ _ _ A
+      _ = _ := by ring
+  · rw [setIntegral_expDrift h.2 hs hst hA (hKπ s hs).1 (hKπ t (hs.trans hst)).1
+      ((pπ.const_mul ρ).sub ((px.add pg).const_mul κ))]
+    refine intervalIntegral.integral_congr fun r hr => ?_
+    have hr0 : 0 ≤ r := hs.trans (by rw [Set.uIcc_of_le hst] at hr; exact hr.1)
+    calc ∫ ω in A, (ρ * π r ω - κ * (x r ω + trapStep g T r)) ∂P
+        = ∫ ω in A, (-(κ * trapStep g T r) + ρ * π r ω + (-κ) * x r ω) ∂P := by
+          congr 1; funext ω; ring
+      _ = _ := setIntegral_affine (hKπ r hr0).1 (hKx r hr0).1 _ _ _ A
+      _ = _ := by ring
+  · rw [setIntegral_expDrift hνd hs hst hA (hKν s hs).1 (hKν t (hs.trans hst)).1
+      (pν.const_mul η).neg]
+    refine intervalIntegral.integral_congr fun r _ => ?_
+    rw [integral_neg, integral_const_mul]
+
+/-- **Cochrane (2023), (20.8)–(20.10), p. 475, with the rate tracking the natural rate after the
+trap: the unstable combination is pinned state by state.** Let `ν` be a regular `L¹`-bounded
+shock with `E_t dν = −ην dt` (`η ≥ 0`) and `(x, π)` a regular `L¹`-bounded equilibrium of
+`IsStochEqmTrack`. Then for every `s ≥ 0`, almost surely,
+`λ^f π_s − κ x_s = (λ^f wPi(0)_s − κ wX(0)_s) + c(s) ν_s` with `c = trackD`
+(`c(s) = 0` for `s ≥ T`).
+The analogue, under the tracking rule, of `TidyR7StochWerningNatural.unstable_natural`. -/
+theorem unstable_track [IsProbabilityMeasure P] {σ ρ κ η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    (hη : 0 ≤ η) {𝓕 : Filtration ℝ mΩ} {T u g : ℝ} {ν x π : ℝ → Ω → ℝ} (hν : Regular 𝓕 ν)
+    (hνb : BddL1 P ν) (hνd : ExpDrift P 𝓕 ν (fun r ω => -(η * ν r ω))) (hx : Regular 𝓕 x)
+    (hxb : BddL1 P x) (hπ : Regular 𝓕 π) (hπb : BddL1 P π)
+    (h : IsStochEqmTrack σ ρ κ P 𝓕 T u g ν x π) {s : ℝ} (hs : 0 ≤ s) :
+    (fun ω => lamf ρ κ σ * π s ω - κ * x s ω) =ᵐ[P] fun ω =>
+      (lamf ρ κ σ * wPi σ κ ρ T u g 0 s - κ * wX σ κ ρ T u g 0 s) +
+        trackD σ κ ρ η T s * ν s ω := by
+  obtain ⟨Kν, hKν⟩ := hνb
+  obtain ⟨Kx, hKx⟩ := hxb
+  obtain ⟨Kπ, hKπ⟩ := hπb
+  have hmν : ∀ t, Measurable (ν t) := fun t => ((hν.2 t).mono (𝓕.le t)).measurable
+  have hmx : ∀ t, Measurable (x t) := fun t => ((hx.2 t).mono (𝓕.le t)).measurable
+  have hmπ : ∀ t, Measurable (π t) := fun t => ((hπ.2 t).mono (𝓕.le t)).measurable
+  have hf := lamf_pos (ρ := ρ) hκ hσ
+  have hroot := lamf_root (ρ := ρ) hκ hσ
+  set lf := lamf ρ κ σ
+  set c := trackD σ κ ρ η T
+  set d := natD σ κ ρ η
+  have hcd : ∀ t, |c t| ≤ |d| := abs_trackD_le (by linarith)
+  have key : ∀ A, MeasurableSet[𝓕 s] A →
+      ∫ ω in A, (lf * π s ω - κ * x s ω) ∂P =
+        ∫ ω in A, ((lf * (wPi σ κ ρ T u g 0) s - κ * (wX σ κ ρ T u g 0) s) + c s * ν s ω) ∂P := by
+    intro A hA
+    set p := P.real A
+    set mx : ℝ → ℝ := fun r => ∫ ω in A, x r ω ∂P
+    set mπ : ℝ → ℝ := fun r => ∫ ω in A, π r ω ∂P
+    set mν : ℝ → ℝ := fun r => ∫ ω in A, ν r ω ∂P
+    have hbν : ∀ r, 0 ≤ r → |mν r| ≤ Kν := fun r hr => abs_setIntegral_le hKν A hr
+    have hix := integrableOn_setIntegral hx.1 hmx hKx A hs
+    have hiπ := integrableOn_setIntegral hπ.1 hmπ hKπ A hs
+    have hiν := integrableOn_setIntegral hν.1 hmν hKν A hs
+    have itr : ∀ a b, IntegrableOn (trapStep a T) (Set.Icc s b) := fun a b =>
+      trapStep_integrableOn a T measure_Icc_lt_top.ne
+    have hcm := fun t (ht : s ≤ t) => track_mean_forms (P := P) hν ⟨Kν, hKν⟩ hνd hx ⟨Kx, hKx⟩
+      hπ ⟨Kπ, hKπ⟩ h hs hA t ht
+    have hGx : ∀ b, IntegrableOn (fun r => σ * (p * 0 - mπ r - (p * trapStep u T r +
+        trapStep 1 T r * mν r))) (Set.Icc s b) := fun b =>
+      (((integrableOn_const (by simp)).sub (hiπ b)).sub (((itr u b).const_mul p).add
+        ((hiν b).bdd_mul (trapStep_measurable 1 T).aestronglyMeasurable
+          (Eventually.of_forall fun r => by
+            rw [Real.norm_eq_abs]; simpa using trapStep_abs_le 1 T r)))).const_mul σ
+    have hGπ : ∀ b, IntegrableOn (fun r => ρ * mπ r - κ * (mx r + p * trapStep g T r))
+        (Set.Icc s b) := fun b =>
+      ((hiπ b).const_mul ρ).sub (((hix b).add ((itr g b).const_mul p)).const_mul κ)
+    have hcx : ContinuousOn mx (Set.Ici s) :=
+      continuousOn_of_intForm hGx fun t ht => (hcm t ht).1
+    have hcπ : ContinuousOn mπ (Set.Ici s) :=
+      continuousOn_of_intForm hGπ fun t ht => (hcm t ht).2.1
+    have hcν : ContinuousOn mν (Set.Ici s) :=
+      continuousOn_of_intForm (fun b => ((hiν b).const_mul η).neg) fun t ht => (hcm t ht).2.2
+    have hW0c := wPi_continuous σ κ ρ T u g 0 hκ hσ
+    have hX0c := wX_continuous σ κ ρ T u g 0 hκ hσ
+    obtain ⟨⟨KX, hKX⟩, ⟨KW, hKW⟩⟩ := wPath_bdd (ρ := ρ) hκ hσ T u g 0
+    have hp := wPath_isPath (ρ := ρ) hκ hσ T u g 0
+    set F : ℝ → ℝ := fun r => lf * mπ r - κ * mx r -
+      p * (lf * (wPi σ κ ρ T u g 0) r - κ * (wX σ κ ρ T u g 0) r) - c r * mν r with hFdef
+    have hFc : ContinuousOn F (Set.Ici s) :=
+      (((continuousOn_const.mul hcπ).sub (continuousOn_const.mul hcx)).sub
+        (continuousOn_const.mul ((continuousOn_const.mul hW0c.continuousOn).sub
+          (continuousOn_const.mul hX0c.continuousOn)))).sub
+        ((continuous_trackD σ κ ρ η T).continuousOn.mul hcν)
+    have hFd : ∀ t, s < t → t ∉ ({T} : Set ℝ) → HasDerivAt F (lf * F t) t := by
+      intro t ht htT
+      have htT' : t ≠ T := htT
+      have ca : ∀ {m : ℝ → ℝ}, ContinuousOn m (Set.Ici s) → ContinuousAt m t := fun hm =>
+        hm.continuousAt (Ici_mem_nhds ht)
+      have dx := TidyR7StochWerningNatural.hasDerivAt_of_intForm_at hGx
+        (fun t ht => (hcm t ht).1) ht
+        (((continuousAt_const.sub (ca hcπ)).sub (((trapStep_continuousAt u htT').const_mul
+          p).add ((trapStep_continuousAt 1 htT').mul (ca hcν)))).const_mul σ)
+      have dπ := TidyR7StochWerningNatural.hasDerivAt_of_intForm_at hGπ
+        (fun t ht => (hcm t ht).2.1) ht
+        (((ca hcπ).const_mul ρ).sub (((ca hcx).add ((trapStep_continuousAt g htT').const_mul
+          p)).const_mul κ))
+      have dν : HasDerivAt mν (-(η * mν t)) t :=
+        TidyR7StochWerningNatural.hasDerivAt_of_intForm_at
+          (fun b => ((hiν b).const_mul η).neg) (fun t ht => (hcm t ht).2.2) ht
+          ((ca hcν).const_mul η).neg
+      have dc := hasDerivAt_trackD (ρ := ρ) hσ hκ hη htT'
+      obtain ⟨dX, dW⟩ := hp.2.2 t (hs.trans_lt ht) htT
+      refine (((((dπ.const_mul lf).sub (dx.const_mul κ)).sub
+        (((dW.const_mul lf).sub (dX.const_mul κ)).const_mul p)).sub
+          (dc.mul dν))).congr_deriv ?_
+      simp only [F]
+      linear_combination (-(mπ t - p * (wPi σ κ ρ T u g 0) t)) * hroot
+    have hzero := unstable_bdd_zero (f := F) (a := lf) (p := s) (S := {T})
+      (K := lf * Kπ + κ * Kx + |p| * (lf * KW + κ * KX) + |d| * Kν)
+      hf (Set.countable_singleton T) hFc hFd
+      (fun t ht => by
+        have h1 := hKW t (hs.trans ht)
+        have h2 := hKX t (hs.trans ht)
+        have b1 := abs_setIntegral_le hKπ A (hs.trans ht)
+        have b2 := abs_setIntegral_le hKx A (hs.trans ht)
+        have b3 := hbν t (hs.trans ht)
+        have b4 := hcd t
+        have habs : ∀ a b e f k : ℝ, |lf * a - κ * b - p * (lf * e - κ * f) - c t * k| ≤
+            lf * |a| + κ * |b| + |p| * (lf * |e| + κ * |f|) + |c t| * |k| := by
+          intro a b e f k
+          have e1 := abs_sub (lf * a - κ * b - p * (lf * e - κ * f)) (c t * k)
+          have e2 := abs_sub (lf * a - κ * b) (p * (lf * e - κ * f))
+          have e3 := abs_sub (lf * a) (κ * b)
+          have e4 := abs_sub (lf * e) (κ * f)
+          rw [abs_mul p, abs_mul (c t)] at *
+          rw [abs_mul lf, abs_mul κ, abs_of_pos hf, abs_of_pos hκ] at e3
+          rw [abs_mul lf, abs_mul κ, abs_of_pos hf, abs_of_pos hκ] at e4
+          have e5 := mul_le_mul_of_nonneg_left e4 (abs_nonneg p)
+          linarith
+        refine (habs _ _ _ _ _).trans ?_
+        have : |c t| * |mν t| ≤ |d| * Kν :=
+          mul_le_mul b4 b3 (abs_nonneg _) (abs_nonneg _)
+        gcongr)
+      s le_rfl
+    have e2 : F s = 0 := hzero
+    simp only [F] at e2
+    rw [integral_sub ((hKπ s hs).1.integrableOn.const_mul lf)
+        ((hKx s hs).1.integrableOn.const_mul κ),
+      integral_add (integrable_const _) ((hKν s hs).1.integrableOn.const_mul (c s)),
+      integral_const_mul, integral_const_mul, integral_const_mul, setIntegral_const, smul_eq_mul]
+    linarith
+  have hYm : StronglyMeasurable[𝓕 s] fun ω => lf * π s ω - κ * x s ω :=
+    (stronglyMeasurable_const.mul (hπ.2 s)).sub (stronglyMeasurable_const.mul (hx.2 s))
+  have hYi : Integrable (fun ω => lf * π s ω - κ * x s ω) P :=
+    ((hKπ s hs).1.const_mul lf).sub ((hKx s hs).1.const_mul κ)
+  have hZi : Integrable
+      (fun ω => (lf * (wPi σ κ ρ T u g 0) s - κ * (wX σ κ ρ T u g 0) s) + c s * ν s ω) P :=
+    (integrable_const _).add ((hKν s hs).1.const_mul (c s))
+  have h1 : (fun ω => (lf * (wPi σ κ ρ T u g 0) s - κ * (wX σ κ ρ T u g 0) s) + c s * ν s ω)
+      =ᵐ[P] P[fun ω => lf * π s ω - κ * x s ω | 𝓕 s] :=
+    ae_eq_condExp_of_forall_setIntegral_eq (𝓕.le s) hYi (fun _ _ _ => hZi.integrableOn)
+      (fun A hA _ => (key A hA).symm)
+      (stronglyMeasurable_const.add (stronglyMeasurable_const.mul (hν.2 s))).aestronglyMeasurable
+  rw [condExp_of_stronglyMeasurable (𝓕.le s) hYm hYi] at h1
+  exact h1.symm
+
+/-- Cochrane (2023), (20.8)–(20.10), pp. 474–475, under the tracking rule: **conditional means
+of inflation.** For `A ∈ 𝓕_s` and `t ≥ s ≥ 0`, `∫_A π_t = P(A)wPi(0)_t +
+e^{−λ^b(t−s)}(∫_A π_s − P(A)wPi(0)_s) + K(s,t)∫_A ν_s` with `K = trackK λ^b η c`. -/
+theorem setIntegral_pi_track [IsProbabilityMeasure P] {σ ρ κ η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    (hη : 0 ≤ η) {𝓕 : Filtration ℝ mΩ} {T u g : ℝ} {ν x π : ℝ → Ω → ℝ} (hν : Regular 𝓕 ν)
+    (hνb : BddL1 P ν) (hνd : ExpDrift P 𝓕 ν (fun r ω => -(η * ν r ω))) (hx : Regular 𝓕 x)
+    (hxb : BddL1 P x) (hπ : Regular 𝓕 π) (hπb : BddL1 P π)
+    (h : IsStochEqmTrack σ ρ κ P 𝓕 T u g ν x π) {s : ℝ} (hs : 0 ≤ s) {A : Set Ω}
+    (hA : MeasurableSet[𝓕 s] A) {t : ℝ} (hst : s ≤ t) :
+    ∫ ω in A, π t ω ∂P = P.real A * wPi σ κ ρ T u g 0 t +
+      Real.exp (-(lamb ρ κ σ * (t - s))) * (∫ ω in A, π s ω ∂P - P.real A * wPi σ κ ρ T u g 0 s) +
+      trackK (lamb ρ κ σ) η (trackD σ κ ρ η T) s t * ∫ ω in A, ν s ω ∂P := by
+  obtain ⟨Kν, hKν⟩ := hνb
+  obtain ⟨Kx, hKx⟩ := hxb
+  obtain ⟨Kπ, hKπ⟩ := hπb
+  have hmν : ∀ t, Measurable (ν t) := fun t => ((hν.2 t).mono (𝓕.le t)).measurable
+  have hmx : ∀ t, Measurable (x t) := fun t => ((hx.2 t).mono (𝓕.le t)).measurable
+  have hmπ : ∀ t, Measurable (π t) := fun t => ((hπ.2 t).mono (𝓕.le t)).measurable
+  have hsub := lamf_sub_lamb ρ κ σ
+  set lf := lamf ρ κ σ
+  set lb := lamb ρ κ σ
+  set c := trackD σ κ ρ η T
+  set p := P.real A
+  set mx : ℝ → ℝ := fun r => ∫ ω in A, x r ω ∂P
+  set mπ : ℝ → ℝ := fun r => ∫ ω in A, π r ω ∂P
+  set mν : ℝ → ℝ := fun r => ∫ ω in A, ν r ω ∂P
+  set W0 := wPi σ κ ρ T u g 0
+  set X0 := wX σ κ ρ T u g 0
+  have hix := integrableOn_setIntegral hx.1 hmx hKx A hs
+  have hiπ := integrableOn_setIntegral hπ.1 hmπ hKπ A hs
+  have itr : ∀ a b, IntegrableOn (trapStep a T) (Set.Icc s b) := fun a b =>
+    trapStep_integrableOn a T measure_Icc_lt_top.ne
+  have hcm := fun t (ht : s ≤ t) => track_mean_forms (P := P) hν ⟨Kν, hKν⟩ hνd hx ⟨Kx, hKx⟩
+    hπ ⟨Kπ, hKπ⟩ h hs hA t ht
+  have hGπ : ∀ b, IntegrableOn (fun r => ρ * mπ r - κ * (mx r + p * trapStep g T r))
+      (Set.Icc s b) := fun b =>
+    ((hiπ b).const_mul ρ).sub (((hix b).add ((itr g b).const_mul p)).const_mul κ)
+  have hiν := integrableOn_setIntegral hν.1 hmν hKν A hs
+  have hGx : ∀ b, IntegrableOn (fun r => σ * (p * 0 - mπ r - (p * trapStep u T r +
+      trapStep 1 T r * mν r))) (Set.Icc s b) := fun b =>
+    (((integrableOn_const (by simp)).sub (hiπ b)).sub (((itr u b).const_mul p).add
+      ((hiν b).bdd_mul (trapStep_measurable 1 T).aestronglyMeasurable
+        (Eventually.of_forall fun r => by
+          rw [Real.norm_eq_abs]; simpa using trapStep_abs_le 1 T r)))).const_mul σ
+  have hcx : ContinuousOn mx (Set.Ici s) := continuousOn_of_intForm hGx fun t ht => (hcm t ht).1
+  have hcπ : ContinuousOn mπ (Set.Ici s) :=
+    continuousOn_of_intForm hGπ fun t ht => (hcm t ht).2.1
+  have hun : ∀ r, s ≤ r → lf * mπ r - κ * mx r = p * (lf * W0 r - κ * X0 r) + c r * mν r := by
+    intro r hr
+    have hr0 := hs.trans hr
+    have e := integral_congr_ae (μ := P.restrict A) (ae_restrict_of_ae
+      (unstable_track hσ hκ hη hν ⟨Kν, hKν⟩ hνd hx ⟨Kx, hKx⟩ hπ ⟨Kπ, hKπ⟩ h hr0))
+    rw [integral_sub ((hKπ r hr0).1.integrableOn.const_mul lf)
+        ((hKx r hr0).1.integrableOn.const_mul κ),
+      integral_add (integrable_const _) ((hKν r hr0).1.integrableOn.const_mul (c r)),
+      integral_const_mul, integral_const_mul, integral_const_mul, setIntegral_const,
+      smul_eq_mul] at e
+    simp only [mx, mπ, mν, W0, X0, p, lf, c]
+    linarith
+  have hnu : ∀ r, s ≤ r → mν r = Real.exp (-η * (r - s)) * mν s := fun r hr =>
+    setIntegral_nu hν ⟨Kν, hKν⟩ hνd hs hA hr
+  have hp := wPath_isPath (ρ := ρ) hκ hσ T u g 0
+  have hcc := continuous_trackD σ κ ρ η T
+  set G : ℝ → ℝ := fun r => mπ r - p * W0 r - mν s * trackK lb η c s r with hGdef
+  have hGc : ContinuousOn G (Set.Ici s) :=
+    (hcπ.sub (continuousOn_const.mul (wPi_continuous σ κ ρ T u g 0 hκ hσ).continuousOn)).sub
+      (continuousOn_const.mul (continuous_trackK lb η hcc s).continuousOn)
+  have hGd : ∀ r, s < r → r ∉ ({T} : Set ℝ) → HasDerivAt G (-lb * G r) r := by
+    intro r hr hrT
+    have hrT' : r ≠ T := hrT
+    have ca : ∀ {m : ℝ → ℝ}, ContinuousOn m (Set.Ici s) → ContinuousAt m r := fun hm =>
+      hm.continuousAt (Ici_mem_nhds hr)
+    have dπ := TidyR7StochWerningNatural.hasDerivAt_of_intForm_at hGπ
+      (fun t ht => (hcm t ht).2.1) hr (((ca hcπ).const_mul ρ).sub (((ca hcx).add
+        ((trapStep_continuousAt g hrT').const_mul p)).const_mul κ))
+    have dW := (hp.2.2 r (hs.trans_lt hr) hrT).2
+    have dk := hasDerivAt_trackK lb η hcc s r
+    refine ((dπ.sub (dW.const_mul p)).sub (dk.const_mul (mν s))).congr_deriv ?_
+    have h1 := hun r hr.le
+    have h2 := hnu r hr.le
+    have he : Real.exp (-η * (r - s)) = Real.exp (-(η * (r - s))) := by ring_nf
+    rw [he] at h2
+    simp only [G]
+    linear_combination h1 - (mπ r - p * W0 r) * hsub + c r * h2
+  have hsol := linear_ode_Ici (Set.countable_singleton T) hGc hGd t hst
+  simp only [G, trackK_self, mul_zero, sub_zero] at hsol
+  have he : Real.exp (-lb * (t - s)) = Real.exp (-(lb * (t - s))) := by ring_nf
+  rw [he] at hsol
+  change mπ t = _
+  linarith
+
+/-- **Cochrane (2023), (20.8)–(20.10), pp. 474–475, §20.2.4, p. 479, under the tracking rule:
+expected inflation.** In every regular `L¹`-bounded equilibrium of `IsStochEqmTrack`,
+`E_s π_t = wPi(0)_t + e^{−λ^b(t−s)}(π_s − wPi(0)_s) + K(s,t) ν_s` almost surely for
+`t ≥ s ≥ 0`, with `K(s,t) = ∫_s^t e^{−λ^b(t−r)}c(r)e^{−η(r−s)}dr` (`trackK`, `c = trackD`); news
+about the natural rate matters only through its expected path during the remaining trap. -/
+theorem condExp_pi_track [IsProbabilityMeasure P] {σ ρ κ η : ℝ} (hσ : 0 < σ) (hκ : 0 < κ)
+    (hη : 0 ≤ η) {𝓕 : Filtration ℝ mΩ} {T u g : ℝ} {ν x π : ℝ → Ω → ℝ} (hν : Regular 𝓕 ν)
+    (hνb : BddL1 P ν) (hνd : ExpDrift P 𝓕 ν (fun r ω => -(η * ν r ω))) (hx : Regular 𝓕 x)
+    (hxb : BddL1 P x) (hπ : Regular 𝓕 π) (hπb : BddL1 P π)
+    (h : IsStochEqmTrack σ ρ κ P 𝓕 T u g ν x π) {s t : ℝ} (hs : 0 ≤ s) (hst : s ≤ t) :
+    P[π t | 𝓕 s] =ᵐ[P] fun ω => wPi σ κ ρ T u g 0 t +
+      Real.exp (-(lamb ρ κ σ * (t - s))) * (π s ω - wPi σ κ ρ T u g 0 s) +
+      trackK (lamb ρ κ σ) η (trackD σ κ ρ η T) s t * ν s ω := by
+  obtain ⟨Kν, hKν⟩ := hνb
+  obtain ⟨Kπ, hKπ⟩ := hπb
+  have hπs := (hKπ s hs).1
+  have hνs := (hKν s hs).1
+  have hint : Integrable (fun ω => wPi σ κ ρ T u g 0 t +
+      Real.exp (-(lamb ρ κ σ * (t - s))) * (π s ω - wPi σ κ ρ T u g 0 s) +
+      trackK (lamb ρ κ σ) η (trackD σ κ ρ η T) s t * ν s ω) P :=
+    ((integrable_const _).add ((hπs.sub (integrable_const _)).const_mul _)).add
+      (hνs.const_mul _)
+  have h1 : (fun ω => wPi σ κ ρ T u g 0 t +
+      Real.exp (-(lamb ρ κ σ * (t - s))) * (π s ω - wPi σ κ ρ T u g 0 s) +
+      trackK (lamb ρ κ σ) η (trackD σ κ ρ η T) s t * ν s ω) =ᵐ[P] P[π t | 𝓕 s] :=
+    ae_eq_condExp_of_forall_setIntegral_eq (𝓕.le s) (hKπ t (hs.trans hst)).1
+      (fun _ _ _ => hint.integrableOn)
+      (fun A hA _ => by
+        calc ∫ ω in A, (wPi σ κ ρ T u g 0 t +
+              Real.exp (-(lamb ρ κ σ * (t - s))) * (π s ω - wPi σ κ ρ T u g 0 s) +
+              trackK (lamb ρ κ σ) η (trackD σ κ ρ η T) s t * ν s ω) ∂P
+            = ∫ ω in A, ((wPi σ κ ρ T u g 0 t - Real.exp (-(lamb ρ κ σ * (t - s))) *
+                wPi σ κ ρ T u g 0 s) + Real.exp (-(lamb ρ κ σ * (t - s))) * π s ω +
+              trackK (lamb ρ κ σ) η (trackD σ κ ρ η T) s t * ν s ω) ∂P := by
+                congr 1; funext ω; ring
+          _ = _ := setIntegral_affine hπs hνs _ _ _ A
+          _ = ∫ ω in A, π t ω ∂P := by
+                rw [setIntegral_pi_track hσ hκ hη hν ⟨Kν, hKν⟩ hνd hx hxb hπ ⟨Kπ, hKπ⟩ h hs
+                  hA hst]
+                ring)
+      ((stronglyMeasurable_const.add (stronglyMeasurable_const.mul ((hπ.2 s).sub
+        stronglyMeasurable_const))).add
+          (stronglyMeasurable_const.mul (hν.2 s))).aestronglyMeasurable
+  exact h1.symm
+
+/-! ## Existence -/
+
+/-- Cochrane (2023), (20.8), p. 474, under the tracking rule: the stable-direction response
+`χ' = −λ^bχ + c ν`, `χ_0 = 0` (`chiProc`). -/
+noncomputable def trackChi (σ κ ρ η T : ℝ) (ν : ℝ → Ω → ℝ) : ℝ → Ω → ℝ :=
+  chiProc (lamb ρ κ σ) (fun t ω => trackD σ κ ρ η T t * ν t ω)
+
+/-- Cochrane (2023), (20.8), p. 474, under the tracking rule: inflation `wPi(π_T) + χ`. -/
+noncomputable def trackPi (σ κ ρ η T u g πT : ℝ) (ν : ℝ → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  wPi σ κ ρ T u g πT t + trackChi σ κ ρ η T ν t ω
+
+/-- Cochrane (2023), (20.10), p. 475, under the tracking rule: output
+`wX(π_T) + (λ^f/κ)χ − cν/κ`, so that `λ^f π − κx = λ^f wPi − κ wX + cν`. -/
+noncomputable def trackX (σ κ ρ η T u g πT : ℝ) (ν : ℝ → Ω → ℝ) (t : ℝ) (ω : Ω) : ℝ :=
+  wX σ κ ρ T u g πT t + lamf ρ κ σ / κ * trackChi σ κ ρ η T ν t ω -
+    trackD σ κ ρ η T t * ν t ω / κ
+
+/-- **Cochrane (2023), (20.5)–(20.6), p. 474, under the tracking rule: existence.** On any
+filtration, for a regular `L¹`-bounded shock with `E_t dν = −ην dt` (`η ≥ 0`), the processes
+`(trackX, trackPi)` are a stochastic equilibrium of `IsStochEqmTrack` for every `π_T`. -/
+theorem isStochEqmTrack_trackPi [IsProbabilityMeasure P] {σ ρ κ η : ℝ} (hσ : 0 < σ)
+    (hκ : 0 < κ) (hη : 0 ≤ η) {𝓕 : Filtration ℝ mΩ} (T u g πT : ℝ) {ν : ℝ → Ω → ℝ}
+    (hν : Regular 𝓕 ν) (hνb : BddL1 P ν) (hνd : ExpDrift P 𝓕 ν (fun r ω => -(η * ν r ω))) :
+    IsStochEqmTrack σ ρ κ P 𝓕 T u g ν (trackX σ κ ρ η T u g πT ν)
+      (trackPi σ κ ρ η T u g πT ν) := by
+  have hsub := lamf_sub_lamb ρ κ σ
+  have hf := lamf_pos (ρ := ρ) hκ hσ
+  have hκ0 := hκ.ne'
+  have hc : lamf ρ κ σ / κ * lamb ρ κ σ = σ := by
+    have := lamf_mul_lamb (ρ := ρ) hκ hσ
+    field_simp
+    linarith
+  have hlη : 0 ≤ lamf ρ κ σ + η := by linarith
+  have hκσ : 0 < κ * σ := mul_pos hκ hσ
+  have hWc := wPi_continuous σ κ ρ T u g πT hκ hσ
+  have hXc := wX_continuous σ κ ρ T u g πT hκ hσ
+  have key : ∀ (c : ℝ → ℝ), Continuous c → (∀ r, r ≠ T → HasDerivAt c
+      ((lamf ρ κ σ + η) * c r + κ * σ * trapStep 1 T r) r) → (∀ r, |c r| ≤ |natD σ κ ρ η|) →
+      IsStochEqmTrack σ ρ κ P 𝓕 T u g ν
+        (fun t ω => wX σ κ ρ T u g πT t + lamf ρ κ σ / κ *
+          chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) t ω - c t * ν t ω / κ)
+        (fun t ω => wPi σ κ ρ T u g πT t + chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) t ω) := by
+    intro c hcc hcd hcb
+    have hZc : ∀ ω, Continuous fun t => c t * ν t ω := fun ω => hcc.mul (hν.1 ω)
+    have hχc : ∀ ω, Continuous fun r => chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω :=
+      fun ω => continuous_iff_continuousAt.2 fun r =>
+        (hasDerivAt_chiProc hZc (lamb ρ κ σ) ω r).continuousAt
+    set C := |natD σ κ ρ η| * (1 + (lamf ρ κ σ + η)) + κ * σ
+    have hcC : ∀ r, |c r| ≤ C := fun r => by
+      have := hcb r
+      have : 0 ≤ |natD σ κ ρ η| * (lamf ρ κ σ + η) := mul_nonneg (abs_nonneg _) hlη
+      nlinarith
+    have hc'C : ∀ r, |(lamf ρ κ σ + η) * c r + κ * σ * trapStep 1 T r| ≤ C := fun r => by
+      calc |(lamf ρ κ σ + η) * c r + κ * σ * trapStep 1 T r|
+          ≤ |(lamf ρ κ σ + η) * c r| + |κ * σ * trapStep 1 T r| := abs_add_le _ _
+        _ ≤ (lamf ρ κ σ + η) * |natD σ κ ρ η| + κ * σ * 1 := by
+            rw [abs_mul, abs_mul, abs_of_nonneg hlη, abs_of_pos hκσ]
+            exact add_le_add (mul_le_mul_of_nonneg_left (hcb r) hlη)
+              (mul_le_mul_of_nonneg_left (by simpa using trapStep_abs_le 1 T r) hκσ.le)
+        _ ≤ C := by nlinarith [abs_nonneg (natD σ κ ρ η)]
+    have hcν := expDrift_mul_det (c' := fun r => (lamf ρ κ σ + η) * c r +
+        κ * σ * trapStep 1 T r) hη hν hνb hνd hcc (Set.countable_singleton T)
+      (fun r hr => hcd r hr)
+      ((hcc.measurable.const_mul _).add ((trapStep_measurable 1 T).const_mul _)) hcC hc'C
+    refine ⟨expDrift_of_bracket_eq hcν (-1 / κ) fun s t hs hst ω => ?_,
+      expDrift_of_bracket_eq hcν 0 fun s t hs hst ω => ?_⟩
+    · beta_reduce
+      obtain ⟨d1, -⟩ := wPath_intForm (ρ := ρ) hκ hσ T u g πT hs hst
+      have hχ := chiProc_sub hZc (lamb ρ κ σ) ω s t
+      have iW : IntervalIntegrable (fun r => σ * (0 - wPi σ κ ρ T u g πT r - trapStep u T r))
+          volume s t := ((intervalIntegrable_const.sub (hWc.intervalIntegrable s t)).sub
+            (trapStep_intervalIntegrable u T s t)).const_mul σ
+      have iχ : IntervalIntegrable (fun r => chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω)
+          volume s t := (hχc ω).intervalIntegrable s t
+      have icν : IntervalIntegrable (fun r => c r * ν r ω) volume s t :=
+        (hZc ω).intervalIntegrable s t
+      have ihν : IntervalIntegrable (fun r => trapStep 1 T r * ν r ω) volume s t :=
+        (trapStep_intervalIntegrable 1 T s t).mul_continuousOn (hν.1 ω).continuousOn
+      have e1 : (∫ r in s..t, σ * (trackRate T (fun t ω => trapStep u T t + ν t ω) r ω -
+          (wPi σ κ ρ T u g πT r + chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω) -
+            (trapStep u T r + ν r ω))) =
+          (∫ r in s..t, σ * (0 - wPi σ κ ρ T u g πT r - trapStep u T r)) -
+            σ * (∫ r in s..t, chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω) -
+              σ * ∫ r in s..t, trapStep 1 T r * ν r ω := by
+        rw [← intervalIntegral.integral_const_mul, ← intervalIntegral.integral_const_mul,
+          ← intervalIntegral.integral_sub iW (iχ.const_mul σ),
+          ← intervalIntegral.integral_sub (iW.sub (iχ.const_mul σ)) (ihν.const_mul σ)]
+        refine intervalIntegral.integral_congr fun r _ => ?_
+        have := trackRate_sub T u ν r ω
+        linear_combination σ * this
+      have e2 : (∫ r in s..t, ((lamf ρ κ σ + η) * c r + κ * σ * trapStep 1 T r - η * c r) *
+          ν r ω) = lamf ρ κ σ * (∫ r in s..t, c r * ν r ω) +
+            κ * σ * ∫ r in s..t, trapStep 1 T r * ν r ω := by
+        rw [← intervalIntegral.integral_const_mul, ← intervalIntegral.integral_const_mul,
+          ← intervalIntegral.integral_add (icν.const_mul _) (ihν.const_mul (κ * σ))]
+        refine intervalIntegral.integral_congr fun r _ => ?_
+        ring
+      have e3 : (∫ r in s..t, (-lamb ρ κ σ * chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω +
+          c r * ν r ω)) = -lamb ρ κ σ * (∫ r in s..t,
+            chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω) + ∫ r in s..t, c r * ν r ω := by
+        rw [intervalIntegral.integral_add (iχ.const_mul _) icν,
+          intervalIntegral.integral_const_mul]
+      rw [e3] at hχ
+      rw [e1, e2, ← d1]
+      have hk : κ⁻¹ * κ = 1 := inv_mul_cancel₀ hκ0
+      linear_combination (lamf ρ κ σ / κ) * hχ - (∫ r in s..t,
+        chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω) * hc -
+        σ * (∫ r in s..t, trapStep 1 T r * ν r ω) * hk
+    · beta_reduce
+      obtain ⟨-, d2⟩ := wPath_intForm (ρ := ρ) hκ hσ T u g πT hs hst
+      have hχ := chiProc_sub hZc (lamb ρ κ σ) ω s t
+      have iD : IntervalIntegrable (fun r => ρ * wPi σ κ ρ T u g πT r -
+          κ * (wX σ κ ρ T u g πT r + trapStep g T r)) volume s t :=
+        ((hWc.intervalIntegrable s t).const_mul ρ).sub (((hXc.intervalIntegrable s t).add
+          (trapStep_intervalIntegrable g T s t)).const_mul κ)
+      have iχ : IntervalIntegrable (fun r => chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω)
+          volume s t := (hχc ω).intervalIntegrable s t
+      have icν : IntervalIntegrable (fun r => c r * ν r ω) volume s t :=
+        (hZc ω).intervalIntegrable s t
+      have e1 : (∫ r in s..t, (ρ * (wPi σ κ ρ T u g πT r +
+          chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω) -
+          κ * ((wX σ κ ρ T u g πT r + lamf ρ κ σ / κ *
+            chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω - c r * ν r ω / κ) +
+              trapStep g T r))) =
+          (∫ r in s..t, (ρ * wPi σ κ ρ T u g πT r - κ * (wX σ κ ρ T u g πT r +
+            trapStep g T r))) + (ρ - lamf ρ κ σ) * (∫ r in s..t,
+              chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω) + ∫ r in s..t, c r * ν r ω := by
+        rw [← intervalIntegral.integral_const_mul, ← intervalIntegral.integral_add iD
+          (iχ.const_mul _), ← intervalIntegral.integral_add (iD.add (iχ.const_mul _)) icν]
+        refine intervalIntegral.integral_congr fun r _ => ?_
+        field_simp
+        ring
+      have e3 : (∫ r in s..t, (-lamb ρ κ σ * chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω +
+          c r * ν r ω)) = -lamb ρ κ σ * (∫ r in s..t,
+            chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω) + ∫ r in s..t, c r * ν r ω := by
+        rw [intervalIntegral.integral_add (iχ.const_mul _) icν,
+          intervalIntegral.integral_const_mul]
+      rw [e3] at hχ
+      rw [e1, ← d2]
+      linear_combination hχ + (∫ r in s..t,
+        chiProc (lamb ρ κ σ) (fun t ω => c t * ν t ω) r ω) * hsub
+  exact key _ (continuous_trackD σ κ ρ η T) (fun r hr => hasDerivAt_trackD hσ hκ hη hr)
+    (abs_trackD_le hlη)
+
+variable {W : ℝ≥0 → Ω → ℝ}
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): a bounded deterministic multiple of an `L²`-bounded
+process is `L²`-bounded.
+Generalises `TidyR8StochWerningNaturalMean.BddL2.const_mul`. -/
+theorem bddL2_mul_det {Z : ℝ → Ω → ℝ} (hZ : BddL2 P Z) {c : ℝ → ℝ} {C : ℝ}
+    (hc : ∀ t, |c t| ≤ C) : BddL2 P (fun t ω => c t * Z t ω) := by
+  obtain ⟨K, hK⟩ := hZ
+  have hK0 : 0 ≤ K := (integral_nonneg fun _ => sq_nonneg _).trans (hK 0 le_rfl).2
+  refine ⟨C ^ 2 * K, fun t ht => ⟨(hK t ht).1.const_mul _, ?_⟩⟩
+  have hc2 : c t ^ 2 ≤ C ^ 2 := by
+    have := hc t
+    nlinarith [abs_nonneg (c t), sq_abs (c t)]
+  calc ∫ ω, (c t * Z t ω) ^ 2 ∂P = c t ^ 2 * ∫ ω, Z t ω ^ 2 ∂P := by
+        rw [← integral_const_mul]; congr 1; funext ω; ring
+    _ ≤ C ^ 2 * K := mul_le_mul hc2 (hK t ht).2 (integral_nonneg fun _ => sq_nonneg _)
+        (by nlinarith [abs_nonneg (c t), hc t])
+
+/-- Cochrane (2023), §20.2.2, p. 474, under the tracking rule: on the Brownian filtration the
+explicit processes are regular and bounded in mean square when the shock is (`η ≥ 0`). -/
+theorem regular_bddL2_track [IsProbabilityMeasure P] (hW : ∀ t, Measurable (W t)) {σ ρ κ η : ℝ}
+    (hσ : 0 < σ) (hκ : 0 < κ) (hη : 0 ≤ η) (T u g πT : ℝ) {ν : ℝ → Ω → ℝ}
+    (hν : Regular (bmFiltrationReal W hW) ν) (hνb : BddL2 P ν) :
+    Regular (bmFiltrationReal W hW) (trackPi σ κ ρ η T u g πT ν) ∧
+      Regular (bmFiltrationReal W hW) (trackX σ κ ρ η T u g πT ν) ∧
+      BddL2 P (trackPi σ κ ρ η T u g πT ν) ∧ BddL2 P (trackX σ κ ρ η T u g πT ν) := by
+  have hlb := lamb_pos (ρ := ρ) hκ hσ
+  have hcd : ∀ r, |trackD σ κ ρ η T r| ≤ |natD σ κ ρ η| :=
+    abs_trackD_le (by linarith [lamf_pos (ρ := ρ) hκ hσ])
+  have hZ : Regular (bmFiltrationReal W hW) (fun t ω => trackD σ κ ρ η T t * ν t ω) :=
+    ⟨fun ω => (continuous_trackD σ κ ρ η T).mul (hν.1 ω), fun t =>
+      stronglyMeasurable_const.mul (hν.2 t)⟩
+  have hZb := bddL2_mul_det hνb hcd
+  have hχ := regular_chiProc hW hZ (lamb ρ κ σ)
+  have hχb := bddL2_chiProc hW hZ hZb hlb
+  have eX : trackX σ κ ρ η T u g πT ν = fun t ω => (wX σ κ ρ T u g πT t +
+      lamf ρ κ σ / κ * trackChi σ κ ρ η T ν t ω) +
+        (-1 / κ) * (trackD σ κ ρ η T t * ν t ω) := by
+    funext t ω
+    simp only [trackX]
+    ring
+  refine ⟨Regular.add (regular_det _ (wPi_continuous σ κ ρ T u g πT hκ hσ)) hχ, ?_,
+    BddL2.add (bddL2_det (wPath_bdd (ρ := ρ) hκ hσ T u g πT).2) hχb, ?_⟩
+  · rw [eX]
+    exact Regular.add (Regular.add (regular_det _ (wX_continuous σ κ ρ T u g πT hκ hσ))
+      (Regular.const_mul hχ _)) (Regular.const_mul hZ _)
+  · rw [eX]
+    exact BddL2.add (BddL2.add (bddL2_det (wPath_bdd (ρ := ρ) hκ hσ T u g πT).1)
+      (BddL2.const_mul hχb _)) (BddL2.const_mul hZb _)
+
+/-! ## Non-vacuity on the constructed Brownian motion -/
+
+open Cochrane.ZeroBound.TidyR7BrownianExist Cochrane.ZeroBound.TidyR7BrownianSchauder
+
+/-- Cochrane (2023), §20.2.2, pp. 474–475 (non-vacuity): on bmPath at the book's calibration
+(`ρ = 0.05`, `σ = κ = 1`, `T = 5`, `u = −2%`, `g = 0`) with the OU natural-rate shock
+`η = 1/2`, `s_ν = 1/100` and the rate tracking the natural rate after the trap: the response
+`c(0)` is non-zero, the explicit processes with `π_T = 0` are a regular, mean-square-bounded
+equilibrium, and they satisfy `unstable_track` and `condExp_pi_track`. -/
+theorem bmPath_track :
+    trackD 1 1 (1 / 20) (1 / 2) 5 0 ≠ 0 ∧
+    IsStochEqmTrack 1 (1 / 20) 1 gaussSeq (bmFiltrationReal bmPath measurable_bmPath) 5
+        (-2 / 100) 0 (ouProc (1 / 2) 0 0 (1 / 100) bmPath)
+        (trackX 1 1 (1 / 20) (1 / 2) 5 (-2 / 100) 0 0 (ouProc (1 / 2) 0 0 (1 / 100) bmPath))
+        (trackPi 1 1 (1 / 20) (1 / 2) 5 (-2 / 100) 0 0 (ouProc (1 / 2) 0 0 (1 / 100) bmPath)) ∧
+      BddL2 gaussSeq
+        (trackPi 1 1 (1 / 20) (1 / 2) 5 (-2 / 100) 0 0 (ouProc (1 / 2) 0 0 (1 / 100) bmPath)) ∧
+      BddL2 gaussSeq
+        (trackX 1 1 (1 / 20) (1 / 2) 5 (-2 / 100) 0 0 (ouProc (1 / 2) 0 0 (1 / 100) bmPath)) ∧
+      ∀ s t, 0 ≤ s → s ≤ t →
+        gaussSeq[trackPi 1 1 (1 / 20) (1 / 2) 5 (-2 / 100) 0 0
+          (ouProc (1 / 2) 0 0 (1 / 100) bmPath) t |
+          bmFiltrationReal bmPath measurable_bmPath s] =ᵐ[gaussSeq] fun ω =>
+          wPi 1 1 (1 / 20) 5 (-2 / 100) 0 0 t + Real.exp (-(lamb (1 / 20) 1 1 * (t - s))) *
+            (trackPi 1 1 (1 / 20) (1 / 2) 5 (-2 / 100) 0 0
+              (ouProc (1 / 2) 0 0 (1 / 100) bmPath) s ω - wPi 1 1 (1 / 20) 5 (-2 / 100) 0 0 s) +
+          trackK (lamb (1 / 20) 1 1) (1 / 2) (trackD 1 1 (1 / 20) (1 / 2) 5) s t *
+            ouProc (1 / 2) 0 0 (1 / 100) bmPath s ω := by
+  have := isProbabilityMeasure_gaussSeq
+  have hB := isPreBrownianReal_bmPath
+  have hη : (0 : ℝ) < 1 / 2 := by norm_num
+  have hν := regular_ouProc measurable_bmPath continuous_bmPath (1 / 2) 0 0 (1 / 100)
+  have hν2 := bddL2_ou hB measurable_bmPath continuous_bmPath bmPath_zero hη (1 / 100)
+  have hνd := expDrift_ou hB measurable_bmPath continuous_bmPath (1 / 2) (1 / 100)
+  have heq := isStochEqmTrack_trackPi (P := gaussSeq) one_pos one_pos hη.le (ρ := 1 / 20) 5
+    (-2 / 100) 0 0 hν hν2.bddL1 hνd
+  obtain ⟨rπ, rx, bπ, bx⟩ := regular_bddL2_track (P := gaussSeq) measurable_bmPath one_pos
+    one_pos hη.le (ρ := 1 / 20) 5 (-2 / 100) 0 0 hν hν2
+  refine ⟨?_, heq, bπ, bx, fun s t hs hst =>
+    condExp_pi_track one_pos one_pos hη.le hν hν2.bddL1 hνd rx bx.bddL1 rπ bπ.bddL1 heq hs hst⟩
+  have hf := lamf_pos (ρ := 1 / 20) (one_pos : (0 : ℝ) < 1) one_pos
+  have hd : natD 1 1 (1 / 20) (1 / 2) ≠ 0 := by
+    unfold natD
+    exact div_ne_zero (by norm_num) (by linarith)
+  unfold trackD
+  refine mul_ne_zero hd (sub_ne_zero.2 (Ne.symm ?_))
+  rw [Ne, Real.exp_eq_one_iff]
+  have : (0 : ℝ) < (lamf (1 / 20) 1 1 + 1 / 2) * max (5 - 0) 0 := by
+    rw [max_eq_left (by norm_num)]
+    nlinarith
+  linarith
+
+end Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The Ornstein–Uhlenbeck equilibria are almost surely unbounded on `[0, ∞)`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 20, §20.2.2, p. 474 ("do not
+explode as time increases") and p. 475 (Figure 20.4), under uncertainty.
+
+TidyR7StochWerningExist builds, for every `(π_T, b)`, the equilibria
+`π_t = wPi(π_T)_t + ζ^b_t`, `x_t = wX(π_T)_t + (λ^f/κ)ζ^b_t` of the trap experiment, with the
+Ornstein–Uhlenbeck innovation `ζ^b = ouProc (λ^b) 0 0 b W`; they are bounded in mean square
+but not in `L^∞` (`TidyR7StochWerningExist.not_bdd_ae_eqPi`). Here we prove the pathwise
+statement: **for `b ≠ 0`, almost every path of `π` (and of `x`) has `sup_{t ≥ 0} π_t = +∞` and
+`inf_{t ≥ 0} π_t = −∞`**; indeed `π` exceeds every level, and falls below every level, at
+arbitrarily late integer dates.
+
+The argument is the recurrence of a stationary Gaussian AR(1): sampled at integer dates the OU
+process is `ζ_{n+1} = e^{−η}ζ_n + ε_n` with i.i.d. Gaussian innovations `ε_n`
+(TidyR7OUSampled). The events "`ζ_n` comes within `1/(m+1)` of `a` from above infinitely often"
+are tail events of the innovations (`ouProc_shift`, the effect of `ζ_N` decays like `e^{−ηk}`),
+they have positive probability (`prob_ouProc_gt`: Chebyshev for `ζ_n` and the independence of
+`ε_n` from `ε_0, …, ε_{n−1}`), hence probability one by Kolmogorov's 0-1 law.
+
+## Main results
+
+* `ouProc_frequently_gt`, `ouProc_frequently_lt`: for `η > 0`, `σ ≠ 0`, almost surely
+  `ζ_n > M` and `ζ_n < M` for infinitely many `n`, for every `M`.
+* `det_add_ou_unbounded`: a deterministic path bounded on `[0, ∞)` plus `c ζ` (`c ≠ 0`) is
+  almost surely unbounded above and below at arbitrarily late dates.
+* **`eqPi_unbounded`, `eqX_unbounded`, `eqPi_sup_inf`**: the equilibria with a non-zero
+  innovation loading have almost surely unbounded paths on `[0, ∞)`, above and below.
+* Non-vacuity on bmPath at the book's calibration: `bmPath_eqPi_sup_inf`.
+-/
+
+namespace Cochrane.ZeroBound.TidyR8StochWerningRecurrence
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.ZeroBound.ContinuousTimeNK Cochrane.ZeroBound.WerningModel
+open Cochrane.ZeroBound.TidyR7StochWerning Cochrane.ZeroBound.TidyR7StochWerningExist
+open Cochrane.ZeroBound.TidyR7OUPath Cochrane.ZeroBound.TidyR7OrnsteinUhlenbeck
+open Cochrane.ZeroBound.TidyR7OUSampled Cochrane.ZeroBound.TidyR7BrownianTools
+open scoped NNReal ENNReal
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {W : ℝ≥0 → Ω → ℝ}
+
+/-! ## Tail-event tools (restated from the FiscalConstraints project) -/
+
+/-- Cochrane (2023), p. 197 (tool): a frequently-true property is shift invariant.
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.frequently_shift_iff). -/
+theorem frequently_shift_iff {p : ℕ → Prop} (N : ℕ) :
+    (∃ᶠ t in atTop, p t) ↔ ∃ᶠ k in atTop, p (N + k) := by
+  rw [frequently_atTop, frequently_atTop]
+  constructor
+  · intro h a
+    obtain ⟨t, ht, hp⟩ := h (N + a)
+    exact ⟨t - N, by omega, by rwa [show N + (t - N) = t by omega]⟩
+  · intro h a
+    obtain ⟨k, hk, hp⟩ := h a
+    exact ⟨N + k, by omega, hp⟩
+
+/-- Cochrane (2023), p. 197 (tool): "`z_t` gets within `1/(m+1)` of `a` from above infinitely
+often, for every `m`" is unchanged by a perturbation that vanishes at infinity.
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.frequently_near_of_tendsto). -/
+theorem frequently_near_of_tendsto {z z' : ℕ → ℝ} (hzz : Tendsto (fun t => z t - z' t) atTop (𝓝 0))
+    {a : ℝ} (h : ∀ m : ℕ, ∃ᶠ t in atTop, a - 1 / ((m : ℝ) + 1) < z t) (m : ℕ) :
+    ∃ᶠ t in atTop, a - 1 / ((m : ℝ) + 1) < z' t := by
+  have hpos : (0 : ℝ) < 1 / (2 * (m : ℝ) + 2) := by positivity
+  have hev : ∀ᶠ t in atTop, |z t - z' t| < 1 / (2 * (m : ℝ) + 2) := by
+    refine (hzz.eventually (Metric.ball_mem_nhds 0 hpos)).mono fun t ht => ?_
+    rw [Real.dist_0_eq_abs] at ht
+    exact ht
+  have hf := h (2 * m + 1)
+  refine (hf.and_eventually hev).mono fun t ht => ?_
+  obtain ⟨h1, h2⟩ := ht
+  rw [abs_lt] at h2
+  have e1 : (1 : ℝ) / ((((2 * m + 1 : ℕ)) : ℝ) + 1) = 1 / (2 * (m : ℝ) + 2) := by
+    push_cast; ring_nf
+  rw [e1] at h1
+  have e2 : 1 / (2 * (m : ℝ) + 2) + 1 / (2 * (m : ℝ) + 2) = 1 / ((m : ℝ) + 1) := by
+    field_simp; ring
+  linarith
+
+/-- Cochrane (2023), p. 197 (tool): the event "frequently near or above `a`" for a sequence of
+`m'`-measurable variables is `m'`-measurable.
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.measurableSet_frequently_near). -/
+theorem measurableSet_frequently_near {m' : MeasurableSpace Ω} {y : ℕ → Ω → ℝ}
+    (hy : ∀ k, Measurable[m'] (y k)) (a : ℝ) :
+    MeasurableSet[m'] {ω | ∀ m : ℕ, ∃ᶠ k in atTop, a - 1 / ((m : ℝ) + 1) < y k ω} := by
+  have h : {ω | ∀ m : ℕ, ∃ᶠ k in atTop, a - 1 / ((m : ℝ) + 1) < y k ω} =
+      ⋂ m : ℕ, ⋂ n : ℕ, ⋃ k : ℕ, ⋃ (_ : n ≤ k), {ω | a - 1 / ((m : ℝ) + 1) < y k ω} := by
+    ext ω
+    simp [frequently_atTop]
+  rw [h]
+  exact MeasurableSet.iInter fun _ => MeasurableSet.iInter fun _ => MeasurableSet.iUnion
+    fun k => MeasurableSet.iUnion fun _ => measurableSet_lt measurable_const (hy k)
+
+/-- Cochrane (2023), p. 197 (tool): if the events `A_{t+2}` all have probability at least `q`,
+then "`A_t` infinitely often" has probability at least `q` (continuity from above).
+Restated from the Cochrane FiscalConstraints project
+(Cochrane.FiscalConstraints.DebtLimitStochasticMeasure.le_measure_frequently). -/
+theorem le_measure_frequently {μ : Measure Ω} [IsFiniteMeasure μ] {A : ℕ → Set Ω}
+    (hA : ∀ t, MeasurableSet (A t)) {q : ENNReal}
+    (hq : ∀ t, q ≤ μ (A (t + 2))) : q ≤ μ {ω | ∃ᶠ t in atTop, ω ∈ A t} := by
+  set B : ℕ → Set Ω := fun N => ⋃ t, ⋃ (_ : N ≤ t), A t with hBdef
+  have hset : {ω | ∃ᶠ t in atTop, ω ∈ A t} = ⋂ N, B N := by
+    ext ω
+    simp [hBdef, frequently_atTop]
+  have hanti : Antitone B := fun N N' h ω hω => by
+    simp only [hBdef, Set.mem_iUnion] at hω ⊢
+    obtain ⟨t, ht, h'⟩ := hω
+    exact ⟨t, h.trans ht, h'⟩
+  have hBm : ∀ N, NullMeasurableSet (B N) μ := fun N =>
+    (MeasurableSet.iUnion fun t => MeasurableSet.iUnion fun _ => hA t).nullMeasurableSet
+  have hlim := tendsto_measure_iInter_atTop hBm hanti ⟨0, measure_ne_top μ _⟩
+  rw [hset]
+  refine ge_of_tendsto' hlim fun N => ?_
+  calc q ≤ μ (A (N + 2)) := hq N
+    _ ≤ μ (B N) := measure_mono (Set.subset_biUnion_of_mem (u := A) (by omega : N ≤ N + 2))
+
+/-! ## The sampled OU process and its innovations -/
+
+/-- Cochrane (2023), §20.2.2, p. 474: the OU innovation at integer dates,
+`ζ_{n+1} = e^{−η}ζ_n + ε_n` (`ζ = ouProc η 0 0 σ W`), path by path.
+`TidyR7OUSampled.ouProc_succ` with `s̄ = s_0 = 0`. -/
+theorem ouProc_succ_zero (hcont : ∀ ω, Continuous fun t => W t ω) (η σ : ℝ) (n : ℕ) (ω : Ω) :
+    ouProc η 0 0 σ W ((n + 1 : ℕ) : ℝ) ω =
+      Real.exp (-η) * ouProc η 0 0 σ W n ω + ouInnov η σ W n ω := by
+  have h := ouProc_succ hcont η 0 0 σ n ω
+  push_cast
+  linarith
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): the OU process is measurable at every date.
+A corollary of `TidyR7StochWerningExist.stronglyMeasurable_ouProc`. -/
+theorem measurable_ouProc_at (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (η σ t : ℝ) :
+    Measurable (ouProc η 0 0 σ W t) :=
+  ((stronglyMeasurable_ouProc hW hcont η 0 0 σ t).mono ((bmFiltrationReal W hW).le t)).measurable
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): the innovations are measurable.
+Strengthens `TidyR7OUSampled.aemeasurable_ouInnov`; here `ouInnov n` is the innovation that module
+writes `ε_{n+1}`. -/
+theorem measurable_ouInnov (hW : ∀ t, Measurable (W t)) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (η σ : ℝ) (n : ℕ) : Measurable (ouInnov η σ W n) := by
+  have e : ouInnov η σ W n = fun ω => ouProc η 0 0 σ W ((n + 1 : ℕ) : ℝ) ω -
+      Real.exp (-η) * ouProc η 0 0 σ W n ω := by
+    funext ω
+    rw [ouProc_succ_zero hcont]
+    ring
+  rw [e]
+  exact (measurable_ouProc_at hW hcont η σ _).sub
+    ((measurable_ouProc_at hW hcont η σ _).const_mul _)
+
+/-- Cochrane (2023), §20.2.2, p. 474: the σ-algebra generated by the innovation `ε_n`. -/
+noncomputable abbrev innovSigma (η σ : ℝ) (W : ℝ≥0 → Ω → ℝ) (n : ℕ) : MeasurableSpace Ω :=
+  MeasurableSpace.comap (ouInnov η σ W n) inferInstance
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): `σ(ε_n)` is a sub-σ-algebra. -/
+theorem innovSigma_le (hW : ∀ t, Measurable (W t)) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (η σ : ℝ) (n : ℕ) : innovSigma η σ W n ≤ mΩ :=
+  (measurable_ouInnov hW hcont η σ n).comap_le
+
+/-- Cochrane (2023), §20.2.2, p. 474 (tool): `ε_n` is `σ(ε_n)`-measurable. -/
+theorem measurable_ouInnov_sigma (η σ : ℝ) (n : ℕ) :
+    Measurable[innovSigma η σ W n] (ouInnov η σ W n) :=
+  comap_measurable _
+
+/-- Cochrane (2023), §20.2.2, p. 474: **the innovation σ-algebras are independent**
+(`TidyR7OUSampled.iIndepFun_ouInnov`). -/
+theorem iIndep_innovSigma (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) {η : ℝ} (hη : 0 < η) (σ : ℝ) :
+    iIndep (innovSigma η σ W) P :=
+  (iIndepFun_iff_iIndep _ _ _).1 (iIndepFun_ouInnov hB hW hcont hη σ)
+
+/-- Cochrane (2023), §20.2.2, p. 474: the OU process restarted at `N` from `0`, driven by
+`ε_N, ε_{N+1}, …`: `w_0 = 0`, `w_{k+1} = e^{−η}w_k + ε_{N+k}`. -/
+noncomputable def ouFrom (η σ : ℝ) (W : ℝ≥0 → Ω → ℝ) (N : ℕ) : ℕ → Ω → ℝ
+  | 0 => fun _ => 0
+  | k + 1 => fun ω => Real.exp (-η) * ouFrom η σ W N k ω + ouInnov η σ W (N + k) ω
+
+/-- Cochrane (2023), §20.2.2, p. 474: restarting at `N`, `ζ_{N+k} = e^{−ηk}ζ_N + w_k`. -/
+theorem ouProc_shift (hcont : ∀ ω, Continuous fun t => W t ω) (η σ : ℝ) (N : ℕ) (ω : Ω) :
+    ∀ k : ℕ, ouProc η 0 0 σ W ((N + k : ℕ) : ℝ) ω =
+      Real.exp (-η) ^ k * ouProc η 0 0 σ W N ω + ouFrom η σ W N k ω := by
+  intro k
+  induction k with
+  | zero => simp [ouFrom]
+  | succ k ih =>
+    rw [← add_assoc, ouProc_succ_zero hcont, ih]
+    change _ = _ + (Real.exp (-η) * ouFrom η σ W N k ω + ouInnov η σ W (N + k) ω)
+    ring
+
+/-- Cochrane (2023), §20.2.2, p. 474: the restarted process depends only on the innovations
+from date `N` on. -/
+theorem measurable_ouFrom (η σ : ℝ) (N : ℕ) :
+    ∀ k, Measurable[⨆ i ≥ N, innovSigma η σ W i] (ouFrom η σ W N k) := by
+  intro k
+  induction k with
+  | zero => exact measurable_const
+  | succ k ih =>
+    exact (ih.const_mul _).add ((measurable_ouInnov_sigma η σ (N + k)).mono
+      (le_iSup₂ (f := fun i (_ : i ≥ N) => innovSigma η σ W i) (N + k) (by omega)) le_rfl)
+
+/-- Cochrane (2023), §20.2.2, p. 474: `ζ_n` depends only on the innovations before `n`. -/
+theorem measurable_ouProc_past (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (η σ : ℝ) :
+    ∀ n : ℕ, Measurable[⨆ i ∈ Set.Iio n, innovSigma η σ W i] (ouProc η 0 0 σ W n) := by
+  intro n
+  induction n with
+  | zero =>
+    have e : ouProc η 0 0 σ W ((0 : ℕ) : ℝ) = fun _ => 0 := by
+      funext ω
+      simpa using ouProc_zero hW0 η 0 0 σ ω
+    rw [e]
+    exact measurable_const
+  | succ n ih =>
+    have e : ouProc η 0 0 σ W ((n + 1 : ℕ) : ℝ) =
+        fun ω => Real.exp (-η) * ouProc η 0 0 σ W n ω + ouInnov η σ W n ω :=
+      funext (ouProc_succ_zero hcont η σ n)
+    rw [e]
+    refine ((ih.mono (biSup_mono fun i (hi : i ∈ Set.Iio n) =>
+      (show i ∈ Set.Iio (n + 1) from Nat.lt_succ_of_lt hi)) le_rfl).const_mul _).add
+        ((measurable_ouInnov_sigma η σ n).mono ?_ le_rfl)
+    exact le_iSup₂ (f := fun i (_ : i ∈ Set.Iio (n + 1)) => innovSigma η σ W i) n
+      (Nat.lt_succ_self n)
+
+/-- Cochrane (2023), §20.2.2, p. 474: **`ζ_{n+1}` exceeds any level with probability bounded
+away from zero, uniformly in `n`.** Chebyshev: `P(ζ_n² ≥ D) ≤ σ²/(2ηD) ≤ 1/2`; and
+`ε_n > a + 1 + D` is independent of `ζ_n` and has a fixed positive probability. -/
+theorem prob_ouProc_gt (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {η σ : ℝ} (hη : 0 < η)
+    (hσ : σ ≠ 0) (a : ℝ) :
+    ∃ q : ℝ≥0∞, q ≠ 0 ∧ ∀ n : ℕ, q ≤ P {ω | a < ouProc η 0 0 σ W ((n + 1 : ℕ) : ℝ) ω} := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  set D := σ ^ 2 / η + 1 with hD
+  have hσ2 : 0 ≤ σ ^ 2 / η := div_nonneg (sq_nonneg σ) hη.le
+  have hD0 : 0 < D := by linarith
+  set c := a + (1 + D) with hc
+  set p := gaussianReal 0 (ouVar η σ 1) (Set.Ioi c) with hp
+  have hp0 : p ≠ 0 :=
+    (gaussianReal_open_pos 0 (ouVar_ne_zero hη hσ one_pos) isOpen_Ioi Set.nonempty_Ioi).ne'
+  refine ⟨p * ENNReal.ofReal (1 / 2), mul_ne_zero hp0 (by norm_num), fun n => ?_⟩
+  set ζ := ouProc η 0 0 σ W (n : ℝ) with hζ
+  set A := {ω | c < ouInnov η σ W n ω} with hA
+  set B := {ω | ζ ω ^ 2 < D} with hBset
+  have hAm : MeasurableSet[⨆ i ∈ ({n} : Set ℕ), innovSigma η σ W i] A :=
+    measurableSet_lt measurable_const ((measurable_ouInnov_sigma η σ n).mono
+      (le_iSup₂ (f := fun i (_ : i ∈ ({n} : Set ℕ)) => innovSigma η σ W i) n rfl) le_rfl)
+  have hBm : MeasurableSet[⨆ i ∈ Set.Iio n, innovSigma η σ W i] B :=
+    measurableSet_lt ((measurable_ouProc_past hcont hW0 η σ n).pow_const 2) measurable_const
+  have hind := (Indep_iff _ _ _).1 (indep_iSup_of_disjoint (innovSigma_le hW hcont η σ)
+    (iIndep_innovSigma hB hW hcont hη σ) (S := {n}) (T := Set.Iio n)
+    (Set.disjoint_singleton_left.2 (lt_irrefl n))) A B hAm hBm
+  have hAval : P A = p := by
+    rw [hp, ← ouInnov_hasLaw hB hW hcont hη σ n,
+      Measure.map_apply (measurable_ouInnov hW hcont η σ n) measurableSet_Ioi]
+    rfl
+  have hBval : ENNReal.ofReal (1 / 2) ≤ P B := by
+    obtain ⟨hmem, hsq⟩ := ouProc_sq_le hB hW hcont hW0 hη σ (Nat.cast_nonneg (α := ℝ) n)
+    have hmk := mul_meas_ge_le_integral_of_nonneg (μ := P)
+      (Eventually.of_forall fun ω => sq_nonneg (ζ ω)) hmem.integrable_sq D
+    have hreal : P.real {ω | D ≤ ζ ω ^ 2} ≤ 1 / 2 := by
+      have h1 : D * P.real {ω | D ≤ ζ ω ^ 2} ≤ σ ^ 2 / (2 * η) := hmk.trans hsq
+      have h2 : σ ^ 2 / (2 * η) = (σ ^ 2 / η) / 2 := by field_simp
+      have hpr := measureReal_nonneg (μ := P) (s := {ω | D ≤ ζ ω ^ 2})
+      have hpr1 : P.real {ω | D ≤ ζ ω ^ 2} ≤ 1 := measureReal_le_one
+      nlinarith
+    have hcompl : Bᶜ = {ω | D ≤ ζ ω ^ 2} := by
+      ext ω
+      simp [hBset]
+    have hBmeas : MeasurableSet B :=
+      measurableSet_lt ((measurable_ouProc_at hW hcont η σ _).pow_const 2) measurable_const
+    have hBc : P.real Bᶜ ≤ 1 / 2 := by rw [hcompl]; exact hreal
+    rw [measureReal_compl hBmeas, probReal_univ] at hBc
+    rw [← ofReal_measureReal]
+    exact ENNReal.ofReal_le_ofReal (by linarith)
+  have hsub : A ∩ B ⊆ {ω | a < ouProc η 0 0 σ W ((n + 1 : ℕ) : ℝ) ω} := by
+    rintro ω ⟨ha, hb⟩
+    simp only [hA, hBset, Set.mem_ofPred_eq] at ha hb ⊢
+    rw [ouProc_succ_zero hcont]
+    have hρ0 : 0 < Real.exp (-η) := Real.exp_pos _
+    have hρ1 : Real.exp (-η) ≤ 1 := Real.exp_le_one_iff.2 (by linarith)
+    have hz : -(1 + D) < ζ ω := by nlinarith [sq_nonneg (ζ ω + 1)]
+    have hz2 : -(1 + D) < Real.exp (-η) * ζ ω := by
+      rcases le_total 0 (ζ ω) with h | h
+      · nlinarith [mul_nonneg hρ0.le h]
+      · nlinarith [mul_le_mul_of_nonpos_right hρ1 h]
+    simp only [hc] at ha
+    linarith
+  calc p * ENNReal.ofReal (1 / 2) ≤ P A * P B := by rw [hAval]; gcongr
+    _ = P (A ∩ B) := hind.symm
+    _ ≤ _ := measure_mono hsub
+
+/-! ## Recurrence -/
+
+/-- **Cochrane (2023), §20.2.2, p. 474: the sampled OU process is almost surely unbounded
+above.** For `η > 0`, `σ ≠ 0`, almost surely `ζ_n > M` for infinitely many integers `n`, for
+every `M` (`ζ = ouProc η 0 0 σ W`). Tail events (`ouProc_shift`) of positive probability
+(`prob_ouProc_gt`) have probability one (Kolmogorov's 0-1 law,
+`ProbabilityTheory.measure_zero_or_one_of_measurableSet_limsup_atTop`). -/
+theorem ouProc_frequently_gt (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {η σ : ℝ} (hη : 0 < η)
+    (hσ : σ ≠ 0) :
+    ∀ᵐ ω ∂P, ∀ M : ℝ, ∃ᶠ n : ℕ in atTop, M < ouProc η 0 0 σ W n ω := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  set x : ℕ → Ω → ℝ := fun n ω => ouProc η 0 0 σ W n ω with hx
+  set E : ℝ → Set Ω := fun a =>
+    {ω | ∀ m : ℕ, ∃ᶠ t in atTop, a - 1 / ((m : ℝ) + 1) < x t ω} with hE
+  have hρ0 : 0 ≤ Real.exp (-η) := (Real.exp_pos _).le
+  have hρ1 : Real.exp (-η) < 1 := Real.exp_lt_one_iff.2 (by linarith)
+  have htail : ∀ a, MeasurableSet[limsup (innovSigma η σ W) atTop] (E a) := by
+    intro a
+    rw [limsup_eq_iInf_iSup_of_nat, MeasurableSpace.measurableSet_iInf]
+    intro N
+    set y : ℕ → Ω → ℝ := fun k => ouFrom η σ W N k with hy
+    have heq : E a = {ω | ∀ m : ℕ, ∃ᶠ k in atTop, a - 1 / ((m : ℝ) + 1) < y k ω} := by
+      ext ω
+      simp only [hE, Set.mem_ofPred_eq]
+      have hshift : ∀ m : ℕ, (∃ᶠ t in atTop, a - 1 / ((m : ℝ) + 1) < x t ω) ↔
+          ∃ᶠ k in atTop, a - 1 / ((m : ℝ) + 1) < x (N + k) ω :=
+        fun m => frequently_shift_iff N
+      simp only [hshift]
+      have hdiff : Tendsto (fun k => x (N + k) ω - y k ω) atTop (𝓝 0) := by
+        have h1 := (tendsto_pow_atTop_nhds_zero_of_lt_one hρ0 hρ1).mul_const (x N ω)
+        rw [zero_mul] at h1
+        refine h1.congr fun k => ?_
+        simp only [hx, hy]
+        rw [ouProc_shift hcont η σ N ω k]
+        ring
+      have hdiff' : Tendsto (fun k => y k ω - x (N + k) ω) atTop (𝓝 0) := by
+        have := hdiff.neg
+        rw [neg_zero] at this
+        refine this.congr fun k => ?_
+        ring
+      exact ⟨fun h m => frequently_near_of_tendsto hdiff h m,
+        fun h m => frequently_near_of_tendsto hdiff' h m⟩
+    rw [heq]
+    exact measurableSet_frequently_near (measurable_ouFrom η σ N) a
+  have hpos : ∀ a, P (E a) ≠ 0 := by
+    intro a
+    obtain ⟨q, hq0, hq⟩ := prob_ouProc_gt hB hW hcont hW0 hη hσ a
+    have hfreq := le_measure_frequently (μ := P) (A := fun t => {ω | a < x t ω})
+      (fun t => measurableSet_lt measurable_const (measurable_ouProc_at hW hcont η σ _))
+      (fun t => hq (t + 1))
+    have hsub : {ω | ∃ᶠ t in atTop, ω ∈ {ω' | a < x t ω'}} ⊆ E a := by
+      intro ω hω m
+      refine hω.mono fun t ht => ?_
+      have : 0 < 1 / ((m : ℝ) + 1) := by positivity
+      simp only [Set.mem_ofPred_eq] at ht
+      linarith
+    intro h0
+    exact hq0 (nonpos_iff_eq_zero.1 ((hfreq.trans (measure_mono hsub)).trans_eq h0))
+  have hone : ∀ n : ℕ, ∀ᵐ ω ∂P, ω ∈ E n := by
+    intro n
+    rcases measure_zero_or_one_of_measurableSet_limsup_atTop (innovSigma_le hW hcont η σ)
+      (iIndep_innovSigma hB hW hcont hη σ) (htail n) with h | h
+    · exact absurd h (hpos n)
+    · have hm : MeasurableSet (E n) :=
+        (limsup_le_iSup.trans (iSup_le (innovSigma_le hW hcont η σ))) _ (htail n)
+      rw [ae_iff]
+      have := (prob_compl_eq_zero_iff hm).2 h
+      simpa [Set.compl_def] using this
+  filter_upwards [ae_all_iff.2 hone] with ω hω M
+  obtain ⟨n, hn⟩ := exists_nat_gt (M + 1)
+  refine (hω n 0).mono fun t ht => ?_
+  simp only [CharP.cast_eq_zero, zero_add, div_one] at ht
+  linarith
+
+/-- Cochrane (2023), §20.2.2, p. 474: **the sampled OU process is almost surely unbounded
+below**: almost surely `ζ_n < M` for infinitely many `n`, for every `M` (apply
+`ouProc_frequently_gt` to the loading `−σ`, `ζ^{−σ} = −ζ^σ`). -/
+theorem ouProc_frequently_lt (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {η σ : ℝ} (hη : 0 < η)
+    (hσ : σ ≠ 0) :
+    ∀ᵐ ω ∂P, ∀ M : ℝ, ∃ᶠ n : ℕ in atTop, ouProc η 0 0 σ W n ω < M := by
+  filter_upwards [ouProc_frequently_gt hB hW hcont hW0 hη (neg_ne_zero.2 hσ)] with ω hω M
+  refine (hω (-M)).mono fun n hn => ?_
+  rw [ouProc_loading η (-σ), neg_mul, ← ouProc_loading η σ] at hn
+  linarith
+
+/-- Cochrane (2023), §20.2.2, p. 474: **a bounded deterministic path plus a non-zero multiple of
+the OU process is almost surely unbounded above and below** at arbitrarily late dates
+`t → ∞` (real `t`, through the integer dates). -/
+theorem det_add_ou_unbounded (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {η b c : ℝ} (hη : 0 < η)
+    (hb : b ≠ 0) (hc : c ≠ 0) {f : ℝ → ℝ} (hf : BddOnIci f) :
+    ∀ᵐ ω ∂P, ∀ M : ℝ, (∃ᶠ t in atTop, M < f t + c * ouProc η 0 0 b W t ω) ∧
+      ∃ᶠ t in atTop, f t + c * ouProc η 0 0 b W t ω < M := by
+  obtain ⟨K, hK⟩ := hf
+  have hcb : c * b ≠ 0 := mul_ne_zero hc hb
+  filter_upwards [ouProc_frequently_gt hB hW hcont hW0 hη hcb,
+    ouProc_frequently_lt hB hW hcont hW0 hη hcb] with ω hgt hlt M
+  have he : ∀ t : ℝ, c * ouProc η 0 0 b W t ω = ouProc η 0 0 (c * b) W t ω := fun t => by
+    rw [ouProc_loading η b, ouProc_loading η (c * b)]
+    ring
+  refine ⟨tendsto_natCast_atTop_atTop.frequently ((hgt (M + K)).mono fun n hn => ?_),
+    tendsto_natCast_atTop_atTop.frequently ((hlt (M - K)).mono fun n hn => ?_)⟩
+  · have := (abs_le.1 (hK n (Nat.cast_nonneg n))).1
+    rw [he]
+    linarith
+  · have := (abs_le.1 (hK n (Nat.cast_nonneg n))).2
+    rw [he]
+    linarith
+
+/-! ## The equilibria -/
+
+/-- **Cochrane (2023), §20.2.2, pp. 474–475, under uncertainty: the inflation path of an
+equilibrium with a non-zero innovation loading is almost surely unbounded on `[0, ∞)`**, above
+and below: almost surely, for every `M`, `π_t > M` and `π_t < M` at arbitrarily late dates.
+Strengthens `TidyR7StochWerningExist.not_bdd_ae_eqPi`. -/
+theorem eqPi_unbounded (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {σ ρ κ : ℝ} (hσ : 0 < σ)
+    (hκ : 0 < κ) (T u g πT : ℝ) {b : ℝ} (hb : b ≠ 0) :
+    ∀ᵐ ω ∂P, ∀ M : ℝ, (∃ᶠ t in atTop, M < eqPi σ κ ρ T u g πT b W t ω) ∧
+      ∃ᶠ t in atTop, eqPi σ κ ρ T u g πT b W t ω < M := by
+  filter_upwards [det_add_ou_unbounded hB hW hcont hW0 (lamb_pos (ρ := ρ) hκ hσ) hb one_ne_zero
+    (wPath_bdd (ρ := ρ) hκ hσ T u g πT).2] with ω hω M
+  simpa only [eqPi, one_mul] using hω M
+
+/-- Cochrane (2023), (20.10), p. 475, under uncertainty: **the output path of an equilibrium
+with a non-zero innovation loading is almost surely unbounded on `[0, ∞)`**, above and
+below. -/
+theorem eqX_unbounded (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {σ ρ κ : ℝ} (hσ : 0 < σ)
+    (hκ : 0 < κ) (T u g πT : ℝ) {b : ℝ} (hb : b ≠ 0) :
+    ∀ᵐ ω ∂P, ∀ M : ℝ, (∃ᶠ t in atTop, M < eqX σ κ ρ T u g πT b W t ω) ∧
+      ∃ᶠ t in atTop, eqX σ κ ρ T u g πT b W t ω < M := by
+  have hc : lamf ρ κ σ / κ ≠ 0 := div_ne_zero (lamf_pos hκ hσ).ne' hκ.ne'
+  filter_upwards [det_add_ou_unbounded hB hW hcont hW0 (lamb_pos (ρ := ρ) hκ hσ) hb hc
+    (wPath_bdd (ρ := ρ) hκ hσ T u g πT).1] with ω hω M
+  simpa only [eqX] using hω M
+
+/-- **Cochrane (2023), §20.2.2, p. 474 ("do not explode"), under uncertainty: almost surely
+`sup_{t ≥ 0} π_t = +∞` and `inf_{t ≥ 0} π_t = −∞`** for the equilibria with `b ≠ 0`, which
+are nevertheless bounded in mean square (`TidyR7StochWerningExist.bddL2_eqPi`). -/
+theorem eqPi_sup_inf (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {σ ρ κ : ℝ} (hσ : 0 < σ)
+    (hκ : 0 < κ) (T u g πT : ℝ) {b : ℝ} (hb : b ≠ 0) :
+    ∀ᵐ ω ∂P, ¬ BddAbove ((fun t => eqPi σ κ ρ T u g πT b W t ω) '' Set.Ici 0) ∧
+      ¬ BddBelow ((fun t => eqPi σ κ ρ T u g πT b W t ω) '' Set.Ici 0) := by
+  filter_upwards [eqPi_unbounded hB hW hcont hW0 hσ hκ T u g πT hb] with ω hω
+  refine ⟨fun ⟨M, hM⟩ => ?_, fun ⟨M, hM⟩ => ?_⟩
+  · obtain ⟨t, ht, ht0⟩ := ((hω M).1.and_eventually (eventually_ge_atTop 0)).exists
+    exact absurd (hM ⟨t, ht0, rfl⟩) (not_le.2 ht)
+  · obtain ⟨t, ht, ht0⟩ := ((hω M).2.and_eventually (eventually_ge_atTop 0)).exists
+    exact absurd (hM ⟨t, ht0, rfl⟩) (not_le.2 ht)
+
+/-! ## Non-vacuity on the constructed Brownian motion -/
+
+open Cochrane.ZeroBound.TidyR7BrownianExist Cochrane.ZeroBound.TidyR7BrownianSchauder
+
+/-- Cochrane (2023), §20.2.2, p. 474 (non-vacuity): on bmPath at the book's calibration
+(`ρ = 0.05`, `σ = κ = 1`, `T = 5`, `u_r = −2%`, `g = 0`, `π_T = 0`, unit loading), almost every
+inflation path is unbounded above and below on `[0, ∞)`, although the process is bounded in
+mean square. -/
+theorem bmPath_eqPi_sup_inf :
+    (∀ᵐ ω ∂gaussSeq,
+      ¬ BddAbove ((fun t => eqPi 1 1 (1 / 20) 5 (-2 / 100) 0 0 1 bmPath t ω) '' Set.Ici 0) ∧
+      ¬ BddBelow ((fun t => eqPi 1 1 (1 / 20) 5 (-2 / 100) 0 0 1 bmPath t ω) '' Set.Ici 0)) ∧
+    BddL2 gaussSeq (eqPi 1 1 (1 / 20) 5 (-2 / 100) 0 0 1 bmPath) := by
+  have := isProbabilityMeasure_gaussSeq
+  exact ⟨eqPi_sup_inf isPreBrownianReal_bmPath measurable_bmPath continuous_bmPath bmPath_zero
+      one_pos one_pos _ _ _ _ one_ne_zero,
+    bddL2_eqPi isPreBrownianReal_bmPath measurable_bmPath continuous_bmPath bmPath_zero one_pos
+      one_pos _ _ _ _ _⟩
+
+end Cochrane.ZeroBound.TidyR8StochWerningRecurrence
+
 set_option linter.style.longLine false
 #print axioms Cochrane.ZeroBound.SchurStable
 #print axioms Cochrane.ZeroBound.discQ
@@ -36967,3 +40130,122 @@ set_option linter.style.longLine false
 #print axioms Cochrane.ZeroBound.TidyR7StochWerningNaturalExist.bddL1_natPi
 #print axioms Cochrane.ZeroBound.TidyR7StochWerningNaturalExist.bddL1_natX
 #print axioms Cochrane.ZeroBound.TidyR7StochWerningNaturalExist.natural_nonvacuous
+#print axioms Cochrane.ZeroBound.TidyR7OUSampled.ouInnov
+#print axioms Cochrane.ZeroBound.TidyR7OUSampled.ouProc_succ
+#print axioms Cochrane.ZeroBound.TidyR7OUSampled.ouInnov_eq
+#print axioms Cochrane.ZeroBound.TidyR7OUSampled.ouInnov_hasLaw
+#print axioms Cochrane.ZeroBound.TidyR7OUSampled.aemeasurable_ouInnov
+#print axioms Cochrane.ZeroBound.TidyR7OUSampled.memLp_ouInnov
+#print axioms Cochrane.ZeroBound.TidyR7OUSampled.integral_ouInnov
+#print axioms Cochrane.ZeroBound.TidyR7OUSampled.covariance_ouInnov
+#print axioms Cochrane.ZeroBound.TidyR7OUSampled.isGaussianProcess_ouInnov
+#print axioms Cochrane.ZeroBound.TidyR7OUSampled.iIndepFun_ouInnov
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.ruleRate
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.IsActiveTrapEqm
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.ae_forall_Ici_of_forall_ae
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.expDriftFrom_of_eq
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.expDrift_of_ae_eq
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.active_trap_selects
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.active_trap_selects_paths
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.active_trap_exists
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningActiveTrap.bmPath_active_trap
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningLimits.nk_multiplier_stoch
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningLimits.nk_frictionless_stoch
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningLimits.mean_piT_nj
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningLimits.nj_mean_multiplier
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningLimits.nj_mean_multiplier_bounds
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningLimits.nj_frictionless_stoch
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningLimits.det_nj_multiplier
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.integrableOn_setIntegral
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.setIntegral_nu
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.condExp_nu
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.natK
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.natK_zero
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.hasDerivAt_natK
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.continuous_natK
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.setIntegral_affine
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.setIntegral_pi_nat
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.condExp_pi_nat
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.condExp_x_nat
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.BddL2.add
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.BddL2.const_mul
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_det
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.sq_integral_weight_le
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.chiProc_eq_integral
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.sq_chiProc_le
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_chiProc
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_ou
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_natPi
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bddL2_natX
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalMean.bmPath_condExp_pi_nat
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.expDrift_of_bracket_eq
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.zPi
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.zX
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.isStochEqm_of_zeta
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.setIntegral_intervalIntegral_swap
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.integral_exp_neg
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.expDrift_zeta_of_martingale
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.isStochEqm_of_martingale
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.martingale_of_isStochEqm
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.condExp_wienerBP
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.loadH
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.loadH'
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.hasDerivAt_loadH
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.continuous_loadH'
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.wienerM
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.wienerM_sub
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.regular_wienerM
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.martingale_wienerM
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.zetaB
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.integral_zetaB_sq_le
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.isStochEqm_loading
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningMartingale.bmPath_loading_cos
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackRate
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.IsStochEqmTrack
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackRate_sub
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackD
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackK
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackK_self
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.hasDerivAt_trackK
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.continuous_trackK
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.continuous_trackD
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackD_of_le
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.abs_trackD_le
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.hasDerivAt_trackD
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.setIntegral_swap_weight
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.expDrift_mul_det
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.expDrift_x_track
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.track_mean_forms
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.unstable_track
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.setIntegral_pi_track
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.condExp_pi_track
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackChi
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackPi
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.trackX
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.isStochEqmTrack_trackPi
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.bddL2_mul_det
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.regular_bddL2_track
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningNaturalTrack.bmPath_track
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.frequently_shift_iff
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.frequently_near_of_tendsto
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurableSet_frequently_near
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.le_measure_frequently
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouProc_succ_zero
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouProc_at
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouInnov
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.innovSigma
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.innovSigma_le
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouInnov_sigma
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.iIndep_innovSigma
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouFrom
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouProc_shift
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouFrom
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.measurable_ouProc_past
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.prob_ouProc_gt
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouProc_frequently_gt
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.ouProc_frequently_lt
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.det_add_ou_unbounded
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.eqPi_unbounded
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.eqX_unbounded
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.eqPi_sup_inf
+#print axioms Cochrane.ZeroBound.TidyR8StochWerningRecurrence.bmPath_eqPi_sup_inf
