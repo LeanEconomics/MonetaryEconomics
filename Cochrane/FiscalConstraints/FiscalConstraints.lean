@@ -46,3 +46,8 @@ import FiscalConstraints.TidyR7OUPath
 import FiscalConstraints.TidyR7WienerGaussian
 import FiscalConstraints.TidyR7OrnsteinUhlenbeck
 import FiscalConstraints.TidyR7OUSampled
+import FiscalConstraints.TidyR8DebtChain
+import FiscalConstraints.TidyR8OUDebtExplosive
+import FiscalConstraints.TidyR8OURestart
+import FiscalConstraints.TidyR8OUDebtUnbounded
+import FiscalConstraints.TidyR8OUDebtRgEqual

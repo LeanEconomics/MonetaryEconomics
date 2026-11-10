@@ -68,6 +68,7 @@ import Mathlib.Analysis.Calculus.Deriv.Slope
 import Mathlib.MeasureTheory.Measure.CharacteristicFunction.TaylorExpansion
 import Mathlib.LinearAlgebra.Finsupp.LinearCombination
 import Mathlib.Topology.ContinuousMap.Bounded.Basic
+import Mathlib.MeasureTheory.Integral.Lebesgue.Markov
 set_option autoImplicit false
 
 /-
@@ -21527,6 +21528,1897 @@ theorem bmPath_sampled_debt_unbounded (x₀ sbar s0 : ℝ) :
 
 end Cochrane.FiscalConstraints.TidyR7OUSampled
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The two-dimensional surplus–debt chain and Kolmogorov's 0-1 law
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 6, §6.4.1, p. 197 ("So at some
+point the future debt-to-GDP ratio following (6.5) will eventually exceed any bound"), with the
+debt equation (6.4)–(6.5), p. 196.
+
+Sampled at integer dates, the continuous-time OU surplus and debt (6.5) form a linear recursion
+driven by two-dimensional period innovations `ξ_n = (ξ_n 0, ξ_n 1)` (the surplus innovation and
+the period debt noise, correlated with each other). This module studies that recursion on the
+sequence space `ℕ → Fin 2 → ℝ` under any probability measure making the coordinates
+independent (not necessarily identically distributed):
+
+* `chainU`: `u_0 = u₀`, `u_{n+1} = ρu_n + ξ_n 0` (the surplus gap `s_n − s̄`);
+* `chainX`: `x_0 = x₀`, `x_{n+1} = γx_n − c₀ − c₁u_n − ξ_n 1` (the debt ratio `b_n`);
+* `chainU_shift`, `chainX_shift`: restarted at `N`,
+  `x_{N+k} = γ^k x_N + c₁u_N d_k + y_k(ξ_N, ξ_{N+1}, …)` with `d_k → 0`;
+* **`chain_frequently`** (Kolmogorov's 0-1 law): for `|ρ| < 1`, `0 ≤ γ < 1` and any `θ`, if
+  `P(θx_{n+2} > M) ≥ q_M > 0` uniformly in `n`, then almost surely `θx_n` exceeds every level
+  infinitely often.
+-/
+
+namespace Cochrane.FiscalConstraints.TidyR8DebtChain
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.FiscalConstraints.DebtLimitStochasticMeasure
+open Cochrane.FiscalConstraints.TidyR5GaussianAR1
+
+/-- Cochrane (2023), p. 197: the surplus gap `u_n = s_n − s̄` of the sampled chain,
+`u_0 = u₀`, `u_{n+1} = ρu_n + ξ_n 0`. -/
+noncomputable def chainU (ρ u0 : ℝ) : ℕ → (ℕ → Fin 2 → ℝ) → ℝ
+  | 0 => fun _ => u0
+  | n + 1 => fun ξ => ρ * chainU ρ u0 n ξ + ξ n 0
+
+/-- Cochrane (2023), (6.4)–(6.5), pp. 196–197: the debt ratio of the sampled chain,
+`x_0 = x₀`, `x_{n+1} = γx_n − c₀ − c₁u_n − ξ_n 1`. -/
+noncomputable def chainX (ρ γ c0 c1 u0 x0 : ℝ) : ℕ → (ℕ → Fin 2 → ℝ) → ℝ
+  | 0 => fun _ => x0
+  | n + 1 => fun ξ => γ * chainX ρ γ c0 c1 u0 x0 n ξ - c0 - c1 * chainU ρ u0 n ξ - ξ n 1
+
+/-- Cochrane (2023), p. 197: the innovation sequence after date `N`, `k ↦ ξ_{N+k}`. -/
+def shiftSeq (N : ℕ) (ξ : ℕ → Fin 2 → ℝ) : ℕ → Fin 2 → ℝ := fun k => ξ (N + k)
+
+/-- Cochrane (2023), p. 197: the σ-algebra of the date-`n` innovation `ξ_n`. -/
+abbrev blockSigma (n : ℕ) : MeasurableSpace (ℕ → Fin 2 → ℝ) :=
+  MeasurableSpace.comap (fun ξ : ℕ → Fin 2 → ℝ => ξ n) inferInstance
+
+/-- Cochrane (2023), p. 197: the date-`n` σ-algebra is a sub-σ-algebra. -/
+theorem blockSigma_le (n : ℕ) : blockSigma n ≤ MeasurableSpace.pi :=
+  (measurable_pi_apply n).comap_le
+
+/-- Cochrane (2023), p. 197: the surplus gap restarts at `N`,
+`u_{N+k} = ρ^k u_N + u'_k` with `u'` the gap from `0` driven by `ξ_N, ξ_{N+1}, …`.
+Restates `TidyR5GaussianAR1.ar1_shift` for the chain. -/
+theorem chainU_shift (ρ u0 : ℝ) (N : ℕ) (ξ : ℕ → Fin 2 → ℝ) :
+    ∀ k, chainU ρ u0 (N + k) ξ = ρ ^ k * chainU ρ u0 N ξ + chainU ρ 0 k (shiftSeq N ξ) := by
+  intro k
+  induction k with
+  | zero => simp [chainU]
+  | succ k ih =>
+    rw [← add_assoc]
+    change ρ * chainU ρ u0 (N + k) ξ + ξ (N + k) 0
+      = _ + (ρ * chainU ρ 0 k (shiftSeq N ξ) + shiftSeq N ξ k 0)
+    rw [ih]
+    simp only [shiftSeq]
+    ring
+
+/-- Cochrane (2023), (6.4)–(6.5), p. 197: debt restarts at `N`,
+`x_{N+k} = γ^k x_N + c₁u_N d_k + y_k`, with `d = TidyR5GaussianAR1.dseq γ ρ` and `y` the debt
+from `0` driven by `ξ_N, ξ_{N+1}, …`.
+Generalises `TidyR5GaussianAR1.arDebt_shift`. -/
+theorem chainX_shift (ρ γ c0 c1 u0 x0 : ℝ) (N : ℕ) (ξ : ℕ → Fin 2 → ℝ) :
+    ∀ k, chainX ρ γ c0 c1 u0 x0 (N + k) ξ = γ ^ k * chainX ρ γ c0 c1 u0 x0 N ξ
+      + chainU ρ u0 N ξ * (c1 * dseq γ ρ k) + chainX ρ γ c0 c1 0 0 k (shiftSeq N ξ) := by
+  intro k
+  induction k with
+  | zero => change _ = _ * _ + _ * (c1 * 0) + 0; simp
+  | succ k ih =>
+    rw [← add_assoc]
+    change γ * chainX ρ γ c0 c1 u0 x0 (N + k) ξ - c0 - c1 * chainU ρ u0 (N + k) ξ - ξ (N + k) 1
+      = _ + chainU ρ u0 N ξ * (c1 * (γ * dseq γ ρ k - ρ ^ k))
+        + (γ * chainX ρ γ c0 c1 0 0 k (shiftSeq N ξ) - c0 - c1 * chainU ρ 0 k (shiftSeq N ξ)
+          - shiftSeq N ξ k 1)
+    rw [ih, chainU_shift ρ u0 N ξ k]
+    simp only [shiftSeq]
+    ring
+
+/-- Cochrane (2023), p. 197: the surplus gap is measurable. -/
+theorem measurable_chainU (ρ u0 : ℝ) : ∀ n, Measurable (chainU ρ u0 n) := by
+  intro n
+  induction n with
+  | zero => exact measurable_const
+  | succ n ih =>
+    exact (ih.const_mul ρ).add ((measurable_pi_apply 0).comp (measurable_pi_apply n))
+
+/-- Cochrane (2023), (6.4)–(6.5): the debt ratio of the chain is measurable. -/
+theorem measurable_chainX (ρ γ c0 c1 u0 x0 : ℝ) : ∀ n, Measurable (chainX ρ γ c0 c1 u0 x0 n) := by
+  intro n
+  induction n with
+  | zero => exact measurable_const
+  | succ n ih =>
+    exact (((ih.const_mul γ).sub_const c0).sub ((measurable_chainU ρ u0 n).const_mul c1)).sub
+      ((measurable_pi_apply 1).comp (measurable_pi_apply n))
+
+/-- Cochrane (2023), p. 197: the innovation `ξ_{N+k}` is measurable with respect to the
+innovations from date `N` on. -/
+theorem measurable_shiftSeq_apply (N k : ℕ) :
+    Measurable[⨆ i ≥ N, blockSigma i] (fun ξ : ℕ → Fin 2 → ℝ => shiftSeq N ξ k) :=
+  Measurable.of_comap_le (le_iSup₂ (f := fun i (_ : i ≥ N) => blockSigma i) (N + k) (by omega))
+
+/-- Cochrane (2023), p. 197: the restarted gap depends only on the innovations from `N` on. -/
+theorem measurable_chainU_shift (ρ : ℝ) (N : ℕ) :
+    ∀ k, Measurable[⨆ i ≥ N, blockSigma i] (fun ξ => chainU ρ 0 k (shiftSeq N ξ)) := by
+  intro k
+  induction k with
+  | zero => exact measurable_const
+  | succ k ih =>
+    exact (ih.const_mul ρ).add ((measurable_pi_apply 0).comp (measurable_shiftSeq_apply N k))
+
+/-- Cochrane (2023), (6.4)–(6.5): the restarted debt depends only on the innovations from `N`
+on. -/
+theorem measurable_chainX_shift (ρ γ c0 c1 : ℝ) (N : ℕ) :
+    ∀ k, Measurable[⨆ i ≥ N, blockSigma i] (fun ξ => chainX ρ γ c0 c1 0 0 k (shiftSeq N ξ)) := by
+  intro k
+  induction k with
+  | zero => exact measurable_const
+  | succ k ih =>
+    exact (((ih.const_mul γ).sub_const c0).sub ((measurable_chainU_shift ρ N k).const_mul c1)).sub
+      ((measurable_pi_apply 1).comp (measurable_shiftSeq_apply N k))
+
+/-- **Cochrane (2023), p. 197 ("debt … will eventually exceed any bound"), the sampled chain.**
+Under any probability measure making the innovations `ξ_n` independent, with `|ρ| < 1`,
+`0 ≤ γ < 1` and any sign or scale `θ`: if for every level `M` the probability that `θx_{n+2}`
+exceeds `M` is bounded below by some `q_M > 0` uniformly in `n`, then almost surely `θx_n`
+exceeds every level infinitely often. The events are tail events (`chainX_shift`,
+`TidyR5GaussianAR1.dseq_tendsto`), hence of probability one by Kolmogorov's 0-1 law.
+Generalises the 0-1 argument of `TidyR5GaussianAR1.ar1_unbounded_of_integrable` to the 2-d chain. -/
+theorem chain_frequently {Q : Measure (ℕ → Fin 2 → ℝ)} [IsProbabilityMeasure Q]
+    (hind : iIndepFun (fun n (ξ : ℕ → Fin 2 → ℝ) => ξ n) Q) {ρ γ : ℝ} (hρ : |ρ| < 1)
+    (hγ0 : 0 ≤ γ) (hγ1 : γ < 1) (c0 c1 u0 x0 θ : ℝ)
+    (hq : ∀ M : ℝ, ∃ q : ENNReal, q ≠ 0 ∧ ∀ n,
+      q ≤ Q {ξ | M < θ * chainX ρ γ c0 c1 u0 x0 (n + 2) ξ}) :
+    ∀ᵐ ξ ∂Q, ∀ M : ℝ, ∃ᶠ n in atTop, M < θ * chainX ρ γ c0 c1 u0 x0 n ξ := by
+  set x := chainX ρ γ c0 c1 u0 x0 with hx
+  have hindep : iIndep blockSigma Q := hind.iIndep
+  set E : ℝ → Set (ℕ → Fin 2 → ℝ) := fun a =>
+    {ξ | ∀ m : ℕ, ∃ᶠ t in atTop, a - 1 / ((m : ℝ) + 1) < θ * x t ξ} with hE
+  have htail : ∀ a, MeasurableSet[limsup blockSigma atTop] (E a) := by
+    intro a
+    rw [limsup_eq_iInf_iSup_of_nat, MeasurableSpace.measurableSet_iInf]
+    intro N
+    set y : ℕ → (ℕ → Fin 2 → ℝ) → ℝ := fun k ξ => θ * chainX ρ γ c0 c1 0 0 k (shiftSeq N ξ)
+      with hy
+    have hym : ∀ k, Measurable[⨆ i ≥ N, blockSigma i] (y k) := fun k =>
+      (measurable_chainX_shift ρ γ c0 c1 N k).const_mul θ
+    have heq : E a = {ξ | ∀ m : ℕ, ∃ᶠ k in atTop, a - 1 / ((m : ℝ) + 1) < y k ξ} := by
+      ext ξ
+      simp only [hE, Set.mem_ofPred_eq]
+      have hshift : ∀ m : ℕ, (∃ᶠ t in atTop, a - 1 / ((m : ℝ) + 1) < θ * x t ξ) ↔
+          ∃ᶠ k in atTop, a - 1 / ((m : ℝ) + 1) < θ * x (N + k) ξ :=
+        fun m => frequently_shift_iff N
+      simp only [hshift]
+      have hdiff : Tendsto (fun k => θ * x (N + k) ξ - y k ξ) atTop (𝓝 0) := by
+        have h1 := (tendsto_pow_atTop_nhds_zero_of_lt_one hγ0 hγ1).mul_const (θ * x N ξ)
+        have h2 := ((dseq_tendsto hγ0 hγ1 hρ).const_mul (θ * chainU ρ u0 N ξ * c1))
+        rw [zero_mul] at h1
+        rw [mul_zero] at h2
+        have h3 := h1.add h2
+        rw [add_zero] at h3
+        refine h3.congr fun k => ?_
+        rw [hx, chainX_shift]
+        simp only [hy]
+        ring
+      have hdiff' : Tendsto (fun k => y k ξ - θ * x (N + k) ξ) atTop (𝓝 0) := by
+        have := hdiff.neg
+        rw [neg_zero] at this
+        refine this.congr fun k => ?_
+        ring
+      exact ⟨fun h m => frequently_near_of_tendsto hdiff h m,
+        fun h m => frequently_near_of_tendsto hdiff' h m⟩
+    rw [heq]
+    exact measurableSet_frequently_near hym a
+  have hpos : ∀ a, Q (E a) ≠ 0 := by
+    intro a
+    obtain ⟨q, hq0, hqa⟩ := hq a
+    have hfreq := le_measure_frequently (μ := Q) (A := fun t => {ξ | a < θ * x t ξ})
+      (fun t => measurableSet_lt measurable_const
+        ((measurable_chainX ρ γ c0 c1 u0 x0 t).const_mul θ)) hqa
+    have hsub : {ξ | ∃ᶠ t in atTop, ξ ∈ {ξ' | a < θ * x t ξ'}} ⊆ E a := by
+      intro ξ hξ m
+      refine hξ.mono fun t ht => ?_
+      have : 0 < 1 / ((m : ℝ) + 1) := by positivity
+      simp only [Set.mem_ofPred_eq] at ht
+      linarith
+    intro h0
+    exact hq0 (nonpos_iff_eq_zero.1 ((hfreq.trans (measure_mono hsub)).trans_eq h0))
+  have hone : ∀ n : ℕ, ∀ᵐ ξ ∂Q, ξ ∈ E n := by
+    intro n
+    rcases measure_zero_or_one_of_measurableSet_limsup_atTop blockSigma_le hindep (htail n) with
+      h | h
+    · exact absurd h (hpos n)
+    · have hm : MeasurableSet (E n) :=
+        (limsup_le_iSup.trans (iSup_le blockSigma_le)) _ (htail n)
+      rw [ae_iff]
+      have := (prob_compl_eq_zero_iff hm).2 h
+      simpa [Set.compl_def] using this
+  filter_upwards [ae_all_iff.2 hone] with ξ hξ M
+  obtain ⟨n, hn⟩ := exists_nat_gt (M + 1)
+  refine (hξ n 0).mono fun t ht => ?_
+  simp only [CharP.cast_eq_zero, zero_add, div_one] at ht
+  linarith
+
+end Cochrane.FiscalConstraints.TidyR8DebtChain
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# With `r > g` the a.s. unboundedness of (6.5) debt fails
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 6, §6.4.1, p. 197 ("So at some
+point the future debt-to-GDP ratio following (6.5) will eventually exceed any bound"), with the
+debt equation (6.4)–(6.5), p. 196, `ḃ = ab − s`, `a = r − g`.
+
+The book makes the claim for permanent `r < g` (`a < 0`), where it is proved almost surely in
+TidyR8OUDebtUnbounded. The claim does not extend to `r > g`: there debt is
+`b_t = e^{at}(b_0 − ∫_0^t e^{−au}s_u du)` and the discounted surplus integral converges, so a
+large enough mean surplus keeps debt bounded with positive probability.
+
+## Main results (`a = r − g > 0`, `η > 0`, any `σ`, `b_0`; surplus started at its mean `s_0 = s̄`)
+
+* `measurable_ouNoise_uncurry`: the OU noise is jointly measurable in `(ω, t)`;
+* `integral_ouNoise_sq_le`: `E[(OU noise at t)²] ≤ 1/(2η)`;
+* `lintegral_ouNoiseTail_le`: the random variable
+  `R = ∫_0^∞ e^{−au}|σ·noise_u|du` (`ouNoiseTail`) has `E R ≤ V/a`, `V = (1 + σ²/(2η))/2`
+  (Tonelli);
+* `abs_integral_le_ouNoiseTail`: on `{R < ∞}`, `|∫_0^t e^{−au}σ·noise_u du| ≤ R` for all `t ≥ 0`;
+* **`ouDebtProc_bounded_half`**: if `b_0 + (1 + σ²/(2η))/a ≤ s̄/a`, then with probability at
+  least `1/2` debt stays at or below `s̄/a` at every date (Markov's inequality);
+* **`ouDebtProc_not_ae_unbounded`**: hence for every `a > 0` there are surplus parameters for
+  which "debt a.s. eventually exceeds any bound" is false;
+* non-vacuity on bmPath with `r − g = +1%`, `η = σ = 1`, `b_0 = 0`, `s̄ = 3/2`:
+  `bmPath_ouDebt_bounded_half`.
+-/
+
+namespace Cochrane.FiscalConstraints.TidyR8OUDebtExplosive
+
+open Real MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.FiscalConstraints.TidyR7OUPath Cochrane.FiscalConstraints.TidyR7WienerGaussian
+open Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck
+open Cochrane.FiscalConstraints.TidyR7BrownianTools
+open Cochrane.FiscalConstraints.LinearODE
+open scoped ENNReal NNReal
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {W : ℝ≥0 → Ω → ℝ}
+
+/-! ### Joint measurability -/
+
+/-- Cochrane (2023), p. 197 (tool): with measurable values and continuous paths, the driving
+process is jointly measurable in `(ω, t)`.
+From Mathlib `measurable_uncurry_of_continuous_of_measurable`. -/
+theorem measurable_bmReal_uncurry (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) :
+    Measurable fun p : Ω × ℝ => bmReal W p.2 p.1 :=
+  (measurable_uncurry_of_continuous_of_measurable (u := fun (t : ℝ) (ω : Ω) => bmReal W t ω)
+    (fun ω => continuous_bmReal (hcont ω)) (fun t => hW t.toNNReal)).comp measurable_swap
+
+/-- Cochrane (2023), p. 197: the primitive `∫_0^t e^{ηu}W_u du` is measurable in `ω`. -/
+theorem measurable_ouPrim (hW : ∀ t, Measurable (W t)) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (η t : ℝ) : Measurable fun ω => ouPrim η (fun u => bmReal W u ω) t := by
+  have hj : StronglyMeasurable fun p : Ω × ℝ => exp (η * p.2) * bmReal W p.2 p.1 :=
+    ((by fun_prop : Measurable fun p : Ω × ℝ => exp (η * p.2)).mul
+      (measurable_bmReal_uncurry hW hcont)).stronglyMeasurable
+  have h1 := hj.integral_prod_right' (ν := volume.restrict (Set.Ioc 0 t))
+  have h2 := hj.integral_prod_right' (ν := volume.restrict (Set.Ioc t 0))
+  exact h1.measurable.sub h2.measurable
+
+/-- Cochrane (2023), p. 197: the OU noise at a date is measurable in `ω`.
+Strengthens the measurability behind `TidyR7OrnsteinUhlenbeck.aemeasurable_ouProc`. -/
+theorem measurable_ouNoise (hW : ∀ t, Measurable (W t)) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (η t : ℝ) : Measurable fun ω => ouNoise η (fun u => bmReal W u ω) t :=
+  (hW t.toNNReal).sub (((measurable_ouPrim hW hcont η t).const_mul (exp (-η * t))).const_mul η)
+
+/-- Cochrane (2023), p. 197: the OU noise is jointly measurable in `(ω, t)`. -/
+theorem measurable_ouNoise_uncurry (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (η : ℝ) :
+    Measurable fun p : Ω × ℝ => ouNoise η (fun u => bmReal W u p.1) p.2 :=
+  (measurable_uncurry_of_continuous_of_measurable
+    (u := fun (t : ℝ) (ω : Ω) => ouNoise η (fun u => bmReal W u ω) t)
+    (fun ω => continuous_ouNoise η (continuous_bmReal (hcont ω)))
+    (fun t => measurable_ouNoise hW hcont η t)).comp measurable_swap
+
+/-! ### Moments of the noise -/
+
+/-- Cochrane (2023), p. 197: the OU noise is square integrable at every date `t > 0`.
+`TidyR7WienerGaussian.memLp_wienerBP` applied to the noise. -/
+theorem memLp_ouNoise (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) (η : ℝ) {t : ℝ}
+    (ht : 0 < t) : MemLp (fun ω => ouNoise η (fun u => bmReal W u ω) t) 2 P := by
+  have h := (memLp_wienerBP (P := P) hB hW hcont (hasDerivAt_expMul η)
+    (by fun_prop : Continuous fun u => exp (η * u) * η) le_rfl ht).const_mul (exp (-η * t))
+  refine h.congr_norm (measurable_ouNoise hW hcont η t).aestronglyMeasurable
+    (Eventually.of_forall fun ω => ?_)
+  rw [ouNoise_eq_wienerBP hW0 η ω t]
+
+/-- **Cochrane (2023), p. 197: the second moment of the OU noise is at most `1/(2η)`.**
+From `TidyR7WienerGaussian.integral_wienerBP_sq` and `TidyR7OrnsteinUhlenbeck.ouNoise_eq_wienerBP`;
+the noise form of `TidyR7OrnsteinUhlenbeck.variance_ouProc`. -/
+theorem integral_ouNoise_sq_le (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {η : ℝ} (hη : 0 < η)
+    {t : ℝ} (ht : 0 < t) :
+    ∫ ω, ouNoise η (fun u => bmReal W u ω) t ^ 2 ∂P ≤ 1 / (2 * η) := by
+  have hsq := integral_wienerBP_sq (P := P) hB hW hcont (hasDerivAt_expMul η)
+    (by fun_prop : Continuous fun u => exp (η * u) * η) le_rfl ht
+  rw [integral_exp_sq hη.ne' 0 t, mul_zero, exp_zero] at hsq
+  have e : (fun ω => ouNoise η (fun u => bmReal W u ω) t ^ 2) = fun ω => exp (-η * t) ^ 2
+      * wienerBP W (fun u => exp (η * u)) (fun u => exp (η * u) * η) 0 t ω ^ 2 := by
+    funext ω
+    rw [ouNoise_eq_wienerBP hW0 η ω t, mul_pow]
+  rw [e, integral_const_mul, hsq]
+  have e1 : exp (-η * t) ^ 2 * exp (2 * η * t) = 1 := by
+    rw [sq, ← exp_add, ← exp_add]; ring_nf; exact exp_zero
+  have hp : 0 ≤ exp (-η * t) ^ 2 := sq_nonneg _
+  rw [show exp (-η * t) ^ 2 * ((exp (2 * η * t) - 1) / (2 * η))
+    = (exp (-η * t) ^ 2 * exp (2 * η * t) - exp (-η * t) ^ 2) / (2 * η) by ring, e1]
+  exact div_le_div_of_nonneg_right (by linarith) (by positivity)
+
+/-! ### The discounted noise integral -/
+
+/-- Cochrane (2023), (6.5), p. 197: the discounted absolute noise
+`R = ∫_0^∞ e^{−au}|σ·noise_u| du` (a lower integral, possibly `∞`). -/
+noncomputable def ouNoiseTail (a η σ : ℝ) (W : ℝ≥0 → Ω → ℝ) (ω : Ω) : ℝ≥0∞ :=
+  ∫⁻ u in Set.Ioi 0, ENNReal.ofReal (exp (-a * u) * |σ * ouNoise η (fun v => bmReal W v ω) u|)
+
+/-- Cochrane (2023), (6.5), p. 197: the integrand of `ouNoiseTail` is jointly measurable. -/
+theorem measurable_ouNoiseTail_integrand (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (a η σ : ℝ) :
+    Measurable fun p : Ω × ℝ =>
+      ENNReal.ofReal (exp (-a * p.2) * |σ * ouNoise η (fun v => bmReal W v p.1) p.2|) :=
+  ENNReal.measurable_ofReal.comp ((by fun_prop : Measurable fun p : Ω × ℝ => exp (-a * p.2)).mul
+    (continuous_abs.measurable.comp ((measurable_ouNoise_uncurry hW hcont η).const_mul σ)))
+
+/-- Cochrane (2023), (6.5), p. 197: `R` is measurable. -/
+theorem measurable_ouNoiseTail (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (a η σ : ℝ) :
+    Measurable (ouNoiseTail a η σ W) :=
+  (measurable_ouNoiseTail_integrand hW hcont a η σ).lintegral_prod_right'
+
+/-- **Cochrane (2023), (6.5), p. 197: `E R ≤ V/a`** with `V = (1 + σ²/(2η))/2`, for `a > 0`
+(Tonelli, `|x| ≤ (1 + x²)/2` and `integral_ouNoise_sq_le`). -/
+theorem lintegral_ouNoiseTail_le (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {a η : ℝ} (ha : 0 < a)
+    (hη : 0 < η) (σ : ℝ) :
+    ∫⁻ ω, ouNoiseTail a η σ W ω ∂P ≤ ENNReal.ofReal ((1 + σ ^ 2 / (2 * η)) / 2 / a) := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  set V := (1 + σ ^ 2 / (2 * η)) / 2 with hV
+  have hV0 : 0 ≤ V := by positivity
+  have hinner : ∀ u ∈ Set.Ioi (0 : ℝ), ∫⁻ ω, ENNReal.ofReal (exp (-a * u)
+      * |σ * ouNoise η (fun v => bmReal W v ω) u|) ∂P ≤ ENNReal.ofReal (exp (-a * u) * V) := by
+    intro u hu
+    have hm := memLp_ouNoise hB hW hcont hW0 η hu
+    have hint : Integrable (fun ω => exp (-a * u)
+        * ((1 + (σ * ouNoise η (fun v => bmReal W v ω) u) ^ 2) / 2)) P := by
+      have h2 := (hm.const_mul σ).integrable_sq
+      exact (((integrable_const 1).add h2).div_const 2).const_mul _
+    calc ∫⁻ ω, ENNReal.ofReal (exp (-a * u) * |σ * ouNoise η (fun v => bmReal W v ω) u|) ∂P
+        ≤ ∫⁻ ω, ENNReal.ofReal (exp (-a * u)
+            * ((1 + (σ * ouNoise η (fun v => bmReal W v ω) u) ^ 2) / 2)) ∂P := by
+          refine lintegral_mono fun ω => ENNReal.ofReal_le_ofReal ?_
+          refine mul_le_mul_of_nonneg_left ?_ (exp_pos _).le
+          set x := σ * ouNoise η (fun v => bmReal W v ω) u
+          nlinarith [sq_nonneg (|x| - 1), sq_abs x]
+      _ = ENNReal.ofReal (∫ ω, exp (-a * u)
+            * ((1 + (σ * ouNoise η (fun v => bmReal W v ω) u) ^ 2) / 2) ∂P) :=
+          (ofReal_integral_eq_lintegral_ofReal hint
+            (Eventually.of_forall fun ω => by positivity)).symm
+      _ ≤ ENNReal.ofReal (exp (-a * u) * V) := by
+          refine ENNReal.ofReal_le_ofReal ?_
+          rw [integral_const_mul]
+          refine mul_le_mul_of_nonneg_left ?_ (exp_pos _).le
+          rw [integral_div, integral_add (integrable_const 1)
+            (hm.const_mul σ).integrable_sq, integral_const]
+          simp only [probReal_univ, smul_eq_mul, one_mul, mul_pow]
+          rw [integral_const_mul]
+          have hs := integral_ouNoise_sq_le hB hW hcont hW0 hη hu
+          have : σ ^ 2 * ∫ ω, ouNoise η (fun v => bmReal W v ω) u ^ 2 ∂P
+              ≤ σ ^ 2 * (1 / (2 * η)) := mul_le_mul_of_nonneg_left hs (sq_nonneg σ)
+          rw [hV]
+          have e : σ ^ 2 * (1 / (2 * η)) = σ ^ 2 / (2 * η) := by ring
+          linarith
+  have hswap := lintegral_lintegral_swap (μ := P) (ν := volume.restrict (Set.Ioi (0 : ℝ)))
+    (f := fun ω u => ENNReal.ofReal (exp (-a * u) * |σ * ouNoise η (fun v => bmReal W v ω) u|))
+    (measurable_ouNoiseTail_integrand hW hcont a η σ).aemeasurable
+  have hexp : IntegrableOn (fun u : ℝ => exp (-a * u) * V) (Set.Ioi 0) :=
+    (exp_neg_integrableOn_Ioi 0 ha).mul_const V
+  calc ∫⁻ ω, ouNoiseTail a η σ W ω ∂P
+      = ∫⁻ u in Set.Ioi 0, ∫⁻ ω, ENNReal.ofReal (exp (-a * u)
+          * |σ * ouNoise η (fun v => bmReal W v ω) u|) ∂P := hswap
+    _ ≤ ∫⁻ u in Set.Ioi 0, ENNReal.ofReal (exp (-a * u) * V) :=
+        setLIntegral_mono' measurableSet_Ioi hinner
+    _ = ENNReal.ofReal (∫ u in Set.Ioi 0, exp (-a * u) * V) :=
+        (ofReal_integral_eq_lintegral_ofReal hexp
+          (Eventually.of_forall fun u => by positivity)).symm
+    _ = ENNReal.ofReal (V / a) := by
+        rw [integral_mul_const, integral_exp_mul_Ioi (by linarith : -a < 0), mul_zero, exp_zero]
+        congr 1
+        field_simp
+
+/-- Cochrane (2023), (6.5), p. 197: on `{R < ∞}`, the discounted noise integral is bounded by
+`R` at every date `t ≥ 0`: `|∫_0^t e^{−au}σ·noise_u du| ≤ R`. -/
+theorem abs_integral_le_ouNoiseTail (hcont : ∀ ω, Continuous fun t => W t ω) (a η σ : ℝ)
+    {ω : Ω} (hR : ouNoiseTail a η σ W ω ≠ ∞) {t : ℝ} (ht : 0 ≤ t) :
+    |∫ u in (0 : ℝ)..t, exp (-a * u) * (σ * ouNoise η (fun v => bmReal W v ω) u)|
+      ≤ (ouNoiseTail a η σ W ω).toReal := by
+  set f : ℝ → ℝ := fun u => exp (-a * u) * (σ * ouNoise η (fun v => bmReal W v ω) u) with hf
+  have hfc : Continuous f := by
+    have := continuous_ouNoise η (continuous_bmReal (hcont ω))
+    rw [hf]
+    fun_prop
+  have habs : ∀ u, |f u| = exp (-a * u) * |σ * ouNoise η (fun v => bmReal W v ω) u| := fun u => by
+    rw [hf, abs_mul, abs_of_pos (exp_pos _)]
+  refine (intervalIntegral.abs_integral_le_integral_abs ht).trans ?_
+  rw [intervalIntegral.integral_of_le ht, integral_eq_lintegral_of_nonneg_ae
+    (Eventually.of_forall fun u => abs_nonneg (f u))
+    (hfc.abs.aestronglyMeasurable)]
+  refine ENNReal.toReal_mono hR ?_
+  simp only [habs, ouNoiseTail]
+  exact lintegral_mono_set Set.Ioc_subset_Ioi_self
+
+/-! ### Debt stays bounded with probability at least one half -/
+
+/-- Cochrane (2023), (6.5), p. 197: with the surplus started at its mean (`s_0 = s̄`), debt is
+`b_t = e^{at}b_0 − s̄(e^{at} − 1)/a − e^{at}∫_0^t e^{−au}σ·noise_u du` (`a ≠ 0`).
+`TidyR7OrnsteinUhlenbeck.ouDebtProc_eq` at `s_0 = s̄`. -/
+theorem ouDebtProc_eq_of_mean (hcont : ∀ ω, Continuous fun t => W t ω) {a : ℝ} (ha : a ≠ 0)
+    (η sbar σ b0 : ℝ) (ω : Ω) (t : ℝ) :
+    ouDebtProc a η sbar sbar σ b0 W t ω = exp (a * t) * b0 - sbar * (exp (a * t) - 1) / a
+      - exp (a * t)
+        * ∫ u in (0 : ℝ)..t, exp (-a * u) * (σ * ouNoise η (fun v => bmReal W v ω) u) := by
+  have hw := continuous_bmReal (hcont ω)
+  have hmean : ouMean η sbar sbar = fun _ => sbar := by
+    funext u
+    simp [ouMean]
+  have hI : ∫ u in (0 : ℝ)..t, exp (-a * u) = (1 - exp (-a * t)) / a := by
+    have hd : ∀ x ∈ Set.uIcc (0 : ℝ) t,
+        HasDerivAt (fun u => -exp (-a * u) / a) (exp (-a * x)) x := fun x _ => by
+      have h := (((hasDerivAt_id' x).const_mul (-a)).exp.neg).div_const a
+      refine h.congr_deriv ?_
+      field_simp
+    rw [intervalIntegral.integral_eq_sub_of_hasDerivAt hd
+      ((by fun_prop : Continuous fun u => exp (-a * u)).intervalIntegrable 0 t)]
+    simp only [mul_zero, exp_zero]
+    ring
+  have he : exp (a * t) * exp (-a * t) = 1 := by rw [← exp_add]; ring_nf; exact exp_zero
+  have hσI : (∫ u in (0 : ℝ)..t, exp (-a * u) * (σ * ouNoise η (fun v => bmReal W v ω) u))
+      = σ * ∫ u in (0 : ℝ)..t, exp (-a * u) * ouNoise η (fun v => bmReal W v ω) u := by
+    rw [← intervalIntegral.integral_const_mul]
+    congr 1
+    funext u
+    ring
+  simp only [ouDebtProc]
+  rw [ouDebt_eq a b0 hw, debtMean, hmean, debtNoise, hσI, vocFrom,
+    intervalIntegral.integral_mul_const, hI]
+  have he' : exp (a * t) * exp (-(a * t)) = 1 := by rw [← exp_add]; simp
+  simp only [mul_zero, exp_zero, one_mul]
+  field_simp
+  linear_combination sbar * he'
+
+/-- **Cochrane (2023), p. 197, corrected for `r > g`: debt stays bounded with probability at
+least one half.** For `a = r − g > 0`, `η > 0`, any `σ`, `b_0`, the surplus started at its mean
+`s_0 = s̄`, and a mean surplus with `b_0 + (1 + σ²/(2η))/a ≤ s̄/a`: with probability at least
+`1/2`, `b_t ≤ s̄/a` at every date `t ≥ 0`. -/
+theorem ouDebtProc_bounded_half (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {a η : ℝ} (ha : 0 < a)
+    (hη : 0 < η) (σ b0 : ℝ) {sbar : ℝ} (hs : b0 + (1 + σ ^ 2 / (2 * η)) / a ≤ sbar / a) :
+    2⁻¹ ≤ P {ω | ∀ t, 0 ≤ t → ouDebtProc a η sbar sbar σ b0 W t ω ≤ sbar / a} := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  set V := (1 + σ ^ 2 / (2 * η)) / 2 with hV
+  have hV0 : 0 < V := by positivity
+  set K := 2 * (V / a) with hK
+  have hK0 : 0 < K := by positivity
+  have hKs : b0 + K ≤ sbar / a := by
+    rw [hK, hV]
+    have : 2 * ((1 + σ ^ 2 / (2 * η)) / 2 / a) = (1 + σ ^ 2 / (2 * η)) / a := by ring
+    linarith
+  set R := ouNoiseTail a η σ W
+  have hRm := measurable_ouNoiseTail hW hcont a η σ
+  -- Markov: `P(R ≥ K) ≤ 1/2`
+  have hmk : P {ω | ENNReal.ofReal K ≤ R ω} ≤ 2⁻¹ := by
+    refine (meas_ge_le_lintegral_div hRm.aemeasurable (by simpa using hK0)
+      ENNReal.ofReal_ne_top).trans ?_
+    refine ENNReal.div_le_of_le_mul ?_
+    rw [hK, ENNReal.ofReal_mul (by norm_num), ← mul_assoc, ENNReal.ofReal_ofNat,
+      ENNReal.inv_mul_cancel two_ne_zero ENNReal.ofNat_ne_top, one_mul]
+    exact lintegral_ouNoiseTail_le hB hW hcont hW0 ha hη σ
+  have hgood : P {ω | R ω < ENNReal.ofReal K} ≥ 2⁻¹ := by
+    have hc : {ω | R ω < ENNReal.ofReal K} = {ω | ENNReal.ofReal K ≤ R ω}ᶜ := by
+      ext ω
+      simp
+    rw [hc, prob_compl_eq_one_sub (measurableSet_le measurable_const hRm)]
+    calc (2⁻¹ : ℝ≥0∞) = 1 - 2⁻¹ := ENNReal.one_sub_inv_two.symm
+      _ ≤ 1 - P {ω | ENNReal.ofReal K ≤ R ω} := tsub_le_tsub_left hmk 1
+  refine hgood.trans (measure_mono fun ω hω t ht => ?_)
+  simp only [Set.mem_ofPred_eq] at hω
+  have hRne : R ω ≠ ∞ := ne_top_of_lt hω
+  have hRK : (R ω).toReal ≤ K := ENNReal.toReal_le_of_le_ofReal hK0.le hω.le
+  have hbound := abs_integral_le_ouNoiseTail hcont a η σ hRne ht
+  rw [ouDebtProc_eq_of_mean hcont ha.ne' η sbar σ b0 ω t]
+  set e := exp (a * t)
+  have he0 : 0 < e := exp_pos _
+  have hkey : sbar * (e - 1) / a = e * (sbar / a) - sbar / a := by ring
+  have h1 := (abs_le.1 (hbound.trans hRK)).1
+  have h2 : e * (b0 + K - sbar / a) ≤ 0 := mul_nonpos_of_nonneg_of_nonpos he0.le (by linarith)
+  nlinarith
+
+/-- **Cochrane (2023), p. 197: the almost-sure claim fails for every `r > g`.** For
+`a = r − g > 0`, `η > 0` and any `σ`, `b_0`, with the mean surplus `s̄ = ab_0 + 1 + σ²/(2η)`
+(and `s_0 = s̄`), it is false that almost surely debt eventually exceeds every bound. -/
+theorem ouDebtProc_not_ae_unbounded (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {a η : ℝ} (ha : 0 < a)
+    (hη : 0 < η) (σ b0 : ℝ) :
+    ¬ ∀ᵐ ω ∂P, ∀ M : ℝ, ∃ᶠ t in atTop, M < ouDebtProc a η (a * b0 + (1 + σ ^ 2 / (2 * η)))
+      (a * b0 + (1 + σ ^ 2 / (2 * η))) σ b0 W t ω := by
+  intro hae
+  set sbar := a * b0 + (1 + σ ^ 2 / (2 * η))
+  have hs : b0 + (1 + σ ^ 2 / (2 * η)) / a ≤ sbar / a := by
+    change b0 + _ ≤ (a * b0 + (1 + σ ^ 2 / (2 * η))) / a
+    rw [add_div (a * b0) (1 + σ ^ 2 / (2 * η)) a, mul_div_cancel_left₀ _ ha.ne']
+  have hhalf := ouDebtProc_bounded_half hB hW hcont hW0 ha hη σ b0 hs
+  have h0 : P {ω | ∀ t, 0 ≤ t → ouDebtProc a η sbar sbar σ b0 W t ω ≤ sbar / a} = 0 := by
+    rw [measure_eq_zero_iff_ae_notMem]
+    filter_upwards [hae] with ω hω hall
+    obtain ⟨t, ht1, ht2⟩ := ((hω (sbar / a)).and_eventually (eventually_ge_atTop 0)).exists
+    exact absurd (hall t ht2) (not_le.2 ht1)
+  rw [h0] at hhalf
+  exact absurd hhalf (by simp)
+
+/-! ### Non-vacuity on the constructed Brownian motion -/
+
+open Cochrane.FiscalConstraints.TidyR7BrownianExist
+open Cochrane.FiscalConstraints.TidyR7BrownianSchauder
+
+/-- Cochrane (2023), p. 197 (non-vacuity): on bmPath, with `r − g = +1%`, `η = σ = 1`, `b_0 = 0`
+and `s_0 = s̄ = 3/2`, with probability at least `1/2` debt never exceeds `150`. -/
+theorem bmPath_ouDebt_bounded_half :
+    2⁻¹ ≤ gaussSeq {ω | ∀ t, 0 ≤ t → ouDebtProc (1 / 100) 1 (3 / 2) (3 / 2) 1 0 bmPath t ω
+      ≤ 3 / 2 / (1 / 100)} :=
+  ouDebtProc_bounded_half isPreBrownianReal_bmPath measurable_bmPath continuous_bmPath
+    bmPath_zero (by norm_num) one_pos 1 0 (by norm_num)
+
+end Cochrane.FiscalConstraints.TidyR8OUDebtExplosive
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Restarting the OU surplus and the debt (6.5) at a date
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 6, §6.4.1, p. 197, with the
+debt equation (6.4)–(6.5), p. 196. Deterministic, for an arbitrary continuous driving path `w`.
+
+Restarted at date `t`, the OU surplus and the debt `ḃ = ab − s` are the same objects driven by
+the shifted path `w^t(r) = w(t + r) − w(t)` (`shiftPath`) from the date-`t` values:
+
+* `ouStep_eq_ouNoise`, **`ouPath_restart`**: `s_{t+h} = ouPath(s_t, w^t)(h)`;
+* **`ouDebt_restart`**: `b_{t+h} = ouDebt(s_t, b_t, w^t)(h)`;
+* **`ouDebt_succ`**: over one period,
+  `b_{t+1} = e^a b_t − s̄·A − D·(s_t − s̄) − σ∫_0^1 w^t(r)k_1(r)dr` with the constants
+  `debtA`, `debtD`; `shift_integral_eq` writes the noise term in the by-parts Wiener form on
+  `[t, t + 1]` with the integrand `G_1(· − t)`;
+* `debtKernel_shift`, `debtG_shift`: the debt kernel depends only on `t − r`;
+* **`integral_debtG_sq_le`**: `∫_0^1 G_1² ≤ ∫_0^t G_t²` for `t ≥ 1` (the debt variance at `t ≥ 1`
+  is at least the one-period variance);
+* **`abs_debtMean_le`**: for `a = r − g < 0` and `η > 0`, the mean debt path is bounded,
+  `|debtMean_t| ≤ |b_0| + |s̄|/(−a) + |s_0 − s̄|/η` for every `t ≥ 0`.
+-/
+
+namespace Cochrane.FiscalConstraints.TidyR8OURestart
+
+open Real MeasureTheory Filter Topology
+open Cochrane.FiscalConstraints.TidyR7OUPath Cochrane.FiscalConstraints.LinearODE
+
+variable {w : ℝ → ℝ}
+
+/-- Cochrane (2023), p. 197: the driving path restarted at date `t`, `w^t(r) = w(t + r) − w(t)`. -/
+def shiftPath (w : ℝ → ℝ) (t r : ℝ) : ℝ := w (t + r) - w t
+
+/-- Cochrane (2023), p. 197: the shifted path is continuous. -/
+theorem continuous_shiftPath (hw : Continuous w) (t : ℝ) : Continuous (shiftPath w t) := by
+  unfold shiftPath
+  fun_prop
+
+/-- Cochrane (2023), p. 197 (tool): `η∫_0^h e^{ηu} du = e^{ηh} − 1`.
+`ExpIntegrals.intervalIntegral_exp_neg_mul` at `a = −η`, also covering `η = 0`. -/
+theorem integral_exp_mul_eta (η h : ℝ) :
+    η * ∫ u in (0 : ℝ)..h, exp (η * u) = exp (η * h) - 1 := by
+  have hd : ∀ x ∈ Set.uIcc (0 : ℝ) h, HasDerivAt (fun u => exp (η * u)) (exp (η * x) * η) x :=
+    fun x _ => by simpa using ((hasDerivAt_id' x).const_mul η).exp
+  rw [← intervalIntegral.integral_const_mul]
+  have := intervalIntegral.integral_eq_sub_of_hasDerivAt hd
+    ((by fun_prop : Continuous fun u => exp (η * u) * η).intervalIntegrable 0 h)
+  rw [show (fun u => η * exp (η * u)) = fun u => exp (η * u) * η by funext u; ring, this]
+  simp
+
+/-- Cochrane (2023), p. 197: the OU innovation over `[t, t + h]` is the OU noise of the shifted
+path, `ouStep η w t h = ouNoise η w^t h`.
+Compare `TidyR7OUPath.ouPath_step`. -/
+theorem ouStep_eq_ouNoise (η : ℝ) (hw : Continuous w) (t h : ℝ) :
+    ouStep η w t h = ouNoise η (shiftPath w t) h := by
+  have hI : (∫ u in t..(t + h), exp (η * u) * w u)
+      = exp (η * t) * ∫ u in (0 : ℝ)..h, exp (η * u) * w (t + u) := by
+    have h1 := intervalIntegral.integral_comp_add_right (fun u => exp (η * u) * w u) (a := 0)
+      (b := h) t
+    rw [zero_add, add_comm h t] at h1
+    rw [← h1, ← intervalIntegral.integral_const_mul]
+    congr 1
+    funext u
+    rw [add_comm u t, mul_add, exp_add]
+    ring
+  have hS : (∫ u in (0 : ℝ)..h, exp (η * u) * shiftPath w t u)
+      = (∫ u in (0 : ℝ)..h, exp (η * u) * w (t + u)) - w t * ∫ u in (0 : ℝ)..h, exp (η * u) := by
+    rw [← intervalIntegral.integral_const_mul, ← intervalIntegral.integral_sub
+      ((by fun_prop : Continuous fun u => exp (η * u) * w (t + u)).intervalIntegrable 0 h)
+      ((by fun_prop : Continuous fun u => w t * exp (η * u)).intervalIntegrable 0 h)]
+    congr 1
+    funext u
+    simp only [shiftPath]
+    ring
+  have he1 : exp (-η * (t + h)) * exp (η * t) = exp (-η * h) := by rw [← exp_add]; ring_nf
+  have he2 : exp (-η * h) * exp (η * h) = 1 := by rw [← exp_add]; ring_nf; exact exp_zero
+  have hE := integral_exp_mul_eta η h
+  simp only [ouStep, ouNoise, ouPrim, hI, hS]
+  simp only [shiftPath]
+  linear_combination (-(η * ∫ u in (0 : ℝ)..h, exp (η * u) * w (t + u))) * he1
+    - (w t) * exp (-η * h) * hE - (w t) * he2
+
+/-- **Cochrane (2023), p. 197: the OU surplus restarts at any date**: `s_{t+h}` is the OU
+surplus from `s_t` driven by the shifted path `w^t`.
+Generalises `TidyR7OUPath.ouPath_step` (the whole path restarts). -/
+theorem ouPath_restart (η sbar s0 σ : ℝ) (hw : Continuous w) (t h : ℝ) :
+    ouPath η sbar s0 σ w (t + h)
+      = ouPath η sbar (ouPath η sbar s0 σ w t) σ (shiftPath w t) h := by
+  have h1 := ouPath_step (η := η) (sbar := sbar) (s0 := s0) (σ := σ) hw t h
+  rw [ouStep_eq_ouNoise η hw] at h1
+  simp only [ouPath, ouMean] at h1 ⊢
+  linarith
+
+/-- **Cochrane (2023), (6.4)–(6.5), pp. 196–197: debt restarts at any date**: `b_{t+h}` is the
+debt from `(s_t, b_t)` driven by the shifted path `w^t` (uniqueness for `ḃ = ab − s`,
+`LinearODE.vocFrom_eq_of_global`). -/
+theorem ouDebt_restart (a η sbar s0 σ b0 : ℝ) (hw : Continuous w) (t h : ℝ) :
+    ouDebt a η sbar s0 σ b0 w (t + h)
+      = ouDebt a η sbar (ouPath η sbar s0 σ w t) σ (ouDebt a η sbar s0 σ b0 w t)
+          (shiftPath w t) h := by
+  set f : ℝ → ℝ := fun τ => ouPath η sbar s0 σ w (t + τ) with hf
+  have hfc : Continuous f :=
+    (continuous_ouPath η sbar s0 σ hw).comp (continuous_const.add continuous_id)
+  have h1 : ∀ τ, HasDerivAt (fun τ => ouDebt a η sbar s0 σ b0 w (t + τ))
+      (a * ouDebt a η sbar s0 σ b0 w (t + τ) - f τ) τ := fun τ =>
+    (ouDebt_hasDerivAt a b0 hw (t + τ)).comp_const_add t τ
+  have hf2 : ouPath η sbar (ouPath η sbar s0 σ w t) σ (shiftPath w t) = f := by
+    funext τ
+    exact (ouPath_restart η sbar s0 σ hw t τ).symm
+  have h2 : ∀ τ, HasDerivAt (ouDebt a η sbar (ouPath η sbar s0 σ w t) σ
+      (ouDebt a η sbar s0 σ b0 w t) (shiftPath w t))
+      (a * ouDebt a η sbar (ouPath η sbar s0 σ w t) σ (ouDebt a η sbar s0 σ b0 w t)
+        (shiftPath w t) τ - f τ) τ := fun τ => by
+    have := ouDebt_hasDerivAt (η := η) (sbar := sbar) (s0 := ouPath η sbar s0 σ w t) (σ := σ)
+      a (ouDebt a η sbar s0 σ b0 w t) (continuous_shiftPath hw t) τ
+    rwa [hf2] at this
+  have e1 := vocFrom_eq_of_global h1 hfc 0 h
+  have e2 := vocFrom_eq_of_global h2 hfc 0 h
+  simp only [add_zero] at e1
+  rw [e1, e2, ouDebt_zero]
+
+/-- Cochrane (2023), (6.5), p. 197: the one-period response of debt to the mean surplus,
+`A = e^a∫_0^1 e^{−au}du`. -/
+noncomputable def debtA (a : ℝ) : ℝ := exp a * ∫ u in (0 : ℝ)..1, exp (-a * u)
+
+/-- Cochrane (2023), (6.5), p. 197: the one-period response of debt to the surplus gap
+`s_t − s̄`, `D = e^a∫_0^1 e^{−au}e^{−ηu}du`. -/
+noncomputable def debtD (a η : ℝ) : ℝ := exp a * ∫ u in (0 : ℝ)..1, exp (-a * u) * exp (-η * u)
+
+/-- Cochrane (2023), (6.5), p. 197: the one-period mean debt is affine in `(s_0, b_0)`,
+`debtMean_1 = e^a b_0 − s̄A − (s_0 − s̄)D`. -/
+theorem debtMean_one (a η sbar s0 b0 : ℝ) :
+    debtMean a η sbar s0 b0 1 = exp a * b0 - sbar * debtA a - (s0 - sbar) * debtD a η := by
+  have i1 := (by fun_prop : Continuous fun u => exp (-a * u) * sbar).intervalIntegrable
+    (μ := volume) 0 1
+  have i2 := (by fun_prop : Continuous fun u =>
+    exp (-a * u) * exp (-η * u) * (s0 - sbar)).intervalIntegrable (μ := volume) 0 1
+  have e : (fun u => exp (-a * u) * ouMean η sbar s0 u)
+      = fun u => exp (-a * u) * sbar + exp (-a * u) * exp (-η * u) * (s0 - sbar) := by
+    funext u
+    simp only [ouMean]
+    ring
+  simp only [debtMean, vocFrom, debtA, debtD, e]
+  rw [intervalIntegral.integral_add i1 i2, intervalIntegral.integral_mul_const,
+    intervalIntegral.integral_mul_const]
+  simp only [mul_zero, exp_zero, one_mul, mul_one]
+  ring
+
+/-- **Cochrane (2023), (6.4)–(6.5), pp. 196–197: debt over one period.** On every continuous
+path, `b_{t+1} = e^a b_t − s̄A − D(s_t − s̄) − σ∫_0^1 w^t(r)k_1(r)dr`. -/
+theorem ouDebt_succ (a η sbar s0 σ b0 : ℝ) (hw : Continuous w) (t : ℝ) :
+    ouDebt a η sbar s0 σ b0 w (t + 1)
+      = exp a * ouDebt a η sbar s0 σ b0 w t - sbar * debtA a
+        - debtD a η * (ouPath η sbar s0 σ w t - sbar)
+        - σ * ∫ r in (0 : ℝ)..1, shiftPath w t r * debtKernel a η 1 r := by
+  rw [ouDebt_restart a η sbar s0 σ b0 hw t 1, ouDebt_eq a _ (continuous_shiftPath hw t),
+    debtMean_one, debtNoise_eq_integral a η (continuous_shiftPath hw t)]
+  ring
+
+/-- Cochrane (2023), (6.5), p. 197: the one-period debt noise in by-parts Wiener form on
+`[t, t + 1]` with integrand `h(u) = G_1(u − t)` (`h(t + 1) = 0`, `h' = −k_1(· − t)`). -/
+theorem shift_integral_eq (a η : ℝ) (hw : Continuous w) (t : ℝ) :
+    ∫ r in (0 : ℝ)..1, shiftPath w t r * debtKernel a η 1 r
+      = debtG a η 1 ((t + 1) - t) * w (t + 1) - debtG a η 1 (t - t) * w t
+        - ∫ u in t..(t + 1), w u * -debtKernel a η 1 (u - t) := by
+  have hk := continuous_debtKernel a η 1
+  have hG0 : debtG a η 1 0 = ∫ u in (0 : ℝ)..1, debtKernel a η 1 u := by
+    rw [debtG, intervalIntegral.integral_symm, neg_neg]
+  have hsub : (∫ u in t..(t + 1), w u * -debtKernel a η 1 (u - t))
+      = -∫ r in (0 : ℝ)..1, w (t + r) * debtKernel a η 1 r := by
+    have h1 := intervalIntegral.integral_comp_add_right
+      (fun u => w u * -debtKernel a η 1 (u - t)) (a := 0) (b := 1) t
+    rw [zero_add, add_comm 1 t] at h1
+    rw [← h1, ← intervalIntegral.integral_neg]
+    congr 1
+    funext r
+    change w (r + t) * -debtKernel a η 1 (r + t - t) = -(w (t + r) * debtKernel a η 1 r)
+    rw [add_sub_cancel_right, add_comm r t]
+    ring
+  have hsplit : (∫ r in (0 : ℝ)..1, shiftPath w t r * debtKernel a η 1 r)
+      = (∫ r in (0 : ℝ)..1, w (t + r) * debtKernel a η 1 r)
+        - w t * ∫ r in (0 : ℝ)..1, debtKernel a η 1 r := by
+    rw [← intervalIntegral.integral_const_mul, ← intervalIntegral.integral_sub
+      ((by fun_prop : Continuous fun r => w (t + r) * debtKernel a η 1 r).intervalIntegrable 0 1)
+      ((by fun_prop : Continuous fun r => w t * debtKernel a η 1 r).intervalIntegrable 0 1)]
+    congr 1
+    funext r
+    simp only [shiftPath]
+    ring
+  rw [hsplit, hsub, add_sub_cancel_left, sub_self, debtG_self, hG0]
+  ring
+
+/-! ### Stationarity of the debt kernel -/
+
+/-- Cochrane (2023), (6.5), p. 197 (tool): `F_c(t + δ) − F_c(u + δ) = e^{−cδ}(F_c(t) − F_c(u))`. -/
+theorem debtF_shift (c t u δ : ℝ) :
+    debtF c (t + δ) - debtF c (u + δ) = exp (-c * δ) * (debtF c t - debtF c u) := by
+  have hc : ∀ x y : ℝ, IntervalIntegrable (fun v => exp (-c * v)) volume x y :=
+    fun x y => (by fun_prop : Continuous fun v => exp (-c * v)).intervalIntegrable x y
+  simp only [debtF]
+  rw [intervalIntegral.integral_interval_sub_left (hc 0 _) (hc 0 _),
+    intervalIntegral.integral_interval_sub_left (hc 0 _) (hc 0 _),
+    ← intervalIntegral.integral_comp_add_right (fun v => exp (-c * v)) δ,
+    ← intervalIntegral.integral_const_mul]
+  congr 1
+  funext v
+  rw [← exp_add]
+  ring_nf
+
+/-- Cochrane (2023), (6.5), p. 197: the debt kernel is stationary,
+`k_{t+δ}(u + δ) = k_t(u)`. -/
+theorem debtKernel_shift (a η t u δ : ℝ) :
+    debtKernel a η (t + δ) (u + δ) = debtKernel a η t u := by
+  have hF := debtF_shift (a + η) t u δ
+  have e1 : exp (a * (t + δ)) * exp (-a * (u + δ)) = exp (a * t) * exp (-a * u) := by
+    rw [← exp_add, ← exp_add]; ring_nf
+  have e2 : exp (a * (t + δ)) * exp (η * (u + δ)) * exp (-(a + η) * δ)
+      = exp (a * t) * exp (η * u) := by
+    rw [← exp_add, ← exp_add, ← exp_add]; ring_nf
+  simp only [debtKernel]
+  linear_combination e1 - η * exp (a * (t + δ)) * exp (η * (u + δ)) * hF
+    - η * (debtF (a + η) t - debtF (a + η) u) * e2
+
+/-- Cochrane (2023), (6.5), p. 197: `G_{t+δ}(r + δ) = G_t(r)`. -/
+theorem debtG_shift (a η t r δ : ℝ) : debtG a η (t + δ) (r + δ) = debtG a η t r := by
+  simp only [debtG]
+  rw [← intervalIntegral.integral_comp_add_right (fun u => debtKernel a η (t + δ) u) δ]
+  simp only [debtKernel_shift]
+
+/-- **Cochrane (2023), (6.5), p. 197: the debt variance does not fall below its one-period
+value**: `∫_0^1 G_1² ≤ ∫_0^t G_t²` for `t ≥ 1`. -/
+theorem integral_debtG_sq_le (a η : ℝ) {t : ℝ} (ht : 1 ≤ t) :
+    ∫ r in (0 : ℝ)..1, debtG a η 1 r ^ 2 ≤ ∫ r in (0 : ℝ)..t, debtG a η t r ^ 2 := by
+  have hc : ∀ x y : ℝ, IntervalIntegrable (fun r => debtG a η t r ^ 2) volume x y :=
+    fun x y => ((continuous_debtG a η t).pow 2).intervalIntegrable x y
+  rw [← intervalIntegral.integral_add_adjacent_intervals (hc 0 (t - 1)) (hc (t - 1) t)]
+  have h0 : 0 ≤ ∫ r in (0 : ℝ)..(t - 1), debtG a η t r ^ 2 :=
+    intervalIntegral.integral_nonneg (by linarith) fun r _ => sq_nonneg _
+  have h1 : (∫ r in (t - 1)..t, debtG a η t r ^ 2) = ∫ r in (0 : ℝ)..1, debtG a η 1 r ^ 2 := by
+    have := intervalIntegral.integral_comp_add_right (fun r => debtG a η t r ^ 2) (a := 0)
+      (b := 1) (t - 1)
+    rw [zero_add, show (1 : ℝ) + (t - 1) = t by ring] at this
+    rw [← this]
+    congr 1
+    funext r
+    have e := debtG_shift a η 1 r (t - 1)
+    rw [show (1 : ℝ) + (t - 1) = t by ring] at e
+    rw [e]
+  linarith
+
+/-! ### The mean debt path is bounded when `r < g` -/
+
+/-- Cochrane (2023), p. 197 (tool): for `c > 0` and `t ≥ 0`,
+`0 ≤ ∫_0^t e^{−cu}du ≤ 1/c`.
+From `ExpIntegrals.intervalIntegral_exp_neg_mul`. -/
+theorem integral_exp_neg_le {c : ℝ} (hc : 0 < c) {t : ℝ} (ht : 0 ≤ t) :
+    0 ≤ ∫ u in (0 : ℝ)..t, exp (-c * u) ∧ ∫ u in (0 : ℝ)..t, exp (-c * u) ≤ 1 / c := by
+  have hd : ∀ x ∈ Set.uIcc (0 : ℝ) t,
+      HasDerivAt (fun u => -exp (-c * u) / c) (exp (-c * x)) x := fun x _ => by
+    have h := (((hasDerivAt_id' x).const_mul (-c)).exp.neg).div_const c
+    refine h.congr_deriv ?_
+    field_simp
+  rw [intervalIntegral.integral_eq_sub_of_hasDerivAt hd
+    ((by fun_prop : Continuous fun u => exp (-c * u)).intervalIntegrable 0 t)]
+  have h1 : exp (-c * t) ≤ 1 := exp_le_one_iff.2 (by nlinarith)
+  have h2 : 0 < exp (-c * t) := exp_pos _
+  simp only [mul_zero, exp_zero]
+  constructor
+  · rw [show -exp (-c * t) / c - -1 / c = (1 - exp (-c * t)) / c by ring]
+    exact div_nonneg (by linarith) hc.le
+  · rw [show -exp (-c * t) / c - -1 / c = (1 - exp (-c * t)) / c by ring]
+    exact div_le_div_of_nonneg_right (by linarith) hc.le
+
+/-- **Cochrane (2023), (6.5), p. 197: with permanent `r < g` the mean debt path is bounded.**
+For `a = r − g < 0`, `η > 0` and `t ≥ 0`,
+`|debtMean_t| ≤ |b_0| + |s̄|/(−a) + |s_0 − s̄|/η`. -/
+theorem abs_debtMean_le {a η : ℝ} (ha : a < 0) (hη : 0 < η) (sbar s0 b0 : ℝ) {t : ℝ}
+    (ht : 0 ≤ t) :
+    |debtMean a η sbar s0 b0 t| ≤ |b0| + |sbar| / (-a) + |s0 - sbar| / η := by
+  have i1 := (by fun_prop : Continuous fun u => exp (-a * u) * sbar).intervalIntegrable
+    (μ := volume) 0 t
+  have i2 := (by fun_prop : Continuous fun u =>
+    exp (-a * u) * exp (-η * u) * (s0 - sbar)).intervalIntegrable (μ := volume) 0 t
+  have e : (fun u => exp (-a * u) * ouMean η sbar s0 u)
+      = fun u => exp (-a * u) * sbar + exp (-a * u) * exp (-η * u) * (s0 - sbar) := by
+    funext u
+    simp only [ouMean]
+    ring
+  -- the first integral: `e^{at}∫_0^t e^{−au} = (1 − e^{at})/(−a)`
+  have hA : exp (a * t) * ∫ u in (0 : ℝ)..t, exp (-a * u) = (1 - exp (a * t)) / (-a) := by
+    have ha0 : a ≠ 0 := ha.ne
+    have hd : ∀ x ∈ Set.uIcc (0 : ℝ) t,
+        HasDerivAt (fun u => -exp (-a * u) / a) (exp (-a * x)) x := fun x _ => by
+      have h := (((hasDerivAt_id' x).const_mul (-a)).exp.neg).div_const a
+      refine h.congr_deriv ?_
+      field_simp
+    rw [intervalIntegral.integral_eq_sub_of_hasDerivAt hd
+      ((by fun_prop : Continuous fun u => exp (-a * u)).intervalIntegrable 0 t)]
+    have he : exp (a * t) * exp (-a * t) = 1 := by rw [← exp_add]; ring_nf; exact exp_zero
+    simp only [mul_zero, exp_zero]
+    field_simp
+    simp only [neg_mul] at he ⊢
+    linear_combination (-1 : ℝ) * he
+  have hA0 : 0 ≤ (1 - exp (a * t)) / (-a) :=
+    div_nonneg (by linarith [exp_le_one_iff.2 (by nlinarith : a * t ≤ 0)]) (by linarith)
+  have hA1 : (1 - exp (a * t)) / (-a) ≤ 1 / (-a) :=
+    div_le_div_of_nonneg_right (by linarith [exp_pos (a * t)]) (by linarith)
+  -- the second integral lies in `[0, 1/η]`
+  have hD0 : 0 ≤ exp (a * t) * ∫ u in (0 : ℝ)..t, exp (-a * u) * exp (-η * u) :=
+    mul_nonneg (exp_pos _).le (intervalIntegral.integral_nonneg ht fun u _ => by positivity)
+  have hD1 : exp (a * t) * ∫ u in (0 : ℝ)..t, exp (-a * u) * exp (-η * u) ≤ 1 / η := by
+    rw [← intervalIntegral.integral_const_mul]
+    refine le_trans (intervalIntegral.integral_mono_on ht
+      ((by fun_prop : Continuous fun u => exp (a * t) * (exp (-a * u) * exp (-η * u)))
+        |>.intervalIntegrable 0 t)
+      ((by fun_prop : Continuous fun u => exp (-η * u)).intervalIntegrable 0 t)
+      fun u hu => ?_) (integral_exp_neg_le hη ht).2
+    have : exp (a * t) * exp (-a * u) ≤ 1 := by
+      rw [← exp_add]; exact exp_le_one_iff.2 (by nlinarith [hu.2])
+    calc exp (a * t) * (exp (-a * u) * exp (-η * u))
+        = (exp (a * t) * exp (-a * u)) * exp (-η * u) := by ring
+      _ ≤ 1 * exp (-η * u) := mul_le_mul_of_nonneg_right this (exp_pos _).le
+      _ = exp (-η * u) := one_mul _
+  have hval : debtMean a η sbar s0 b0 t = exp (a * t) * b0
+      - sbar * (exp (a * t) * ∫ u in (0 : ℝ)..t, exp (-a * u))
+      - (s0 - sbar) * (exp (a * t) * ∫ u in (0 : ℝ)..t, exp (-a * u) * exp (-η * u)) := by
+    simp only [debtMean, vocFrom, e]
+    rw [intervalIntegral.integral_add i1 i2, intervalIntegral.integral_mul_const,
+      intervalIntegral.integral_mul_const]
+    simp only [mul_zero, exp_zero, one_mul]
+    ring
+  rw [hval, hA]
+  have hb : |exp (a * t) * b0| ≤ |b0| := by
+    rw [abs_mul, abs_of_pos (exp_pos _)]
+    exact mul_le_of_le_one_left (abs_nonneg _) (exp_le_one_iff.2 (by nlinarith))
+  have hs : |sbar * ((1 - exp (a * t)) / (-a))| ≤ |sbar| / (-a) := by
+    rw [abs_mul, abs_of_nonneg hA0, div_eq_mul_one_div |sbar|]
+    exact mul_le_mul_of_nonneg_left hA1 (abs_nonneg _)
+  have hd : |(s0 - sbar) * (exp (a * t) * ∫ u in (0 : ℝ)..t, exp (-a * u) * exp (-η * u))|
+      ≤ |s0 - sbar| / η := by
+    rw [abs_mul, abs_of_nonneg hD0, div_eq_mul_one_div |s0 - sbar|]
+    exact mul_le_mul_of_nonneg_left hD1 (abs_nonneg _)
+  calc |exp (a * t) * b0 - sbar * ((1 - exp (a * t)) / (-a))
+        - (s0 - sbar) * (exp (a * t) * ∫ u in (0 : ℝ)..t, exp (-a * u) * exp (-η * u))|
+      ≤ |exp (a * t) * b0 - sbar * ((1 - exp (a * t)) / (-a))|
+        + |(s0 - sbar) * (exp (a * t) * ∫ u in (0 : ℝ)..t, exp (-a * u) * exp (-η * u))| :=
+        abs_sub _ _
+    _ ≤ (|exp (a * t) * b0| + |sbar * ((1 - exp (a * t)) / (-a))|)
+        + |(s0 - sbar) * (exp (a * t) * ∫ u in (0 : ℝ)..t, exp (-a * u) * exp (-η * u))| := by
+        gcongr; exact abs_sub _ _
+    _ ≤ |b0| + |sbar| / (-a) + |s0 - sbar| / η := by linarith
+
+end Cochrane.FiscalConstraints.TidyR8OURestart
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Continuous-time debt (6.5) with an OU surplus is almost surely unbounded when `r < g`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 6, §6.4.1, p. 197: "Suppose we
+generate the surplus by an AR(1) … An AR(1) ranges over the entire real line, as does the
+integral of an AR(1) (6.5). So at some point the future debt-to-GDP ratio following (6.5) will
+eventually exceed any bound." Debt follows (6.4) `ḃ = ab − s` with corrected (6.5)
+`b_t = e^{at}b_0 − ∫_0^t e^{a(t−u)}s_u du` (`TidyR7OrnsteinUhlenbeck.ouDebtProc`), `a = r − g`.
+
+The route: at integer dates `(s_n − s̄, b_n)` is the two-dimensional chain of TidyR8DebtChain,
+`s_{n+1} − s̄ = e^{−η}(s_n − s̄) + ε_{n+1}`,
+`b_{n+1} = e^a b_n − s̄A − D(s_n − s̄) − ζ_{n+1}` (`ouProc_sampled_eq_chainU`,
+`ouDebtProc_sampled_eq_chainX`), whose period innovations `(ε_{n+1}, ζ_{n+1})` (`ouBlock`) are
+Wiener integrals over `[n, n + 1]`. They are jointly Gaussian (`isGaussianProcess_ouBlock`),
+uncorrelated across periods (`covariance_ouBlock`), hence independent (`iIndepFun_ouBlock`). The
+Gaussian law of `b_t` (`TidyR7OrnsteinUhlenbeck.ouDebtProc_hasLaw`) with bounded mean
+(`TidyR8OURestart.abs_debtMean_le`) and variance at least the one-period variance
+(`TidyR8OURestart.integral_debtG_sq_le`) gives uniform probabilities (`prob_debt_gt_ge`,
+`prob_debt_lt_ge`), and Kolmogorov's 0-1 law (`TidyR8DebtChain.chain_frequently`) does the rest.
+
+## Main results (`a = r − g < 0`, `η > 0`, `σ ≠ 0`, every `s̄`, `s_0`, `b_0`)
+
+* **`ouDebtProc_frequently_gt`, `ouDebtProc_frequently_lt`**: almost surely debt exceeds every
+  level, and falls below every level, at arbitrarily late dates (already at integer dates:
+  `sampled_ouDebtProc_frequently`);
+* **`ouDebtProc_sup_inf`**: almost surely `sup_{t ≥ 0} b_t = +∞` and `inf_{t ≥ 0} b_t = −∞`;
+* **`ouDebtProc_ae_not_sustainable`**: for every debt limit `M`,
+  `P(b_t ≤ M for all t ≥ 0) = 0` (the a.s. form of `ouDebtProc_not_sustainable`);
+* non-vacuity on bmPath with `r − g = −1%`, `η = σ = 1`: `bmPath_ouDebt_sup_inf`,
+  `bmPath_ouDebt_ae_not_sustainable`.
+
+The boundary `r = g` is TidyR8OUDebtRgEqual; for `r > g` the claim fails (TidyR8OUDebtExplosive).
+-/
+
+namespace Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded
+
+open Real MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.FiscalConstraints.TidyR7OUPath Cochrane.FiscalConstraints.TidyR7WienerGaussian
+open Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck Cochrane.FiscalConstraints.TidyR7OUSampled
+open Cochrane.FiscalConstraints.TidyR7BrownianTools
+open Cochrane.FiscalConstraints.TidyR8OURestart Cochrane.FiscalConstraints.TidyR8DebtChain
+open scoped ENNReal NNReal
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {W : ℝ≥0 → Ω → ℝ}
+
+/-! ### The period innovations -/
+
+/-- Cochrane (2023), p. 197: the Wiener integrands of the period-`n` innovations on
+`[n, n + 1]`: `e^{ηu}` for the surplus, `G_1(u − n)` for the debt. -/
+noncomputable def blockH (a η : ℝ) (n : ℕ) (i : Fin 2) : ℝ → ℝ :=
+  if i = 0 then fun u => exp (η * u) else fun u => debtG a η 1 (u - n)
+
+/-- Cochrane (2023), p. 197: the derivatives of the integrands `blockH`. -/
+noncomputable def blockH' (a η : ℝ) (n : ℕ) (i : Fin 2) : ℝ → ℝ :=
+  if i = 0 then fun u => exp (η * u) * η else fun u => -debtKernel a η 1 (u - n)
+
+/-- Cochrane (2023), p. 197: the scale factors of the period-`n` innovations. -/
+noncomputable def blockC (η σ : ℝ) (n : ℕ) (i : Fin 2) : ℝ :=
+  if i = 0 then σ * exp (-η * ((n : ℝ) + 1)) else σ
+
+/-- Cochrane (2023), (6.5), p. 197: the period-`n` innovation pair `(ε_{n+1}, ζ_{n+1})` of the
+sampled surplus and debt, as Wiener integrals over `[n, n + 1]`. -/
+noncomputable def ouBlock (a η σ : ℝ) (W : ℝ≥0 → Ω → ℝ) (n : ℕ) (ω : Ω) (i : Fin 2) : ℝ :=
+  blockC η σ n i * wienerBP W (blockH a η n i) (blockH' a η n i) n ((n : ℝ) + 1) ω
+
+/-- Cochrane (2023), p. 197: `blockH' ` is the derivative of `blockH`. -/
+theorem hasDerivAt_blockH (a η : ℝ) (n : ℕ) (i : Fin 2) (x : ℝ) :
+    HasDerivAt (blockH a η n i) (blockH' a η n i x) x := by
+  by_cases hi : i = 0
+  · simp only [blockH, blockH', hi, ↓reduceIte]
+    exact hasDerivAt_expMul η x
+  · simp only [blockH, blockH', hi, ↓reduceIte]
+    exact (hasDerivAt_debtG a η 1 (x - n)).comp_sub_const x n
+
+/-- Cochrane (2023), p. 197: the derivatives `blockH'` are continuous. -/
+theorem continuous_blockH' (a η : ℝ) (n : ℕ) (i : Fin 2) : Continuous (blockH' a η n i) := by
+  by_cases hi : i = 0
+  · simp only [blockH', hi, ↓reduceIte]
+    fun_prop
+  · simp only [blockH', hi, ↓reduceIte]
+    exact ((continuous_debtKernel a η 1).comp (continuous_id.sub continuous_const)).neg
+
+/-- Cochrane (2023), p. 197: the first coordinate is the OU innovation `ε_{n+1}`
+(`TidyR7OUSampled.ouInnov`). -/
+theorem ouBlock_zero (a η σ : ℝ) (n : ℕ) (ω : Ω) : ouBlock a η σ W n ω 0 = ouInnov η σ W n ω := by
+  rw [ouInnov_eq]
+  simp only [ouBlock, blockC, blockH, blockH', ↓reduceIte]
+
+/-- Cochrane (2023), (6.5), p. 197: the second coordinate is the period debt noise
+`ζ_{n+1} = σ∫_0^1 w^n(r)k_1(r)dr` of `TidyR8OURestart.ouDebt_succ`. -/
+theorem ouBlock_one (a η σ : ℝ) (hcont : ∀ ω, Continuous fun t => W t ω) (n : ℕ) (ω : Ω) :
+    ouBlock a η σ W n ω 1 = σ * ∫ r in (0 : ℝ)..1,
+      shiftPath (fun u => bmReal W u ω) n r * debtKernel a η 1 r := by
+  rw [shift_integral_eq a η (continuous_bmReal (hcont ω)) n]
+  simp only [ouBlock, blockC, blockH, blockH', one_ne_zero, ↓reduceIte, wienerBP]
+
+/-- Cochrane (2023), p. 197: each innovation coordinate is square integrable.
+Generalises `TidyR7OUSampled.memLp_ouInnov` to the pair of period innovations. -/
+theorem memLp_ouBlock (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (a η σ : ℝ) (n : ℕ) (i : Fin 2) :
+    MemLp (fun ω => ouBlock a η σ W n ω i) 2 P :=
+  (memLp_wienerBP (P := P) hB hW hcont (hasDerivAt_blockH a η n i) (continuous_blockH' a η n i)
+    (Nat.cast_nonneg n) (by linarith : (n : ℝ) < n + 1)).const_mul _
+
+/-- Cochrane (2023), p. 197: each innovation coordinate is almost everywhere measurable.
+Generalises `TidyR7OUSampled.aemeasurable_ouInnov` to the pair of period innovations. -/
+theorem aemeasurable_ouBlock (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (a η σ : ℝ) (n : ℕ) (i : Fin 2) :
+    AEMeasurable (fun ω => ouBlock a η σ W n ω i) P :=
+  (memLp_ouBlock hB hW hcont a η σ n i).aestronglyMeasurable.aemeasurable
+
+/-- Cochrane (2023), p. 197: the innovations have mean zero.
+Generalises `TidyR7OUSampled.integral_ouInnov` to the pair of period innovations. -/
+theorem integral_ouBlock (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (a η σ : ℝ) (n : ℕ) (i : Fin 2) :
+    ∫ ω, ouBlock a η σ W n ω i ∂P = 0 := by
+  have hm := (memLp_wienerBP (P := P) hB hW hcont (hasDerivAt_blockH a η n i)
+    (continuous_blockH' a η n i) (Nat.cast_nonneg n) (by linarith : (n : ℝ) < n + 1))
+    |>.aestronglyMeasurable
+    |>.aemeasurable
+  have hlaw := map_wienerBP (P := P) hB hW hcont (hasDerivAt_blockH a η n i)
+    (continuous_blockH' a η n i) (Nat.cast_nonneg n) (by linarith : (n : ℝ) < n + 1)
+  simp only [ouBlock]
+  rw [integral_const_mul, show ∫ ω, wienerBP W (blockH a η n i) (blockH' a η n i) n
+      ((n : ℝ) + 1) ω ∂P = ∫ x, x ∂(P.map (wienerBP W (blockH a η n i) (blockH' a η n i) n
+        ((n : ℝ) + 1))) from (integral_map hm aestronglyMeasurable_id).symm, hlaw,
+    integral_id_gaussianReal, mul_zero]
+
+/-- **Cochrane (2023), p. 197: the innovations of different periods are uncorrelated.**
+Generalises `TidyR7OUSampled.covariance_ouInnov` to the pair of period innovations. -/
+theorem covariance_ouBlock (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (a η σ : ℝ) {m n : ℕ} (hmn : m ≠ n)
+    (i j : Fin 2) :
+    cov[fun ω => ouBlock a η σ W m ω i, fun ω => ouBlock a η σ W n ω j; P] = 0 := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  have key : ∀ (m n : ℕ) (i j : Fin 2), m < n →
+      ∫ ω, ouBlock a η σ W m ω i * ouBlock a η σ W n ω j ∂P = 0 := by
+    intro m n i j hlt
+    have h0 := integral_mul_wienerBP_eq_zero (P := P) hB hW hcont (hasDerivAt_blockH a η m i)
+      (continuous_blockH' a η m i) (hasDerivAt_blockH a η n j) (continuous_blockH' a η n j)
+      (Nat.cast_nonneg m) (by linarith : (m : ℝ) < m + 1)
+      (by exact_mod_cast hlt : (m : ℝ) + 1 ≤ n) (by linarith : (n : ℝ) < n + 1)
+    simp only [ouBlock]
+    have e : ∀ ω, blockC η σ m i * wienerBP W (blockH a η m i) (blockH' a η m i) m (m + 1) ω
+        * (blockC η σ n j * wienerBP W (blockH a η n j) (blockH' a η n j) n (n + 1) ω)
+        = (blockC η σ m i * blockC η σ n j)
+          * (wienerBP W (blockH a η m i) (blockH' a η m i) m (m + 1) ω
+            * wienerBP W (blockH a η n j) (blockH' a η n j) n (n + 1) ω) := fun ω => by ring
+    simp_rw [e]
+    rw [integral_const_mul, h0, mul_zero]
+  rw [covariance_eq_sub (memLp_ouBlock hB hW hcont a η σ m i)
+    (memLp_ouBlock hB hW hcont a η σ n j), integral_ouBlock hB hW hcont a η σ m i,
+    integral_ouBlock hB hW hcont a η σ n j, mul_zero, sub_zero]
+  rcases lt_or_gt_of_ne hmn with hlt | hlt
+  · exact key m n i j hlt
+  · have := key n m j i hlt
+    simp_rw [mul_comm (ouBlock a η σ W n _ j)] at this
+    exact this
+
+/-- **Cochrane (2023), p. 197: the innovations are jointly Gaussian** (finite linear
+combinations of Wiener integrals, `TidyR7WienerGaussian.exists_map_sum_wienerBP`).
+Generalises `TidyR7OUSampled.isGaussianProcess_ouInnov` to the pair of period innovations. -/
+theorem isGaussianProcess_ouBlock (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (a η σ : ℝ) :
+    IsGaussianProcess (fun (p : (_ : ℕ) × Fin 2) ω => ouBlock a η σ W p.1 ω p.2) P where
+  hasGaussianLaw I := by
+    have hV : AEMeasurable (fun ω => I.restrict
+        (fun p : (_ : ℕ) × Fin 2 => ouBlock a η σ W p.1 ω p.2)) P :=
+      AEMeasurable.of_eval fun i => aemeasurable_ouBlock hB hW hcont a η σ i.1.1 i.1.2
+    refine ⟨hV, isGaussian_of_map_eq_gaussianReal fun L => ?_⟩
+    rw [AEMeasurable.map_map_of_aemeasurable L.continuous.measurable.aemeasurable hV]
+    set d : I → ℝ := fun i => L (fun j => if i = j then 1 else 0)
+      * blockC η σ (i : (_ : ℕ) × Fin 2).1 (i : (_ : ℕ) × Fin 2).2
+    obtain ⟨v, hv⟩ := exists_map_sum_wienerBP (P := P) hB hW hcont Finset.univ d
+      (h := fun i => blockH a η (i : (_ : ℕ) × Fin 2).1 (i : (_ : ℕ) × Fin 2).2)
+      (h' := fun i => blockH' a η (i : (_ : ℕ) × Fin 2).1 (i : (_ : ℕ) × Fin 2).2)
+      (fun i => hasDerivAt_blockH a η _ _) (fun i => continuous_blockH' a η _ _)
+      (s := fun i => ((i : (_ : ℕ) × Fin 2).1 : ℝ))
+      (t := fun i => ((i : (_ : ℕ) × Fin 2).1 : ℝ) + 1) (fun _ => by linarith)
+    refine ⟨0, v, ?_⟩
+    rw [← hv]
+    congr 1
+    funext ω
+    simp only [Function.comp_apply]
+    rw [show L (I.restrict fun p : (_ : ℕ) × Fin 2 => ouBlock a η σ W p.1 ω p.2)
+      = L.toLinearMap (I.restrict fun p : (_ : ℕ) × Fin 2 => ouBlock a η σ W p.1 ω p.2) from rfl,
+      LinearMap.pi_apply_eq_sum_univ]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    simp only [Finset.restrict, smul_eq_mul, d, ouBlock, ContinuousLinearMap.coe_coe]
+    ring
+
+/-- **Cochrane (2023), p. 197: the period innovation pairs are independent across periods.**
+Jointly Gaussian and uncorrelated
+(`ProbabilityTheory.IsGaussianProcess.iIndepFun_of_covariance_eq_zero`).
+Generalises `TidyR7OUSampled.iIndepFun_ouInnov` to the pair of period innovations. -/
+theorem iIndepFun_ouBlock (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (a η σ : ℝ) :
+    iIndepFun (fun n ω => ouBlock a η σ W n ω) P :=
+  IsGaussianProcess.iIndepFun_of_covariance_eq_zero
+    (X := fun (n : ℕ) (i : Fin 2) ω => ouBlock a η σ W n ω i)
+    (isGaussianProcess_ouBlock hB hW hcont a η σ)
+    (fun n i => aemeasurable_ouBlock hB hW hcont a η σ n i)
+    (fun _ _ hmn i j => covariance_ouBlock hB hW hcont a η σ hmn i j)
+
+/-! ### The sampled surplus and debt are the chain -/
+
+/-- Cochrane (2023), p. 197: path by path, the sampled surplus gap is the chain gap,
+`s_n − s̄ = u_n(ε, ζ)` with `ρ = e^{−η}`, `u_0 = s_0 − s̄`.
+`TidyR7OUSampled.ouProc_succ` iterated into the chain form. -/
+theorem ouProc_sampled_eq_chainU (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (a η sbar s0 σ : ℝ) (ω : Ω) :
+    ∀ n : ℕ, chainU (exp (-η)) (s0 - sbar) n (fun k => ouBlock a η σ W k ω)
+      = ouProc η sbar s0 σ W n ω - sbar := by
+  intro n
+  induction n with
+  | zero => simp [chainU, ouProc_zero hW0]
+  | succ n ih =>
+    change exp (-η) * chainU (exp (-η)) (s0 - sbar) n (fun k => ouBlock a η σ W k ω)
+      + ouBlock a η σ W n ω 0 = _
+    rw [ih, ouBlock_zero, Nat.cast_succ, ouProc_succ hcont η sbar s0 σ n ω]
+
+/-- **Cochrane (2023), (6.4)–(6.5), pp. 196–197: path by path, the sampled debt is the chain
+debt**, `b_n = x_n(ε, ζ)` with `γ = e^a`, `c₀ = s̄A`, `c₁ = D`, `x_0 = b_0`. -/
+theorem ouDebtProc_sampled_eq_chainX (hcont : ∀ ω, Continuous fun t => W t ω)
+    (hW0 : ∀ ω, W 0 ω = 0) (a η sbar s0 σ b0 : ℝ) (ω : Ω) :
+    ∀ n : ℕ, chainX (exp (-η)) (exp a) (sbar * debtA a) (debtD a η) (s0 - sbar) b0 n
+      (fun k => ouBlock a η σ W k ω) = ouDebtProc a η sbar s0 σ b0 W n ω := by
+  intro n
+  induction n with
+  | zero =>
+    change b0 = ouDebt a η sbar s0 σ b0 _ ((0 : ℕ) : ℝ)
+    rw [Nat.cast_zero, ouDebt_zero]
+  | succ n ih =>
+    change exp a * chainX (exp (-η)) (exp a) (sbar * debtA a) (debtD a η) (s0 - sbar) b0 n
+        (fun k => ouBlock a η σ W k ω) - sbar * debtA a
+      - debtD a η * chainU (exp (-η)) (s0 - sbar) n (fun k => ouBlock a η σ W k ω)
+      - ouBlock a η σ W n ω 1 = _
+    rw [ih, ouProc_sampled_eq_chainU hcont hW0 a η sbar s0 σ ω n, ouBlock_one a η σ hcont,
+      Nat.cast_succ]
+    simp only [ouDebtProc, ouProc]
+    rw [ouDebt_succ a η sbar s0 σ b0 (continuous_bmReal (hcont ω)) n]
+
+/-! ### Uniform probabilities from the Gaussian law -/
+
+/-- Cochrane (2023), p. 197 (tool): if `|m| ≤ C` and `v ≥ v₁ > 0`, then
+`N(m, v)(M, ∞) ≥ N(0, 1)(K, ∞)` with `K = (|M| + C)/√v₁`, uniformly in `m` and `v`. -/
+theorem gaussianReal_Ioi_ge {m C : ℝ} (hm : |m| ≤ C) {v₁ v : ℝ≥0} (hv₁ : v₁ ≠ 0)
+    (hv : v₁ ≤ v) (M : ℝ) :
+    gaussianReal 0 1 (Set.Ioi ((|M| + C) / √(v₁ : ℝ))) ≤ gaussianReal m v (Set.Ioi M) := by
+  have hs1 : 0 < √(v₁ : ℝ) := Real.sqrt_pos.2 (by positivity)
+  have hsv : √(v₁ : ℝ) ≤ √(v : ℝ) := Real.sqrt_le_sqrt (by exact_mod_cast hv)
+  have hC : 0 ≤ C := (abs_nonneg m).trans hm
+  rw [gaussianReal_eq_map m v, Measure.map_apply (by fun_prop) measurableSet_Ioi]
+  refine measure_mono fun x hx => ?_
+  simp only [Set.mem_Ioi, Set.mem_preimage] at hx ⊢
+  have hK : 0 ≤ (|M| + C) / √(v₁ : ℝ) := div_nonneg (by positivity) hs1.le
+  have h1 : |M| + C < √(v₁ : ℝ) * x := by
+    have := mul_lt_mul_of_pos_left hx hs1
+    rwa [mul_div_cancel₀ _ hs1.ne'] at this
+  have h2 : √(v₁ : ℝ) * x ≤ √(v : ℝ) * x := mul_le_mul_of_nonneg_right hsv (by linarith)
+  have h3 := le_abs_self M
+  have h4 := neg_abs_le m
+  linarith
+
+/-- Cochrane (2023), p. 197 (tool): if `|m| ≤ C` and `v ≥ v₁ > 0`, then
+`N(m, v)(−∞, −M) ≥ N(0, 1)(−∞, −K)` with `K = (|M| + C)/√v₁`. -/
+theorem gaussianReal_Iio_ge {m C : ℝ} (hm : |m| ≤ C) {v₁ v : ℝ≥0} (hv₁ : v₁ ≠ 0)
+    (hv : v₁ ≤ v) (M : ℝ) :
+    gaussianReal 0 1 (Set.Iio (-((|M| + C) / √(v₁ : ℝ)))) ≤ gaussianReal m v (Set.Iio (-M)) := by
+  have hs1 : 0 < √(v₁ : ℝ) := Real.sqrt_pos.2 (by positivity)
+  have hsv : √(v₁ : ℝ) ≤ √(v : ℝ) := Real.sqrt_le_sqrt (by exact_mod_cast hv)
+  have hC : 0 ≤ C := (abs_nonneg m).trans hm
+  rw [gaussianReal_eq_map m v, Measure.map_apply (by fun_prop) measurableSet_Iio]
+  refine measure_mono fun x hx => ?_
+  simp only [Set.mem_Iio, Set.mem_preimage] at hx ⊢
+  have hK : 0 ≤ (|M| + C) / √(v₁ : ℝ) := div_nonneg (by positivity) hs1.le
+  have h1 : √(v₁ : ℝ) * x < -(|M| + C) := by
+    have := mul_lt_mul_of_pos_left hx hs1
+    rwa [mul_neg, mul_div_cancel₀ _ hs1.ne'] at this
+  have h2 : √(v : ℝ) * x ≤ √(v₁ : ℝ) * x := mul_le_mul_of_nonpos_right hsv (by linarith)
+  have h3 := le_abs_self M
+  have h4 := le_abs_self m
+  linarith
+
+/-- Cochrane (2023), (6.5), p. 197: the debt variance at `t ≥ 1` is at least the one-period
+variance.
+`σ²` times `TidyR8OURestart.integral_debtG_sq_le`. -/
+theorem debtVar_one_le (a η σ : ℝ) {t : ℝ} (ht : 1 ≤ t) : debtVar a η σ 1 ≤ debtVar a η σ t :=
+  Real.toNNReal_le_toNNReal (mul_le_mul_of_nonneg_left (integral_debtG_sq_le a η ht)
+    (sq_nonneg σ))
+
+/-- **Cochrane (2023), p. 197: with `r < g`, debt exceeds any level with probability bounded
+away from zero, uniformly in the date `t ≥ 1`.** -/
+theorem prob_debt_gt_ge (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {a η σ : ℝ} (ha : a < 0)
+    (hη : 0 < η) (hσ : σ ≠ 0) (sbar s0 b0 M : ℝ) :
+    ∃ q : ℝ≥0∞, q ≠ 0 ∧ ∀ t : ℝ, 1 ≤ t → q ≤ P {ω | M < ouDebtProc a η sbar s0 σ b0 W t ω} := by
+  set C := |b0| + |sbar| / (-a) + |s0 - sbar| / η
+  refine ⟨gaussianReal 0 1 (Set.Ioi ((|M| + C) / √(debtVar a η σ 1 : ℝ))),
+    (gaussianReal_open_pos 0 one_ne_zero isOpen_Ioi Set.nonempty_Ioi).ne', fun t ht => ?_⟩
+  have ht0 : 0 < t := by linarith
+  have hm := aemeasurable_ouDebtProc (P := P) hB hW hcont hW0 a η sbar s0 σ b0 ht0
+  have h := Measure.map_apply_of_aemeasurable hm (measurableSet_Ioi (a := M))
+  rw [ouDebtProc_hasLaw hB hW hcont hW0 a η sbar s0 σ b0 ht0] at h
+  rw [show {ω | M < ouDebtProc a η sbar s0 σ b0 W t ω}
+    = ouDebtProc a η sbar s0 σ b0 W t ⁻¹' Set.Ioi M from rfl, ← h]
+  exact gaussianReal_Ioi_ge (abs_debtMean_le ha hη sbar s0 b0 ht0.le)
+    (debtVar_ne_zero a η hσ one_pos) (debtVar_one_le a η σ ht) M
+
+/-- **Cochrane (2023), p. 197: with `r < g`, debt falls below any level with probability
+bounded away from zero, uniformly in the date `t ≥ 1`.** -/
+theorem prob_debt_lt_ge (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {a η σ : ℝ} (ha : a < 0)
+    (hη : 0 < η) (hσ : σ ≠ 0) (sbar s0 b0 M : ℝ) :
+    ∃ q : ℝ≥0∞, q ≠ 0 ∧ ∀ t : ℝ, 1 ≤ t →
+      q ≤ P {ω | ouDebtProc a η sbar s0 σ b0 W t ω < -M} := by
+  set C := |b0| + |sbar| / (-a) + |s0 - sbar| / η
+  refine ⟨gaussianReal 0 1 (Set.Iio (-((|M| + C) / √(debtVar a η σ 1 : ℝ)))),
+    (gaussianReal_open_pos 0 one_ne_zero isOpen_Iio Set.nonempty_Iio).ne', fun t ht => ?_⟩
+  have ht0 : 0 < t := by linarith
+  have hm := aemeasurable_ouDebtProc (P := P) hB hW hcont hW0 a η sbar s0 σ b0 ht0
+  have h := Measure.map_apply_of_aemeasurable hm (measurableSet_Iio (a := -M))
+  rw [ouDebtProc_hasLaw hB hW hcont hW0 a η sbar s0 σ b0 ht0] at h
+  rw [show {ω | ouDebtProc a η sbar s0 σ b0 W t ω < -M}
+    = ouDebtProc a η sbar s0 σ b0 W t ⁻¹' Set.Iio (-M) from rfl, ← h]
+  exact gaussianReal_Iio_ge (abs_debtMean_le ha hη sbar s0 b0 ht0.le)
+    (debtVar_ne_zero a η hσ one_pos) (debtVar_one_le a η σ ht) M
+
+/-! ### Almost-sure unboundedness -/
+
+/-- **Cochrane (2023), p. 197: debt sampled at integer dates is a.s. unbounded in both
+directions when `r < g`.** For `a = r − g < 0`, `η > 0`, `σ ≠ 0` and every `s̄`, `s_0`, `b_0`,
+almost surely for every level `M`, `θb_n > M` for infinitely many `n`, for `θ = 1` and `θ = −1`. -/
+theorem sampled_ouDebtProc_frequently (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {a η σ : ℝ} (ha : a < 0)
+    (hη : 0 < η) (hσ : σ ≠ 0) (sbar s0 b0 : ℝ) :
+    ∀ᵐ ω ∂P, ∀ M : ℝ, (∃ᶠ n : ℕ in atTop, M < ouDebtProc a η sbar s0 σ b0 W n ω) ∧
+      ∃ᶠ n : ℕ in atTop, ouDebtProc a η sbar s0 σ b0 W n ω < -M := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  set B : Ω → ℕ → Fin 2 → ℝ := fun ω n => ouBlock a η σ W n ω with hBdef
+  have hBn : ∀ n, AEMeasurable (fun ω => ouBlock a η σ W n ω) P := fun n =>
+    AEMeasurable.of_eval fun i => aemeasurable_ouBlock hB hW hcont a η σ n i
+  have hBm : AEMeasurable B P := AEMeasurable.of_eval hBn
+  have hind := iIndepFun_ouBlock hB hW hcont a η σ
+  have hQ : iIndepFun (fun n (ξ : ℕ → Fin 2 → ℝ) => ξ n) (P.map B) := by
+    rw [hBdef, hind.map_fun_eq_infinitePi_map₀ hBm]
+    exact iIndepFun_infinitePi (X := fun _ => id) (fun _ => measurable_id)
+  set ρ := exp (-η)
+  have hρ : |ρ| < 1 := by
+    rw [abs_of_pos (exp_pos _)]
+    exact exp_lt_one_iff.2 (by linarith)
+  have hγ1 : exp a < 1 := exp_lt_one_iff.2 ha
+  set x := chainX ρ (exp a) (sbar * debtA a) (debtD a η) (s0 - sbar) b0 with hx
+  have hpath : ∀ ω n, x n (B ω) = ouDebtProc a η sbar s0 σ b0 W n ω := fun ω n =>
+    ouDebtProc_sampled_eq_chainX hcont hW0 a η sbar s0 σ b0 ω n
+  have hprob : ∀ (θ M : ℝ) (n : ℕ),
+      P.map B {ξ | M < θ * x (n + 2) ξ} = P {ω | M < θ * ouDebtProc a η sbar s0 σ b0 W
+        ((n + 2 : ℕ) : ℝ) ω} := by
+    intro θ M n
+    rw [Measure.map_apply_of_aemeasurable hBm (measurableSet_lt measurable_const
+      ((measurable_chainX _ _ _ _ _ _ (n + 2)).const_mul θ))]
+    congr 1
+    ext ω
+    change M < θ * x (n + 2) (B ω) ↔ _
+    rw [hpath]
+    exact Iff.rfl
+  have hup := chain_frequently hQ hρ (exp_pos a).le hγ1 (sbar * debtA a) (debtD a η)
+    (s0 - sbar) b0 1 fun M => by
+      obtain ⟨q, hq0, hq⟩ := prob_debt_gt_ge hB hW hcont hW0 ha hη hσ sbar s0 b0 M
+      refine ⟨q, hq0, fun n => ?_⟩
+      rw [hprob]
+      simp only [one_mul]
+      exact hq ((n + 2 : ℕ) : ℝ) (by push_cast; linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)])
+  have hdown := chain_frequently hQ hρ (exp_pos a).le hγ1 (sbar * debtA a) (debtD a η)
+    (s0 - sbar) b0 (-1) fun M => by
+      obtain ⟨q, hq0, hq⟩ := prob_debt_lt_ge hB hW hcont hW0 ha hη hσ sbar s0 b0 M
+      refine ⟨q, hq0, fun n => ?_⟩
+      rw [hprob]
+      have hn2 : (1 : ℝ) ≤ ((n + 2 : ℕ) : ℝ) := by
+        push_cast; linarith [(Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
+      refine (hq ((n + 2 : ℕ) : ℝ) hn2).trans (measure_mono fun ω hω => ?_)
+      simp only [Set.mem_ofPred_eq] at hω ⊢
+      linarith
+  filter_upwards [ae_of_ae_map hBm hup, ae_of_ae_map hBm hdown] with ω h1 h2 M
+  refine ⟨(h1 M).mono fun n hn => ?_, (h2 M).mono fun n hn => ?_⟩
+  · have e := hpath ω n
+    change M < 1 * x n (B ω) at hn
+    linarith
+  · have e := hpath ω n
+    change M < -1 * x n (B ω) at hn
+    linarith
+
+/-- Cochrane (2023), p. 197 (tool): a property holding at infinitely many integer dates holds
+at arbitrarily late real dates.
+From Mathlib `Filter.Tendsto.frequently` and `tendsto_natCast_atTop_atTop`. -/
+theorem frequently_real_of_nat {p : ℝ → Prop} (h : ∃ᶠ n : ℕ in atTop, p n) :
+    ∃ᶠ t : ℝ in atTop, p t := by
+  rw [frequently_atTop] at h ⊢
+  intro T
+  obtain ⟨n, hn, hp⟩ := h ⌈T⌉₊
+  exact ⟨n, (Nat.le_ceil T).trans (by exact_mod_cast hn), hp⟩
+
+/-- **Cochrane (2023), p. 197: "the future debt-to-GDP ratio following (6.5) will eventually
+exceed any bound", almost surely, in continuous time.** For `a = r − g < 0`, `η > 0`, `σ ≠ 0`
+and every `s̄`, `s_0`, `b_0`: almost surely, for every level `M`, debt exceeds `M` at
+arbitrarily late dates. -/
+theorem ouDebtProc_frequently_gt (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {a η σ : ℝ} (ha : a < 0)
+    (hη : 0 < η) (hσ : σ ≠ 0) (sbar s0 b0 : ℝ) :
+    ∀ᵐ ω ∂P, ∀ M : ℝ, ∃ᶠ t in atTop, M < ouDebtProc a η sbar s0 σ b0 W t ω := by
+  filter_upwards [sampled_ouDebtProc_frequently hB hW hcont hW0 ha hη hσ sbar s0 b0] with ω h M
+  exact frequently_real_of_nat (h M).1
+
+/-- **Cochrane (2023), p. 197: debt also falls below every bound, almost surely**, at
+arbitrarily late dates (`a = r − g < 0`, `η > 0`, `σ ≠ 0`, every `s̄`, `s_0`, `b_0`). -/
+theorem ouDebtProc_frequently_lt (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {a η σ : ℝ} (ha : a < 0)
+    (hη : 0 < η) (hσ : σ ≠ 0) (sbar s0 b0 : ℝ) :
+    ∀ᵐ ω ∂P, ∀ M : ℝ, ∃ᶠ t in atTop, ouDebtProc a η sbar s0 σ b0 W t ω < M := by
+  filter_upwards [sampled_ouDebtProc_frequently hB hW hcont hW0 ha hη hσ sbar s0 b0] with ω h M
+  exact frequently_real_of_nat (p := fun t => ouDebtProc a η sbar s0 σ b0 W t ω < M)
+    (by simpa only [neg_neg] using (h (-M)).2)
+
+/-- **Cochrane (2023), p. 197: almost surely `sup_{t ≥ 0} b_t = +∞` and `inf_{t ≥ 0} b_t = −∞`**
+(`a = r − g < 0`, `η > 0`, `σ ≠ 0`, every `s̄`, `s_0`, `b_0`). -/
+theorem ouDebtProc_sup_inf (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {a η σ : ℝ} (ha : a < 0)
+    (hη : 0 < η) (hσ : σ ≠ 0) (sbar s0 b0 : ℝ) :
+    ∀ᵐ ω ∂P, ¬ BddAbove ((fun t => ouDebtProc a η sbar s0 σ b0 W t ω) '' Set.Ici 0) ∧
+      ¬ BddBelow ((fun t => ouDebtProc a η sbar s0 σ b0 W t ω) '' Set.Ici 0) := by
+  filter_upwards [ouDebtProc_frequently_gt hB hW hcont hW0 ha hη hσ sbar s0 b0,
+    ouDebtProc_frequently_lt hB hW hcont hW0 ha hη hσ sbar s0 b0] with ω h1 h2
+  constructor
+  · rintro ⟨M, hM⟩
+    obtain ⟨t, ht1, ht2⟩ := ((h1 M).and_eventually (eventually_ge_atTop 0)).exists
+    exact absurd (hM ⟨t, ht2, rfl⟩) (not_le.2 ht1)
+  · rintro ⟨M, hM⟩
+    obtain ⟨t, ht1, ht2⟩ := ((h2 M).and_eventually (eventually_ge_atTop 0)).exists
+    exact absurd (hM ⟨t, ht2, rfl⟩) (not_le.2 ht1)
+
+/-- **Cochrane (2023), p. 197: "the initial value of debt `b_0/y_0` in (6.5) is not
+sustainable", almost surely.** For `r < g` and every debt limit `M`, the probability that debt
+never exceeds `M` is zero (strengthening `TidyR7OrnsteinUhlenbeck.ouDebtProc_not_sustainable`,
+which gives `< 1`). -/
+theorem ouDebtProc_ae_not_sustainable (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {a η σ : ℝ} (ha : a < 0)
+    (hη : 0 < η) (hσ : σ ≠ 0) (sbar s0 b0 M : ℝ) :
+    P {ω | ∀ t, 0 ≤ t → ouDebtProc a η sbar s0 σ b0 W t ω ≤ M} = 0 := by
+  rw [measure_eq_zero_iff_ae_notMem]
+  filter_upwards [ouDebtProc_sup_inf hB hW hcont hW0 ha hη hσ sbar s0 b0] with ω h hall
+  exact h.1 ⟨M, by rintro _ ⟨t, ht, rfl⟩; exact hall t ht⟩
+
+/-! ### Non-vacuity on the constructed Brownian motion -/
+
+open Cochrane.FiscalConstraints.TidyR7BrownianExist
+open Cochrane.FiscalConstraints.TidyR7BrownianSchauder
+
+/-- Cochrane (2023), p. 197 (non-vacuity): on bmPath, with `r − g = −1%` and `η = σ = 1`, almost
+surely debt has `sup = +∞` and `inf = −∞`, for every `s̄`, `s_0`, `b_0`. -/
+theorem bmPath_ouDebt_sup_inf (sbar s0 b0 : ℝ) :
+    ∀ᵐ ω ∂gaussSeq,
+      ¬ BddAbove ((fun t => ouDebtProc (-1 / 100) 1 sbar s0 1 b0 bmPath t ω) '' Set.Ici 0) ∧
+      ¬ BddBelow ((fun t => ouDebtProc (-1 / 100) 1 sbar s0 1 b0 bmPath t ω) '' Set.Ici 0) :=
+  ouDebtProc_sup_inf isPreBrownianReal_bmPath measurable_bmPath continuous_bmPath bmPath_zero
+    (by norm_num) one_pos one_ne_zero sbar s0 b0
+
+/-- Cochrane (2023), p. 197 (non-vacuity): on bmPath, with `r − g = −1%` and `η = σ = 1`, every
+debt limit is violated almost surely. -/
+theorem bmPath_ouDebt_ae_not_sustainable (sbar s0 b0 M : ℝ) :
+    gaussSeq {ω | ∀ t, 0 ≤ t → ouDebtProc (-1 / 100) 1 sbar s0 1 b0 bmPath t ω ≤ M} = 0 :=
+  ouDebtProc_ae_not_sustainable isPreBrownianReal_bmPath measurable_bmPath continuous_bmPath
+    bmPath_zero (by norm_num) one_pos one_ne_zero sbar s0 b0 M
+
+end Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The boundary case `r = g`: debt (6.5) with an OU surplus
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 6, §6.4.1, p. 197, with the
+debt equation (6.4)–(6.5), p. 196, at `a = r − g = 0`: `b_t = b_0 − ∫_0^t s_u du`.
+
+At `a = 0` the restarted debt does not forget its date-`N` state (`γ = e^0 = 1`), so the tail
+argument of TidyR8OUDebtUnbounded needs a different route: the perturbation stays bounded
+(`abs_dseq_one_le`), so "exceeds every level infinitely often" is still a tail event, and its
+probability is positive because the variance of debt grows without bound (`integral_debtG_sq_ge`,
+the integrated AR(1)) while the mean is bounded on the relevant side.
+
+## Main results (`a = 0`, `η > 0`, `σ ≠ 0`)
+
+* `chain_frequently_of_eventually`: the 0-1 law for the chain with `γ = 1`;
+* **`rgEqual_frequently_gt`**: if `s̄ ≤ 0`, almost surely debt exceeds every level at arbitrarily
+  late dates (so `sup_{t ≥ 0} b_t = ∞`);
+* **`rgEqual_frequently_lt`**: if `s̄ ≥ 0`, almost surely debt falls below every level at
+  arbitrarily late dates (`inf_{t ≥ 0} b_t = −∞`);
+* **`rgEqual_sup_inf`**: with `s̄ = 0` both; non-vacuity `bmPath_rgEqual_sup_inf`.
+-/
+
+namespace Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual
+
+open Real MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.FiscalConstraints.TidyR7OUPath Cochrane.FiscalConstraints.TidyR7WienerGaussian
+open Cochrane.FiscalConstraints.TidyR7OrnsteinUhlenbeck
+open Cochrane.FiscalConstraints.TidyR7BrownianTools Cochrane.FiscalConstraints.LinearODE
+open Cochrane.FiscalConstraints.DebtLimitStochasticMeasure
+open Cochrane.FiscalConstraints.TidyR5GaussianAR1
+open Cochrane.FiscalConstraints.TidyR8OURestart Cochrane.FiscalConstraints.TidyR8DebtChain
+open Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded
+open scoped ENNReal NNReal
+
+/-! ### The chain with `γ = 1` -/
+
+/-- Cochrane (2023), p. 197: with `γ = 1` the response to the date-`N` surplus gap stays
+bounded, `|d_k| ≤ 1/(1 − |ρ|)` for `|ρ| < 1`.
+A companion to `TidyR5GaussianAR1.abs_dseq_le`. -/
+theorem abs_dseq_one_le {ρ : ℝ} (hρ : |ρ| < 1) (k : ℕ) : |dseq 1 ρ k| ≤ 1 / (1 - |ρ|) := by
+  have h1 : 0 < 1 - |ρ| := by linarith
+  have hk : ∀ k, |dseq 1 ρ k| ≤ (1 - |ρ| ^ k) / (1 - |ρ|) := by
+    intro k
+    induction k with
+    | zero => simp [dseq]
+    | succ k ih =>
+      change |1 * dseq 1 ρ k - ρ ^ k| ≤ _
+      rw [one_mul]
+      calc |dseq 1 ρ k - ρ ^ k| ≤ |dseq 1 ρ k| + |ρ ^ k| := abs_sub _ _
+        _ ≤ (1 - |ρ| ^ k) / (1 - |ρ|) + |ρ| ^ k := by rw [abs_pow]; linarith
+        _ = (1 - |ρ| ^ (k + 1)) / (1 - |ρ|) := by field_simp; ring
+  refine (hk k).trans (div_le_div_of_nonneg_right ?_ h1.le)
+  linarith [pow_nonneg (abs_nonneg ρ) k]
+
+/-- Cochrane (2023), p. 197 (tool): the event "`y_k` exceeds every natural level infinitely
+often" is measurable when every `y_k` is.
+The construction of `DebtLimitStochasticMeasure.measurableSet_frequently_near`. -/
+theorem measurableSet_frequently_nat {Ξ : Type*} {m' : MeasurableSpace Ξ} {y : ℕ → Ξ → ℝ}
+    (hy : ∀ k, Measurable[m'] (y k)) :
+    MeasurableSet[m'] {ξ | ∀ M : ℕ, ∃ᶠ k in atTop, (M : ℝ) < y k ξ} := by
+  have h : {ξ | ∀ M : ℕ, ∃ᶠ k in atTop, (M : ℝ) < y k ξ} =
+      ⋂ M : ℕ, ⋂ n : ℕ, ⋃ k : ℕ, ⋃ (_ : n ≤ k), {ξ | (M : ℝ) < y k ξ} := by
+    ext ξ
+    simp [frequently_atTop]
+  rw [h]
+  exact MeasurableSet.iInter fun M => MeasurableSet.iInter fun n => MeasurableSet.iUnion fun k =>
+    MeasurableSet.iUnion fun _ => measurableSet_lt measurable_const (hy k)
+
+/-- **Cochrane (2023), p. 197: the 0-1 law for the chain with `γ = 1`.** Under any probability
+measure making the innovations independent, `|ρ| < 1`, any `θ`: if some `q > 0` bounds
+`P(θx_n > M)` from below for all large `n`, for every level `M`, then almost surely `θx_n`
+exceeds every level infinitely often.
+The `γ = 1` analogue of `TidyR8DebtChain.chain_frequently`. -/
+theorem chain_frequently_of_eventually {Q : Measure (ℕ → Fin 2 → ℝ)} [IsProbabilityMeasure Q]
+    (hind : iIndepFun (fun n (ξ : ℕ → Fin 2 → ℝ) => ξ n) Q) {ρ : ℝ} (hρ : |ρ| < 1)
+    (c0 c1 u0 x0 θ : ℝ) {q : ℝ≥0∞} (hq0 : q ≠ 0)
+    (hq : ∀ M : ℝ, ∃ N0 : ℕ, ∀ n, N0 ≤ n → q ≤ Q {ξ | M < θ * chainX ρ 1 c0 c1 u0 x0 n ξ}) :
+    ∀ᵐ ξ ∂Q, ∀ M : ℝ, ∃ᶠ n in atTop, M < θ * chainX ρ 1 c0 c1 u0 x0 n ξ := by
+  set x := chainX ρ 1 c0 c1 u0 x0 with hx
+  have hindep : iIndep blockSigma Q := hind.iIndep
+  set U : ℕ → Set (ℕ → Fin 2 → ℝ) := fun M => {ξ | ∃ᶠ n in atTop, (M : ℝ) < θ * x n ξ} with hU
+  set E := {ξ : ℕ → Fin 2 → ℝ | ∀ M : ℕ, ∃ᶠ n in atTop, (M : ℝ) < θ * x n ξ} with hE
+  have hxm : ∀ n, Measurable fun ξ => θ * x n ξ := fun n =>
+    (measurable_chainX ρ 1 c0 c1 u0 x0 n).const_mul θ
+  have htail : MeasurableSet[limsup blockSigma atTop] E := by
+    rw [limsup_eq_iInf_iSup_of_nat, MeasurableSpace.measurableSet_iInf]
+    intro N
+    set y : ℕ → (ℕ → Fin 2 → ℝ) → ℝ := fun k ξ => θ * chainX ρ 1 c0 c1 0 0 k (shiftSeq N ξ)
+      with hy
+    have hym : ∀ k, Measurable[⨆ i ≥ N, blockSigma i] (y k) := fun k =>
+      (measurable_chainX_shift ρ 1 c0 c1 N k).const_mul θ
+    have heq : E = {ξ | ∀ M : ℕ, ∃ᶠ k in atTop, (M : ℝ) < y k ξ} := by
+      ext ξ
+      simp only [hE, Set.mem_ofPred_eq]
+      set B := |θ| * (|x N ξ| + |chainU ρ u0 N ξ| * |c1| * (1 / (1 - |ρ|))) with hB
+      have hdiff : ∀ k, |θ * x (N + k) ξ - y k ξ| ≤ B := by
+        intro k
+        have e : θ * x (N + k) ξ - y k ξ
+            = θ * (x N ξ + chainU ρ u0 N ξ * (c1 * dseq 1 ρ k)) := by
+          rw [hx, chainX_shift]
+          simp only [hy, one_pow, one_mul]
+          ring
+        rw [e, abs_mul, hB]
+        refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg θ)
+        refine (abs_add_le _ _).trans (add_le_add_right ?_ _)
+        rw [abs_mul, abs_mul, mul_assoc]
+        exact mul_le_mul_of_nonneg_left (mul_le_mul_of_nonneg_left (abs_dseq_one_le hρ k)
+          (abs_nonneg c1)) (abs_nonneg _)
+      constructor
+      · intro h M
+        have h1 := (frequently_shift_iff N).1 (h (M + ⌈B⌉₊))
+        refine h1.mono fun k hk => ?_
+        have := (abs_le.1 (hdiff k)).2
+        have hc := Nat.le_ceil B
+        push_cast at hk
+        linarith
+      · intro h M
+        refine (frequently_shift_iff N).2 ((h (M + ⌈B⌉₊)).mono fun k hk => ?_)
+        have := (abs_le.1 (hdiff k)).1
+        have hc := Nat.le_ceil B
+        push_cast at hk
+        linarith
+    rw [heq]
+    exact measurableSet_frequently_nat hym
+  have hUm : ∀ M, MeasurableSet (U M) := by
+    intro M
+    have h : U M = ⋂ n : ℕ, ⋃ k : ℕ, ⋃ (_ : n ≤ k), {ξ | (M : ℝ) < θ * x k ξ} := by
+      ext ξ
+      simp [hU, frequently_atTop]
+    rw [h]
+    exact MeasurableSet.iInter fun n => MeasurableSet.iUnion fun k =>
+      MeasurableSet.iUnion fun _ => measurableSet_lt measurable_const (hxm k)
+  have hUq : ∀ M, q ≤ Q (U M) := by
+    intro M
+    obtain ⟨N0, hN0⟩ := hq M
+    have h := le_measure_frequently (μ := Q) (A := fun t => {ξ | (M : ℝ) < θ * x (N0 + t) ξ})
+      (fun t => measurableSet_lt measurable_const (hxm _))
+      (fun t => hN0 (N0 + (t + 2)) (by omega))
+    refine h.trans (measure_mono fun ξ hξ => ?_)
+    exact (frequently_shift_iff N0).2 hξ
+  have hEU : E = ⋂ M, U M := by
+    ext ξ
+    simp [hE, hU]
+  have hEpos : Q E ≠ 0 := by
+    have hanti : Antitone U := by
+      intro M M' hMM' ξ hξ
+      refine hξ.mono fun n hn => ?_
+      have : (M : ℝ) ≤ M' := by exact_mod_cast hMM'
+      linarith
+    have hval := hanti.measure_iInter (fun M => (hUm M).nullMeasurableSet) ⟨0, measure_ne_top Q _⟩
+    rw [hEU, hval]
+    exact fun h0 => hq0 (nonpos_iff_eq_zero.1 ((le_iInf hUq).trans h0.le))
+  have hEm : MeasurableSet E := (limsup_le_iSup.trans (iSup_le blockSigma_le)) _ htail
+  have hone : Q E = 1 := by
+    rcases measure_zero_or_one_of_measurableSet_limsup_atTop blockSigma_le hindep htail with
+      h | h
+    · exact absurd h hEpos
+    · exact h
+  have hae : ∀ᵐ ξ ∂Q, ξ ∈ E := by
+    rw [ae_iff]
+    have := (prob_compl_eq_zero_iff hEm).2 hone
+    simpa [Set.compl_def] using this
+  filter_upwards [hae] with ξ hξ M
+  refine (hξ ⌈M⌉₊).mono fun n hn => ?_
+  have := Nat.le_ceil M
+  linarith
+
+/-! ### Moments of debt at `r = g` -/
+
+/-- Cochrane (2023), (6.5), p. 197 (tool): `F_c(x) = ∫_0^x e^{−cv}dv = (1 − e^{−cx})/c`.
+Restates `ExpIntegrals.intervalIntegral_exp_neg_mul`. -/
+theorem debtF_eq {c : ℝ} (hc : c ≠ 0) (x : ℝ) : debtF c x = (1 - exp (-c * x)) / c := by
+  have hd : ∀ y ∈ Set.uIcc (0 : ℝ) x,
+      HasDerivAt (fun u => -exp (-c * u) / c) (exp (-c * y)) y := fun y _ => by
+    have h := (((hasDerivAt_id' y).const_mul (-c)).exp.neg).div_const c
+    refine h.congr_deriv ?_
+    field_simp
+  rw [debtF, intervalIntegral.integral_eq_sub_of_hasDerivAt hd
+    ((by fun_prop : Continuous fun u => exp (-c * u)).intervalIntegrable 0 x)]
+  simp only [mul_zero, exp_zero]
+  ring
+
+/-- Cochrane (2023), (6.5), p. 197: at `r = g` the debt kernel is `k_t(u) = e^{−η(t−u)}`. -/
+theorem debtKernel_zero {η : ℝ} (hη : η ≠ 0) (t u : ℝ) :
+    debtKernel 0 η t u = exp (-η * (t - u)) := by
+  have e1 : exp (-(η * t)) * exp (η * u) = exp (-(η * (t - u))) := by
+    rw [← exp_add]; ring_nf
+  have e2 : exp (-(η * u)) * exp (η * u) = 1 := by rw [← exp_add]; simp
+  simp only [debtKernel, zero_mul, exp_zero, one_mul, neg_zero, zero_add, debtF_eq hη]
+  field_simp
+  linear_combination e1 - e2
+
+/-- Cochrane (2023), (6.5), p. 197: at `r = g`, `G_1(0) = ∫_0^1 e^{−η(1−u)}du > 0`. -/
+theorem debtG_zero_pos {η : ℝ} (hη : η ≠ 0) : 0 < debtG 0 η 1 0 := by
+  rw [debtG, intervalIntegral.integral_symm, neg_neg]
+  refine intervalIntegral.intervalIntegral_pos_of_pos_on
+    ((continuous_debtKernel 0 η 1).intervalIntegrable 0 1) (fun u _ => ?_) one_pos
+  rw [debtKernel_zero hη]
+  exact exp_pos _
+
+/-- Cochrane (2023), (6.5), p. 197: at `r = g`, `G_t(r) ≥ G_1(0)` for `r ≤ t − 1`. -/
+theorem debtG_zero_ge {η : ℝ} (hη : η ≠ 0) {t r : ℝ} (hr : r ≤ t - 1) :
+    debtG 0 η 1 0 ≤ debtG 0 η t r := by
+  have hc : ∀ x y : ℝ, IntervalIntegrable (debtKernel 0 η t) volume x y :=
+    fun x y => (continuous_debtKernel 0 η t).intervalIntegrable x y
+  have hs := debtG_shift 0 η 1 0 (t - 1)
+  rw [show (1 : ℝ) + (t - 1) = t by ring, zero_add] at hs
+  have hdiff : debtG 0 η t r - debtG 0 η t (t - 1)
+      = ∫ u in r..(t - 1), debtKernel 0 η t u := by
+    simp only [debtG]
+    rw [← intervalIntegral.integral_interval_sub_left (hc t (t - 1)) (hc t r)]
+    ring
+  have hpos : 0 ≤ ∫ u in r..(t - 1), debtKernel 0 η t u :=
+    intervalIntegral.integral_nonneg hr fun u _ => by rw [debtKernel_zero hη]; exact (exp_pos _).le
+  linarith
+
+/-- **Cochrane (2023), (6.5), p. 197: at `r = g` the debt variance grows without bound**,
+`∫_0^t G_t² ≥ (t − 1)G_1(0)²` for `t ≥ 1` (the integral of an AR(1)). -/
+theorem integral_debtG_sq_ge {η : ℝ} (hη : η ≠ 0) {t : ℝ} (ht : 1 ≤ t) :
+    (t - 1) * debtG 0 η 1 0 ^ 2 ≤ ∫ r in (0 : ℝ)..t, debtG 0 η t r ^ 2 := by
+  have hc : ∀ x y : ℝ, IntervalIntegrable (fun r => debtG 0 η t r ^ 2) volume x y :=
+    fun x y => ((continuous_debtG 0 η t).pow 2).intervalIntegrable x y
+  rw [← intervalIntegral.integral_add_adjacent_intervals (hc 0 (t - 1)) (hc (t - 1) t)]
+  have h1 : 0 ≤ ∫ r in (t - 1)..t, debtG 0 η t r ^ 2 :=
+    intervalIntegral.integral_nonneg (by linarith) fun r _ => sq_nonneg _
+  have h0 : ∫ r in (0 : ℝ)..(t - 1), debtG 0 η 1 0 ^ 2
+      ≤ ∫ r in (0 : ℝ)..(t - 1), debtG 0 η t r ^ 2 := by
+    refine intervalIntegral.integral_mono_on (by linarith) intervalIntegrable_const
+      (hc 0 (t - 1)) fun r hr => ?_
+    have hg := debtG_zero_pos hη
+    exact pow_le_pow_left₀ hg.le (debtG_zero_ge hη hr.2) 2
+  rw [intervalIntegral.integral_const, smul_eq_mul, sub_zero] at h0
+  linarith
+
+/-- Cochrane (2023), (6.5), p. 197: at `r = g` the mean debt is
+`b_0 − s̄t − (s_0 − s̄)∫_0^t e^{−ηu}du`.
+`TidyR7OUPath.debtMean` at `a = 0`. -/
+theorem debtMean_zero_eq (η sbar s0 b0 t : ℝ) :
+    debtMean 0 η sbar s0 b0 t
+      = b0 - sbar * t - (s0 - sbar) * ∫ u in (0 : ℝ)..t, exp (-η * u) := by
+  have i1 := (intervalIntegrable_const (μ := volume) (a := 0) (b := t) (c := sbar))
+  have i2 := (by fun_prop : Continuous fun u => exp (-η * u) * (s0 - sbar)).intervalIntegrable
+    (μ := volume) 0 t
+  have e : (fun u => exp (-0 * u) * ouMean η sbar s0 u)
+      = fun u => sbar + exp (-η * u) * (s0 - sbar) := by
+    funext u
+    simp [ouMean]
+  simp only [debtMean, vocFrom, e]
+  rw [intervalIntegral.integral_add i1 i2, intervalIntegral.integral_mul_const,
+    intervalIntegral.integral_const]
+  simp only [zero_mul, mul_zero, neg_zero, exp_zero, one_mul, smul_eq_mul, sub_zero]
+  ring
+
+/-- Cochrane (2023), (6.5), p. 197: at `r = g` with `s̄ ≤ 0` the mean debt is bounded below,
+`debtMean_t ≥ −(|b_0| + |s_0 − s̄|/η)` for `t ≥ 0`. -/
+theorem debtMean_zero_ge {η sbar : ℝ} (hη : 0 < η) (hs : sbar ≤ 0) (s0 b0 : ℝ) {t : ℝ}
+    (ht : 0 ≤ t) : -(|b0| + |s0 - sbar| / η) ≤ debtMean 0 η sbar s0 b0 t := by
+  rw [debtMean_zero_eq]
+  obtain ⟨h0, h1⟩ := integral_exp_neg_le hη ht
+  have hst : 0 ≤ -(sbar * t) := by nlinarith
+  have hd : (s0 - sbar) * ∫ u in (0 : ℝ)..t, exp (-η * u) ≤ |s0 - sbar| / η := by
+    calc (s0 - sbar) * ∫ u in (0 : ℝ)..t, exp (-η * u)
+        ≤ |s0 - sbar| * ∫ u in (0 : ℝ)..t, exp (-η * u) :=
+          mul_le_mul_of_nonneg_right (le_abs_self _) h0
+      _ ≤ |s0 - sbar| * (1 / η) := mul_le_mul_of_nonneg_left h1 (abs_nonneg _)
+      _ = |s0 - sbar| / η := by ring
+  linarith [neg_abs_le b0]
+
+/-- Cochrane (2023), (6.5), p. 197: at `r = g` with `s̄ ≥ 0` the mean debt is bounded above,
+`debtMean_t ≤ |b_0| + |s_0 − s̄|/η` for `t ≥ 0`. -/
+theorem debtMean_zero_le {η sbar : ℝ} (hη : 0 < η) (hs : 0 ≤ sbar) (s0 b0 : ℝ) {t : ℝ}
+    (ht : 0 ≤ t) : debtMean 0 η sbar s0 b0 t ≤ |b0| + |s0 - sbar| / η := by
+  rw [debtMean_zero_eq]
+  obtain ⟨h0, h1⟩ := integral_exp_neg_le hη ht
+  have hst : 0 ≤ sbar * t := mul_nonneg hs ht
+  have hd : -(|s0 - sbar| / η) ≤ (s0 - sbar) * ∫ u in (0 : ℝ)..t, exp (-η * u) := by
+    have h2 : -(|s0 - sbar| * ∫ u in (0 : ℝ)..t, exp (-η * u))
+        ≤ (s0 - sbar) * ∫ u in (0 : ℝ)..t, exp (-η * u) := by
+      rw [← neg_mul]
+      exact mul_le_mul_of_nonneg_right (neg_abs_le _) h0
+    have h3 : |s0 - sbar| * ∫ u in (0 : ℝ)..t, exp (-η * u) ≤ |s0 - sbar| / η := by
+      rw [div_eq_mul_one_div]
+      exact mul_le_mul_of_nonneg_left h1 (abs_nonneg _)
+    linarith
+  linarith [le_abs_self b0]
+
+/-! ### Probabilities -/
+
+/-- Cochrane (2023), p. 197 (tool): if `C ≥ 0`, `m ≥ −C` and `√v ≥ |M| + C + 1`, then
+`N(m, v)(M, ∞) ≥ N(0, 1)(1, ∞)`.
+A variant of `TidyR8OUDebtUnbounded.gaussianReal_Ioi_ge`. -/
+theorem gaussianReal_Ioi_ge_one {m C : ℝ} (hC : 0 ≤ C) (hm : -C ≤ m) {v : ℝ≥0} {M : ℝ}
+    (hv : |M| + C + 1 ≤ √(v : ℝ)) :
+    gaussianReal 0 1 (Set.Ioi 1) ≤ gaussianReal m v (Set.Ioi M) := by
+  rw [gaussianReal_eq_map m v, Measure.map_apply (by fun_prop) measurableSet_Ioi]
+  refine measure_mono fun x hx => ?_
+  simp only [Set.mem_Ioi, Set.mem_preimage] at hx ⊢
+  have hs : 0 < √(v : ℝ) := by linarith [abs_nonneg M]
+  have h1 : √(v : ℝ) < √(v : ℝ) * x := by nlinarith
+  linarith [le_abs_self M]
+
+/-- Cochrane (2023), p. 197 (tool): if `C ≥ 0`, `m ≤ C` and `√v ≥ |M| + C + 1`, then
+`N(m, v)(−∞, −M) ≥ N(0, 1)(−∞, −1)`.
+A variant of `TidyR8OUDebtUnbounded.gaussianReal_Iio_ge`. -/
+theorem gaussianReal_Iio_ge_one {m C : ℝ} (hC : 0 ≤ C) (hm : m ≤ C) {v : ℝ≥0} {M : ℝ}
+    (hv : |M| + C + 1 ≤ √(v : ℝ)) :
+    gaussianReal 0 1 (Set.Iio (-1)) ≤ gaussianReal m v (Set.Iio (-M)) := by
+  rw [gaussianReal_eq_map m v, Measure.map_apply (by fun_prop) measurableSet_Iio]
+  refine measure_mono fun x hx => ?_
+  simp only [Set.mem_Iio, Set.mem_preimage] at hx ⊢
+  have hs : 0 < √(v : ℝ) := by linarith [abs_nonneg M]
+  have h1 : √(v : ℝ) * x < -√(v : ℝ) := by nlinarith
+  linarith [le_abs_self M]
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {P : Measure Ω} {W : ℝ≥0 → Ω → ℝ}
+
+/-- Cochrane (2023), (6.5), p. 197: at `r = g` the debt variance exceeds any level at late
+dates: `√(debtVar_t) ≥ L` for `t ≥ 1 + L²/(σ²G_1(0)²)`. -/
+theorem sqrt_debtVar_zero_ge {η σ : ℝ} (hη : 0 < η) (hσ : σ ≠ 0) (L : ℝ) {t : ℝ}
+    (ht : 1 + L ^ 2 / (σ ^ 2 * debtG 0 η 1 0 ^ 2) ≤ t) : L ≤ √(debtVar 0 η σ t : ℝ) := by
+  have hg := debtG_zero_pos hη.ne'
+  have hd : 0 < σ ^ 2 * debtG 0 η 1 0 ^ 2 := by positivity
+  have ht1 : 1 ≤ t := le_trans (by have := div_nonneg (sq_nonneg L) hd.le; linarith) ht
+  have hI := integral_debtG_sq_ge hη.ne' ht1
+  have hpos : 0 ≤ ∫ r in (0 : ℝ)..t, debtG 0 η t r ^ 2 :=
+    intervalIntegral.integral_nonneg (by linarith) fun r _ => sq_nonneg _
+  rw [debtVar, Real.coe_toNNReal _ (mul_nonneg (sq_nonneg σ) hpos)]
+  refine Real.le_sqrt_of_sq_le ?_
+  have h1 : L ^ 2 ≤ (t - 1) * (σ ^ 2 * debtG 0 η 1 0 ^ 2) := by
+    rw [← div_le_iff₀ hd]; linarith
+  calc L ^ 2 ≤ (t - 1) * (σ ^ 2 * debtG 0 η 1 0 ^ 2) := h1
+    _ = σ ^ 2 * ((t - 1) * debtG 0 η 1 0 ^ 2) := by ring
+    _ ≤ σ ^ 2 * ∫ r in (0 : ℝ)..t, debtG 0 η t r ^ 2 :=
+        mul_le_mul_of_nonneg_left hI (sq_nonneg σ)
+
+/-- **Cochrane (2023), p. 197, at `r = g` with `s̄ ≤ 0`: debt exceeds any level with
+probability at least `q = N(0,1)(1, ∞) > 0` at all late dates.** -/
+theorem rgEqual_prob_gt (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {η σ sbar : ℝ}
+    (hη : 0 < η) (hσ : σ ≠ 0) (hs : sbar ≤ 0) (s0 b0 M : ℝ) :
+    ∃ T : ℝ, ∀ t, T ≤ t →
+      gaussianReal 0 1 (Set.Ioi 1) ≤ P {ω | M < ouDebtProc 0 η sbar s0 σ b0 W t ω} := by
+  set C := |b0| + |s0 - sbar| / η
+  refine ⟨1 + (|M| + C + 1) ^ 2 / (σ ^ 2 * debtG 0 η 1 0 ^ 2), fun t ht => ?_⟩
+  have hg := debtG_zero_pos hη.ne'
+  have ht0 : 0 < t := by
+    have := div_nonneg (sq_nonneg (|M| + C + 1)) (by positivity : (0 : ℝ) ≤ σ ^ 2
+      * debtG 0 η 1 0 ^ 2)
+    linarith
+  have hm := aemeasurable_ouDebtProc (P := P) hB hW hcont hW0 0 η sbar s0 σ b0 ht0
+  have h := Measure.map_apply_of_aemeasurable hm (measurableSet_Ioi (a := M))
+  rw [ouDebtProc_hasLaw hB hW hcont hW0 0 η sbar s0 σ b0 ht0] at h
+  rw [show {ω | M < ouDebtProc 0 η sbar s0 σ b0 W t ω}
+    = ouDebtProc 0 η sbar s0 σ b0 W t ⁻¹' Set.Ioi M from rfl, ← h]
+  exact gaussianReal_Ioi_ge_one (by positivity) (debtMean_zero_ge hη hs s0 b0 ht0.le)
+    (sqrt_debtVar_zero_ge hη hσ _ ht)
+
+/-- **Cochrane (2023), p. 197, at `r = g` with `s̄ ≥ 0`: debt falls below any level with
+probability at least `N(0,1)(−∞, −1) > 0` at all late dates.** -/
+theorem rgEqual_prob_lt (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {η σ sbar : ℝ}
+    (hη : 0 < η) (hσ : σ ≠ 0) (hs : 0 ≤ sbar) (s0 b0 M : ℝ) :
+    ∃ T : ℝ, ∀ t, T ≤ t →
+      gaussianReal 0 1 (Set.Iio (-1)) ≤ P {ω | ouDebtProc 0 η sbar s0 σ b0 W t ω < -M} := by
+  set C := |b0| + |s0 - sbar| / η
+  refine ⟨1 + (|M| + C + 1) ^ 2 / (σ ^ 2 * debtG 0 η 1 0 ^ 2), fun t ht => ?_⟩
+  have hg := debtG_zero_pos hη.ne'
+  have ht0 : 0 < t := by
+    have := div_nonneg (sq_nonneg (|M| + C + 1)) (by positivity : (0 : ℝ) ≤ σ ^ 2
+      * debtG 0 η 1 0 ^ 2)
+    linarith
+  have hm := aemeasurable_ouDebtProc (P := P) hB hW hcont hW0 0 η sbar s0 σ b0 ht0
+  have h := Measure.map_apply_of_aemeasurable hm (measurableSet_Iio (a := -M))
+  rw [ouDebtProc_hasLaw hB hW hcont hW0 0 η sbar s0 σ b0 ht0] at h
+  rw [show {ω | ouDebtProc 0 η sbar s0 σ b0 W t ω < -M}
+    = ouDebtProc 0 η sbar s0 σ b0 W t ⁻¹' Set.Iio (-M) from rfl, ← h]
+  exact gaussianReal_Iio_ge_one (by positivity) (debtMean_zero_le hη hs s0 b0 ht0.le)
+    (sqrt_debtVar_zero_ge hη hσ _ ht)
+
+/-- Cochrane (2023), p. 197, at `r = g` (sampled): for `θ = ±1`, if the probability that
+`θb_t > M` is at least `q > 0` at all late dates for every `M`, then a.s. `θb_n` exceeds every
+level at infinitely many integer dates. -/
+theorem rgEqual_sampled_frequently (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {η σ : ℝ} (hη : 0 < η)
+    (sbar s0 b0 θ : ℝ) {q : ℝ≥0∞} (hq0 : q ≠ 0)
+    (hq : ∀ M : ℝ, ∃ T : ℝ, ∀ t, T ≤ t →
+      q ≤ P {ω | M < θ * ouDebtProc 0 η sbar s0 σ b0 W t ω}) :
+    ∀ᵐ ω ∂P, ∀ M : ℝ, ∃ᶠ n : ℕ in atTop, M < θ * ouDebtProc 0 η sbar s0 σ b0 W n ω := by
+  have : IsProbabilityMeasure P := hB.isGaussianProcess.isProbabilityMeasure
+  set B : Ω → ℕ → Fin 2 → ℝ := fun ω n => ouBlock 0 η σ W n ω with hBdef
+  have hBn : ∀ n, AEMeasurable (fun ω => ouBlock 0 η σ W n ω) P := fun n =>
+    AEMeasurable.of_eval fun i => aemeasurable_ouBlock hB hW hcont 0 η σ n i
+  have hBm : AEMeasurable B P := AEMeasurable.of_eval hBn
+  have hind := iIndepFun_ouBlock hB hW hcont 0 η σ
+  have hQ : iIndepFun (fun n (ξ : ℕ → Fin 2 → ℝ) => ξ n) (P.map B) := by
+    rw [hBdef, hind.map_fun_eq_infinitePi_map₀ hBm]
+    exact iIndepFun_infinitePi (X := fun _ => id) (fun _ => measurable_id)
+  have hρ : |exp (-η)| < 1 := by
+    rw [abs_of_pos (exp_pos _)]
+    exact exp_lt_one_iff.2 (by linarith)
+  set x := chainX (exp (-η)) 1 (sbar * debtA 0) (debtD 0 η) (s0 - sbar) b0 with hx
+  have hpath : ∀ ω n, x n (B ω) = ouDebtProc 0 η sbar s0 σ b0 W n ω := fun ω n => by
+    have := ouDebtProc_sampled_eq_chainX hcont hW0 0 η sbar s0 σ b0 ω n
+    rw [exp_zero] at this
+    exact this
+  have hmain := chain_frequently_of_eventually hQ hρ (sbar * debtA 0) (debtD 0 η) (s0 - sbar) b0
+    θ hq0 fun M => by
+      obtain ⟨T, hT⟩ := hq M
+      refine ⟨⌈T⌉₊, fun n hn => ?_⟩
+      rw [Measure.map_apply_of_aemeasurable hBm (measurableSet_lt measurable_const
+        ((measurable_chainX _ _ _ _ _ _ n).const_mul θ))]
+      refine (hT n ((Nat.le_ceil T).trans (by exact_mod_cast hn))).trans_eq ?_
+      congr 1
+      ext ω
+      change _ ↔ M < θ * x n (B ω)
+      rw [hpath]
+      exact Iff.rfl
+  filter_upwards [ae_of_ae_map hBm hmain] with ω h M
+  refine (h M).mono fun n hn => ?_
+  change M < θ * x n (B ω) at hn
+  rwa [hpath] at hn
+
+/-- **Cochrane (2023), p. 197, at `r = g` with `s̄ ≤ 0`: almost surely debt exceeds every level
+at arbitrarily late dates** (`η > 0`, `σ ≠ 0`, every `s_0`, `b_0`). -/
+theorem rgEqual_frequently_gt (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {η σ sbar : ℝ}
+    (hη : 0 < η) (hσ : σ ≠ 0) (hs : sbar ≤ 0) (s0 b0 : ℝ) :
+    ∀ᵐ ω ∂P, ∀ M : ℝ, ∃ᶠ t in atTop, M < ouDebtProc 0 η sbar s0 σ b0 W t ω := by
+  have h := rgEqual_sampled_frequently (σ := σ) hB hW hcont hW0 hη sbar s0 b0 1
+    (q := gaussianReal 0 1 (Set.Ioi 1))
+    (gaussianReal_open_pos 0 one_ne_zero isOpen_Ioi Set.nonempty_Ioi).ne' fun M => by
+      obtain ⟨T, hT⟩ := rgEqual_prob_gt hB hW hcont hW0 hη hσ hs s0 b0 M
+      exact ⟨T, fun t ht => (hT t ht).trans_eq (by simp only [one_mul])⟩
+  filter_upwards [h] with ω hω M
+  exact frequently_real_of_nat (p := fun t => M < ouDebtProc 0 η sbar s0 σ b0 W t ω)
+    ((hω M).mono fun n hn => by simpa only [one_mul] using hn)
+
+/-- **Cochrane (2023), p. 197, at `r = g` with `s̄ ≥ 0`: almost surely debt falls below every
+level at arbitrarily late dates** (`η > 0`, `σ ≠ 0`, every `s_0`, `b_0`). -/
+theorem rgEqual_frequently_lt (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {η σ sbar : ℝ}
+    (hη : 0 < η) (hσ : σ ≠ 0) (hs : 0 ≤ sbar) (s0 b0 : ℝ) :
+    ∀ᵐ ω ∂P, ∀ M : ℝ, ∃ᶠ t in atTop, ouDebtProc 0 η sbar s0 σ b0 W t ω < M := by
+  have h := rgEqual_sampled_frequently (σ := σ) hB hW hcont hW0 hη sbar s0 b0 (-1)
+    (q := gaussianReal 0 1 (Set.Iio (-1)))
+    (gaussianReal_open_pos 0 one_ne_zero isOpen_Iio Set.nonempty_Iio).ne' fun M => by
+      obtain ⟨T, hT⟩ := rgEqual_prob_lt hB hW hcont hW0 hη hσ hs s0 b0 M
+      refine ⟨T, fun t ht => (hT t ht).trans (measure_mono fun ω hω => ?_)⟩
+      simp only [Set.mem_ofPred_eq] at hω ⊢
+      linarith
+  filter_upwards [h] with ω hω M
+  exact frequently_real_of_nat (p := fun t => ouDebtProc 0 η sbar s0 σ b0 W t ω < M)
+    ((hω (-M)).mono fun n hn => by linarith)
+
+/-- **Cochrane (2023), p. 197, at `r = g` with `s̄ = 0`: almost surely `sup_{t ≥ 0} b_t = +∞`
+and `inf_{t ≥ 0} b_t = −∞`.** -/
+theorem rgEqual_sup_inf (hB : IsPreBrownianReal W P) (hW : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (hW0 : ∀ ω, W 0 ω = 0) {η σ : ℝ}
+    (hη : 0 < η) (hσ : σ ≠ 0) (s0 b0 : ℝ) :
+    ∀ᵐ ω ∂P, ¬ BddAbove ((fun t => ouDebtProc 0 η 0 s0 σ b0 W t ω) '' Set.Ici 0) ∧
+      ¬ BddBelow ((fun t => ouDebtProc 0 η 0 s0 σ b0 W t ω) '' Set.Ici 0) := by
+  filter_upwards [rgEqual_frequently_gt hB hW hcont hW0 hη hσ le_rfl s0 b0,
+    rgEqual_frequently_lt hB hW hcont hW0 hη hσ le_rfl s0 b0] with ω h1 h2
+  constructor
+  · rintro ⟨M, hM⟩
+    obtain ⟨t, ht1, ht2⟩ := ((h1 M).and_eventually (eventually_ge_atTop 0)).exists
+    exact absurd (hM ⟨t, ht2, rfl⟩) (not_le.2 ht1)
+  · rintro ⟨M, hM⟩
+    obtain ⟨t, ht1, ht2⟩ := ((h2 M).and_eventually (eventually_ge_atTop 0)).exists
+    exact absurd (hM ⟨t, ht2, rfl⟩) (not_le.2 ht1)
+
+open Cochrane.FiscalConstraints.TidyR7BrownianExist
+open Cochrane.FiscalConstraints.TidyR7BrownianSchauder
+
+/-- Cochrane (2023), p. 197 (non-vacuity): on bmPath, with `r = g`, `s̄ = 0` and `η = σ = 1`,
+almost surely debt has `sup = +∞` and `inf = −∞`. -/
+theorem bmPath_rgEqual_sup_inf (s0 b0 : ℝ) :
+    ∀ᵐ ω ∂gaussSeq, ¬ BddAbove ((fun t => ouDebtProc 0 1 0 s0 1 b0 bmPath t ω) '' Set.Ici 0) ∧
+      ¬ BddBelow ((fun t => ouDebtProc 0 1 0 s0 1 b0 bmPath t ω) '' Set.Ici 0) :=
+  rgEqual_sup_inf isPreBrownianReal_bmPath measurable_bmPath continuous_bmPath bmPath_zero
+    one_pos one_ne_zero s0 b0
+
+end Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual
+
 set_option linter.style.longLine false
 #print axioms Cochrane.FiscalConstraints.SchurStable
 #print axioms Cochrane.FiscalConstraints.disc
@@ -22965,3 +24857,98 @@ set_option linter.style.longLine false
 #print axioms Cochrane.FiscalConstraints.TidyR7OUSampled.sampled_debt_not_sustainable
 #print axioms Cochrane.FiscalConstraints.TidyR7OUSampled.bmPath_map_ouInnov
 #print axioms Cochrane.FiscalConstraints.TidyR7OUSampled.bmPath_sampled_debt_unbounded
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.chainU
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.chainX
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.shiftSeq
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.blockSigma
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.blockSigma_le
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.chainU_shift
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.chainX_shift
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_chainU
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_chainX
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_shiftSeq_apply
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_chainU_shift
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_chainX_shift
+#print axioms Cochrane.FiscalConstraints.TidyR8DebtChain.chain_frequently
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_bmReal_uncurry
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouPrim
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouNoise
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouNoise_uncurry
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.memLp_ouNoise
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.integral_ouNoise_sq_le
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.ouNoiseTail
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouNoiseTail_integrand
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouNoiseTail
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.lintegral_ouNoiseTail_le
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.abs_integral_le_ouNoiseTail
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.ouDebtProc_eq_of_mean
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.ouDebtProc_bounded_half
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.ouDebtProc_not_ae_unbounded
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.bmPath_ouDebt_bounded_half
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.shiftPath
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.continuous_shiftPath
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.integral_exp_mul_eta
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.ouStep_eq_ouNoise
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.ouPath_restart
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.ouDebt_restart
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.debtA
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.debtD
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.debtMean_one
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.ouDebt_succ
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.shift_integral_eq
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.debtF_shift
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.debtKernel_shift
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.debtG_shift
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.integral_debtG_sq_le
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.integral_exp_neg_le
+#print axioms Cochrane.FiscalConstraints.TidyR8OURestart.abs_debtMean_le
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.blockH
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.blockH'
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.blockC
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouBlock
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.hasDerivAt_blockH
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.continuous_blockH'
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouBlock_zero
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouBlock_one
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.memLp_ouBlock
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.aemeasurable_ouBlock
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.integral_ouBlock
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.covariance_ouBlock
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.isGaussianProcess_ouBlock
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.iIndepFun_ouBlock
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouProc_sampled_eq_chainU
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_sampled_eq_chainX
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.gaussianReal_Ioi_ge
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.gaussianReal_Iio_ge
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.debtVar_one_le
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.prob_debt_gt_ge
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.prob_debt_lt_ge
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.sampled_ouDebtProc_frequently
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.frequently_real_of_nat
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_frequently_gt
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_frequently_lt
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_sup_inf
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_ae_not_sustainable
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.bmPath_ouDebt_sup_inf
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.bmPath_ouDebt_ae_not_sustainable
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.abs_dseq_one_le
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.measurableSet_frequently_nat
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.chain_frequently_of_eventually
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtF_eq
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtKernel_zero
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtG_zero_pos
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtG_zero_ge
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.integral_debtG_sq_ge
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtMean_zero_eq
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtMean_zero_ge
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtMean_zero_le
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.gaussianReal_Ioi_ge_one
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.gaussianReal_Iio_ge_one
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.sqrt_debtVar_zero_ge
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_prob_gt
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_prob_lt
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_sampled_frequently
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_frequently_gt
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_frequently_lt
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_sup_inf
+#print axioms Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.bmPath_rgEqual_sup_inf

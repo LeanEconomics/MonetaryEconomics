@@ -18,8 +18,8 @@ processes for §6.4.1, and i.i.d. growth processes, including a constructed logn
 an infinite coin process for Bohn's example, for §6.4.7. The continuous-time AR(1) surplus of
 §6.4.1 is an Ornstein–Uhlenbeck process driven by a Brownian motion, with the Itô integral; the
 Brownian and Itô modules are copied from the Monetarism project. The library contains
-**1189 theorems**, including the shared core and 357 in the twelve copied Brownian and Itô
-modules; 616 of them are in the twenty-five chapter modules.
+**1272 theorems**, including the shared core and 357 in the twelve copied Brownian and Itô
+modules; 699 of them are in the thirty chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises.
@@ -79,8 +79,20 @@ Headline results, in the namespace `Cochrane.FiscalConstraints`:
   Sampled at integer dates the surplus is exactly the Gaussian AR(1) with `ρ = e^{−η}` and i.i.d.
   innovations (`TidyR7OUSampled.ouProc_succ_eq_ar1`, `TidyR7OUSampled.map_ouProc_sampled`), so
   with permanent `r < g` the discrete debt it drives is almost surely unbounded
-  (`TidyR7OUSampled.sampled_debt_unbounded`). The Brownian motion and the Itô integral are copied,
-  with only the namespace renamed, from the Monetarism project.
+  (`TidyR7OUSampled.sampled_debt_unbounded`). The continuous-time debt (6.5) itself is almost
+  surely unbounded in both directions for permanent `r < g`: sampled at integer dates, surplus and
+  debt are a two-dimensional linear recursion with i.i.d. jointly Gaussian innovations
+  (`TidyR8OUDebtUnbounded.iIndepFun_ouBlock`), Kolmogorov's 0-1 law applies to it
+  (`TidyR8DebtChain.chain_frequently`), so debt exceeds every level at arbitrarily late dates
+  (`TidyR8OUDebtUnbounded.ouDebtProc_frequently_gt`), almost surely `sup_{t ≥ 0} b_t = +∞` and
+  `inf_{t ≥ 0} b_t = −∞` (`TidyR8OUDebtUnbounded.ouDebtProc_sup_inf`), and every debt limit is
+  violated with probability one (`TidyR8OUDebtUnbounded.ouDebtProc_ae_not_sustainable`). At
+  `r = g` it holds one-sided: `sup = +∞` a.s. if `s̄ ≤ 0`, `inf = −∞` a.s. if `s̄ ≥ 0`, both at
+  `s̄ = 0` (`TidyR8OUDebtRgEqual.rgEqual_sup_inf`). For `r > g` the claim fails: a large enough
+  mean surplus keeps debt bounded with probability at least `1/2`
+  (`TidyR8OUDebtExplosive.ouDebtProc_bounded_half`,
+  `TidyR8OUDebtExplosive.ouDebtProc_not_ae_unbounded`). The Brownian motion and the Itô integral
+  are copied, with only the namespace renamed, from the Monetarism project.
 * **Managed surpluses and global determinacy.** For the linear rule `s̄ + u_t + φ(x_t − b̄)` with
   AR(1) shocks, the boundary-avoiding modification keeps debt within the limit on every path
   (`TidyR6ManagedSurplus.avoidPath_within_iff`), while the unmodified rule sustains no debt for
@@ -189,12 +201,12 @@ Not formalised:
   `φ > γ − 1` gives probability zero and every `φ < γ − 1` probability at least `1/2` from a low
   enough initial debt (`TidyR6LinearRuleBounds.linear_rule_zero_prob`,
   `TidyR6LinearRuleBounds.linear_rule_half_prob`);
-* for the continuous-time (Ornstein–Uhlenbeck) AR(1) surplus of p. 197, only the almost-sure
-  unboundedness of the continuous-time debt (6.5) itself is not proved (it needs a 0-1 law for the
-  two-dimensional chain `(s_n, b_n)`). Positive probability at every date is proved
-  (`TidyR7OrnsteinUhlenbeck.ouDebtProc_not_sustainable`), and the almost-sure statement is proved
-  for the discrete debt recursion driven by the sampled OU surplus
-  (`TidyR7OUSampled.sampled_debt_unbounded`). The driving motion is assumed to start at `0` and
+* for the continuous-time (Ornstein–Uhlenbeck) AR(1) surplus of p. 197, at `r = g`, with
+  `s̄ > 0`, the a.s. statements fail (`b_t → −∞`), and with `s̄ < 0` debt is not a.s. unbounded
+  below; these are not proved (they need `W_t = o(t)` path control, a maximal inequality). For
+  `r > g` only the positive-probability counterexample is proved
+  (`TidyR8OUDebtExplosive.ouDebtProc_bounded_half`), not `P(sup = ∞) = P(L > 0)` with
+  `L = b_0 − ∫_0^∞ e^{−au}s_u du`. The driving motion is assumed to start at `0` and
   to have continuous paths for every `ω` (the constructed `TidyR7BrownianExist.bmPath` satisfies
   both surely), and the laws assume `η > 0` and `t > 0`;
 * the discursive passages: dynamic inefficiency, overlapping generations and demographics
@@ -248,6 +260,11 @@ Not formalised:
 | [TidyR7WienerGaussian](FiscalConstraints/TidyR7WienerGaussian.lean) | 13 | §6.4.1, p. 197 (tool): a.s. limits of centred Gaussians are Gaussian; the Itô integral of a `C¹` integrand is the by-parts Wiener integral, with its isometry; Wiener integrals are Gaussian, jointly Gaussian in finite combinations, uncorrelated over disjoint intervals |
 | [TidyR7OrnsteinUhlenbeck](FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean) | 33 | §6.4.1, p. 197: the OU surplus process driven by a pre-Brownian motion, its SDE and uniqueness, the explicit Itô form, its Gaussian law, mean, variance and stationary limit, every open set charged; debt (6.5) Gaussian and non-degenerate, above every bound with positive probability, never sustainable with probability one |
 | [TidyR7OUSampled](FiscalConstraints/TidyR7OUSampled.lean) | 18 | §6.4.1, p. 197: the OU surplus at integer dates is the Gaussian AR(1) of `TidyR5GaussianAR1` with `ρ = e^{−η}` and i.i.d. Gaussian innovations; the discrete debt it drives is a.s. unbounded and no debt limit is sustainable |
+| [TidyR8DebtChain](FiscalConstraints/TidyR8DebtChain.lean) | 9 | §6.4.1, p. 197: the two-dimensional surplus–debt chain with independent innovations, restarted at any date; Kolmogorov's 0-1 law: uniform positive probability of exceeding each level gives a.s. exceedance infinitely often |
+| [TidyR8OUDebtExplosive](FiscalConstraints/TidyR8OUDebtExplosive.lean) | 14 | §6.4.1, p. 197, `r > g`: joint measurability and second moment of the OU noise, the discounted noise tail and its mean; debt stays below `s̄/a` with probability at least `1/2` for a large enough mean surplus, so the a.s. claim fails for every `r > g` |
+| [TidyR8OURestart](FiscalConstraints/TidyR8OURestart.lean) | 14 | §6.4.1, p. 197, path by path: the OU surplus and debt (6.5) restart at any date with the shifted driving path; debt over one period as an affine recursion plus a Wiener-integral noise; a stationary kernel; the one-period variance bound and a bounded mean for `r < g` |
+| [TidyR8OUDebtUnbounded](FiscalConstraints/TidyR8OUDebtUnbounded.lean) | 25 | §6.4.1, p. 197: the sampled surplus and debt are the chain, with jointly Gaussian innovations independent across periods; for permanent `r < g` debt (6.5) a.s. exceeds and falls below every level at arbitrarily late dates (`sup = +∞`, `inf = −∞`), and every debt limit fails a.s. |
+| [TidyR8OUDebtRgEqual](FiscalConstraints/TidyR8OUDebtRgEqual.lean) | 21 | §6.4.1, p. 197, `r = g`: the 0-1 law with `γ = 1`, the debt variance growing without bound; a.s. `sup = +∞` if `s̄ ≤ 0`, `inf = −∞` if `s̄ ≥ 0`, both at `s̄ = 0` |
 
 ## Modelling conventions
 
@@ -286,7 +303,10 @@ Not formalised:
   integrands it is identified a.s. with the pathwise by-parts integral
   (`TidyR7WienerGaussian.itoInt_ae_eq_wienerBP`). Debt is the corrected (6.5),
   `b_t = e^{at}b_0 − ∫_0^t e^{a(t−u)}s_u du`, for every `a = r − g`; the sampled version uses the
-  discrete debt `DebtLimitStochastic.debtPath` with `0 ≤ γ < 1`.
+  discrete debt `DebtLimitStochastic.debtPath` with `0 ≤ γ < 1`. The almost-sure results for the
+  continuous-time debt (`TidyR8OUDebtUnbounded`, `TidyR8OUDebtRgEqual`, `TidyR8OUDebtExplosive`)
+  use the same driving motion, with `η > 0`, and `σ ≠ 0` where non-degeneracy is used;
+  `TidyR8OURestart` is path by path.
 * **Expectations for §§6.4.6–6.4.7.** Random variables are `Ω → ℝ` under an arbitrary
   `ExpectationSystem` with the pull-out property (`ExpectationSystem.PullOut`). I.i.d. growth is the
   hypothesis `E_t[G_{t+1}^a] = mom a` for every real `a` (`AggregateUncertainty.IIDGrowth`), and
@@ -338,8 +358,9 @@ bridge from finite event trees (`ExpectationsMeasure.TreeBridge.treeSystem`), an
 economy. The twelve Brownian and Itô modules (`TidyR7BrownianSchauder` to `TidyR7ItoBridge` in
 the library map) are copied, with only the namespace renamed and proofs unchanged, from the
 Cochrane Monetarism project; each docstring names its original. They are the import closure of
-`TidyR7ItoBridge`, and only `TidyR7WienerGaussian`, `TidyR7OrnsteinUhlenbeck` and
-`TidyR7OUSampled` use them.
+`TidyR7ItoBridge`, and only `TidyR7WienerGaussian`, `TidyR7OrnsteinUhlenbeck`,
+`TidyR7OUSampled`, `TidyR8OUDebtUnbounded`, `TidyR8OUDebtRgEqual` and `TidyR8OUDebtExplosive`
+use them.
 
 Unlike the Chapter 1 project, no Woodford or Galí result is restated in a chapter module, and
 `Links` links the chapter's own two formalisation chains rather than other books. Two

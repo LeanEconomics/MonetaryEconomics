@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-11-08T03:13:32.838780+00:00",
-  "theorems": 1189,
+  "checked_at_utc": "2026-11-10T21:28:54.107904+00:00",
+  "theorems": 1272,
   "module_theorems": {
     "FiscalConstraints/Determinacy.lean": 23,
     "FiscalConstraints/Expectations.lean": 20,
@@ -44,9 +44,14 @@
     "FiscalConstraints/TidyR7OUPath.lean": 23,
     "FiscalConstraints/TidyR7WienerGaussian.lean": 13,
     "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean": 33,
-    "FiscalConstraints/TidyR7OUSampled.lean": 18
+    "FiscalConstraints/TidyR7OUSampled.lean": 18,
+    "FiscalConstraints/TidyR8DebtChain.lean": 9,
+    "FiscalConstraints/TidyR8OUDebtExplosive.lean": 14,
+    "FiscalConstraints/TidyR8OURestart.lean": 14,
+    "FiscalConstraints/TidyR8OUDebtUnbounded.lean": 25,
+    "FiscalConstraints/TidyR8OUDebtRgEqual.lean": 21
   },
-  "audited_declarations": 1437,
+  "audited_declarations": 1532,
   "declarations": [
     {
       "name": "Cochrane.FiscalConstraints.SchurStable",
@@ -7232,6 +7237,481 @@
       "name": "Cochrane.FiscalConstraints.TidyR7OUSampled.bmPath_sampled_debt_unbounded",
       "kind": "theorem",
       "module": "FiscalConstraints/TidyR7OUSampled.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.chainU",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.chainX",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.shiftSeq",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.blockSigma",
+      "kind": "abbrev",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.blockSigma_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.chainU_shift",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.chainX_shift",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_chainU",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_chainX",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_shiftSeq_apply",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_chainU_shift",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_chainX_shift",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8DebtChain.chain_frequently",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8DebtChain.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_bmReal_uncurry",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouPrim",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouNoise",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouNoise_uncurry",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.memLp_ouNoise",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.integral_ouNoise_sq_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.ouNoiseTail",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouNoiseTail_integrand",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouNoiseTail",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.lintegral_ouNoiseTail_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.abs_integral_le_ouNoiseTail",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.ouDebtProc_eq_of_mean",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.ouDebtProc_bounded_half",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.ouDebtProc_not_ae_unbounded",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.bmPath_ouDebt_bounded_half",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtExplosive.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.shiftPath",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.continuous_shiftPath",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.integral_exp_mul_eta",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.ouStep_eq_ouNoise",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.ouPath_restart",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.ouDebt_restart",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.debtA",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.debtD",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.debtMean_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.ouDebt_succ",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.shift_integral_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.debtF_shift",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.debtKernel_shift",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.debtG_shift",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.integral_debtG_sq_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.integral_exp_neg_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OURestart.abs_debtMean_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OURestart.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.blockH",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.blockH'",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.blockC",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouBlock",
+      "kind": "def",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.hasDerivAt_blockH",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.continuous_blockH'",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouBlock_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouBlock_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.memLp_ouBlock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.aemeasurable_ouBlock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.integral_ouBlock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.covariance_ouBlock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.isGaussianProcess_ouBlock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.iIndepFun_ouBlock",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouProc_sampled_eq_chainU",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_sampled_eq_chainX",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.gaussianReal_Ioi_ge",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.gaussianReal_Iio_ge",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.debtVar_one_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.prob_debt_gt_ge",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.prob_debt_lt_ge",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.sampled_ouDebtProc_frequently",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.frequently_real_of_nat",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_frequently_gt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_frequently_lt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_sup_inf",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_ae_not_sustainable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.bmPath_ouDebt_sup_inf",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.bmPath_ouDebt_ae_not_sustainable",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.abs_dseq_one_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.measurableSet_frequently_nat",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.chain_frequently_of_eventually",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtF_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtKernel_zero",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtG_zero_pos",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtG_zero_ge",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.integral_debtG_sq_ge",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtMean_zero_eq",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtMean_zero_ge",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtMean_zero_le",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.gaussianReal_Ioi_ge_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.gaussianReal_Iio_ge_one",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.sqrt_debtVar_zero_ge",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_prob_gt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_prob_lt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_sampled_frequently",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_frequently_gt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_frequently_lt",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_sup_inf",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
+    },
+    {
+      "name": "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.bmPath_rgEqual_sup_inf",
+      "kind": "theorem",
+      "module": "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
     }
   ],
   "full_build": "passed",
@@ -14416,6 +14896,481 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.chainU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.chainX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.shiftSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.blockSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.blockSigma_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.chainU_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.chainX_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_chainU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_chainX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_shiftSeq_apply": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_chainU_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.measurable_chainX_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8DebtChain.chain_frequently": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_bmReal_uncurry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouPrim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouNoise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouNoise_uncurry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.memLp_ouNoise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.integral_ouNoise_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.ouNoiseTail": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouNoiseTail_integrand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.measurable_ouNoiseTail": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.lintegral_ouNoiseTail_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.abs_integral_le_ouNoiseTail": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.ouDebtProc_eq_of_mean": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.ouDebtProc_bounded_half": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.ouDebtProc_not_ae_unbounded": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtExplosive.bmPath_ouDebt_bounded_half": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.shiftPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.continuous_shiftPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.integral_exp_mul_eta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.ouStep_eq_ouNoise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.ouPath_restart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.ouDebt_restart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.debtA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.debtD": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.debtMean_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.ouDebt_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.shift_integral_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.debtF_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.debtKernel_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.debtG_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.integral_debtG_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.integral_exp_neg_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OURestart.abs_debtMean_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.blockH": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.blockH'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.blockC": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.hasDerivAt_blockH": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.continuous_blockH'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouBlock_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouBlock_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.memLp_ouBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.aemeasurable_ouBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.integral_ouBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.covariance_ouBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.isGaussianProcess_ouBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.iIndepFun_ouBlock": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouProc_sampled_eq_chainU": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_sampled_eq_chainX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.gaussianReal_Ioi_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.gaussianReal_Iio_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.debtVar_one_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.prob_debt_gt_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.prob_debt_lt_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.sampled_ouDebtProc_frequently": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.frequently_real_of_nat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_frequently_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_frequently_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_sup_inf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.ouDebtProc_ae_not_sustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.bmPath_ouDebt_sup_inf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtUnbounded.bmPath_ouDebt_ae_not_sustainable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.abs_dseq_one_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.measurableSet_frequently_nat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.chain_frequently_of_eventually": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtF_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtKernel_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtG_zero_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtG_zero_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.integral_debtG_sq_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtMean_zero_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtMean_zero_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.debtMean_zero_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.gaussianReal_Ioi_ge_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.gaussianReal_Iio_ge_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.sqrt_debtVar_zero_ge": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_prob_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_prob_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_sampled_frequently": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_frequently_gt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_frequently_lt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.rgEqual_sup_inf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.FiscalConstraints.TidyR8OUDebtRgEqual.bmPath_rgEqual_sup_inf": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -14462,15 +15417,20 @@
     "FiscalConstraints/TidyR7WienerGaussian.lean": "be6321f2636e46c48a885ebb3898076348691f09883d05eba47b594cab60a266",
     "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean": "02cb0090b7f90ca335aca83b21bdb7f2c8abbc7792e5b0b3d312e13c6d844da3",
     "FiscalConstraints/TidyR7OUSampled.lean": "016c521b7e7e38cddbe6b53a22f0937e812c62565a6f5b6e0dfe2b9c1c34d78c",
-    "FiscalConstraints.lean": "a7596edf620812eb6a2f57f0f594ba8f77faa0ca24eebc928afd47cf9246754a",
+    "FiscalConstraints/TidyR8DebtChain.lean": "53d670520fe929315b1f92e5d906fffe6978b5170378ae5c56e40eef4d72937d",
+    "FiscalConstraints/TidyR8OUDebtExplosive.lean": "0dc1ed686f13326555f35ac7023b38981df8ebcf4dab4eab0169d7a0d3b1a0df",
+    "FiscalConstraints/TidyR8OURestart.lean": "b67da2c0d6a9669edf2229ad1e617beebec58d3a1e45eb7a727c50706e37194a",
+    "FiscalConstraints/TidyR8OUDebtUnbounded.lean": "a50fc2941ed2c635c79d780fa8c5486ac72281c96697aa6c0999981c81ab44f6",
+    "FiscalConstraints/TidyR8OUDebtRgEqual.lean": "2327793f4b0f9f199109e09c7863bea08486e553530da34cb62c5ddfc415b3c3",
+    "FiscalConstraints.lean": "3a18216eeb7938cc4d807b01fe00fd455c6848d1408de3d75c185480c5d33cbf",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "2316afb07e737873c291196c3982b4bdd8780e7da7c3353143daebcc265883ed",
     "lake-manifest.json": "471395732f51621c043128672558300d914c17f1f7b01d12949738d21f9aac5f",
-    "proof-manifest.json": "9fccff8be2ab99c46497290a253720aef54637a7f88187064b75958f9581a84f",
+    "proof-manifest.json": "e5fb5a81f75e2ce12208b26356374d47a97a5d0041b2e58397c3beab1ec887a1",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "467dc76c1a562bee6f4eb8d13dc57a1d77d80717babbeba505274d5895999810",
+  "fresh_audit_sha256": "f048becdc76aefbc697a163343790413231750b3ce9e7040246ba561a053d69b",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 6: Fiscal constraints. The present-value Laffer curve with exact elasticities; discount rates and growth (r = delta + gamma g); the Miller crash model with both regimes and comparative statics; the debt-to-GDP equation and the r versus g dichotomy (r > g: the present value is the unique bounded solution; r < g: indeterminacy, not infinity; temporary r < g restores uniqueness), continuous and discrete; a stochastic debt limit via Borel-Cantelli; growth-theory transversality; money and liquidity; return discounting; aggregate uncertainty and Bohn's example with corrected lognormal formulas. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 6, pp. 187-211."

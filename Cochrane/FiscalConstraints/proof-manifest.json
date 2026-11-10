@@ -43,7 +43,12 @@
     "FiscalConstraints/TidyR7OUPath.lean",
     "FiscalConstraints/TidyR7WienerGaussian.lean",
     "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean",
-    "FiscalConstraints/TidyR7OUSampled.lean"
+    "FiscalConstraints/TidyR7OUSampled.lean",
+    "FiscalConstraints/TidyR8DebtChain.lean",
+    "FiscalConstraints/TidyR8OUDebtExplosive.lean",
+    "FiscalConstraints/TidyR8OURestart.lean",
+    "FiscalConstraints/TidyR8OUDebtUnbounded.lean",
+    "FiscalConstraints/TidyR8OUDebtRgEqual.lean"
   ],
   "theorem_counts": {
     "FiscalConstraints/Determinacy.lean": 23,
@@ -88,7 +93,12 @@
     "FiscalConstraints/TidyR7OUPath.lean": 23,
     "FiscalConstraints/TidyR7WienerGaussian.lean": 13,
     "FiscalConstraints/TidyR7OrnsteinUhlenbeck.lean": 33,
-    "FiscalConstraints/TidyR7OUSampled.lean": 18
+    "FiscalConstraints/TidyR7OUSampled.lean": 18,
+    "FiscalConstraints/TidyR8DebtChain.lean": 9,
+    "FiscalConstraints/TidyR8OUDebtExplosive.lean": 14,
+    "FiscalConstraints/TidyR8OURestart.lean": 14,
+    "FiscalConstraints/TidyR8OUDebtUnbounded.lean": 25,
+    "FiscalConstraints/TidyR8OUDebtRgEqual.lean": 21
   },
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 6: Fiscal constraints. The present-value Laffer curve with exact elasticities; discount rates and growth (r = delta + gamma g); the Miller crash model with both regimes and comparative statics; the debt-to-GDP equation and the r versus g dichotomy (r > g: the present value is the unique bounded solution; r < g: indeterminacy, not infinity; temporary r < g restores uniqueness), continuous and discrete; a stochastic debt limit via Borel-Cantelli; growth-theory transversality; money and liquidity; return discounting; aggregate uncertainty and Bohn's example with corrected lognormal formulas. Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 6, pp. 187-211."
