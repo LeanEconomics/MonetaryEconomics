@@ -16,7 +16,7 @@ optimisation, under perfect foresight, on a finite event tree and on a genuine p
 whose information grows forever, there without bounds on prices or plans. Continuous time is
 deterministic, except the `E_td(·)` forms, the product step and the chain (1.31)–(1.34) of Online
 Appendix §1.6 (`TidyR6StochasticDrift`, `TidyR7ProductStep`, `TidyR7MonetarismModel`,
-`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **2429 theorems**, including the shared core; 578 of them are in the fourteen
+`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **2529 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
@@ -30,9 +30,11 @@ and for jumping bonds, 283 in the thirteen `TidyR7Monetarism…` modules that pr
 diffusive money and bonds,
 173 in the six `TidyR7Brownian…` modules, a Brownian motion on `[0, ∞)`, its martingale tools,
 its quadratic variation and the infinite variation of its paths, 66 of them copied from the
-Meyn–Tweedie project, and 239 in the eleven `TidyR7Ito…` modules, the Itô integral `∫ H dW`,
+Meyn–Tweedie project, 239 in the eleven `TidyR7Ito…` modules, the Itô integral `∫ H dW`,
 Itô processes, Itô's product rule with covariation and the general product step of (1.32)
-with diffusive bonds.
+with diffusive bonds, and 100 in the five `TidyR8Monetarism…` modules, the sharp condition
+for the printed (1.33)–(1.34), the dominated (1.33) with the bracket and infinite-horizon
+instances with nonzero and with jumping money.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -253,7 +255,20 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   hold as printed (`TidyR7MonetarismCoinInf.inf_1_33_book`). The printed `E_t∫_t^∞` can be
   undefined while the limit form holds (`TidyR7MonetarismCoin.imp_headline`), and even when the
   pathwise limit exists the literal equation can fail without domination or `L¹` convergence
-  (`TidyR7MonetarismUI.ui_headline`). The `C¹`, deterministic and `Δ`-grid forms are recovered
+  (`TidyR7MonetarismUI.ui_headline`). The sharp condition is `L¹` convergence of the flows: if
+  the flows `F_{T_k}` converge almost surely to `G` and are bounded below by an integrable `−h`,
+  then under the `L¹` transversality condition the printed form holds iff `∫|F_{T_k} − G| → 0`
+  (`TidyR8MonetarismUISharp.valuation_iff_L1_char`), iff the flows are uniformly integrable
+  (`TidyR8MonetarismUISharp.tendsto_integral_abs_iff_unifIntegrable`), and under the almost-sure
+  one iff `E_s|F_{T_k} − G| → 0` a.s. (`TidyR8MonetarismUISharp.valuation_iff_condL1_char`), in
+  the economy for (1.33) with `i^m = 0` and for (1.34)
+  (`TidyR8MonetarismUISharp.MonetaryModel.valuation_1_33_char_L1`,
+  `TidyR8MonetarismUISharp.MonetaryModel.valuation_1_34_char_L1`); domination is one sufficient
+  case, and without the lower bound the printed form can hold while `E|F_{T_k} − G| = 2`
+  (`TidyR8MonetarismUISharp.sgn_headline`). On `[0, ∞)` with money `M = 2`, interest on money
+  `i^m = 1/2`, a decaying discount factor and news in `Λ/P`, (1.34) holds as printed, both sides
+  `4` (`TidyR8MonetarismMoneyInf.moneyInf_1_34_book`). The `C¹`, deterministic and `Δ`-grid
+  forms are recovered
   (`TidyR7MonetarismLinks.incr_1_32_C1`, `TidyR7MonetarismLinks.money_printing_recovered`,
   `TidyR7MonetarismLinks.grid_1_32_rate`). When money jumps at news dates and bonds jump
   opposite to it, `ΔB = −ΔM`, with `B + M` continuous (`TidyR7MonetarismJump.JumpMonetaryModel`),
@@ -265,7 +280,11 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   `E_s[Σ Δ(Λ/P)ΔM] = 0` (`TidyR7MonetarismJump.JumpMonetaryModel.middle_1_32_book_iff`), and
   (1.34) is unchanged (`TidyR7MonetarismJump.JumpMonetaryModel.valuation_1_34_jump`). In an
   open-market operation at the news date the pre-jump line 3 gives `0 ≠ −1/2`
-  (`TidyR7MonetarismJumpCoin.jcoin_1_32_left_fails`).
+  (`TidyR7MonetarismJumpCoin.jcoin_1_32_left_fails`); on `[0, ∞)`, with the transversality
+  condition holding, the post-jump (1.33) holds in the dominated form while the pre-jump one
+  gives `2 ≠ 2 − e^{−1}/2`, the gap being the jump covariation `e^{−1}/2`
+  (`TidyR8MonetarismJumpInf.jumpInf_headline`), and (1.34) holds verbatim with jumping money
+  (`TidyR8MonetarismJumpInf.jumpInf_1_34`).
 * **Brownian infrastructure for (1.32) with diffusive bonds.** Mathlib defines Brownian motion
   (`ProbabilityTheory.IsBrownianReal`) but proves no existence theorem; a Brownian motion on
   `[0, ∞)` exists (`TidyR7BrownianExist.exists_isBrownianReal`). It is the time change
@@ -349,7 +368,16 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   and bonds `b + cW` the printed line 3 fails, `1 ≠ 0` for `c = 1`
   (`TidyR7MonetarismItoCex.cex_headline`); with bonds and `Λ/P` diffusing on disjoint time
   intervals it holds (`TidyR7MonetarismItoCex.disj_1_32`); on `[0, ∞)` transversality holds while
-  the printed (1.33) gives `0 ≠ 1/3` (`TidyR7MonetarismItoCexInf.inf_headline`).
+  the printed (1.33) gives `0 ≠ 1/3` (`TidyR7MonetarismItoCexInf.inf_headline`). The dominated
+  (1.33) with the bracket holds iff transversality: if the corrected flows converge almost surely
+  under an integrable dominator, `n_sB_s = E_s[G]` a.s. iff `E_s[n_{T_k}B_{T_k}] → 0` a.s.
+  (`TidyR8MonetarismItoDom.valuation_1_33_ito_dom`). Under pathwise hypotheses (a.s. continuous
+  drift integrands, drift flow and bracket density integrable to infinity, an a.s. convergent
+  dominated Itô part) the flows converge and are dominated, and the book's bracket-free
+  dominated (1.33) holds iff `E_s[∫_s^∞ σ_Xσ_B du] = 0`
+  (`TidyR8MonetarismItoDom.valuation_1_33_ito_dom_pathwise`); on the `[0, ∞)` economy these
+  hypotheses hold, `n_0B_0 = 1/3 = E_0[G]`, and the book's form fails, `0 ≠ 1/3`
+  (`TidyR8MonetarismItoDomInf.itoDomInf_headline`).
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -535,8 +563,14 @@ Not formalised:
   paths, so the drift `−i·n` of `Λ/P` must be bounded, and `uW_u`, whose drift `W_u` is
   unbounded, is not covered); pathwise time integrals in the model statements (they use the
   mean-square `TidyR7ItoProducts.dtInt`, which equals the pathwise integral a.s. for a.s.
-  continuous paths, `TidyR7ItoProducts.dtInt_ae_eq_integral`, but the statements are not
-  restated); the dominated form of (1.33) with the bracket (only the limit and `L¹` forms);
+  continuous paths, `TidyR7ItoProducts.dtInt_ae_eq_integral`; only the corrected flow of
+  (1.33) is restated path by path, `TidyR8MonetarismItoDom.flowItoC_pathwise`); the dominated
+  form of (1.33) with the bracket without assuming that the Itô part
+  `J_k = ∫_s^{T_k} nσ_M dW` converges almost surely under an integrable dominator
+  (`TidyR8MonetarismItoDom.valuation_1_33_ito_dom_pathwise` takes it as a hypothesis, verified
+  when money's diffusion vanishes after a date, `TidyR8MonetarismItoDom.itoInt_eventually_const`;
+  the general case needs the Fubini isometry and the Doob bound below), or with drift
+  integrands that are not almost surely continuous;
   several Brownian motions (the cross variation of two Brownian motions is not proved); a unified
   model with both jumps and diffusion (the jump and the diffusive corrections of (1.32) are proved
   in separate models, `TidyR7MonetarismJump.JumpMonetaryModel` and
@@ -560,12 +594,15 @@ Not formalised:
   `TidyR7ProductStepJump.JumpStepData` are sufficient; their necessity is not proved (only adaptedness of `B` is shown necessary,
   `TidyR7ProductStepCoin.coin_anticipating_fails`). The chain (1.31)–(1.34) built on it
   (`TidyR7MonetarismModel`, `TidyR7MonetarismValuation`, `TidyR7MonetarismJump`) inherits these
-  limits; with jumping money it assumes `B + M` continuous (no atom in the surplus), and the
-  failure of the pre-jump reading of (1.33) has no infinite-horizon instance (only the
-  finite-horizon `TidyR7MonetarismJumpCoin.jcoin_1_33_finite`);
-* (1.34) on `[0, ∞)` with nonzero money. The infinite-horizon instance of the printed (1.33) and
-  (1.34) has zero money (`TidyR7MonetarismCoinInf.inf_1_34_book`): in that model with constant
-  nonzero money the money transversality condition fails, because `i → 0`;
+  limits; with jumping money it assumes `B + M` continuous (no atom in the surplus). The
+  infinite-horizon failure of the pre-jump reading of (1.33)
+  (`TidyR8MonetarismJumpInf.jumpInf_headline`) is stated as `n_0B_0 ≠ E_0[G⁻]`, not restated
+  in the real form `B_0/P_0`;
+* a `TidyR7MonetarismModel.MonetaryModel` economy in which the printed (1.33) holds while the
+  flows do not converge in `L¹`: the integrable lower bound of
+  `TidyR8MonetarismUISharp.valuation_iff_L1_char` is shown necessary for "printed ⇒ `L¹`" only
+  in a generic budget system on `ℕ` (`TidyR8MonetarismUISharp.sgn_headline`,
+  `TidyR8MonetarismUISharp.sgn_no_lower_bound`);
 * under active fiscal policy, the literal "there is exactly one equilibrium iff the surplus is
   coordinated with money": coordination is proved equivalent to the unique equilibrium being the
   standard one (`TidyR6ActiveFiscalExist.std_existsUnique_iff`), but a unique non-standard
@@ -673,6 +710,11 @@ Not formalised:
 | [TidyR7MonetarismItoValuation](Monetarism/TidyR7MonetarismItoValuation.lean) | 15 | A1 §1.6, (1.33)–(1.34), p. 567: the finite-horizon budget with the bracket; the corrected (1.33) iff transversality (limit and `L¹` forms); the printed (1.33) under transversality iff the bracket vanishes in the limit; (1.34) verbatim |
 | [TidyR7MonetarismItoCex](Monetarism/TidyR7MonetarismItoCex.lean) | 19 | A1 §1.6, (1.31)–(1.34), pp. 567–568: on the constructed motion, `Λ/P = 1 + W` with bonds `b + cW` breaks the printed line 3 of (1.32) (`1 ≠ 0` at `c = 1`) while the corrected line and (1.34) hold; bonds and `Λ/P` diffusing on disjoint intervals satisfy the printed (1.32) and (1.33) |
 | [TidyR7MonetarismItoCexInf](Monetarism/TidyR7MonetarismItoCexInf.lean) | 13 | A1 §1.6, (1.32)–(1.33), p. 567: on `[0, ∞)` with bonds diffusing against `Λ/P`, transversality and the corrected (1.33) hold while the printed (1.33) fails (`0 ≠ 1/3`) |
+| [TidyR8MonetarismUISharp](Monetarism/TidyR8MonetarismUISharp.lean) | 26 | A1 §1.6, (1.33)–(1.34), p. 567: the sharp condition for the printed `E_s∫_s^∞` forms: with flows converging a.s. and bounded below by an integrable function, printed iff `L¹` convergence (iff uniform integrability, Vitali) and iff conditional `L¹` convergence; in the economy for (1.33) and (1.34); the earlier counterexample and coin economy as instances; the lower bound cannot be dropped; conditional dominated convergence with a.s. hypotheses and (conditional) Scheffé |
+| [TidyR8MonetarismItoDom](Monetarism/TidyR8MonetarismItoDom.lean) | 9 | A1 §1.6, (1.33), p. 567: the dominated (1.33) with the bracket for diffusive bonds iff transversality; under pathwise hypotheses, with the book's bracket-free dominated form iff `E_s∫_s^∞σ_Xσ_B du = 0`; the corrected flow path by path; additivity and eventual constancy of the Itô integral |
+| [TidyR8MonetarismItoDomInf](Monetarism/TidyR8MonetarismItoDomInf.lean) | 11 | A1 §1.6, (1.33), p. 567: on economy 3 on `[0, ∞)` the hypotheses of the dominated (1.33) hold; with the bracket `n_0B_0 = 1/3 = E_0[G]`, the book's dominated form fails (`0 ≠ 1/3`) |
+| [TidyR8MonetarismMoneyInf](Monetarism/TidyR8MonetarismMoneyInf.lean) | 31 | A1 §1.6, (1.31)–(1.34), pp. 567–568: an infinite-horizon economy with nonzero money and interest on money and a decaying discount factor with news (`M = B = 2`, `i = 1`, `i^m = 1/2`); transversality holds and the printed and `L¹` forms of (1.34) hold, both sides `4` |
+| [TidyR8MonetarismJumpInf](Monetarism/TidyR8MonetarismJumpInf.lean) | 23 | A1 §1.6, (1.31)–(1.34), pp. 567–568: an open-market operation at the news date on `[0, ∞)`: transversality and the post-jump dominated (1.33) hold, the pre-jump (1.33) fails (`2 ≠ 2 − e^{−1}/2`, the jump covariation `e^{−1}/2`); (1.34) verbatim with jumping money |
 
 ## Modelling conventions
 

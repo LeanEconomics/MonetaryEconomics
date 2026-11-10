@@ -97,3 +97,8 @@ import Monetarism.TidyR7MonetarismIto
 import Monetarism.TidyR7MonetarismItoValuation
 import Monetarism.TidyR7MonetarismItoCex
 import Monetarism.TidyR7MonetarismItoCexInf
+import Monetarism.TidyR8MonetarismUISharp
+import Monetarism.TidyR8MonetarismItoDom
+import Monetarism.TidyR8MonetarismItoDomInf
+import Monetarism.TidyR8MonetarismMoneyInf
+import Monetarism.TidyR8MonetarismJumpInf
