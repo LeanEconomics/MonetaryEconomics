@@ -158,6 +158,51 @@ with its natural filtration.
 | Cochrane App. p. 561 | with no diffusion (`κ = 0`) the model discount factor is the book's deterministic bond price, and the debt value is `ForwardGuidance.integral_cfg` path by path | `TidyR7GuidanceItoLinks.bmSDF_zero_eq`, `TidyR7GuidanceItoLinks.sigma_zero_value` |
 | Cochrane App. pp. 560–561 | with `n` periods of length `T/n`, one-period rates `e^{rT/n} − 1`, `e^{iT/n} − 1` and decay `e^{−ϖT/n}`, the discount to `T` is exactly `e^{−(r+ϖ)T}`, and the discrete jump `ForwardGuidance.fgJump` of p. 560 tends to `ForwardGuidance.cfgJump r i ϖ T` | `TidyR7GuidanceItoLinks.fgJump_exp_factor`, `TidyR7GuidanceItoLinks.tendsto_fgJump_cfgJump` |
 
+## Online Appendix §A1.2.1, the continuous-time formula announced at any date, pp. 559–561 (TidyR8GuidanceDateT, TidyR8SurplusInterchange, TidyR8GuidanceDateTBM)
+
+The book states the valuation equation of p. 559 at every date `t` and derives the formula of
+p. 561 for an announcement at date 0. Here the announcement is made at an arbitrary date `a ≥ 0`,
+for a general filtration `𝓕` of the Brownian motion: the rate is `r` on `[a, a + τ]` and `ι`
+after. Both sides of the valuation equation are interchanged at `a`, and on the constructed
+Brownian motion date-`a` information is nontrivial for `a > 0`, unlike date-0 information
+(`TidyR7GuidanceItoCex.bmF_zero`).
+
+### The formula at date `a` (TidyR8GuidanceDateT)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane App. pp. 559–561 | the announcement at date `a`: rate `r` on `[a, a + τ]`, `ι` known at `a + τ` after, each piece a `TidyR7GuidanceSDF.SDFPiece`; the value of the geometric debt per unit at `a`, `E_a[∫_0^∞ϖe^{−ϖj}Λ_{a+j} dj]/Λ_a` (the book's `∫_0^∞Q_a^{(a+j)}ϖe^{−ϖj} dj`), and the present value of surpluses `E_a∫_0^∞e^{−rj}s_{a+j} dj` | `TidyR8GuidanceDateT.GuidanceSDFAt`, `TidyR8GuidanceDateT.debtValueAt`, `TidyR8GuidanceDateT.pvSurplusAt` |
+| Cochrane App. p. 559 | the book's form at date `t`: `∫_0^∞f(a + j) dj = ∫_a^∞f(j) dj`, so the debt value is `E_a[∫_a^∞ϖe^{−ϖ(j−a)}Λ_j dj]/Λ_a` and the present value `E_a∫_a^∞e^{−r(j−a)}s_j dj` | `TidyR8GuidanceDateT.setIntegral_Ioi_shift`, `TidyR8GuidanceDateT.debtValueAt_eq_Ioi`, `TidyR8GuidanceDateT.pvSurplusAt_eq_Ioi` |
+| Cochrane App. pp. 559–561 | `a = 0` is the date-0 setting of `TidyR7GuidanceItoValuation`: the structure, the debt value and the present value of surpluses | `TidyR8GuidanceDateT.GuidanceSDF.toAt`, `TidyR8GuidanceDateT.debtValueAt_zero`, `TidyR8GuidanceDateT.pvSurplusAt_zero` |
+| Cochrane App. p. 561 | bond prices at the announcement date under a known path, `E[Λ_{a+j} ∣ 𝓕_a] = e^{−(r min(j,τ) + i max(j−τ,0))}Λ_a` a.s. | `TidyR8GuidanceDateT.condExp_guidanceAt` |
+| Cochrane App. pp. 559–561 | the interchange `E_a∫_0^∞ = ∫_0^∞E_a` for the debt, `E_a∫_0^∞ϖe^{−ϖj}Λ_{a+j} dj = cfgValue r i ϖ τ · Λ_a` a.s., also in the book's form `∫_a^∞`, so the value per unit of debt is the book's `cfgValue` a.s. on `Λ_a ≠ 0` | `TidyR8GuidanceDateT.condExp_debtValueAt`, `TidyR8GuidanceDateT.condExp_debtValueAt_Ioi`, `TidyR8GuidanceDateT.debtValueAt_guidance` |
+| Cochrane App. p. 561 | the formula `P_a/P_a' − 1 = e^{−(r+ϖ)τ}((r+ϖ)/(i+ϖ) − 1)` at an announcement date `a ≥ 0`, verbatim, state by state, a.s. where `Λ_a, Λ'_a ≠ 0`, with the valuation equations assumed only where the discount factor is nonzero | `TidyR8GuidanceDateT.guidance_jump_at` |
+| Cochrane App. p. 561, random future rate | with the rate from `a + τ` on news revealed at `a + τ` (finitely many values), the debt value is `E_a[e^{rτ}Λ_{a+τ} · cfgValue r ι ϖ τ]`, and `P_a/P_a' − 1 = E_a[e^{rτ}Λ_{a+τ} · cfgJump r ι ϖ τ]/Λ_a`: the book's jump at each realised rate, averaged with the `(a + τ)`-forward weights `e^{rτ}Λ_{a+τ}/Λ_a` | `TidyR8GuidanceDateT.condExp_debtValueAt_random`, `TidyR8GuidanceDateT.random_jump_at` |
+
+### The surplus side (TidyR8SurplusInterchange)
+
+For random surpluses on a probability space with an arbitrary filtration (no Brownian structure
+and no adaptedness of `s` needed). `ω ↦ E[s_{a+j} ∣ 𝓕_a](ω)` is defined only up to a null set
+for each `j`, so the a.s. statement uses a version jointly measurable in `(j, ω)`.
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane App. p. 559 | joint integrability of the discounted surplus `e^{−rj}s_{a+j}(ω)` on `(0, ∞) × Ω` follows from an integrable majorant, and gives `s_{a+j}` integrable for almost every maturity | `TidyR8SurplusInterchange.integrable_surplus_of_majorant`, `TidyR8SurplusInterchange.ae_integrable_surplus` |
+| Cochrane App. p. 559 | `E_a∫ = ∫E_a` for the surpluses on test sets, no version needed: `∫_A E_a[∫_0^∞e^{−rj}s_{a+j} dj] dP = ∫_0^∞e^{−rj}(∫_A E_a[s_{a+j}] dP) dj` for `A ∈ 𝓕_a` | `TidyR8SurplusInterchange.setIntegral_pvSurplusAt` |
+| Cochrane App. p. 559 | the interchange a.s.: for a `Borel ⊗ 𝓕_a`-measurable version `m_j = E_a[s_{a+j}]`, `E_a∫_0^∞e^{−rj}s_{a+j} dj = ∫_0^∞e^{−rj}m_j dj` a.s. | `TidyR8SurplusInterchange.pvSurplusAt_interchange` |
+| Cochrane App. pp. 559–561 | the valuation equation at `a` with both sides interchanged, `B_a/P_a · cfgValue r i ϖ τ = ∫_0^∞e^{−rj}E_a[s_{a+j}] dj` a.s. on `Λ_a ≠ 0` (the book's `∫_0^∞Q_a^{(a+j)}B_a^{(a+j)} dj/P_a = ∫_0^∞e^{−rj}E_as_{a+j} dj`), and the price level `P_a = B_a cfgValue r i ϖ τ / ∫_0^∞e^{−rj}E_a[s_{a+j}] dj` | `TidyR8SurplusInterchange.valuation_interchanged_at`, `TidyR8SurplusInterchange.priceLevel_interchanged_at` |
+
+### Nontrivial date-`a` information on the constructed Brownian motion (TidyR8GuidanceDateTBM)
+
+| Book | Claim | Lean |
+| --- | --- | --- |
+| Cochrane App. p. 561, model economy | joint integrability with a moving date: `\|F(j, ω)\| ≤ w(j)(1 + \|κ\|\|W_{g(j)}(ω)\|)` with `w(j)(1 + \|κ\|(1 + g(j)))` integrable gives `F` integrable on `I × Ω` | `TidyR8GuidanceDateTBM.integrable_prod_bound_idx` |
+| Cochrane App. p. 561, model economy | from the announcement date `a` the discount factor `Λ_t = e^{−rt}(1 + κW_t)` solves `Λ_u = Λ_a − r∫_a^uΛ_v dv + ∫_a^uκe^{−rv} dW_v` a.s. on `[a, T]`, so it is an `SDFPiece` there with a random, `𝓕_a`-measurable `Λ_a`; the announcement structure at `a` holds, and the date-`a` debt payoffs are jointly integrable | `TidyR8GuidanceDateTBM.bmSDF_mid_eq`, `TidyR8GuidanceDateTBM.bmSDF_mid`, `TidyR8GuidanceDateTBM.guidanceSDFAt_bm`, `TidyR8GuidanceDateTBM.integrable_debtAt_bm` |
+| Cochrane App. p. 559, model economy | random surpluses `s_j = s̄ + σW_j`: `E[s_u ∣ 𝓕_a] = s̄ + σW_a` for `a ≤ u`, the discounted surpluses are jointly integrable, and `E_a∫_0^∞e^{−rj}s_{a+j} dj = (s̄ + σW_a)/r` a.s. by the interchange | `TidyR8GuidanceDateTBM.bmSurplus`, `TidyR8GuidanceDateTBM.condExp_bmSurplus`, `TidyR8GuidanceDateTBM.integrable_surplusAt_bm`, `TidyR8GuidanceDateTBM.pvSurplusAt_bm` |
+| Cochrane App. pp. 559–561, model economy | date-`a` information is nontrivial: for `a > 0`, `W_a` is not a.s. constant; the present value of surpluses (`σ ≠ 0`) and the debt value `E_a∫_0^∞ϖe^{−ϖj}Λ_{a+j} dj = cfgValue r i ϖ τ · e^{−ra}(1 + κW_a)` (`κ ≠ 0`) depend on the state | `TidyR8GuidanceDateTBM.bmW_not_ae_const`, `TidyR8GuidanceDateTBM.pvSurplusAt_bm_not_const`, `TidyR8GuidanceDateTBM.condExp_debtAt_bm`, `TidyR8GuidanceDateTBM.condExp_debtAt_bm_not_const` |
+| Cochrane App. p. 561, model economy | non-vacuity at `a ≥ 0` with random price levels `P_a = cfgValue r i ϖ τ · r/(s̄ + σW_a)`, `P_a' = cfgValue r r ϖ τ · r/(s̄ + σW_a)`: the valuation equations hold and `P_a/P_a' − 1 = cfgJump r i ϖ τ` where `s̄ + σW_a > 0` | `TidyR8GuidanceDateTBM.bm_guidance_jump_at` |
+| Cochrane App. p. 561, news at `a + τ` | with `κ = 0` and the news rate `ι = i₁` if `W_{a+τ} > 0`, else `i₂`: the debt value is at least `min(cfgValue r i₁ ϖ τ, cfgValue r i₂ ϖ τ)`, the price levels `P_a = debtValueAt · r/(s̄ + σW_a)` and `P_a'` satisfy the valuation equations, and the corrected formula holds where `s̄ + σW_a > 0` | `TidyR8GuidanceDateTBM.bm_random_debtValueAt_pos`, `TidyR8GuidanceDateTBM.bm_random_jump_at` |
+
 ## §7.2.1 Maturing debt and a buffer, (7.4)–(7.6), pp. 216–218 (MaturingDebt)
 
 | Book | Claim | Lean |

@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-11-08T03:21:35.928809+00:00",
-  "theorems": 1073,
+  "checked_at_utc": "2026-11-10T21:57:57.050540+00:00",
+  "theorems": 1107,
   "module_theorems": {
     "LongTermDebtDynamics/Determinacy.lean": 23,
     "LongTermDebtDynamics/Expectations.lean": 20,
@@ -52,9 +52,12 @@
     "LongTermDebtDynamics/TidyR7GuidanceItoValuation.lean": 11,
     "LongTermDebtDynamics/TidyR7GuidanceItoBM.lean": 21,
     "LongTermDebtDynamics/TidyR7GuidanceItoCex.lean": 23,
-    "LongTermDebtDynamics/TidyR7GuidanceItoLinks.lean": 4
+    "LongTermDebtDynamics/TidyR7GuidanceItoLinks.lean": 4,
+    "LongTermDebtDynamics/TidyR8GuidanceDateT.lean": 13,
+    "LongTermDebtDynamics/TidyR8SurplusInterchange.lean": 6,
+    "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean": 15
   },
-  "audited_declarations": 1352,
+  "audited_declarations": 1393,
   "declarations": [
     {
       "name": "Cochrane.LongTermDebtDynamics.SchurStable",
@@ -6815,6 +6818,211 @@
       "name": "Cochrane.LongTermDebtDynamics.TidyR7GuidanceItoLinks.tendsto_fgJump_cfgJump",
       "kind": "theorem",
       "module": "LongTermDebtDynamics/TidyR7GuidanceItoLinks.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.GuidanceSDFAt",
+      "kind": "structure",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.GuidanceSDFAt.mk",
+      "kind": "constructor",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.GuidanceSDFAt.pre",
+      "kind": "projection",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.GuidanceSDFAt.post",
+      "kind": "projection",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.debtValueAt",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.pvSurplusAt",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.setIntegral_Ioi_shift",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.debtValueAt_eq_Ioi",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.pvSurplusAt_eq_Ioi",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.GuidanceSDF.toAt",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.debtValueAt_zero",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.pvSurplusAt_zero",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.condExp_guidanceAt",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.condExp_debtValueAt",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.condExp_debtValueAt_Ioi",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.debtValueAt_guidance",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.guidance_jump_at",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.condExp_debtValueAt_random",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.random_jump_at",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateT.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8SurplusInterchange.integrable_surplus_of_majorant",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8SurplusInterchange.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8SurplusInterchange.ae_integrable_surplus",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8SurplusInterchange.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8SurplusInterchange.setIntegral_pvSurplusAt",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8SurplusInterchange.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8SurplusInterchange.pvSurplusAt_interchange",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8SurplusInterchange.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8SurplusInterchange.valuation_interchanged_at",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8SurplusInterchange.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8SurplusInterchange.priceLevel_interchanged_at",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8SurplusInterchange.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.integrable_prod_bound_idx",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bmSDF_mid_eq",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bmSDF_mid",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.guidanceSDFAt_bm",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.integrable_debtAt_bm",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bmSurplus",
+      "kind": "def",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.condExp_bmSurplus",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.integrable_surplusAt_bm",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.pvSurplusAt_bm",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bmW_not_ae_const",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.pvSurplusAt_bm_not_const",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.condExp_debtAt_bm",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.condExp_debtAt_bm_not_const",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bm_guidance_jump_at",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bm_random_debtValueAt_pos",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    },
+    {
+      "name": "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bm_random_jump_at",
+      "kind": "theorem",
+      "module": "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
     }
   ],
   "full_build": "passed",
@@ -13575,6 +13783,211 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.GuidanceSDFAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.GuidanceSDFAt.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.GuidanceSDFAt.pre": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.GuidanceSDFAt.post": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.debtValueAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.pvSurplusAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.setIntegral_Ioi_shift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.debtValueAt_eq_Ioi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.pvSurplusAt_eq_Ioi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.GuidanceSDF.toAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.debtValueAt_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.pvSurplusAt_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.condExp_guidanceAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.condExp_debtValueAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.condExp_debtValueAt_Ioi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.debtValueAt_guidance": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.guidance_jump_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.condExp_debtValueAt_random": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateT.random_jump_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8SurplusInterchange.integrable_surplus_of_majorant": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8SurplusInterchange.ae_integrable_surplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8SurplusInterchange.setIntegral_pvSurplusAt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8SurplusInterchange.pvSurplusAt_interchange": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8SurplusInterchange.valuation_interchanged_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8SurplusInterchange.priceLevel_interchanged_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.integrable_prod_bound_idx": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bmSDF_mid_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bmSDF_mid": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.guidanceSDFAt_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.integrable_debtAt_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bmSurplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.condExp_bmSurplus": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.integrable_surplusAt_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.pvSurplusAt_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bmW_not_ae_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.pvSurplusAt_bm_not_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.condExp_debtAt_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.condExp_debtAt_bm_not_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bm_guidance_jump_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bm_random_debtValueAt_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.LongTermDebtDynamics.TidyR8GuidanceDateTBM.bm_random_jump_at": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -13629,15 +14042,18 @@
     "LongTermDebtDynamics/TidyR7GuidanceItoBM.lean": "ca404e85ccfce4fa29084fad1c1d18a6a9ae6f5d061145f89dc571be1a11c1e2",
     "LongTermDebtDynamics/TidyR7GuidanceItoCex.lean": "aff9d7ec6f7cc593f46d56419effdeff9c0372b77a7f83376ddafb23ea6b02e9",
     "LongTermDebtDynamics/TidyR7GuidanceItoLinks.lean": "b00ee7c7c64e206a925d19217fe3c91e54303b0e337fc3256d69c3d638f056b8",
-    "LongTermDebtDynamics.lean": "b9e6be99262d3d8323cd5aadb91e7cadf4331339bdf75d2005db6b0056dbf0b7",
+    "LongTermDebtDynamics/TidyR8GuidanceDateT.lean": "87ccbbbd21a90e9645cffd750a35b1f2107b11d6bbf2ac0f619a4ac1ca0cbb89",
+    "LongTermDebtDynamics/TidyR8SurplusInterchange.lean": "ee38cbfb9ff10c6b8069d8cb8ede2ed86d0bd60b646ac94f150bf07dcfac4282",
+    "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean": "dab12209229ae158833aebb7c9906d240723ef20c0a6cdfdb8594cdf8b2b1b8a",
+    "LongTermDebtDynamics.lean": "fd482d96fb61c0a7464bf13148f191c580984cd1a14be660dc5b0549abfa0e03",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "32aee420ad61a418c3baff9176097c8a6d10510372f4662944e87c82cef2f13e",
     "lake-manifest.json": "8640ffa3c8aa40400a34f2948821c84266e5f806da8619b2b23a9c93b580304f",
-    "proof-manifest.json": "ce11e03c0744de1e2b37780a7d464e3632c28f78372e5bf625203e7045019375",
+    "proof-manifest.json": "008d98441dce61db14da8463192c6311d1cad355065a6cf3fa6cf7cc9fa07754",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "b270e634a5fb1d0febe18a701f5e374ec880a826530ee0e5e8ec30ad6b6222c8",
+  "fresh_audit_sha256": "661a90aec00f10fe74fd71d259fa324aed149269f6427d36b321053d780ac217",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 7 (with Online Appendix A1.2.1, A1.14): Long-term debt dynamics. The maturity structure with flow and present-value relations (equivalent under transversality); forward guidance and bond-price targets (T >= k sharp), with discrete and continuous closed forms; maturing debt as a buffer; bond sales, dilution and unit elasticity; future sales in three periods; the general formula (7.17) with the explicit chain-sum weights, its convergence under a row condition, uniqueness of the price level without buy-backs, and a counterexample showing the present-value system need not determine the price level; policy constraints (Theorem P), QE trade-offs; quantitative easing with existence and uniqueness of the required purchases. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 7, pp. 212-236, and Online Appendix A1.2.1 and A1.14."
