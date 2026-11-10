@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-11-08T03:18:44.882443+00:00",
-  "theorems": 1525,
+  "checked_at_utc": "2026-11-10T22:03:38.550456+00:00",
+  "theorems": 1581,
   "module_theorems": {
     "Generality/Determinacy.lean": 23,
     "Generality/Expectations.lean": 20,
@@ -51,9 +51,13 @@
     "Generality/TidyR7JumpSums.lean": 28,
     "Generality/TidyR7ProductStepJump.lean": 43,
     "Generality/TidyR7ProductStepJumpCoin.lean": 27,
-    "Generality/TidyR7JumpDiscountFactor.lean": 7
+    "Generality/TidyR7JumpDiscountFactor.lean": 7,
+    "Generality/TidyR8ConditionalFubini.lean": 7,
+    "Generality/TidyR8OUPresentValue.lean": 18,
+    "Generality/TidyR8ShortDebtRealForm.lean": 13,
+    "Generality/TidyR8StochasticNews.lean": 18
   },
-  "audited_declarations": 1917,
+  "audited_declarations": 1993,
   "declarations": [
     {
       "name": "Cochrane.Generality.SchurStable",
@@ -9639,6 +9643,386 @@
       "name": "Cochrane.Generality.TidyR7JumpDiscountFactor.coin_innovation",
       "kind": "theorem",
       "module": "Generality/TidyR7JumpDiscountFactor.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ConditionalFubini.measurableSpace_prod_le_prod",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ConditionalFubini.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ConditionalFubini.integrable_uncurry_of_integral_abs",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ConditionalFubini.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ConditionalFubini.integrable_uncurry_version",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ConditionalFubini.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ConditionalFubini.condExp_integral_interchange",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ConditionalFubini.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ConditionalFubini.integral_integral_interchange",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ConditionalFubini.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ConditionalFubini.condExp_integral_interchange_of_integral_abs",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ConditionalFubini.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ConditionalFubini.condExp_integral_revision",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ConditionalFubini.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.ouPath",
+      "kind": "def",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.pvPath",
+      "kind": "def",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.hasDerivAt_exp_mul",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.ouI_byParts",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.ouPath_ae_eq",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.continuous_ouPath",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.measurable_uncurry_expW",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.measurable_ouPath",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.measurable_uncurry_pv",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.integrable_ou",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.stronglyMeasurable_ou",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.integral_abs_ou_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.integrableOn_pv_bound",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.integrable_uncurry_pv",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.pv_integrable_ae",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.pv_condExp",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.pv_revision",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.pv_revision_sq_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.pv_sigma_zero",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8OUPresentValue.bmPath_pv_revision_pos",
+      "kind": "theorem",
+      "module": "Generality/TidyR8OUPresentValue.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.realForm_iff",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.shortDebt_realForm",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.shortDebt_realForm_integral",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.cosLam",
+      "kind": "def",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.cos_level_bounds",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.stronglyMeasurable_cos_level",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.abs_cosLam_drift_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.itoProcess_cosLam",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.integrable_cos_level",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.tendsto_const_mul_exp_decay",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.integral_cosLam",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.integral_Ioi_cosLam",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.cosEconomy_realForm",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8ShortDebtRealForm.bmPath_cosEconomy_realForm",
+      "kind": "theorem",
+      "module": "Generality/TidyR8ShortDebtRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.linearEqm_restrict",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.news_value_total",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.news_weighted_inflation_total",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm",
+      "kind": "structure",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.mk",
+      "kind": "constructor",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcV",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcQ",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcB",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcRn",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcInfl",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcS",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.path",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.value",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.adV",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.adQ",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.adB",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.intV",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.intQ",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.intB",
+      "kind": "projection",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.forecast_self_v",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.forecast_self_q",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.forecast_self_b",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.forecast_value",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_is_news",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_value",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_bond",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_weighted_inflation",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_weighted_inflation_predetermined",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.faceValue_revision_sq_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.forecast_pv_condExp",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.ouForecast",
+      "kind": "def",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.integrableOn_forecast",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.fiscalInflation",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.fiscalInflation_surplus_news",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR8StochasticNews.bmPath_fiscalInflation_news_pos",
+      "kind": "theorem",
+      "module": "Generality/TidyR8StochasticNews.lean"
     }
   ],
   "full_build": "passed",
@@ -19215,6 +19599,386 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ConditionalFubini.measurableSpace_prod_le_prod": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ConditionalFubini.integrable_uncurry_of_integral_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ConditionalFubini.integrable_uncurry_version": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ConditionalFubini.condExp_integral_interchange": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ConditionalFubini.integral_integral_interchange": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ConditionalFubini.condExp_integral_interchange_of_integral_abs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ConditionalFubini.condExp_integral_revision": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.ouPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.pvPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.hasDerivAt_exp_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.ouI_byParts": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.ouPath_ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.continuous_ouPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.measurable_uncurry_expW": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.measurable_ouPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.measurable_uncurry_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.integrable_ou": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.stronglyMeasurable_ou": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.integral_abs_ou_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.integrableOn_pv_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.integrable_uncurry_pv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.pv_integrable_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.pv_condExp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.pv_revision": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.pv_revision_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.pv_sigma_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8OUPresentValue.bmPath_pv_revision_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.realForm_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.shortDebt_realForm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.shortDebt_realForm_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.cosLam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.cos_level_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.stronglyMeasurable_cos_level": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.abs_cosLam_drift_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.itoProcess_cosLam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.integrable_cos_level": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.tendsto_const_mul_exp_decay": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.integral_cosLam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.integral_Ioi_cosLam": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.cosEconomy_realForm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8ShortDebtRealForm.bmPath_cosEconomy_realForm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.linearEqm_restrict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.news_value_total": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.news_weighted_inflation_total": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcRn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcInfl": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.adV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.adQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.adB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.intV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.intQ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.intB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.forecast_self_v": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.forecast_self_q": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.forecast_self_b": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.forecast_value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_is_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_value": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_bond": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_weighted_inflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_weighted_inflation_predetermined": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.faceValue_revision_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.forecast_pv_condExp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.ouForecast": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.integrableOn_forecast": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.fiscalInflation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.fiscalInflation_surplus_news": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR8StochasticNews.bmPath_fiscalInflation_news_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -19268,15 +20032,19 @@
     "Generality/TidyR7ProductStepJump.lean": "69f7dd1091c2d656b884728b9784f0dab52eceff1b8ff2f90186c99df4af1bcd",
     "Generality/TidyR7ProductStepJumpCoin.lean": "7949a0cc4d30fbd95e88d26bfac98c53a04cc89ad23edf7976f4295d5c43ca5d",
     "Generality/TidyR7JumpDiscountFactor.lean": "4b9186e17c475f9d22a476380643c88154e3ffda332e175d986b95c593ec971e",
-    "Generality.lean": "07f665f3495051c65adbec950951c3d5cba3b1313f7926a86a8130590304f8d8",
+    "Generality/TidyR8ConditionalFubini.lean": "79792dac3cb6ca3699cf11e4c0e392f7cd6b4f9ce8ec2410c6efda038fd31a99",
+    "Generality/TidyR8OUPresentValue.lean": "67efda9f81afb0923203ab2baf56a841b657e0d75591448e5b1d3fbc0a9695d1",
+    "Generality/TidyR8ShortDebtRealForm.lean": "ac9ee266abe45e5751c6b51fe9f57f2c3b9810cfdf5bfdf15f54df57544b294e",
+    "Generality/TidyR8StochasticNews.lean": "b1b6bbb5103d26593b6edb0b0fae37bde0798821953942519fee62f2e13eb7a8",
+    "Generality.lean": "3f5f67dacc879fa829f4d681fa718073cf505a7659ba49047df5e389a4048e15",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "3dc7ec493361b7b0b8d9f2caf735020fe498c721d7afbc5be6c3b37393920325",
     "lake-manifest.json": "0de844cbb3765f75be5af6b0599f90772090bce532f7b74df153cf6645d4cc5b",
-    "proof-manifest.json": "f493389f207be723bb158c236df22cdda021b0b8d7bf3b7552711ea1bee28741",
+    "proof-manifest.json": "62a8ba4e59e68adbf962e9869ac2826425a72bb9966f8f6e198aa425aa64a6fc",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "f75985d87eeb50902a63fdc0366c05d8f67655c907ed968a32cb29ccef9d7baf",
+  "fresh_audit_sha256": "a6b74092a968a95f4fa5b44559f5d0dcc5c344225bd1624e47d994800e1b6164",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 3 (with Online Appendix A1.2-A1.6, A1.9.1): A bit of generality. Long-term debt with finite and geometric maturity structures (flow plus transversality equivalent to the present value), price jumps and forward guidance; ratios to GDP; stochastic discount factors, inverse returns and ex-post present values (which converge on every finite event tree); money and the three present-value forms with their transversality conditions; the log-linear identities as exact derivatives (rho = e^{-(r-g)}, bond-return weight omega/(1+i)), the unexpected-inflation and weighted-inflation identities, Figure 3.1 reconciled; the MSV solution; continuous time with short, long and general maturity densities, linear identities and money; links between discrete and continuous weights and valuations. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 3, pp. 52-80, and Online Appendix A1.2-A1.6 and A1.9.1."

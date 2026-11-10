@@ -19,7 +19,7 @@ by a Brownian motion and with càdlàg martingales; the Brownian, Itô and jump 
 from the Monetarism project. The common thread is one theorem in many settings: **the flow
 condition plus the transversality condition at every date hold iff the real value of the debt
 equals the present value of surpluses at every date**, and then the valuation equation determines
-the price level. The library contains **1525 theorems**, including the shared core and 660 in the
+the price level. The library contains **1581 theorems**, including the shared core and 660 in the
 twenty-five copied Brownian, Itô and jump modules; 757 of them are in the twenty-one chapter
 modules.
 
@@ -92,7 +92,7 @@ Headline results, in the namespace `Cochrane.Generality`:
   (`ContinuousLinear.short_limit`, E20); and the money valuations (3.53)–(3.55)
   (`ContinuousMoney.money_printing_iff`, `ContinuousMoney.money_interest_iff`,
   `ContinuousMoney.money_mixed_iff`).
-* **Diffusions and jumps ((3.44)–(3.45), A1.4–A1.5).** With the discount factor `Λ` and the value
+* **Diffusions and jumps ((3.44)–(3.51), A1.4–A1.5).** With the discount factor `Λ` and the value
   of debt `V` Itô processes driven by one Brownian motion
   (`TidyR7ItoDiscountFactor.ItoDiscountModel`), the book's expanded
   `E_t[dΛ/Λ + dW/W + dΛdW/(ΛW)] = 0` is a coefficient identity
@@ -112,7 +112,26 @@ Headline results, in the namespace `Cochrane.Generality`:
   (`TidyR7ItoInnovation.innovation_sq_le`). The AR(1) surplus solves `ds = −ηs dt + σdε`
   (`TidyR7ItoInnovation.ou_sde`), its forecasts follow (3.44) (`TidyR7ItoInnovation.forecast_sde`),
   and the innovation of its present value is `σ/(r + η)dε` to first order
-  (`TidyR7ItoInnovation.pv_innovation`). With jumps, `dΛdW` is the jump covariation `ΔΛΔW`
+  (`TidyR7ItoInnovation.pv_innovation`). Over the actual stochastic path, a conditional Fubini
+  theorem (`TidyR8ConditionalFubini.condExp_integral_interchange`) gives
+  `E_t∫_0^∞e^{−rτ}s_{t+τ}dτ = s_t/(r + η)` for `r > 0` (`TidyR8OUPresentValue.pv_condExp`), and
+  the revision `E_tPV_t − E_qPV_t = (σ/(r + η))e^{−ηt}∫_q^te^{ηv}dW` is exact
+  (`TidyR8OUPresentValue.pv_revision`). The real form of A1.4,
+  `B_t/P_t = E_t∫_t^∞(Λ_τ/Λ_t)s_τdτ`, holds iff the transversality condition under an Itô `Λ`
+  with `Λ_t ≠ 0` a.s. and `G/Λ_t` integrable
+  (`TidyR8ShortDebtRealForm.shortDebt_realForm_integral`), in an economy with the random discount factor `Λ_s = 2 + cos W_s`
+  (`TidyR8ShortDebtRealForm.cosEconomy_realForm`). (3.46)–(3.51) hold as revisions of
+  conditional expectations in a stochastic linearised equilibrium
+  (`TidyR8StochasticNews.StochLinearEqm`; `TidyR8StochasticNews.StochLinearEqm.revision_value`,
+  `TidyR8StochasticNews.StochLinearEqm.revision_bond`,
+  `TidyR8StochasticNews.StochLinearEqm.revision_weighted_inflation`), (3.51) with the
+  face-value revision `b_t − E_{t₀}b_t`, which vanishes when `b_t` is predetermined
+  (`TidyR8StochasticNews.StochLinearEqm.revision_weighted_inflation_predetermined`), and forward
+  integrals of forecasts are conditional expectations of forward integrals of the actual
+  processes (`TidyR8StochasticNews.forecast_pv_condExp`). That the forecast paths satisfy the
+  linear model is a field of `StochLinearEqm`, assumed in general and verified in the AR(1)
+  example `TidyR8StochasticNews.fiscalInflation`, a fiscal shock absorbed entirely by
+  expected inflation. With jumps, `dΛdW` is the jump covariation `ΔΛΔW`
   (`TidyR7JumpDiscountFactor.jump_pricing_iff`), and dropping it fails on a coin
   (`TidyR7JumpDiscountFactor.coin_jump_bookForm_fails`). The Brownian, Itô and jump modules are
   copied, with only the namespace renamed, from the Monetarism project.
@@ -198,15 +217,21 @@ Not formalised:
   `LogLinearIdentities.special_constant_short` is the statement on this side;
 * (3.44)–(3.45) and A1.4–A1.5 are proved for Itô processes with bounded coefficients and one
   Brownian motion (`TidyR7ItoDiscountFactor`, `TidyR7ItoInnovation`), and for compensated jumps
-  (`TidyR7JumpDiscountFactor`); remaining: the pathwise `d(V/W) = −(s/W)dt` and (1.28) with
-  diffusions, which need Itô's formula for `1/W`; the converse, that a martingale `ΛW` forces the
-  coefficient identity; positivity of `Λ` (the Gaussian discount factors of the examples can be
-  negative); `E_t∫_0^∞e^{−rτ}s_{t+τ}dτ` for the stochastic AR(1) path, which needs a conditional
-  Fubini theorem (the present value is taken over the forecast path,
-  `TidyR7ItoInnovation.pv_expected_path`); the real form `B/P = E_t∫(Λ_τ/Λ_t)s_τdτ` of A1.4; with
-  jumps, an instance with `E_t[d(ΛW)] = 0` and a nonzero jump covariation, and any jump-diffusion
-  model; and stochastic versions of the innovation identities (3.46)–(3.51), which remain
-  differences between two perfect-foresight paths (`ContinuousLinear.Eqm.LinearEqm`);
+  (`TidyR7JumpDiscountFactor`); the present value `E_t∫_0^∞e^{−rτ}s_{t+τ}dτ` over the actual
+  AR(1) path by a conditional Fubini theorem, for `r > 0` (`TidyR8ConditionalFubini`,
+  `TidyR8OUPresentValue`); and the real form `B/P = E_t∫(Λ_τ/Λ_t)s_τdτ` of A1.4 under
+  `Λ_t ≠ 0` a.s. and `G/Λ_t` integrable (`TidyR8ShortDebtRealForm`). (3.46)–(3.51) are revisions
+  of conditional expectations in a stochastic linearised equilibrium whose forecast paths
+  satisfy the linear model (`TidyR8StochasticNews`); that forecast-path property is assumed in
+  general and verified in the AR(1) example. Remaining: the pathwise `d(V/W) = −(s/W)dt` and
+  (1.28) with diffusions, which need Itô's formula for `1/W`; the converse, that a martingale
+  `ΛW` forces the coefficient identity; positivity of `Λ` (the Gaussian discount factors of the
+  examples can be negative); with jumps, an instance with `E_t[d(ΛW)] = 0` and a nonzero jump
+  covariation, and any jump-diffusion model; a derivation of the forecast-path property from a
+  general Itô-process model; a theorem identifying the value revision in (3.46) with the
+  `dW`-part of the bond return; an instance with a nonzero bond-price innovation (`σ_R ≠ 0`);
+  the literal fixed-start revision `E_t[PV_q] − E_q[PV_q]`; and a counterexample showing that
+  the actual-path present value fails for `r ≤ 0`;
 * a Gaussian instance of `TidyR6InnovMeasure.MGrowthEconomy`. The almost-everywhere theorems
   are universally quantified, and `TidyR6InnovMeasure.L2Growth.toL1` covers stationary `L²`
   processes, but no Gaussian economy is constructed.
@@ -275,6 +300,10 @@ Stated limits of the results that are formalised:
 | [TidyR7ProductStepJump](Generality/TidyR7ProductStepJump.lean) | 43 | Copied from the Monetarism project: the corrected product step for adapted càdlàg bounded-variation positions, with the jump covariation as a third term (`JumpStepData`); its two-term Lebesgue–Stieltjes form; the left-point step holds iff the expected jump covariation vanishes; continuous positions recover `TidyR7ProductStep` |
 | [TidyR7ProductStepJumpCoin](Generality/TidyR7ProductStepJumpCoin.lean) | 27 | Copied from the Monetarism project: on the coin, positions jumping with the news break the left-point step (`1 ≠ 0`), positions jumping with the drift part break the two-term Lebesgue–Stieltjes step (`1 ≠ 1 + 1`); the corrected step holds in both and with a non-shared jump |
 | [TidyR7JumpDiscountFactor](Generality/TidyR7JumpDiscountFactor.lean) | 7 | (3.44)–(3.45) and A1.5, pp. 76–77, 566, with jumps: `E_t[d(ΛW)] = 0` with the jump covariation `ΔΛΔW`, the bracket-free step failing on a coin; the innovation of a compensated jump |
+| [TidyR8ConditionalFubini](Generality/TidyR8ConditionalFubini.lean) | 7 | §3.6, pp. 70–79: the conditional Fubini theorem `E[∫X_τdν \| m] = ∫Y_τdν` for a jointly measurable version `Y` of `E[X_τ \| m]`, from integrability on `ν ⊗ μ` or the book-form `∫E\|X_τ\|dν < ∞`; the unconditional case; the revision of an expected integral is the integral of the revisions |
+| [TidyR8OUPresentValue](Generality/TidyR8OUPresentValue.lean) | 18 | §3.6.3, (3.45), p. 77: the AR(1) surplus as a continuous path (the Wiener integral by parts, a modification of `TidyR7ItoInnovation.ou`); `E_t∫_0^∞e^{−rτ}s_{t+τ}dτ = s_t/(r + η)` over the actual path for `r > 0`, `r + η > 0`; its exact revision `(σ/(r + η))e^{−ηt}∫_q^te^{ηv}dW`, first order `σ/(r + η)dε`; non-vacuity on `bmPath` |
+| [TidyR8ShortDebtRealForm](Generality/TidyR8ShortDebtRealForm.lean) | 13 | A1.4, pp. 564–565: the real form `B_t/P_t = E_t∫_t^∞(Λ_τ/Λ_t)s_τdτ` iff the transversality condition with an Itô discount factor, under `Λ_t ≠ 0` a.s. and `G/Λ_t` integrable; an economy with the random discount factor `Λ_s = 2 + cos W_s` |
+| [TidyR8StochasticNews](Generality/TidyR8StochasticNews.lean) | 18 | §3.6.3, (3.42)–(3.51), pp. 76–79: the stochastic linearised equilibrium `StochLinearEqm` (forecast paths satisfying the linear model, a field); (3.46), (3.50) and (3.51) as revisions of conditional expectations, (3.51) with the face-value revision; forecast integrals as conditional expectations; the link with `ContinuousLinear`; the AR(1) example `fiscalInflation` |
 
 ## Modelling conventions
 

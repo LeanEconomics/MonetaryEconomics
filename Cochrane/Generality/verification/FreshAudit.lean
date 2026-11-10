@@ -61,6 +61,8 @@ import Mathlib.Algebra.QuadraticDiscriminant
 import Mathlib.Analysis.SpecialFunctions.Integrals.Basic
 import Mathlib.Probability.ProbabilityMassFunction.Integrals
 import Mathlib.Probability.Distributions.Uniform
+import Mathlib.MeasureTheory.Integral.Prod
+import Mathlib.Analysis.SpecialFunctions.Gaussian.GaussianIntegral
 set_option autoImplicit false
 
 /-
@@ -30066,6 +30068,1618 @@ theorem coin_innovation (c : ℝ) :
 
 end Cochrane.Generality.TidyR7JumpDiscountFactor
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# A conditional Fubini theorem: `E_t ∫ X_τ dτ = ∫ E_t X_τ dτ`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 3, §3.6, pp. 70–79: the
+continuous-time present values `E_t ∫_0^∞ e^{−rτ} s_{t+τ} dτ` of (3.31)–(3.36) and (3.43), the
+AR(1) example after (3.44)–(3.45) on p. 77, and the innovation identities (3.46)–(3.51). The book
+moves `E_t` inside the time integral throughout (e.g. p. 77,
+`E_t ∫_0^∞ e^{−rτ}s_{t+τ}dτ = ∫_0^∞ e^{−(r+η)τ}s_t dτ`). This module proves that interchange.
+
+## The difficulty and how it is handled
+
+For each `τ` the conditional expectation `E[X_τ | m]` is only an almost-everywhere class, so
+`τ ↦ E[X_τ | m](ω)` need not be a measurable path. The theorem therefore asks for a *version*
+`Y` of the conditional expectations that is jointly measurable in `(τ, ω)` for the product of the
+time σ-algebra with the conditioning σ-algebra `m`, with `Y_τ = E[X_τ | m]` a.s. for almost every
+`τ`. In the applications (`TidyR8OUPresentValue`, `TidyR8StochasticNews`) such a version is
+explicit, e.g. `Y(τ, ω) = e^{−ητ}s_t(ω)` for the AR(1) surplus.
+
+## Main results
+
+* `condExp_integral_interchange` (**conditional Fubini**): if `X` is integrable on `ν ⊗ μ`
+  (`ν` any s-finite measure on the time axis, for instance `e^{−rτ}dτ` on `(0, ∞)` folded into
+  `X`) and `Y` is such a version, then a.s. `E[∫ X_τ dν | m] = ∫ Y_τ dν`.
+* `integrable_uncurry_of_integral_abs`: the hypothesis in the book's form — `X` jointly
+  measurable, every `X_τ` integrable and `τ ↦ E|X_τ|` integrable for `ν` (`∫E|X_τ|e^{−rτ}dτ < ∞`)
+  — gives integrability on `ν ⊗ μ`.
+* `integrable_uncurry_version`: the version `Y` is then itself integrable on `ν ⊗ μ`.
+* `integral_integral_interchange`: the unconditional case `E ∫ X_τ dν = ∫ E X_τ dν`.
+* `condExp_integral_interchange_of_integral_abs`: the interchange from the book-form hypotheses.
+* `condExp_integral_revision`: the revision between two conditioning σ-algebras `m₁ ≤ m₂` is the
+  integral of the revisions of the versions, `E[∫X | m₂] − E[∫X | m₁] = ∫ (Y² − Y¹)` a.s.
+-/
+
+namespace Cochrane.Generality.TidyR8ConditionalFubini
+
+open MeasureTheory Function
+
+variable {T Ω : Type*} {mT : MeasurableSpace T} {m m₁ m₂ mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+  {ν : Measure T}
+
+/-- Cochrane (2023), §3.6, pp. 70–79: the product σ-algebra on `T × Ω` is monotone in the
+σ-algebra on `Ω` (a function measurable for `mT ⊗ m` is measurable for `mT ⊗ mΩ` when
+`m ≤ mΩ`). -/
+theorem measurableSpace_prod_le_prod (hm : m ≤ mΩ) :
+    (@Prod.instMeasurableSpace T Ω mT m) ≤ (@Prod.instMeasurableSpace T Ω mT mΩ) :=
+  sup_le_sup le_rfl (MeasurableSpace.comap_mono hm)
+
+/-- **Cochrane (2023), §3.6, pp. 70–79 (`∫ E|X_τ| e^{−rτ}dτ < ∞`):** a jointly measurable
+process with integrable values whose mean absolute value is `ν`-integrable is integrable on
+`ν ⊗ μ`.
+One direction of Mathlib `integrable_prod_iff`. -/
+theorem integrable_uncurry_of_integral_abs [SFinite ν] [SFinite μ] {X : T → Ω → ℝ}
+    (hX : AEStronglyMeasurable (uncurry X) (ν.prod μ)) (hXi : ∀ᵐ τ ∂ν, Integrable (X τ) μ)
+    (hXa : Integrable (fun τ => ∫ ω, |X τ ω| ∂μ) ν) : Integrable (uncurry X) (ν.prod μ) :=
+  (integrable_prod_iff hX).2 ⟨hXi, by simpa [Real.norm_eq_abs] using hXa⟩
+
+/-- Cochrane (2023), §3.6, pp. 70–79: a jointly `mT ⊗ m`-measurable version `Y` of the
+conditional expectations `E[X_τ | m]` of an integrable `X` is integrable on `ν ⊗ μ`, since
+`E|E[X_τ | m]| ≤ E|X_τ|` (Mathlib `integral_abs_condExp_le`). -/
+theorem integrable_uncurry_version [SFinite ν] [IsFiniteMeasure μ] (hm : m ≤ mΩ)
+    {X Y : T → Ω → ℝ} (hX : Integrable (uncurry X) (ν.prod μ))
+    (hY : @StronglyMeasurable (T × Ω) ℝ _ (@Prod.instMeasurableSpace T Ω mT m) (uncurry Y))
+    (hXY : ∀ᵐ τ ∂ν, Y τ =ᵐ[μ] μ[X τ | m]) : Integrable (uncurry Y) (ν.prod μ) := by
+  have hYm : StronglyMeasurable (uncurry Y) := hY.mono (measurableSpace_prod_le_prod hm)
+  have hXp := (integrable_prod_iff hX.aestronglyMeasurable).1 hX
+  refine (integrable_prod_iff hYm.aestronglyMeasurable).2 ⟨?_, ?_⟩
+  · filter_upwards [hXY] with τ hτ
+    exact integrable_condExp.congr hτ.symm
+  · refine Integrable.mono' hXp.2 hYm.aestronglyMeasurable.norm.integral_prod_right' ?_
+    filter_upwards [hXY] with τ hτ
+    rw [Real.norm_eq_abs, abs_of_nonneg (integral_nonneg fun _ => norm_nonneg _)]
+    have e1 : ∫ ω, ‖uncurry Y (τ, ω)‖ ∂μ = ∫ ω, |μ[X τ | m] ω| ∂μ := by
+      refine integral_congr_ae ?_
+      filter_upwards [hτ] with ω hω
+      simp only [uncurry_apply_pair, Real.norm_eq_abs, hω]
+    have e2 : ∫ ω, ‖uncurry X (τ, ω)‖ ∂μ = ∫ ω, |X τ ω| ∂μ := by
+      simp only [uncurry_apply_pair, Real.norm_eq_abs]
+    rw [e1, e2]
+    exact integral_abs_condExp_le (X τ)
+
+/-- **Cochrane (2023), §3.6, pp. 70–79, p. 77 (`E_t ∫ e^{−rτ}s_{t+τ}dτ = ∫ e^{−rτ}E_t s_{t+τ}dτ`):
+the conditional Fubini theorem.** Let `μ` be finite, `m ≤ mΩ` a sub-σ-algebra, `ν` an s-finite
+measure on the time axis, `X` integrable on `ν ⊗ μ`, and `Y` a version of the conditional
+expectations, jointly measurable for `mT ⊗ m`, with `Y_τ = E[X_τ | m]` a.s. for `ν`-a.e. `τ`. Then
+a.s. `E[∫ X_τ dν(τ) | m] = ∫ Y_τ dν(τ)`. -/
+theorem condExp_integral_interchange [SFinite ν] [IsFiniteMeasure μ] (hm : m ≤ mΩ)
+    {X Y : T → Ω → ℝ} (hX : Integrable (uncurry X) (ν.prod μ))
+    (hY : @StronglyMeasurable (T × Ω) ℝ _ (@Prod.instMeasurableSpace T Ω mT m) (uncurry Y))
+    (hXY : ∀ᵐ τ ∂ν, Y τ =ᵐ[μ] μ[X τ | m]) :
+    μ[fun ω => ∫ τ, X τ ω ∂ν | m] =ᵐ[μ] fun ω => ∫ τ, Y τ ω ∂ν := by
+  have hYi := integrable_uncurry_version hm hX hY hXY
+  have hgm : StronglyMeasurable[m] (fun ω => ∫ τ, Y τ ω ∂ν) :=
+    @StronglyMeasurable.integral_prod_left T Ω ℝ mT m ν _ _ _ Y hY
+  have hf : Integrable (fun ω => ∫ τ, X τ ω ∂ν) μ := hX.integral_prod_right (f := uncurry X)
+  have hg : Integrable (fun ω => ∫ τ, Y τ ω ∂ν) μ := hYi.integral_prod_right (f := uncurry Y)
+  refine (ae_eq_condExp_of_forall_setIntegral_eq hm hf (fun _ _ _ => hg.integrableOn)
+    (fun A hA _ => ?_) hgm.aestronglyMeasurable).symm
+  have rest : ∀ {Z : T → Ω → ℝ}, Integrable (uncurry Z) (ν.prod μ) →
+      Integrable (uncurry Z) (ν.prod (μ.restrict A)) := fun {Z} hZ => by
+    have e : ν.prod (μ.restrict A) = (ν.prod μ).restrict (Set.univ ×ˢ A) := by
+      rw [← Measure.prod_restrict, Measure.restrict_univ]
+    rw [e]
+    exact hZ.restrict
+  rw [← integral_integral_swap (rest hYi), ← integral_integral_swap (rest hX)]
+  refine integral_congr_ae ?_
+  filter_upwards [hXY, (integrable_prod_iff hX.aestronglyMeasurable).1 hX |>.1] with τ hτ hXτ
+  rw [setIntegral_congr_ae (hm A hA) (hτ.mono fun _ h _ => h)]
+  exact setIntegral_condExp hm hXτ hA
+
+/-- **Cochrane (2023), §3.6, pp. 70–79: the unconditional interchange** `E ∫ X_τ dν = ∫ E X_τ dν`
+for `X` integrable on `ν ⊗ μ` (Mathlib `integral_integral_swap`). -/
+theorem integral_integral_interchange [SFinite ν] [SFinite μ] {X : T → Ω → ℝ}
+    (hX : Integrable (uncurry X) (ν.prod μ)) :
+    ∫ ω, ∫ τ, X τ ω ∂ν ∂μ = ∫ τ, ∫ ω, X τ ω ∂μ ∂ν :=
+  (integral_integral_swap hX).symm
+
+/-- **Cochrane (2023), §3.6, pp. 70–79, p. 77: the conditional Fubini theorem from the
+book-form hypotheses**: `X` jointly measurable, each `X_τ` integrable, `∫ E|X_τ| dν < ∞`
+(e.g. `∫_0^∞ E|s_{t+τ}| e^{−rτ}dτ < ∞`), and a jointly `mT ⊗ m`-measurable version `Y`. -/
+theorem condExp_integral_interchange_of_integral_abs [SFinite ν] [IsFiniteMeasure μ]
+    (hm : m ≤ mΩ) {X Y : T → Ω → ℝ}
+    (hXm : AEStronglyMeasurable (uncurry X) (ν.prod μ)) (hXi : ∀ᵐ τ ∂ν, Integrable (X τ) μ)
+    (hXa : Integrable (fun τ => ∫ ω, |X τ ω| ∂μ) ν)
+    (hY : @StronglyMeasurable (T × Ω) ℝ _ (@Prod.instMeasurableSpace T Ω mT m) (uncurry Y))
+    (hXY : ∀ᵐ τ ∂ν, Y τ =ᵐ[μ] μ[X τ | m]) :
+    μ[fun ω => ∫ τ, X τ ω ∂ν | m] =ᵐ[μ] fun ω => ∫ τ, Y τ ω ∂ν :=
+  condExp_integral_interchange hm (integrable_uncurry_of_integral_abs hXm hXi hXa) hY hXY
+
+/-- **Cochrane (2023), §3.6.3, pp. 76–79 (`Δ_t ∫ e^{−rτ}x_{t+τ}dτ = ∫ e^{−rτ}Δ_t x_{t+τ}dτ`):
+the revision of an expected integral is the integral of the revisions.** For sub-σ-algebras
+`m₁, m₂ ≤ mΩ` with versions `Y¹, Y²` as in `condExp_integral_interchange`, a.s.
+`E[∫X | m₂] − E[∫X | m₁] = ∫ (Y²_τ − Y¹_τ) dν`. -/
+theorem condExp_integral_revision [SFinite ν] [IsFiniteMeasure μ]
+    (hm₁ : m₁ ≤ mΩ) (hm₂ : m₂ ≤ mΩ) {X Y₁ Y₂ : T → Ω → ℝ}
+    (hX : Integrable (uncurry X) (ν.prod μ))
+    (hY₁ : @StronglyMeasurable (T × Ω) ℝ _ (@Prod.instMeasurableSpace T Ω mT m₁) (uncurry Y₁))
+    (hY₂ : @StronglyMeasurable (T × Ω) ℝ _ (@Prod.instMeasurableSpace T Ω mT m₂) (uncurry Y₂))
+    (hXY₁ : ∀ᵐ τ ∂ν, Y₁ τ =ᵐ[μ] μ[X τ | m₁]) (hXY₂ : ∀ᵐ τ ∂ν, Y₂ τ =ᵐ[μ] μ[X τ | m₂]) :
+    (fun ω => μ[fun ω => ∫ τ, X τ ω ∂ν | m₂] ω - μ[fun ω => ∫ τ, X τ ω ∂ν | m₁] ω) =ᵐ[μ]
+      fun ω => ∫ τ, (Y₂ τ ω - Y₁ τ ω) ∂ν := by
+  have i₁ := integrable_uncurry_version hm₁ hX hY₁ hXY₁
+  have i₂ := integrable_uncurry_version hm₂ hX hY₂ hXY₂
+  filter_upwards [condExp_integral_interchange hm₁ hX hY₁ hXY₁,
+    condExp_integral_interchange hm₂ hX hY₂ hXY₂,
+    (integrable_prod_iff' i₁.aestronglyMeasurable).1 i₁ |>.1,
+    (integrable_prod_iff' i₂.aestronglyMeasurable).1 i₂ |>.1] with ω h1 h2 h3 h4
+  rw [h1, h2, integral_sub (f := fun τ => Y₂ τ ω) (g := fun τ => Y₁ τ ω) h4 h3]
+
+end Cochrane.Generality.TidyR8ConditionalFubini
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The present value of the actual AR(1) surplus path: `E_t∫_0^∞ e^{−rτ}s_{t+τ}dτ = s_t/(r + η)`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 3, §3.6.3, p. 77 (the
+AR(1) example after (3.44)–(3.45)): for `ds = −ηs dt + σ dε`,
+`E_t∫_0^∞ e^{−rτ}s_{t+τ}dτ = ∫_0^∞ e^{−(r+η)τ}s_t dτ = s_t/(r + η)`, and the innovation of the
+present value is `σ/(r + η) dε`. `TidyR7ItoInnovation.pv_expected_path` proved the first equality
+for the forecast path `τ ↦ E_t s_{t+τ}` only. Here the integral is over the **actual stochastic
+path**, and `E_t` is moved inside by the conditional Fubini theorem
+(`TidyR8ConditionalFubini.condExp_integral_interchange`).
+
+## A path-regular version of the surplus
+
+`TidyR7ItoInnovation.ou` is defined through an Itô integral, which is an a.s. class for each `u`,
+so `τ ↦ s_{t+τ}(ω)` is not a path. For a Brownian motion with continuous paths,
+`ouPath` is the pathwise formula obtained by integrating the Wiener integral by parts,
+`s_u = e^{−ηu}(s₀ + σ(e^{ηu}W_u − W_0 − η∫_0^u e^{ηv}W_v dv))`:
+* `ouI_byParts`: a.s. `∫_0^u e^{ηv}dW_v = e^{ηu}W_u − W_0 − η∫_0^u e^{ηv}W_v dv` (Itô's product
+  rule for `e^{ηu}·W_u`, `TidyR7ItoProductRule.product_rule_pathwise`);
+* `ouPath_ae_eq`: `ouPath` is a modification of `ou` (`ouPath_u = ou_u` a.s. for each `u ≥ 0`);
+* `continuous_ouPath`, `measurable_ouPath`, `measurable_uncurry_pv`: continuous paths and joint
+  measurability, so `∫_0^∞ e^{−rτ}s_{t+τ}(ω) dτ` is a genuine path integral.
+
+## Main results (`0 < r`, `0 < r + η`)
+
+* `integral_abs_ou_le`: `E|s_u| ≤ e^{−ηu}|s₀| + |σ|(1 + u)e^{max(−η,0)u}`;
+  `integrable_uncurry_pv`: `∫_0^∞ e^{−rτ}E|s_{t+τ}| dτ < ∞` (in product form), hence
+  `pv_integrable_ae`: for a.e. `ω` the discounted path is Lebesgue integrable on `(0, ∞)`;
+* `pv_condExp` (**p. 77**): a.s. `E_t[∫_0^∞ e^{−rτ}s_{t+τ}dτ] = s_t/(r + η)`;
+* `pv_revision` (**the innovation `σ/(r + η) dε` as an exact identity of conditional
+  expectations**): for `0 ≤ q ≤ t`, a.s.
+  `E_t[PV_t] − E_q[PV_t] = (σ/(r + η))e^{−ηt}∫_q^t e^{ηv}dW_v`, and
+  `pv_revision_sq_le` (`η ≥ 0`): it is within mean square `σ²η²(t − q)³/(r + η)²` of
+  `(σ/(r + η))(W_t − W_q)`;
+* `pv_sigma_zero`: with `σ = 0` the path is deterministic and `PV_t = e^{−ηt}s₀/(r + η)` for
+  every `ω` (`ContinuousLinear.ar1_pv`).
+
+## Hypotheses and non-vacuity
+
+The results assume `r > 0` besides the book's `r + η > 0` (for `η ≤ 0` the latter implies the
+former). For `η > 0` the variance of `s_u` tends to `σ²/(2η)`, so `E|s_u|` does not vanish and
+`r > 0` is what makes `∫_0^∞e^{−rτ}E|s_{t+τ}|dτ` finite; that the interchange fails for `r ≤ 0`
+is not proved here. On the constructed motion `bmPath`
+(continuous paths for every `ω`), `bmPath_pv_revision_pos`: the revision has positive mean square
+for `σ ≠ 0`, `0 ≤ q < t`.
+-/
+
+namespace Cochrane.Generality.TidyR8OUPresentValue
+
+open MeasureTheory ProbabilityTheory Filter Topology Function
+open Cochrane.Generality.TidyR7StieltjesSums Cochrane.Generality.TidyR7BrownianTools
+  Cochrane.Generality.TidyR7BrownianQV Cochrane.Generality.TidyR7ItoL2
+  Cochrane.Generality.TidyR7ItoSums Cochrane.Generality.TidyR7ItoIntegral
+  Cochrane.Generality.TidyR7ItoUnbounded Cochrane.Generality.TidyR7ItoProducts
+  Cochrane.Generality.TidyR7ItoProcess Cochrane.Generality.TidyR7ItoProductRule
+  Cochrane.Generality.TidyR7ItoBridge Cochrane.Generality.TidyR7BrownianExist
+  Cochrane.Generality.TidyR7ItoDiscountFactorCex Cochrane.Generality.TidyR7ItoInnovation
+  Cochrane.Generality.TidyR8ConditionalFubini Cochrane.Generality.TidyR7BrownianSchauder
+open scoped ENNReal NNReal
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω} {μ : Measure Ω} {𝓕 : Filtration ℝ mΩ}
+  {W : ℝ≥0 → Ω → ℝ}
+
+/-! ## The pathwise AR(1) surplus -/
+
+/-- **Cochrane (2023), §3.6.3, p. 77: the AR(1) surplus as a path.** The pathwise formula
+`s_u = e^{−ηu}(s₀ + σ(e^{ηu}W_u − W_0 − η∫_0^u e^{ηv}W_v dv))`, the integration by parts of
+`e^{−ηu}(s₀ + σ∫_0^u e^{ηv}dW_v)` (`ouPath_ae_eq`). -/
+noncomputable def ouPath (W : ℝ≥0 → Ω → ℝ) (η σ s0 u : ℝ) (ω : Ω) : ℝ :=
+  Real.exp (-(η * u)) * (s0 + σ * (Real.exp (η * u) * bmReal W u ω - bmReal W 0 ω
+    - η * ∫ v in (0 : ℝ)..u, Real.exp (η * v) * bmReal W v ω))
+
+/-- **Cochrane (2023), §3.6.3, p. 77: the present value of the actual surplus path**,
+`PV_t(ω) = ∫_0^∞ e^{−rτ}s_{t+τ}(ω) dτ`. -/
+noncomputable def pvPath (W : ℝ≥0 → Ω → ℝ) (r η σ s0 t : ℝ) (ω : Ω) : ℝ :=
+  ∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) * ouPath W η σ s0 (t + τ) ω
+
+/-- Cochrane (2023), §3.6.3, p. 77: `u ↦ e^{ηu}` has derivative `ηe^{ηu}`.
+The same fact as `ContinuousLinear.hasDerivAt_expDisc`; Mathlib `HasDerivAt.exp`. -/
+theorem hasDerivAt_exp_mul (η u : ℝ) :
+    HasDerivAt (fun u => Real.exp (η * u)) (η * Real.exp (η * u)) u :=
+  (((hasDerivAt_id u).const_mul η).exp).congr_deriv (by simp; ring)
+
+/-- **Cochrane (2023), §3.6.3, p. 77: the Wiener integral by parts.** If `W` has continuous
+paths, for `u ≥ 0`, a.s. `∫_0^u e^{ηv}dW_v = e^{ηu}W_u − W_0 − η∫_0^u e^{ηv}W_v dv`.
+Itô's product rule for `e^{ηu}·W_u` (`TidyR7ItoProductRule.product_rule_pathwise`). -/
+theorem ouI_byParts (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω) (η : ℝ) {u : ℝ}
+    (hu : 0 ≤ u) :
+    ouI μ 𝓕 W η u =ᵐ[μ] fun ω => Real.exp (η * u) * bmReal W u ω - bmReal W 0 ω
+      - η * ∫ v in (0 : ℝ)..u, Real.exp (η * v) * bmReal W v ω := by
+  have : IsProbabilityMeasure μ := hBM.isGaussianProcess.isProbabilityMeasure
+  rcases hu.lt_or_eq with hu | hu
+  · have cE : Continuous fun v => Real.exp (η * v) :=
+      Real.continuous_exp.comp (continuous_const.mul continuous_id)
+    have gc : Continuous fun v => η * Real.exp (η * v) := continuous_const.mul cE
+    obtain ⟨Cg, hCg⟩ := exists_bound_Icc gc 0 u
+    have hX : ItoProcess μ 𝓕 W (fun v _ => Real.exp (η * v))
+        (fun v _ => η * Real.exp (η * v)) (fun _ _ => 0) 0 u Cg 0 :=
+      itoProcess_det hBM hWm h𝓕 le_rfl gc.continuousOn hCg
+        (fun v _ => ftc_split (hasDerivAt_exp_mul η) gc 0 v)
+    have hY := itoProcess_bm (t := u) hBM hWm h𝓕 (le_refl (0 : ℝ))
+    have hpr := product_rule_pathwise hBM hWm h𝓕 le_rfl hu hX hY
+      (ae_of_all _ fun _ => cE.continuousOn)
+      (ae_of_all _ fun ω => (continuous_bmReal (hcont ω)).continuousOn)
+    have e1 : (fun v (ω : Ω) => (fun v (_ : Ω) => Real.exp (η * v)) v ω
+        * (fun _ _ => (1 : ℝ)) v ω) = fun v _ => Real.exp (η * v) := by
+      funext v ω
+      simp
+    have e2 : (fun v ω => bmReal W v ω * (fun _ _ => (0 : ℝ)) v ω) = fun _ _ => 0 := by
+      funext v ω
+      simp
+    have z := itoInt_const hBM hWm h𝓕 le_rfl hu.le (c := fun _ => (0 : ℝ))
+      stronglyMeasurable_const (C := 0) fun _ => by simp
+    rw [e1, e2] at hpr
+    filter_upwards [hpr, z] with ω h0 h1
+    rw [h1] at h0
+    simp only [ouI, mul_zero, intervalIntegral.integral_zero, zero_add, zero_mul, add_zero,
+      Real.exp_zero, one_mul] at h0 ⊢
+    have e3 : ∫ v in (0 : ℝ)..u, bmReal W v ω * (η * Real.exp (η * v)) =
+        η * ∫ v in (0 : ℝ)..u, Real.exp (η * v) * bmReal W v ω := by
+      rw [← intervalIntegral.integral_const_mul]
+      congr 1
+      funext v
+      ring
+    rw [e3] at h0
+    linarith
+  · subst hu
+    refine ae_of_all _ fun ω => ?_
+    simp [ouI, itoInt_of_le]
+
+/-- **Cochrane (2023), §3.6.3, p. 77: the pathwise surplus is a modification of the AR(1)
+process.** If `W` has continuous paths, `ouPath_u = ou_u` a.s. for every `u ≥ 0`. -/
+theorem ouPath_ae_eq (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω) (η σ s0 : ℝ) {u : ℝ}
+    (hu : 0 ≤ u) : ouPath W η σ s0 u =ᵐ[μ] ou μ 𝓕 W η σ s0 u := by
+  filter_upwards [ouI_byParts hBM hWm h𝓕 hcont η hu] with ω h
+  simp only [ouPath, ou, h]
+
+/-- Cochrane (2023), §3.6.3, p. 77: the surplus path `u ↦ ouPath_u(ω)` is continuous when the
+Brownian path is (Mathlib `intervalIntegral.continuous_primitive`). -/
+theorem continuous_ouPath {ω : Ω} (hcont : Continuous fun t => W t ω) (η σ s0 : ℝ) :
+    Continuous fun u => ouPath W η σ s0 u ω := by
+  have hb := continuous_bmReal hcont
+  have hi : Continuous fun v => Real.exp (η * v) * bmReal W v ω :=
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul hb
+  have hp := intervalIntegral.continuous_primitive (μ := volume)
+    (fun a b => hi.intervalIntegrable a b) 0
+  unfold ouPath
+  fun_prop
+
+/-- Cochrane (2023), §3.6.3, p. 77: `(v, ω) ↦ e^{ηv}W_v(ω)` is jointly measurable when `W` has
+continuous paths (Mathlib `measurable_uncurry_of_continuous_of_measurable`). -/
+theorem measurable_uncurry_expW (hWm : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (η : ℝ) :
+    Measurable (uncurry fun v ω => Real.exp (η * v) * bmReal W v ω) :=
+  measurable_uncurry_of_continuous_of_measurable
+    (fun ω => (Real.continuous_exp.comp (continuous_const.mul continuous_id)).mul
+      (continuous_bmReal (hcont ω)))
+    (fun _ => measurable_const.mul (hWm _))
+
+/-- Cochrane (2023), §3.6.3, p. 77: each `ouPath_u` is measurable when `W` has continuous paths
+(the time integral is measurable in `ω`, Mathlib `StronglyMeasurable.integral_prod_left`). -/
+theorem measurable_ouPath (hWm : ∀ t, Measurable (W t)) (hcont : ∀ ω, Continuous fun t => W t ω)
+    (η σ s0 u : ℝ) : Measurable (ouPath W η σ s0 u) := by
+  have hj := (measurable_uncurry_expW hWm hcont η).stronglyMeasurable
+  have h1 := hj.integral_prod_left (μ := volume.restrict (Set.Ioc 0 u))
+  have h2 := hj.integral_prod_left (μ := volume.restrict (Set.Ioc u 0))
+  have hI : Measurable fun ω => ∫ v in (0 : ℝ)..u, Real.exp (η * v) * bmReal W v ω :=
+    (h1.sub h2).measurable
+  unfold ouPath
+  exact measurable_const.mul (measurable_const.add (measurable_const.mul
+    (((measurable_const.mul (hWm _)).sub (hWm _)).sub (measurable_const.mul hI))))
+
+/-- Cochrane (2023), §3.6.3, p. 77: the discounted surplus `(τ, ω) ↦ e^{−rτ}s_{t+τ}(ω)` is
+jointly measurable when `W` has continuous paths. -/
+theorem measurable_uncurry_pv (hWm : ∀ t, Measurable (W t))
+    (hcont : ∀ ω, Continuous fun t => W t ω) (r η σ s0 t : ℝ) :
+    Measurable (uncurry fun τ ω => Real.exp (-(r * τ)) * ouPath W η σ s0 (t + τ) ω) :=
+  measurable_uncurry_of_continuous_of_measurable
+    (fun ω => (Real.continuous_exp.comp (continuous_const.mul continuous_id).neg).mul
+      ((continuous_ouPath (hcont ω) η σ s0).comp (continuous_const.add continuous_id)))
+    (fun _ => measurable_const.mul (measurable_ouPath hWm hcont η σ s0 _))
+
+/-! ## Integrability: `∫_0^∞ e^{−rτ}E|s_{t+τ}| dτ < ∞` -/
+
+/-- Cochrane (2023), §3.6.3, p. 77: the AR(1) surplus at a date is integrable. -/
+theorem integrable_ou (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (η σ s0 u : ℝ) : Integrable (ou μ 𝓕 W η σ s0 u) μ := by
+  have : IsProbabilityMeasure μ := hBM.isGaussianProcess.isProbabilityMeasure
+  have hI := (memLp_itoInt hBM hWm h𝓕 le_rfl (ouIntegrand (μ := μ) (𝓕 := 𝓕) η u)).integrable
+    one_le_two
+  refine ((integrable_const (Real.exp (-(η * u)) * s0)).add
+    (hI.const_mul (Real.exp (-(η * u)) * σ))).congr (ae_of_all _ fun ω => ?_)
+  simp only [ou, ouI, Pi.add_apply]
+  ring
+
+/-- Cochrane (2023), §3.6.3, p. 77: the AR(1) surplus at date `t` is `𝓕_t`-measurable (the
+Wiener integral is adapted, `TidyR7ItoIntegral.stronglyMeasurable_itoInt`). -/
+theorem stronglyMeasurable_ou (η σ s0 t : ℝ) :
+    StronglyMeasurable[𝓕 t] (ou μ 𝓕 W η σ s0 t) := by
+  unfold ou ouI
+  exact stronglyMeasurable_const.mul
+    (stronglyMeasurable_const.add (stronglyMeasurable_const.mul stronglyMeasurable_itoInt))
+
+/-- **Cochrane (2023), §3.6.3, p. 77: the mean absolute surplus.** For `u ≥ 0`,
+`E|s_u| ≤ e^{−ηu}|s₀| + |σ|(1 + u)e^{max(−η,0)u}` (Wiener isometry and Cauchy–Schwarz). -/
+theorem integral_abs_ou_le (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (η σ s0 : ℝ) {u : ℝ} (hu : 0 ≤ u) :
+    ∫ ω, |ou μ 𝓕 W η σ s0 u ω| ∂μ ≤
+      Real.exp (-(η * u)) * |s0| + |σ| * ((1 + u) * Real.exp (max (-η) 0 * u)) := by
+  have : IsProbabilityMeasure μ := hBM.isGaussianProcess.isProbabilityMeasure
+  set a := max (-η) 0 with ha
+  have hmem := memLp_itoInt hBM hWm h𝓕 le_rfl (ouIntegrand (μ := μ) (𝓕 := 𝓕) η u)
+  have hsq := sq_integral_abs_le hmem
+  have hI2 := integral_itoInt_deterministic_sq hBM hWm h𝓕 le_rfl hu (C := Real.exp (|η| * u))
+    (h := fun v => Real.exp (η * v))
+    (Real.continuous_exp.comp (continuous_const.mul continuous_id)).continuousOn
+    (fun v hv => abs_exp_le η hv)
+  have hpt : ∀ v ∈ Set.Icc 0 u, (Real.exp (-(η * u)) * Real.exp (η * v)) ^ 2 ≤
+      Real.exp (a * u) ^ 2 := fun v hv => by
+    have h1 : Real.exp (-(η * u)) * Real.exp (η * v) ≤ Real.exp (a * u) := by
+      rw [← Real.exp_add, Real.exp_le_exp]
+      have h2 : -η ≤ a := le_max_left _ _
+      have h3 : 0 ≤ a := le_max_right _ _
+      nlinarith [hv.1, hv.2]
+    exact pow_le_pow_left₀ (by positivity) h1 2
+  have hbd : ∫ v in (0 : ℝ)..u, (Real.exp (-(η * u)) * Real.exp (η * v)) ^ 2 ≤
+      u * Real.exp (a * u) ^ 2 := by
+    have := intervalIntegral.integral_mono_on (μ := volume) hu
+      (f := fun v => (Real.exp (-(η * u)) * Real.exp (η * v)) ^ 2)
+      ((((continuous_const.mul (Real.continuous_exp.comp (continuous_const.mul continuous_id)))
+        ).pow 2).intervalIntegrable _ _) intervalIntegrable_const hpt
+    rw [intervalIntegral.integral_const, smul_eq_mul] at this
+    linarith
+  have hsplit : ∫ v in (0 : ℝ)..u, (Real.exp (-(η * u)) * Real.exp (η * v)) ^ 2 =
+      Real.exp (-(η * u)) ^ 2 * ∫ v in (0 : ℝ)..u, Real.exp (η * v) ^ 2 := by
+    rw [← intervalIntegral.integral_const_mul]
+    congr 1
+    funext v
+    ring
+  have hA : Real.exp (-(η * u)) * ∫ ω, |ouI μ 𝓕 W η u ω| ∂μ ≤ (1 + u) * Real.exp (a * u) := by
+    have h0 : 0 ≤ Real.exp (-(η * u)) * ∫ ω, |ouI μ 𝓕 W η u ω| ∂μ :=
+      mul_nonneg (Real.exp_pos _).le (integral_nonneg fun _ => abs_nonneg _)
+    have h1 : 0 ≤ (1 + u) * Real.exp (a * u) := by positivity
+    refine (pow_le_pow_iff_left₀ h0 h1 two_ne_zero).1 ?_
+    have hI2' : ∫ ω, ouI μ 𝓕 W η u ω ^ 2 ∂μ = ∫ v in (0 : ℝ)..u, Real.exp (η * v) ^ 2 := hI2
+    calc (Real.exp (-(η * u)) * ∫ ω, |ouI μ 𝓕 W η u ω| ∂μ) ^ 2
+        = Real.exp (-(η * u)) ^ 2 * (∫ ω, |ouI μ 𝓕 W η u ω| ∂μ) ^ 2 := by ring
+      _ ≤ Real.exp (-(η * u)) ^ 2 * ∫ ω, ouI μ 𝓕 W η u ω ^ 2 ∂μ :=
+          mul_le_mul_of_nonneg_left hsq (sq_nonneg _)
+      _ ≤ u * Real.exp (a * u) ^ 2 := by rw [hI2', ← hsplit]; exact hbd
+      _ ≤ ((1 + u) * Real.exp (a * u)) ^ 2 := by
+          rw [mul_pow]
+          exact mul_le_mul_of_nonneg_right (by nlinarith) (sq_nonneg _)
+  have hIi : Integrable (fun ω => |ouI μ 𝓕 W η u ω|) μ := (hmem.integrable one_le_two).abs
+  have hg : Integrable (fun ω => Real.exp (-(η * u)) * |s0| +
+      |σ| * (Real.exp (-(η * u)) * |ouI μ 𝓕 W η u ω|)) μ :=
+    (integrable_const _).add ((hIi.const_mul _).const_mul _)
+  have hle := integral_mono_of_nonneg (ae_of_all _ fun ω => abs_nonneg _) hg
+    (ae_of_all _ fun ω => by
+      change |ou μ 𝓕 W η σ s0 u ω| ≤ _
+      have e : ou μ 𝓕 W η σ s0 u ω =
+          Real.exp (-(η * u)) * s0 + σ * (Real.exp (-(η * u)) * ouI μ 𝓕 W η u ω) := by
+        simp only [ou]
+        ring
+      rw [e]
+      refine (abs_add_le _ _).trans (le_of_eq ?_)
+      rw [abs_mul, abs_mul, abs_mul, abs_of_pos (Real.exp_pos _)])
+  rw [integral_add (integrable_const _) ((hIi.const_mul _).const_mul _), integral_const,
+    integral_const_mul, integral_const_mul] at hle
+  simp only [probReal_univ, smul_eq_mul, one_mul] at hle
+  calc ∫ ω, |ou μ 𝓕 W η σ s0 u ω| ∂μ
+      ≤ Real.exp (-(η * u)) * |s0| +
+        |σ| * (Real.exp (-(η * u)) * ∫ ω, |ouI μ 𝓕 W η u ω| ∂μ) := hle
+    _ ≤ _ := by gcongr
+
+/-- Cochrane (2023), §3.6.3, p. 77: the dominating function
+`e^{−rτ}(e^{−η(t+τ)}|s₀| + |σ|(1 + t + τ)e^{max(−η,0)(t+τ)})` is integrable on `(0, ∞)` for
+`r > 0`, `r + η > 0`. -/
+theorem integrableOn_pv_bound {r η : ℝ} (hr : 0 < r) (hrη : 0 < r + η) (σ s0 t : ℝ) :
+    IntegrableOn (fun τ => Real.exp (-(r * τ)) * (Real.exp (-(η * (t + τ))) * |s0| +
+      |σ| * ((1 + (t + τ)) * Real.exp (max (-η) 0 * (t + τ))))) (Set.Ioi 0) := by
+  set a := max (-η) 0 with ha
+  have hc : 0 < r - a := by
+    rcases le_total (-η) 0 with h | h
+    · rw [ha, max_eq_right h]; linarith
+    · rw [ha, max_eq_left h]; linarith
+  have i1 := (integrableOn_exp_mul_Ioi (a := -(r + η)) (by linarith) 0).const_mul
+    (|s0| * Real.exp (-(η * t)))
+  have i2 := (integrableOn_exp_mul_Ioi (a := -(r - a)) (by linarith) 0).const_mul
+    (|σ| * (1 + t) * Real.exp (a * t))
+  have i3 : IntegrableOn (fun τ : ℝ => τ * Real.exp (-(r - a) * τ)) (Set.Ioi 0) := by
+    have h := integrableOn_rpow_mul_exp_neg_mul_rpow (s := 1) (p := 1) (b := r - a)
+      (by norm_num) one_pos hc
+    refine h.congr_fun (fun τ _ => ?_) measurableSet_Ioi
+    simp only [Real.rpow_one, neg_mul]
+  have i3' := i3.const_mul (|σ| * Real.exp (a * t))
+  refine IntegrableOn.congr_fun ((i1.add i2).add i3') (fun τ _ => ?_) measurableSet_Ioi
+  have e1 : Real.exp (-(r * τ)) * Real.exp (-(η * (t + τ))) =
+      Real.exp (-(η * t)) * Real.exp (-(r + η) * τ) := by
+    rw [← Real.exp_add, ← Real.exp_add]; ring_nf
+  have e2 : Real.exp (-(r * τ)) * Real.exp (a * (t + τ)) =
+      Real.exp (a * t) * Real.exp (-(r - a) * τ) := by
+    rw [← Real.exp_add, ← Real.exp_add]; ring_nf
+  simp only [Pi.add_apply]
+  linear_combination (-|s0|) * e1 - (|σ| * (1 + t + τ)) * e2
+
+/-- **Cochrane (2023), §3.6.3, p. 77 (`∫_0^∞ e^{−rτ}E|s_{t+τ}|dτ < ∞`):** for `r > 0`,
+`r + η > 0`, `t ≥ 0` and `W` with continuous paths, the discounted surplus
+`(τ, ω) ↦ e^{−rτ}s_{t+τ}(ω)` is integrable on `(0, ∞) × Ω`. -/
+theorem integrable_uncurry_pv (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω) {r η : ℝ}
+    (hr : 0 < r) (hrη : 0 < r + η) (σ s0 : ℝ) {t : ℝ} (ht : 0 ≤ t) :
+    Integrable (uncurry fun τ ω => Real.exp (-(r * τ)) * ouPath W η σ s0 (t + τ) ω)
+      ((volume.restrict (Set.Ioi 0)).prod μ) := by
+  have : IsProbabilityMeasure μ := hBM.isGaussianProcess.isProbabilityMeasure
+  have hm := measurable_uncurry_pv hWm hcont r η σ s0 t
+  have hae : ∀ τ ∈ Set.Ioi (0 : ℝ), ouPath W η σ s0 (t + τ) =ᵐ[μ] ou μ 𝓕 W η σ s0 (t + τ) :=
+    fun τ hτ => ouPath_ae_eq hBM hWm h𝓕 hcont η σ s0 (by linarith [hτ.out])
+  refine integrable_uncurry_of_integral_abs hm.aestronglyMeasurable
+    ((ae_restrict_iff' measurableSet_Ioi).2 (ae_of_all _ fun τ hτ => ?_)) ?_
+  · exact ((integrable_ou hBM hWm h𝓕 η σ s0 (t + τ)).congr (hae τ hτ).symm).const_mul _
+  refine Integrable.mono' (integrableOn_pv_bound hr hrη σ s0 t)
+    (StronglyMeasurable.integral_prod_right
+      (f := fun τ ω => |Real.exp (-(r * τ)) * ouPath W η σ s0 (t + τ) ω|)
+      (by exact (continuous_abs.measurable.comp hm).stronglyMeasurable)).aestronglyMeasurable
+    ((ae_restrict_iff' measurableSet_Ioi).2 (ae_of_all _ fun τ hτ => ?_))
+  rw [Real.norm_eq_abs, abs_of_nonneg (integral_nonneg fun _ => abs_nonneg _)]
+  have e : ∫ ω, |Real.exp (-(r * τ)) * ouPath W η σ s0 (t + τ) ω| ∂μ =
+      Real.exp (-(r * τ)) * ∫ ω, |ou μ 𝓕 W η σ s0 (t + τ) ω| ∂μ := by
+    simp_rw [abs_mul, abs_of_pos (Real.exp_pos _)]
+    rw [integral_const_mul]
+    congr 1
+    refine integral_congr_ae ?_
+    filter_upwards [hae τ hτ] with ω hω
+    rw [hω]
+  rw [e]
+  exact mul_le_mul_of_nonneg_left
+    (integral_abs_ou_le hBM hWm h𝓕 η σ s0 (by linarith [hτ.out] : 0 ≤ t + τ))
+    (Real.exp_pos _).le
+
+/-- **Cochrane (2023), §3.6.3, p. 77: the present value of the actual path is a genuine
+integral.** For a.e. `ω`, `τ ↦ e^{−rτ}s_{t+τ}(ω)` is Lebesgue integrable on `(0, ∞)` (`r > 0`,
+`r + η > 0`, `t ≥ 0`). -/
+theorem pv_integrable_ae (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω) {r η : ℝ}
+    (hr : 0 < r) (hrη : 0 < r + η) (σ s0 : ℝ) {t : ℝ} (ht : 0 ≤ t) :
+    ∀ᵐ ω ∂μ, IntegrableOn (fun τ => Real.exp (-(r * τ)) * ouPath W η σ s0 (t + τ) ω)
+      (Set.Ioi 0) := by
+  have : IsProbabilityMeasure μ := hBM.isGaussianProcess.isProbabilityMeasure
+  have h := integrable_uncurry_pv hBM hWm h𝓕 hcont hr hrη σ s0 ht
+  exact ((integrable_prod_iff' h.aestronglyMeasurable).1 h).1
+
+/-! ## `E_t ∫ = ∫ E_t`: the present value and its innovation -/
+
+/-- **Cochrane (2023), §3.6.3, p. 77: `E_t∫_0^∞ e^{−rτ}s_{t+τ}dτ = s_t/(r + η)` over the actual
+stochastic path.** For `r > 0`, `r + η > 0`, `t ≥ 0` and `W` with continuous paths, a.s.
+`E_t[PV_t] = s_t/(r + η)`. The conditional Fubini theorem
+(`TidyR8ConditionalFubini.condExp_integral_interchange`) with the version
+`Y(τ, ω) = e^{−rτ}e^{−ητ}s_t(ω)` of `E_t[e^{−rτ}s_{t+τ}]` (`TidyR7ItoInnovation.forecast_condExp`),
+then `ContinuousLinear.ar1_pv`. -/
+theorem pv_condExp (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω) {r η : ℝ}
+    (hr : 0 < r) (hrη : 0 < r + η) (σ s0 : ℝ) {t : ℝ} (ht : 0 ≤ t) :
+    μ[pvPath W r η σ s0 t | 𝓕 t] =ᵐ[μ] fun ω => ouPath W η σ s0 t ω / (r + η) := by
+  have : IsProbabilityMeasure μ := hBM.isGaussianProcess.isProbabilityMeasure
+  set Y : ℝ → Ω → ℝ := fun τ ω => Real.exp (-(r * τ)) *
+    (Real.exp (-(η * τ)) * ou μ 𝓕 W η σ s0 t ω) with hYdef
+  have hsm := stronglyMeasurable_ou (μ := μ) (𝓕 := 𝓕) (W := W) η σ s0 t
+  have hY : @StronglyMeasurable (ℝ × Ω) ℝ _ (@Prod.instMeasurableSpace ℝ Ω _ (𝓕 t))
+      (uncurry Y) := by
+    let _ : MeasurableSpace Ω := 𝓕 t
+    have hc : Continuous fun τ : ℝ => Real.exp (-(r * τ)) * Real.exp (-(η * τ)) :=
+      (Real.continuous_exp.comp (continuous_const.mul continuous_id).neg).mul
+        (Real.continuous_exp.comp (continuous_const.mul continuous_id).neg)
+    have hm : Measurable fun p : ℝ × Ω =>
+        (Real.exp (-(r * p.1)) * Real.exp (-(η * p.1))) * ou μ 𝓕 W η σ s0 t p.2 :=
+      (hc.measurable.comp measurable_fst).mul (hsm.measurable.comp measurable_snd)
+    have e : uncurry Y = fun p : ℝ × Ω =>
+        (Real.exp (-(r * p.1)) * Real.exp (-(η * p.1))) * ou μ 𝓕 W η σ s0 t p.2 := by
+      funext p
+      obtain ⟨τ, ω⟩ := p
+      simp only [hYdef, uncurry_apply_pair]
+      ring
+    rw [e]
+    exact hm.stronglyMeasurable
+  have hXY : ∀ᵐ τ ∂(volume.restrict (Set.Ioi (0 : ℝ))), Y τ =ᵐ[μ]
+      μ[fun ω => Real.exp (-(r * τ)) * ouPath W η σ s0 (t + τ) ω | 𝓕 t] := by
+    refine (ae_restrict_iff' measurableSet_Ioi).2 (ae_of_all _ fun τ hτ => ?_)
+    have hτ' : (0 : ℝ) < τ := hτ
+    have e : (fun ω => Real.exp (-(r * τ)) * ouPath W η σ s0 (t + τ) ω) =
+        Real.exp (-(r * τ)) • ouPath W η σ s0 (t + τ) := by
+      funext ω
+      simp [smul_eq_mul]
+    rw [e]
+    filter_upwards [condExp_smul (μ := μ) (Real.exp (-(r * τ))) (ouPath W η σ s0 (t + τ)) (𝓕 t),
+      condExp_congr_ae (m := 𝓕 t) (ouPath_ae_eq hBM hWm h𝓕 hcont η σ s0
+        (by linarith : 0 ≤ t + τ)),
+      forecast_condExp hBM hWm h𝓕 η σ s0 hτ'.le ht] with ω h1 h2 h3
+    rw [h1, Pi.smul_apply, smul_eq_mul, h2, h3]
+  have hX := integrable_uncurry_pv hBM hWm h𝓕 hcont hr hrη σ s0 ht
+  have hI := condExp_integral_interchange (𝓕.le t) hX hY hXY
+  filter_upwards [hI, ouPath_ae_eq hBM hWm h𝓕 hcont η σ s0 ht] with ω h1 h2
+  change μ[fun ω => ∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) * ouPath W η σ s0 (t + τ) ω | 𝓕 t] ω
+    = _
+  rw [h1, h2]
+  exact ContinuousLinear.ar1_pv hrη
+
+/-- **Cochrane (2023), §3.6.3, p. 77: the innovation of the present value is `σ/(r + η) dε`,
+exactly, as a revision of conditional expectations.** For `0 ≤ q ≤ t`, `r > 0`, `r + η > 0`, a.s.
+`E_t[PV_t] − E_q[PV_t] = (σ/(r + η))e^{−ηt}∫_q^t e^{ηv}dW_v`, the `dW`-loading at `v` being
+`(σ/(r + η))e^{−η(t−v)} → σ/(r + η)` as `v → t`. Tower property, `pv_condExp`,
+`TidyR7ItoInnovation.pv_innovation`. -/
+theorem pv_revision (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω) {r η : ℝ}
+    (hr : 0 < r) (hrη : 0 < r + η) (σ s0 : ℝ) {q t : ℝ} (hq : 0 ≤ q) (hqt : q ≤ t) :
+    (fun ω => μ[pvPath W r η σ s0 t | 𝓕 t] ω - μ[pvPath W r η σ s0 t | 𝓕 q] ω) =ᵐ[μ]
+      fun ω => σ / (r + η) * Real.exp (-(η * t))
+        * itoInt μ 𝓕 W (fun v _ => Real.exp (η * v)) q t ω := by
+  have : IsProbabilityMeasure μ := hBM.isGaussianProcess.isProbabilityMeasure
+  have ht : 0 ≤ t := hq.trans hqt
+  have h1 := pv_condExp hBM hWm h𝓕 hcont hr hrη σ s0 ht
+  have hpath := ouPath_ae_eq hBM hWm h𝓕 hcont η σ s0 ht
+  have h2 : (fun ω => ouPath W η σ s0 t ω / (r + η)) =ᵐ[μ]
+      fun ω => ou μ 𝓕 W η σ s0 t ω / (r + η) := by
+    filter_upwards [hpath] with ω hω
+    rw [hω]
+  have htower := condExp_condExp_of_le (μ := μ) (f := pvPath W r η σ s0 t) (𝓕.mono hqt) (𝓕.le t)
+  have hq' : μ[pvPath W r η σ s0 t | 𝓕 q] =ᵐ[μ]
+      μ[fun ω => ou μ 𝓕 W η σ s0 t ω / (r + η) | 𝓕 q] :=
+    htower.symm.trans (condExp_congr_ae (h1.trans h2))
+  filter_upwards [h1, h2, hq', pv_innovation hBM hWm h𝓕 r η σ s0 hq hqt] with ω e1 e2 e3 e4
+  rw [e1, e2, e3, e4]
+
+/-- **Cochrane (2023), §3.6.3, eq. (3.45), p. 77: the revision is `σ/(r + η)(W_t − W_q)` to first
+order.** For `η ≥ 0`, `r > 0`, `0 ≤ q ≤ t`:
+`E[(E_t PV_t − E_q PV_t − (σ/(r + η))(W_t − W_q))²] ≤ σ²η²(t − q)³/(r + η)²`, against
+`E[((σ/(r + η))(W_t − W_q))²] = σ²(t − q)/(r + η)²`.
+The bound of `TidyR7ItoInnovation.pv_innovation_sq_le`, from which it is proved. -/
+theorem pv_revision_sq_le (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (hcont : ∀ ω, Continuous fun t => W t ω) {r η : ℝ}
+    (hr : 0 < r) (hη : 0 ≤ η) (σ s0 : ℝ) {q t : ℝ} (hq : 0 ≤ q) (hqt : q ≤ t) :
+    ∫ ω, (μ[pvPath W r η σ s0 t | 𝓕 t] ω - μ[pvPath W r η σ s0 t | 𝓕 q] ω
+      - σ / (r + η) * incr W q t ω) ^ 2 ∂μ ≤ σ ^ 2 * η ^ 2 * (t - q) ^ 3 / (r + η) ^ 2 := by
+  have hrη : 0 < r + η := by linarith
+  have hb := pv_innovation_sq_le hBM hWm h𝓕 r hη hrη.ne' σ s0 hq hqt
+  have e : (fun ω => (μ[pvPath W r η σ s0 t | 𝓕 t] ω - μ[pvPath W r η σ s0 t | 𝓕 q] ω
+      - σ / (r + η) * incr W q t ω) ^ 2) =ᵐ[μ] fun ω => (ou μ 𝓕 W η σ s0 t ω / (r + η)
+        - μ[fun ω => ou μ 𝓕 W η σ s0 t ω / (r + η) | 𝓕 q] ω - σ / (r + η) * incr W q t ω) ^ 2 := by
+    filter_upwards [pv_revision hBM hWm h𝓕 hcont hr hrη σ s0 hq hqt,
+      pv_innovation hBM hWm h𝓕 r η σ s0 hq hqt] with ω h1 h2
+    rw [h1, ← h2]
+  rw [integral_congr_ae e]
+  exact hb
+
+/-- **Cochrane (2023), §3.6.3, p. 77 (`σ = 0`): the deterministic AR(1).** With no shocks the
+surplus path is `e^{−ηu}s₀` for every `ω` and `PV_t = e^{−ηt}s₀/(r + η)`
+(`ContinuousLinear.ar1_pv`): there is nothing to forecast and no innovation.
+Its first part restates `TidyR7ItoInnovation.ou_sigma_zero` for `ouPath`. -/
+theorem pv_sigma_zero {r η : ℝ} (hrη : 0 < r + η) (s0 t : ℝ) (ω : Ω) :
+    (∀ u, ouPath W η 0 s0 u ω = Real.exp (-(η * u)) * s0) ∧
+      pvPath W r η 0 s0 t ω = Real.exp (-(η * t)) * s0 / (r + η) := by
+  have h : ∀ u, ouPath W η 0 s0 u ω = Real.exp (-(η * u)) * s0 := fun u => by
+    simp [ouPath]
+  refine ⟨h, ?_⟩
+  have e : ∀ τ, Real.exp (-(r * τ)) * ouPath W η 0 s0 (t + τ) ω =
+      Real.exp (-(r * τ)) * (Real.exp (-(η * τ)) * (Real.exp (-(η * t)) * s0)) := fun τ => by
+    rw [h, show -(η * (t + τ)) = -(η * τ) + -(η * t) by ring, Real.exp_add]
+    ring
+  simp only [pvPath, e]
+  exact ContinuousLinear.ar1_pv hrη
+
+/-! ## Non-vacuity on the constructed Brownian motion -/
+
+/-- **Cochrane (2023), §3.6.3, p. 77 (non-vacuity): the present-value revision is not zero.** On
+the constructed motion `bmPath` (continuous paths, `continuous_bmPath`), for `σ ≠ 0`, `r > 0`,
+`r + η > 0`, `0 ≤ q < t`: `E[(E_t PV_t − E_q PV_t)²] > 0`.
+A rescaling of `TidyR7ItoInnovation.ou_bmPath_innovation_pos`. -/
+theorem bmPath_pv_revision_pos {r η : ℝ} (hr : 0 < r) (hrη : 0 < r + η) (s0 : ℝ) {σ : ℝ}
+    (hσ : σ ≠ 0) {q t : ℝ} (hq : 0 ≤ q) (hqt : q < t) :
+    0 < ∫ ω, (gaussSeq[pvPath bmPath r η σ s0 t | bmF t] ω
+      - gaussSeq[pvPath bmPath r η σ s0 t | bmF q] ω) ^ 2 ∂gaussSeq := by
+  have hB := isPreBrownianReal_bmPath
+  have hF := bmFiltrationReal_isBM isPreBrownianReal_bmPath measurable_bmPath
+  have hpos := ou_bmPath_innovation_pos η s0 hσ hq hqt
+  have e : (fun ω => (gaussSeq[pvPath bmPath r η σ s0 t | bmF t] ω
+      - gaussSeq[pvPath bmPath r η σ s0 t | bmF q] ω) ^ 2) =ᵐ[gaussSeq]
+      fun ω => (1 / (r + η)) ^ 2 * (ou gaussSeq bmF bmPath η σ s0 t ω
+        - gaussSeq[ou gaussSeq bmF bmPath η σ s0 t | bmF q] ω) ^ 2 := by
+    filter_upwards [pv_revision hB measurable_bmPath hF continuous_bmPath hr hrη σ s0 hq hqt.le,
+      ou_innovation hB measurable_bmPath hF η σ s0 hq hqt.le] with ω h1 h2
+    rw [h1, h2]
+    field_simp
+  rw [integral_congr_ae e, integral_const_mul]
+  have : 0 < (1 / (r + η)) ^ 2 := by positivity
+  positivity
+
+end Cochrane.Generality.TidyR8OUPresentValue
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# A1.4 in real terms: `B_t/P_t = E_t∫_t^∞ (Λ_τ/Λ_t) s_τ dτ` with an Itô discount factor
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Online Appendix A1.4, pp. 564–565
+("work either up or down"): with short-term debt, the chain
+`B_t/P_t = E_t∫_t^∞ (Λ_τ/Λ_t)s_τ dτ` ⇔ `Λ_tB_t/P_t = E_t∫_t^∞ Λ_τs_τ dτ` ⇔
+`d(Λ_tB_t/P_t) = −s_tΛ_t dt` ⇔ … ⇔ the flow `B_ti_t dt = P_ts_t dt + dB_t`, and (3.31)–(3.32),
+p. 74. `TidyR7ItoDiscountFactor.shortDebt_model` and `TidyR7ItoDiscountFactor.ItoDiscountModel`
+gave the nominal form `Λ_tB_t/P_t = E_t∫Λs` (with `n = Λ/P` the nominal discount factor)
+iff the transversality condition. This module adds the first, **real** line: dividing by
+`Λ_t`.
+
+## Positivity is a hypothesis
+
+Mathlib-level Itô calculus here has no exponential martingale, and the Gaussian discount factors
+of the examples can be negative, so `Λ_t > 0` is not available; the results assume
+`Λ_t = n_tP_t ≠ 0` almost surely, which is all the division needs.
+
+## Integrability is a hypothesis too, and it is genuine
+
+`E_t[G/Λ_t]` is a conditional expectation only if `G/Λ_t` is integrable; when it is not, the
+book's `E_t∫(Λ_τ/Λ_t)s_τdτ` must be read as `Λ_t^{-1}E_t∫Λ_τs_τdτ` (a generalised conditional
+expectation of a `𝓕_t`-multiple). The results state that integrability (`hGΛ`).
+
+## Main results
+
+* `realForm_iff` (general): for `L` `m`-measurable, `L ≠ 0` a.s., `G` and `G/L` integrable,
+  `L·Y = E[G | m]` a.s. iff `Y = E[G/L | m]` a.s. (pull-out property);
+* `shortDebt_realForm` (**A1.4, first line, `L¹` form**): on the short-debt model of
+  `TidyR7ItoDiscountFactor.shortDebt_model` on every `[s, T]`, with `∫_s^T n(Ps) du → G` in `L¹`,
+  `B_s/P_s = E_s[G/Λ_s]` a.s. iff the transversality condition `E_s[n_TB_T] → 0` in `L¹`;
+* `shortDebt_realForm_integral`: the same with `G = ∫_s^∞ Λ_u s_u du` pathwise, so
+  `B_s/P_s = E_s[∫_s^∞ (Λ_u/Λ_s)s_u du]` verbatim;
+* non-vacuity, `cosEconomy_realForm` (any Brownian motion) and `bmPath_cosEconomy_realForm`
+  (the constructed one): an economy on the constructed Brownian motion with a
+  **random** `𝓕_s`-measurable discount factor `Λ_s = 2 + cos W_s` (so `1 ≤ Λ_s ≤ 3`),
+  `Λ_u = Λ_se^{−r(u−s)}`, `P = 1`, `i = r`, `s = 1`, `B = 1/r`, satisfying every hypothesis,
+  the transversality condition, and the real form `B_s/P_s = 1/r`.
+-/
+
+namespace Cochrane.Generality.TidyR8ShortDebtRealForm
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.Generality.TidyR7StieltjesSums Cochrane.Generality.TidyR7BrownianTools
+  Cochrane.Generality.TidyR7BrownianQV Cochrane.Generality.TidyR7ItoL2
+  Cochrane.Generality.TidyR7ItoSums Cochrane.Generality.TidyR7ItoIntegral
+  Cochrane.Generality.TidyR7ItoUnbounded Cochrane.Generality.TidyR7ItoProducts
+  Cochrane.Generality.TidyR7ItoProcess Cochrane.Generality.TidyR7ItoProductRule
+  Cochrane.Generality.TidyR7ItoBondStep Cochrane.Generality.TidyR7ItoBridge
+  Cochrane.Generality.TidyR7BrownianExist Cochrane.Generality.TidyR7BrownianSchauder
+  Cochrane.Generality.TidyR7ItoDiscountFactor Cochrane.Generality.TidyR7ItoDiscountFactorCex
+open scoped ENNReal NNReal
+
+variable {Ω : Type*} {m mΩ : MeasurableSpace Ω} {μ : Measure Ω}
+
+/-! ## Dividing a conditional expectation by an `𝓕_t`-measurable factor -/
+
+/-- **Cochrane (2023), A1.4, p. 564 (`B_t/P_t = E_t∫(Λ_τ/Λ_t)s` ⇔ `Λ_tB_t/P_t = E_t∫Λs`):
+dividing by the discount factor.** For `L` `m`-measurable with
+`L ≠ 0` a.s., and `G`, `G/L` integrable: `L·Y = E[G | m]` a.s. iff `Y = E[G/L | m]` a.s.
+Mathlib `condExp_mul_of_stronglyMeasurable_left` (pull-out). -/
+theorem realForm_iff {L Y G : Ω → ℝ}
+    (hL : StronglyMeasurable[m] L) (hL0 : ∀ᵐ ω ∂μ, L ω ≠ 0) (hG : Integrable G μ)
+    (hGL : Integrable (fun ω => G ω / L ω) μ) :
+    (fun ω => L ω * Y ω) =ᵐ[μ] μ[G | m] ↔ Y =ᵐ[μ] μ[fun ω => G ω / L ω | m] := by
+  have hLi : StronglyMeasurable[m] (fun ω => (L ω)⁻¹) :=
+    (hL.measurable.inv).stronglyMeasurable
+  have e : (fun ω => G ω / L ω) = (fun ω => (L ω)⁻¹) * G := by
+    funext ω
+    simp only [Pi.mul_apply]
+    ring
+  have hpull : μ[fun ω => G ω / L ω | m] =ᵐ[μ] fun ω => (L ω)⁻¹ * μ[G | m] ω := by
+    rw [e]
+    filter_upwards [condExp_mul_of_stronglyMeasurable_left hLi (e ▸ hGL) hG] with ω h
+    rw [h, Pi.mul_apply]
+  constructor
+  · intro h
+    filter_upwards [h, hpull, hL0] with ω h1 h2 h3
+    rw [h2, ← h1]
+    field_simp
+  · intro h
+    filter_upwards [h, hpull, hL0] with ω h1 h2 h3
+    rw [h1, h2]
+    field_simp
+
+variable {𝓕 : Filtration ℝ mΩ} {W : ℝ≥0 → Ω → ℝ} {s : ℝ}
+
+/-- **Cochrane (2023), A1.4, pp. 564–565: short-term debt in real terms, `L¹` form.** Let the
+nominal discount factor `n = Λ/P` (drift `−i n`, diffusion `σ_n`) and nominal debt `B`
+(`dB = (iB − Ps)dt`) be Itô processes on every `[s, T]`, `P_s` `𝓕_s`-measurable, and
+`Λ_s = n_sP_s ≠ 0` a.s. If `∫_s^T n(Ps) du → G` in `L¹` with `G` and `G/Λ_s` integrable, then
+`B_s/P_s = E_s[G/Λ_s]` a.s. iff the transversality condition `E_s[n_TB_T] → 0` in `L¹`.
+`TidyR7ItoDiscountFactor.ItoDiscountModel.valuation_L1` and `realForm_iff`. -/
+theorem shortDebt_realForm {n B P i sp σn : ℝ → Ω → ℝ} {Cν Cn Cβ : ℝ → ℝ}
+    (hn : ∀ T, s < T → ItoProcess μ 𝓕 W n (fun u ω => -(i u ω * n u ω)) σn s T (Cν T) (Cn T))
+    (hB : ∀ T, s < T → ItoProcess μ 𝓕 W B (fun u ω => i u ω * B u ω - P u ω * sp u ω)
+      (fun _ _ => 0) s T (Cβ T) 0)
+    (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t)) (h𝓕 : BMFiltration μ W 𝓕)
+    (hs : 0 ≤ s) (hP : StronglyMeasurable[𝓕 s] (P s)) (hΛ : ∀ᵐ ω ∂μ, n s ω * P s ω ≠ 0)
+    {G : Ω → ℝ} (hG : Integrable G μ) (hGΛ : Integrable (fun ω => G ω / (n s ω * P s ω)) μ)
+    (hconv : Tendsto (fun T => ∫ ω, |dtInt μ 𝓕 (fun u ω => n u ω * (P u ω * sp u ω)) s T ω
+      - G ω| ∂μ) atTop (𝓝 0)) :
+    (fun ω => B s ω / P s ω) =ᵐ[μ] μ[fun ω => G ω / (n s ω * P s ω) | 𝓕 s] ↔
+      Tendsto (fun T => ∫ ω, |μ[fun ω => n T ω * B T ω | 𝓕 s] ω| ∂μ) atTop (𝓝 0) := by
+  have : IsProbabilityMeasure μ := hBM.isGaussianProcess.isProbabilityMeasure
+  have hm : ∀ T, s < T → ItoDiscountModel μ 𝓕 W n B (fun u ω => -(i u ω * n u ω)) σn
+      (fun u ω => i u ω * B u ω - P u ω * sp u ω) (fun _ _ => 0) (fun u ω => P u ω * sp u ω)
+      s T (Cν T) (Cn T) (Cβ T) ((fun _ => (0 : ℝ)) T) :=
+    fun T hT => shortDebt_model (hn T hT) (hB T hT)
+  rw [← ItoDiscountModel.valuation_L1 hm hBM hWm h𝓕 hs hG hconv]
+  have hns : StronglyMeasurable[𝓕 s] (n s) :=
+    (hn (s + 1) (by linarith)).adapted s ⟨le_rfl, by linarith⟩
+  rw [← realForm_iff (L := fun ω => n s ω * P s ω) (Y := fun ω => B s ω / P s ω)
+    (by exact hns.mul hP) hΛ hG hGΛ]
+  have hcongr : (fun ω => n s ω * P s ω * (B s ω / P s ω)) =ᵐ[μ] fun ω => n s ω * B s ω := by
+    filter_upwards [hΛ] with ω h
+    have hP0 : P s ω ≠ 0 := right_ne_zero_of_mul h
+    field_simp
+  exact ⟨fun h => hcongr.symm.trans h, fun h => hcongr.trans h⟩
+
+/-- **Cochrane (2023), A1.4, p. 564, verbatim: `B_t/P_t = E_t∫_t^∞ (Λ_τ/Λ_t)s_τ dτ`.** Under the
+hypotheses of `shortDebt_realForm` with `G = ∫_s^∞ Λ_u s_u du` (`Λ = nP`) pathwise: a.s.
+`B_s/P_s = E_s[∫_s^∞ (Λ_u/Λ_s) s_u du]` iff the transversality condition. -/
+theorem shortDebt_realForm_integral {n B P i sp σn : ℝ → Ω → ℝ} {Cν Cn Cβ : ℝ → ℝ}
+    (hn : ∀ T, s < T → ItoProcess μ 𝓕 W n (fun u ω => -(i u ω * n u ω)) σn s T (Cν T) (Cn T))
+    (hB : ∀ T, s < T → ItoProcess μ 𝓕 W B (fun u ω => i u ω * B u ω - P u ω * sp u ω)
+      (fun _ _ => 0) s T (Cβ T) 0)
+    (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t)) (h𝓕 : BMFiltration μ W 𝓕)
+    (hs : 0 ≤ s) (hP : StronglyMeasurable[𝓕 s] (P s)) (hΛ : ∀ᵐ ω ∂μ, n s ω * P s ω ≠ 0)
+    (hG : Integrable (fun ω => ∫ u in Set.Ioi s, n u ω * P u ω * sp u ω) μ)
+    (hGΛ : Integrable (fun ω => ∫ u in Set.Ioi s, n u ω * P u ω / (n s ω * P s ω) * sp u ω) μ)
+    (hconv : Tendsto (fun T => ∫ ω, |dtInt μ 𝓕 (fun u ω => n u ω * (P u ω * sp u ω)) s T ω
+      - ∫ u in Set.Ioi s, n u ω * P u ω * sp u ω| ∂μ) atTop (𝓝 0)) :
+    (fun ω => B s ω / P s ω) =ᵐ[μ]
+      μ[fun ω => ∫ u in Set.Ioi s, n u ω * P u ω / (n s ω * P s ω) * sp u ω | 𝓕 s] ↔
+      Tendsto (fun T => ∫ ω, |μ[fun ω => n T ω * B T ω | 𝓕 s] ω| ∂μ) atTop (𝓝 0) := by
+  have e : (fun ω => ∫ u in Set.Ioi s, n u ω * P u ω / (n s ω * P s ω) * sp u ω) =
+      fun ω => (∫ u in Set.Ioi s, n u ω * P u ω * sp u ω) / (n s ω * P s ω) := by
+    funext ω
+    rw [← integral_div]
+    congr 1
+    funext u
+    ring
+  rw [e] at hGΛ ⊢
+  exact shortDebt_realForm hn hB hBM hWm h𝓕 hs hP hΛ hG hGΛ hconv
+
+/-! ## Non-vacuity: a random `𝓕_s`-measurable discount factor -/
+
+/-- Cochrane (2023), A1.4, p. 564 (non-vacuity): the nominal discount factor of the example,
+`n_u = (2 + cos W_s)e^{−r(u−s)}`, a random `𝓕_s`-measurable level `Λ_s = 2 + cos W_s ∈ [1, 3]`
+discounted at the constant rate `i = r` (with `P = 1`, `Λ = n`). -/
+noncomputable def cosLam (W : ℝ≥0 → Ω → ℝ) (r s u : ℝ) (ω : Ω) : ℝ :=
+  (2 + Real.cos (bmReal W s ω)) * Real.exp (-(r * (u - s)))
+
+/-- Cochrane (2023), A1.4, p. 564 (non-vacuity): `1 ≤ 2 + cos x ≤ 3`. -/
+theorem cos_level_bounds (x : ℝ) : 1 ≤ 2 + Real.cos x ∧ 2 + Real.cos x ≤ 3 := by
+  constructor <;> linarith [Real.neg_one_le_cos x, Real.cos_le_one x]
+
+/-- Cochrane (2023), A1.4, p. 564 (non-vacuity): the level `2 + cos W_s` is `𝓕_s`-measurable. -/
+theorem stronglyMeasurable_cos_level (h𝓕 : BMFiltration μ W 𝓕) (s : ℝ) :
+    StronglyMeasurable[𝓕 s] fun ω => 2 + Real.cos (bmReal W s ω) :=
+  (measurable_const.add (Real.continuous_cos.measurable.comp
+    (h𝓕.adapted s).measurable)).stronglyMeasurable
+
+/-- Cochrane (2023), A1.4, p. 564 (non-vacuity): on `[s, ∞)`, `|−r n_u| ≤ 3r` (`r ≥ 0`). -/
+theorem abs_cosLam_drift_le {r : ℝ} (hr : 0 ≤ r) {u : ℝ} (hu : s ≤ u) (ω : Ω) :
+    |-(r * cosLam W r s u ω)| ≤ 3 * r := by
+  have hb := cos_level_bounds (bmReal W s ω)
+  have he : Real.exp (-(r * (u - s))) ≤ 1 :=
+    Real.exp_le_one_iff.2 (by nlinarith)
+  rw [abs_neg, abs_mul, abs_of_nonneg hr, cosLam, abs_mul, abs_of_pos (by linarith),
+    abs_of_pos (Real.exp_pos _)]
+  have : (2 + Real.cos (bmReal W s ω)) * Real.exp (-(r * (u - s))) ≤ 3 :=
+    calc _ ≤ 3 * 1 := mul_le_mul hb.2 he (Real.exp_pos _).le (by norm_num)
+      _ = 3 := by ring
+  nlinarith
+
+/-- Cochrane (2023), A1.4, (1.26), p. 564 (non-vacuity): `n = cosLam` is an Itô process on
+`[s, T]` with drift `−i n` (`i = r`) and no diffusion.
+Generalises `TidyR7ItoDiscountFactorCex.itoProcess_det` to a random `𝓕_s`-measurable level. -/
+theorem itoProcess_cosLam (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (hs : 0 ≤ s) {r : ℝ} (hr : 0 ≤ r) {T : ℝ} (hsT : s ≤ T) :
+    ItoProcess μ 𝓕 W (cosLam W r s) (fun u ω => -((fun _ _ => r) u ω * cosLam W r s u ω))
+      (fun _ _ => 0) s T (3 * r) 0 := by
+  have : IsProbabilityMeasure μ := hBM.isGaussianProcess.isProbabilityMeasure
+  have hc := stronglyMeasurable_cos_level h𝓕 s
+  have had : ∀ u ∈ Set.Icc s T, StronglyMeasurable[𝓕 u] (cosLam W r s u) := fun u hu =>
+    (hc.mono (𝓕.mono hu.1)).mul stronglyMeasurable_const
+  have hcont : ∀ ω, Continuous fun u => cosLam W r s u ω := fun ω => by
+    unfold cosLam
+    fun_prop
+  exact
+    { adapted := had
+      init := MemLp.of_bound ((had s ⟨le_rfl, hsT⟩).mono (𝓕.le s)).aestronglyMeasurable 3
+        (ae_of_all _ fun ω => by
+          have hb := cos_level_bounds (bmReal W s ω)
+          simp only [cosLam, sub_self, mul_zero, neg_zero, Real.exp_zero, mul_one,
+            Real.norm_eq_abs]
+          rw [abs_of_pos (by linarith)]
+          exact hb.2)
+      drift :=
+        { adapted := fun u hu => by exact ((had u hu).const_mul r).neg
+          bound := fun u hu ω => abs_cosLam_drift_le hr hu.1 ω
+          cont := ae_of_all _ fun ω => ((hcont ω).const_mul r).neg.continuousOn }
+      diff := itoIntegrand_const (c := fun _ => (0 : ℝ)) stronglyMeasurable_const
+        (fun _ => by simp)
+      eq := fun u hu => by
+        filter_upwards [itoInt_const hBM hWm h𝓕 hs hu.1 (c := fun _ => (0 : ℝ))
+          stronglyMeasurable_const (C := 0) (fun _ => by simp)] with ω hω
+        rw [hω, zero_mul, add_zero]
+        have hd : ∀ v, HasDerivAt (fun v => cosLam W r s v ω)
+            (-(r * cosLam W r s v ω)) v := fun v => by
+          unfold cosLam
+          have h1 : HasDerivAt (fun v => -(r * (v - s))) (-(r * 1)) v :=
+            (((hasDerivAt_id v).sub_const s).const_mul r).neg
+          convert (h1.exp).const_mul (2 + Real.cos (bmReal W s ω)) using 1
+          ring
+        rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (fun v _ => hd v)
+          ((((hcont ω).const_mul r).neg).intervalIntegrable _ _)]
+        ring }
+
+
+/-- Cochrane (2023), A1.4, p. 564 (non-vacuity): the level `2 + cos W_s` is integrable. -/
+theorem integrable_cos_level [IsFiniteMeasure μ] (h𝓕 : BMFiltration μ W 𝓕) (s : ℝ) :
+    Integrable (fun ω => 2 + Real.cos (bmReal W s ω)) μ :=
+  (MemLp.of_bound (p := 1) ((stronglyMeasurable_cos_level h𝓕 s).mono (𝓕.le s)
+    ).aestronglyMeasurable 3 (ae_of_all _ fun ω => by
+      have hb := cos_level_bounds (bmReal W s ω)
+      rw [Real.norm_eq_abs, abs_of_pos (by linarith)]
+      exact hb.2)).integrable le_rfl
+
+/-- Cochrane (2023), A1.4, p. 564 (non-vacuity): `K e^{−r(T−s)} → 0` as `T → ∞` (`r > 0`). -/
+theorem tendsto_const_mul_exp_decay (K : ℝ) {r : ℝ} (hr : 0 < r) (s : ℝ) :
+    Tendsto (fun T => K * Real.exp (-(r * (T - s)))) atTop (𝓝 0) := by
+  have h0 : Tendsto (fun T : ℝ => T - s) atTop atTop := by
+    simpa [sub_eq_add_neg] using tendsto_atTop_add_const_right atTop (-s) tendsto_id
+  have h1 : Tendsto (fun T : ℝ => r * (T - s)) atTop atTop := h0.const_mul_atTop hr
+  have h2 := (Real.tendsto_exp_neg_atTop_nhds_zero.comp h1).const_mul K
+  rw [mul_zero] at h2
+  exact h2
+
+/-- Cochrane (2023), A1.4, p. 564 (non-vacuity): `∫_s^T n_u du = Λ_s(1 − e^{−r(T−s)})/r` in
+the example (`r ≠ 0`). -/
+theorem integral_cosLam {r : ℝ} (hr : r ≠ 0) (T : ℝ) (ω : Ω) :
+    ∫ u in s..T, cosLam W r s u ω * (1 * 1) =
+      (2 + Real.cos (bmReal W s ω)) * (1 - Real.exp (-(r * (T - s)))) / r := by
+  have hd : ∀ v, HasDerivAt (fun v => -(cosLam W r s v ω) / r) (cosLam W r s v ω * (1 * 1)) v :=
+    fun v => by
+      unfold cosLam
+      have h1 : HasDerivAt (fun v => -(r * (v - s))) (-(r * 1)) v :=
+        (((hasDerivAt_id v).sub_const s).const_mul r).neg
+      convert (((h1.exp).const_mul (2 + Real.cos (bmReal W s ω))).neg).div_const r using 1
+      field_simp
+  have hc : Continuous fun u => cosLam W r s u ω * (1 * 1) := by
+    unfold cosLam
+    fun_prop
+  rw [intervalIntegral.integral_eq_sub_of_hasDerivAt (fun v _ => hd v) (hc.intervalIntegrable _ _)]
+  simp only [cosLam, sub_self, mul_zero, neg_zero, Real.exp_zero]
+  field_simp
+  ring
+
+/-- Cochrane (2023), A1.4, p. 564 (non-vacuity): `∫_s^∞ n_u du = Λ_s/r` for the example
+(`r > 0`). -/
+theorem integral_Ioi_cosLam {r : ℝ} (hr : 0 < r) (ω : Ω) :
+    ∫ u in Set.Ioi s, cosLam W r s u ω * 1 * 1 = (2 + Real.cos (bmReal W s ω)) / r := by
+  have e : ∀ u, cosLam W r s u ω * 1 * 1 =
+      ((2 + Real.cos (bmReal W s ω)) * Real.exp (r * s)) * Real.exp (-r * u) := fun u => by
+    rw [cosLam, mul_assoc _ (Real.exp (r * s)), ← Real.exp_add]
+    ring_nf
+  have hh : Real.exp (r * s) * Real.exp (-r * s) = 1 := by
+    rw [← Real.exp_add]
+    simp
+  simp_rw [e]
+  rw [integral_const_mul, integral_exp_mul_Ioi (by linarith) s, mul_assoc, neg_div_neg_eq,
+    ← mul_div_assoc, hh]
+  ring
+
+/-- **Cochrane (2023), A1.4, pp. 564–565 (non-vacuity of `shortDebt_realForm_integral`): an
+economy with a random discount factor.** For a Brownian motion `W` with admissible filtration,
+`0 ≤ s`, `r > 0`: the nominal discount factor `n_u = (2 + cos W_s)e^{−r(u−s)}` (`i = r`, no
+diffusion), price level `P = 1`, surplus `s = 1` and debt `B = 1/r` (`dB = (iB − Ps)dt = 0`)
+satisfy every hypothesis of `shortDebt_realForm_integral`, the transversality condition
+`E_s[n_TB_T] → 0` in `L¹` holds, and so the real form
+`B_s/P_s = 1/r = E_s[∫_s^∞ (Λ_u/Λ_s)s_u du]` holds, with `Λ_s = 2 + cos W_s` random. -/
+theorem cosEconomy_realForm (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (hs : 0 ≤ s) {r : ℝ} (hr : 0 < r) :
+    Tendsto (fun T => ∫ ω, |μ[fun ω => cosLam W r s T ω * (fun _ _ => 1 / r) T ω | 𝓕 s] ω| ∂μ)
+      atTop (𝓝 0) ∧
+    (fun ω => (fun (_ : ℝ) (_ : Ω) => 1 / r) s ω / (fun (_ : ℝ) (_ : Ω) => (1 : ℝ)) s ω) =ᵐ[μ]
+      μ[fun ω => ∫ u in Set.Ioi s, cosLam W r s u ω * (fun _ _ => (1 : ℝ)) u ω /
+        (cosLam W r s s ω * (fun _ _ => (1 : ℝ)) s ω) * (fun _ _ => (1 : ℝ)) u ω | 𝓕 s] := by
+  have : IsProbabilityMeasure μ := hBM.isGaussianProcess.isProbabilityMeasure
+  set c : Ω → ℝ := fun ω => 2 + Real.cos (bmReal W s ω) with hcdef
+  have hcm := stronglyMeasurable_cos_level h𝓕 s
+  have hci := integrable_cos_level h𝓕 s
+  have hcpos : ∀ ω, 0 < c ω := fun ω => by
+    have := cos_level_bounds (bmReal W s ω); simp only [hcdef]; linarith
+  have hn : ∀ T, s < T → ItoProcess μ 𝓕 W (cosLam W r s)
+      (fun u ω => -((fun _ _ => r) u ω * cosLam W r s u ω)) (fun _ _ => 0) s T (3 * r) 0 :=
+    fun T hT => itoProcess_cosLam hBM hWm h𝓕 hs hr.le hT.le
+  have hB : ∀ T, s < T → ItoProcess μ 𝓕 W (fun _ _ => 1 / r)
+      (fun u ω => (fun _ _ => r) u ω * (fun _ _ => 1 / r) u ω
+        - (fun _ _ => (1 : ℝ)) u ω * (fun _ _ => (1 : ℝ)) u ω) (fun _ _ => 0) s T
+      ((fun _ => |r * (1 / r) - 1 * 1|) T) 0 := fun T _ =>
+    itoProcess_det hBM hWm h𝓕 hs (f := fun _ => 1 / r) (g := fun _ => r * (1 / r) - 1 * 1)
+      continuousOn_const (fun _ _ => le_rfl) (fun u _ => by
+        rw [intervalIntegral.integral_const, smul_eq_mul]
+        field_simp
+        ring)
+  have hns : ∀ T, StronglyMeasurable[𝓕 s] (cosLam W r s T) := fun T =>
+    hcm.mul stronglyMeasurable_const
+  have hnsi : ∀ T, Integrable (cosLam W r s T) μ := fun T => hci.mul_const _
+  -- the transversality condition
+  have htvc : Tendsto (fun T => ∫ ω, |μ[fun ω => cosLam W r s T ω * (fun _ _ => 1 / r) T ω
+      | 𝓕 s] ω| ∂μ) atTop (𝓝 0) := by
+    refine (tendsto_const_mul_exp_decay ((∫ ω, c ω ∂μ) / r) hr s).congr fun T => ?_
+    have hce : μ[fun ω => cosLam W r s T ω * (fun _ _ => 1 / r) T ω | 𝓕 s] =
+        fun ω => cosLam W r s T ω * (1 / r) :=
+      condExp_of_stronglyMeasurable (𝓕.le s) (by exact (hns T).mul stronglyMeasurable_const)
+        (by exact (hnsi T).mul_const _)
+    symm
+    rw [hce]
+    have e : ∀ ω, |cosLam W r s T ω * (fun _ _ => 1 / r) T ω| =
+        Real.exp (-(r * (T - s))) / r * c ω := fun ω => by
+      simp only [cosLam, hcdef]
+      rw [abs_of_pos (by have := hcpos ω; simp only [hcdef] at this; positivity)]
+      ring
+    simp_rw [e]
+    rw [integral_const_mul]
+    ring
+  refine ⟨htvc, ?_⟩
+  -- the hypotheses of `shortDebt_realForm_integral`
+  have hΛ : ∀ᵐ ω ∂μ, cosLam W r s s ω * (fun _ _ => (1 : ℝ)) s ω ≠ 0 :=
+    ae_of_all _ fun ω => by
+      simp only [cosLam, sub_self, mul_zero, neg_zero, Real.exp_zero, mul_one]
+      exact (hcpos ω).ne'
+  have eG : (fun ω => ∫ u in Set.Ioi s, cosLam W r s u ω * (fun _ _ => (1 : ℝ)) u ω *
+      (fun _ _ => (1 : ℝ)) u ω) = fun ω => c ω / r := funext fun ω => integral_Ioi_cosLam hr ω
+  have hG : Integrable (fun ω => ∫ u in Set.Ioi s, cosLam W r s u ω * (fun _ _ => (1 : ℝ)) u ω *
+      (fun _ _ => (1 : ℝ)) u ω) μ := by
+    rw [eG]; exact hci.div_const r
+  have hGΛ : Integrable (fun ω => ∫ u in Set.Ioi s, cosLam W r s u ω * (fun _ _ => (1 : ℝ)) u ω
+      / (cosLam W r s s ω * (fun _ _ => (1 : ℝ)) s ω) * (fun _ _ => (1 : ℝ)) u ω) μ := by
+    refine (integrable_const (1 / r)).congr (ae_of_all _ fun ω => ?_)
+    have e : ∀ u, cosLam W r s u ω * (fun _ _ => (1 : ℝ)) u ω /
+        (cosLam W r s s ω * (fun _ _ => (1 : ℝ)) s ω) * (fun _ _ => (1 : ℝ)) u ω =
+        cosLam W r s u ω * 1 * 1 / c ω := fun u => by
+      simp only [cosLam, hcdef, sub_self, mul_zero, neg_zero, Real.exp_zero, mul_one]
+    have hcp := hcpos ω
+    simp only [hcdef] at hcp
+    simp only [e, integral_div, integral_Ioi_cosLam hr ω, hcdef]
+    field_simp
+  have hm : ∀ T, s < T → ItoDiscountModel μ 𝓕 W (cosLam W r s) (fun _ _ => 1 / r)
+      (fun u ω => -((fun _ _ => r) u ω * cosLam W r s u ω)) (fun _ _ => 0)
+      (fun u ω => (fun _ _ => r) u ω * (fun _ _ => 1 / r) u ω
+        - (fun _ _ => (1 : ℝ)) u ω * (fun _ _ => (1 : ℝ)) u ω) (fun _ _ => 0)
+      (fun u ω => (fun _ _ => (1 : ℝ)) u ω * (fun _ _ => (1 : ℝ)) u ω) s T (3 * r) 0
+      ((fun _ => |r * (1 / r) - 1 * 1|) T) 0 := fun T hT => shortDebt_model (hn T hT) (hB T hT)
+  have hconv : Tendsto (fun T => ∫ ω, |dtInt μ 𝓕 (fun u ω => cosLam W r s u ω *
+      ((fun _ _ => (1 : ℝ)) u ω * (fun _ _ => (1 : ℝ)) u ω)) s T ω
+      - ∫ u in Set.Ioi s, cosLam W r s u ω * (fun _ _ => (1 : ℝ)) u ω *
+        (fun _ _ => (1 : ℝ)) u ω| ∂μ) atTop (𝓝 0) := by
+    refine (tendsto_const_mul_exp_decay ((∫ ω, c ω ∂μ) / r) hr s).congr' ?_
+    filter_upwards [eventually_gt_atTop s] with T hT
+    have hd := dtInt_ae_eq_integral hT.le ((hm T hT).msIntegrand_lamSp hBM hWm h𝓕 hs)
+      (ae_of_all _ fun ω => by unfold cosLam; fun_prop)
+    have e : (fun ω => |dtInt μ 𝓕 (fun u ω => cosLam W r s u ω *
+        ((fun _ _ => (1 : ℝ)) u ω * (fun _ _ => (1 : ℝ)) u ω)) s T ω
+        - ∫ u in Set.Ioi s, cosLam W r s u ω * (fun _ _ => (1 : ℝ)) u ω *
+          (fun _ _ => (1 : ℝ)) u ω|) =ᵐ[μ]
+        fun ω => Real.exp (-(r * (T - s))) / r * c ω := by
+      filter_upwards [hd] with ω hω
+      rw [hω, integral_cosLam hr.ne' T ω, integral_Ioi_cosLam hr ω]
+      have hcp := hcpos ω
+      simp only [hcdef] at hcp ⊢
+      rw [show (2 + Real.cos (bmReal W s ω)) * (1 - Real.exp (-(r * (T - s)))) / r
+          - (2 + Real.cos (bmReal W s ω)) / r =
+          -(Real.exp (-(r * (T - s))) / r * (2 + Real.cos (bmReal W s ω))) by ring, abs_neg,
+        abs_of_pos (by positivity)]
+    rw [integral_congr_ae e, integral_const_mul]
+    ring
+  exact (shortDebt_realForm_integral hn hB hBM hWm h𝓕 hs stronglyMeasurable_const hΛ hG hGΛ
+    hconv).2 htvc
+
+
+/-- **Cochrane (2023), A1.4, p. 564 (non-vacuity on the constructed motion):** on `bmPath` with
+its natural filtration `bmF`, for `0 ≤ s`, `r > 0`, the economy of `cosEconomy_realForm`
+(`Λ_s = 2 + cos W_s`) satisfies the transversality condition and the real form
+`B_s/P_s = E_s[∫_s^∞ (Λ_u/Λ_s)s_u du]`. -/
+theorem bmPath_cosEconomy_realForm {s r : ℝ} (hs : 0 ≤ s) (hr : 0 < r) :
+    Tendsto (fun T => ∫ ω, |gaussSeq[fun ω => cosLam bmPath r s T ω * (fun _ _ => 1 / r) T ω
+      | bmF s] ω| ∂gaussSeq) atTop (𝓝 0) ∧
+    (fun ω => (fun (_ : ℝ) (_ : ℕ → ℝ) => 1 / r) s ω /
+        (fun (_ : ℝ) (_ : ℕ → ℝ) => (1 : ℝ)) s ω) =ᵐ[gaussSeq]
+      gaussSeq[fun ω => ∫ u in Set.Ioi s, cosLam bmPath r s u ω * (fun _ _ => (1 : ℝ)) u ω /
+        (cosLam bmPath r s s ω * (fun _ _ => (1 : ℝ)) s ω) * (fun _ _ => (1 : ℝ)) u ω | bmF s] :=
+  cosEconomy_realForm isPreBrownianReal_bmPath measurable_bmPath
+    (bmFiltrationReal_isBM isPreBrownianReal_bmPath measurable_bmPath) hs hr
+
+end Cochrane.Generality.TidyR8ShortDebtRealForm
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The innovation identities (3.46)–(3.51) with Brownian shocks
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 3, §3.6.3, pp. 76–79,
+eqs. (3.42)–(3.51). The book takes innovations `Δ_t = E_{t+Δ} − E_t` of the linearised value
+identity (3.43) and bond-price identity (3.49) and obtains (3.46)
+`Δ_t dR^n_t = ∫_0^∞ e^{−rτ}Δ_t s̃_{t+τ}dτ − ∫_0^∞ e^{−rτ}Δ_t dR_{t+τ}`, (3.50)
+`Δ_t dR^n_t = −∫_0^∞ e^{−(r+ω)τ}Δ_t dR^n_{t+τ}` and the weighted-inflation identity (3.51).
+`ContinuousLinear` proved them as differences of two perfect-foresight equilibria
+(`ContinuousLinear.Eqm.LinearEqm`, `ContinuousLinear.news_value`, `ContinuousLinear.news_bond`,
+`ContinuousLinear.news_weighted_inflation`). Here they are conditional-expectation revisions in a
+stochastic economy.
+
+## The stochastic linearised economy
+
+`StochLinearEqm`: processes `v, q, b, R^n, π, s̃` on a filtered probability space (`R^n` is the
+expected nominal return rate, the drift of `dR^n`), together with **versions of their forecasts**
+`F^x_u(τ) = E_u x_τ` (`τ ≥ u`) such that, for every conditioning date `u` and almost every state,
+the forecast paths `τ ↦ F^x_u(τ)` satisfy the linearised model from date `u` on
+(`ContinuousLinear.Eqm.LinearEqm`: flow (3.42) in expectation, bond identity (3.48) in
+expectation, the transversality conditions); the value split `v = q + b − 1` holds at every date.
+This is the content of the linear model with Brownian shocks: in `dx = μ dt + σ dz` the `dz`
+terms have zero conditional mean (`TidyR7ItoInnovation.expected_increment`), so expected paths
+obey the drift equations — e.g. for the AR(1) surplus `E_u s_{u+τ} = e^{−ητ}s_u`
+(`TidyR7ItoInnovation.forecast_condExp`), which is how the example `fiscalInflation` below is
+verified.
+
+## Main results (`0 ≤ t₀ ≤ t`, a.s.; `Δx = E_t x − E_{t₀} x`)
+
+* `StochLinearEqm.revision_value` (**(3.46), exact at every horizon**): the innovation in the
+  value of debt is
+  `v_t − E_{t₀}v_t = ∫_0^∞ e^{−rτ}Δs̃_{t+τ}dτ − ∫_0^∞ e^{−rτ}ΔR'_{t+τ}dτ` (`R' = R^n − π`). With
+  the flow (3.42) and no price-level diffusion, reading `v_t − E_{t₀}v_t` as the book's
+  `Δ_t dR^n_t`, the `dW`-part of the bond return, is first-order by the pattern of
+  `TidyR7ItoInnovation.innovation_sq_le`; no theorem here proves that identification.
+* `StochLinearEqm.revision_bond` (**(3.50)**): `q_t − E_{t₀}q_t = −∫_0^∞ e^{−(r+ω)τ}ΔR^n_{t+τ}dτ`.
+* `StochLinearEqm.revision_weighted_inflation` (**(3.51) with the face-value term**):
+  `∫e^{−(r+ω)τ}Δπ = −∫e^{−rτ}Δs̃ + ∫(e^{−rτ} − e^{−(r+ω)τ})ΔR' + (b_t − E_{t₀}b_t)`;
+  `StochLinearEqm.revision_weighted_inflation_predetermined`: the book's (3.51) verbatim when
+  `b_t` is
+  `𝓕_{t₀}`-measurable; `faceValue_revision_sq_le`: if `b` has no diffusion and drift bounded by
+  `C`, `E[(b_t − E_{t₀}b_t)²] ≤ (2C(t − t₀))²`, so (3.51) holds to first order in `t − t₀`.
+* `forecast_pv_condExp`: the forward integrals of forecasts are conditional expectations of the
+  forward integrals of the actual processes, `∫_0^∞e^{−rτ}F^s̃_u(t+τ)dτ = E_u∫_0^∞e^{−rτ}s̃_{t+τ}dτ`
+  (`TidyR8ConditionalFubini.condExp_integral_interchange`), so (3.46) reads
+  `v_t − E_{t₀}v_t = (E_t − E_{t₀})∫e^{−rτ}s̃_{t+τ}dτ − (E_t − E_{t₀})∫e^{−rτ}(R' − r)_{t+τ}dτ`.
+* `StochLinearEqm.revision_is_news` (**link to the deterministic news**): for a.e. state the
+  date-`t₀` and date-`t` forecast paths are two perfect-foresight equilibria from `t` (old and
+  new), so
+  `ContinuousLinear.news_value`, `ContinuousLinear.news_bond` and
+  `ContinuousLinear.news_weighted_inflation` apply to them verbatim.
+
+## Non-vacuity
+
+`fiscalInflation`: the economy `v = q = b = 1`, `R^n = r`, `s̃ = r + x`, `π = −x` with `x` the AR(1)
+surplus deviation (the path version `TidyR8OUPresentValue.ouPath` of `TidyR7ItoInnovation.ou`),
+forecasts `E_u x_τ = e^{−η(τ−u)}x_u`, is a `StochLinearEqm` for `r > 0`, `r + η > 0` and every
+`ω`, given a motion with continuous paths (a fiscal shock absorbed entirely by expected
+inflation). `fiscalInflation_surplus_news`: its surplus news is
+`(σ/(r + η))e^{−ηt}∫_{t₀}^t e^{ηv}dW`,
+and `bmPath_fiscalInflation_news_pos`: on the constructed motion it has positive mean square.
+With `σ = 0` all revisions vanish (`TidyR7ItoInnovation.ou_sigma_zero`).
+-/
+
+namespace Cochrane.Generality.TidyR8StochasticNews
+
+open MeasureTheory ProbabilityTheory Filter Topology Function
+open Cochrane.Generality.TidyR7StieltjesSums Cochrane.Generality.TidyR7BrownianTools
+  Cochrane.Generality.TidyR7BrownianQV Cochrane.Generality.TidyR7ItoL2
+  Cochrane.Generality.TidyR7ItoSums Cochrane.Generality.TidyR7ItoIntegral
+  Cochrane.Generality.TidyR7ItoUnbounded Cochrane.Generality.TidyR7ItoProducts
+  Cochrane.Generality.TidyR7ItoProcess Cochrane.Generality.TidyR7ItoProductRule
+  Cochrane.Generality.TidyR7ItoBridge Cochrane.Generality.TidyR7BrownianExist
+  Cochrane.Generality.TidyR7BrownianSchauder Cochrane.Generality.TidyR7ItoDiscountFactorCex
+  Cochrane.Generality.TidyR7ItoInnovation Cochrane.Generality.TidyR8ConditionalFubini
+  Cochrane.Generality.ContinuousLinear
+open scoped ENNReal NNReal
+
+/-! ## Deterministic news without a predetermined face value -/
+
+/-- Cochrane (2023), (3.42)–(3.49), pp. 76–78: a linearised equilibrium from `t₀` is one from
+every later date `t` at which the value split `v_t = q_t + b_t − 1` holds. -/
+theorem linearEqm_restrict {r ω t₀ t : ℝ} {v q b Rn infl s : ℝ → ℝ}
+    (E : Eqm.LinearEqm r ω t₀ v q b Rn infl s) (h : t₀ ≤ t) (hv : v t = q t + b t - 1) :
+    Eqm.LinearEqm r ω t v q b Rn infl s where
+  flow τ hτ := E.flow τ (h.trans hτ)
+  bond τ hτ := E.bond τ (h.trans hτ)
+  value := hv
+  tvcV := E.tvcV
+  tvcQ := E.tvcQ
+  intS := E.intS.mono_set (Set.Ioi_subset_Ioi h)
+  intR := E.intR.mono_set (Set.Ioi_subset_Ioi h)
+  intN := E.intN.mono_set (Set.Ioi_subset_Ioi h)
+
+/-- **Cochrane (2023), (3.46), p. 77, without assuming a predetermined face value.** Between two
+linearised equilibria from `t`, the news in the value of debt is the news in discounted
+surpluses minus the news in discounted real returns:
+`v₁_t − v₀_t = ∫_0^∞ e^{−rτ}Δs̃_{t+τ}dτ − ∫_0^∞ e^{−rτ}ΔR'_{t+τ}dτ`. With `b₁_t = b₀_t` this is
+`ContinuousLinear.news_value`. -/
+theorem news_value_total {r ω t : ℝ} {v₀ q₀ b₀ Rn₀ infl₀ s₀ v₁ q₁ b₁ Rn₁ infl₁ s₁ : ℝ → ℝ}
+    (E₀ : Eqm.LinearEqm r ω t v₀ q₀ b₀ Rn₀ infl₀ s₀)
+    (E₁ : Eqm.LinearEqm r ω t v₁ q₁ b₁ Rn₁ infl₁ s₁) :
+    v₁ t - v₀ t =
+      (∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) * (s₁ (t + τ) - s₀ (t + τ))) -
+        ∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) *
+          ((Rn₁ (t + τ) - infl₁ (t + τ)) - (Rn₀ (t + τ) - infl₀ (t + τ))) := by
+  rw [eqm_value E₁, eqm_value E₀]
+  have hS := integral_weighted_sub (w := fun τ => Real.exp (-(r * τ)))
+    (a := fun τ => s₁ (t + τ)) (c := fun τ => s₀ (t + τ)) (S := Set.Ioi 0)
+    (integrableOn_shift_weighted E₁.intS) (integrableOn_shift_weighted E₀.intS)
+  have hR := integral_weighted_sub (w := fun τ => Real.exp (-(r * τ)))
+    (a := fun τ => Rn₁ (t + τ) - infl₁ (t + τ) - r)
+    (c := fun τ => Rn₀ (t + τ) - infl₀ (t + τ) - r) (S := Set.Ioi 0)
+    (integrableOn_shift_weighted (g := fun τ => Rn₁ τ - infl₁ τ - r) E₁.intR)
+    (integrableOn_shift_weighted (g := fun τ => Rn₀ τ - infl₀ τ - r) E₀.intR)
+  have hR' : ∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) *
+      ((Rn₁ (t + τ) - infl₁ (t + τ) - r) - (Rn₀ (t + τ) - infl₀ (t + τ) - r)) =
+      ∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) *
+        ((Rn₁ (t + τ) - infl₁ (t + τ)) - (Rn₀ (t + τ) - infl₀ (t + τ))) := by
+    refine integral_congr_ae (ae_of_all _ fun τ => ?_)
+    simp only
+    ring
+  beta_reduce at hS hR
+  linarith
+
+/-- **Cochrane (2023), (3.51), p. 78, without assuming a predetermined face value.** For `ω ≥ 0`,
+between two linearised equilibria from `t`:
+`∫_0^∞ e^{−(r+ω)τ}Δπ_{t+τ}dτ = −∫_0^∞ e^{−rτ}Δs̃_{t+τ}dτ
+  + ∫_0^∞ (e^{−rτ} − e^{−(r+ω)τ})ΔR'_{t+τ}dτ + (b₁_t − b₀_t)`.
+With `b₁_t = b₀_t` this is `ContinuousLinear.news_weighted_inflation`. -/
+theorem news_weighted_inflation_total {r ω t : ℝ}
+    {v₀ q₀ b₀ Rn₀ infl₀ s₀ v₁ q₁ b₁ Rn₁ infl₁ s₁ : ℝ → ℝ} (hω : 0 ≤ ω)
+    (E₀ : Eqm.LinearEqm r ω t v₀ q₀ b₀ Rn₀ infl₀ s₀)
+    (E₁ : Eqm.LinearEqm r ω t v₁ q₁ b₁ Rn₁ infl₁ s₁) :
+    ∫ τ in Set.Ioi 0, Real.exp (-((r + ω) * τ)) * (infl₁ (t + τ) - infl₀ (t + τ)) =
+      -(∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) * (s₁ (t + τ) - s₀ (t + τ))) +
+        (∫ τ in Set.Ioi 0, (Real.exp (-(r * τ)) - Real.exp (-((r + ω) * τ))) *
+          ((Rn₁ (t + τ) - infl₁ (t + τ)) - (Rn₀ (t + τ) - infl₀ (t + τ)))) +
+        (b₁ t - b₀ t) := by
+  have hV := news_value_total E₀ E₁
+  have hB := news_bond_real E₀ E₁
+  have hv₀ := E₀.value
+  have hv₁ := E₁.value
+  have iR : IntegrableOn (fun τ => Real.exp (-(r * τ)) *
+      ((Rn₁ (t + τ) - infl₁ (t + τ)) - (Rn₀ (t + τ) - infl₀ (t + τ)))) (Set.Ioi 0) := by
+    refine IntegrableOn.congr_fun
+      ((integrableOn_shift_weighted (g := fun τ => Rn₁ τ - infl₁ τ - r) E₁.intR).sub
+        (integrableOn_shift_weighted (g := fun τ => Rn₀ τ - infl₀ τ - r) E₀.intR))
+      (fun τ _ => ?_) measurableSet_Ioi
+    simp only [Pi.sub_apply]
+    ring
+  have iM : IntegrableOn (fun τ => Real.exp (-((r + ω) * τ)) *
+      ((Rn₁ (t + τ) - infl₁ (t + τ)) - (Rn₀ (t + τ) - infl₀ (t + τ)))) (Set.Ioi 0) := by
+    refine IntegrableOn.congr_fun
+      ((eqm_int_real_bond hω E₁).sub (eqm_int_real_bond hω E₀)) (fun τ _ => ?_)
+      measurableSet_Ioi
+    simp only [Pi.sub_apply]
+    ring
+  have iP : IntegrableOn (fun τ => Real.exp (-((r + ω) * τ)) *
+      (infl₁ (t + τ) - infl₀ (t + τ))) (Set.Ioi 0) := by
+    refine IntegrableOn.congr_fun ((eqm_int_infl hω E₁).sub (eqm_int_infl hω E₀))
+      (fun τ _ => ?_) measurableSet_Ioi
+    simp only [Pi.sub_apply]
+    ring
+  have hsplitB : ∫ τ in Set.Ioi 0, Real.exp (-((r + ω) * τ)) *
+        (((Rn₁ (t + τ) - infl₁ (t + τ)) - (Rn₀ (t + τ) - infl₀ (t + τ))) +
+          (infl₁ (t + τ) - infl₀ (t + τ))) =
+      (∫ τ in Set.Ioi 0, Real.exp (-((r + ω) * τ)) *
+        ((Rn₁ (t + τ) - infl₁ (t + τ)) - (Rn₀ (t + τ) - infl₀ (t + τ)))) +
+      ∫ τ in Set.Ioi 0, Real.exp (-((r + ω) * τ)) * (infl₁ (t + τ) - infl₀ (t + τ)) := by
+    rw [← integral_add iM iP]
+    refine integral_congr_ae (ae_of_all _ fun τ => ?_)
+    simp only
+    ring
+  have hsplitW : ∫ τ in Set.Ioi 0, (Real.exp (-(r * τ)) - Real.exp (-((r + ω) * τ))) *
+        ((Rn₁ (t + τ) - infl₁ (t + τ)) - (Rn₀ (t + τ) - infl₀ (t + τ))) =
+      (∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) *
+        ((Rn₁ (t + τ) - infl₁ (t + τ)) - (Rn₀ (t + τ) - infl₀ (t + τ)))) -
+      ∫ τ in Set.Ioi 0, Real.exp (-((r + ω) * τ)) *
+        ((Rn₁ (t + τ) - infl₁ (t + τ)) - (Rn₀ (t + τ) - infl₀ (t + τ))) := by
+    rw [← integral_sub iR iM]
+    refine integral_congr_ae (ae_of_all _ fun τ => ?_)
+    simp only
+    ring
+  rw [hsplitW]
+  rw [hsplitB] at hB
+  linarith
+
+/-! ## The stochastic linearised economy -/
+
+variable {Ω : Type*} {mΩ : MeasurableSpace Ω}
+
+variable (μ : Measure Ω) (𝓕 : Filtration ℝ mΩ) (r ω : ℝ) (v q b Rn infl s : ℝ → Ω → ℝ)
+  (Fv Fq Fb FRn Finfl Fs : ℝ → ℝ → Ω → ℝ)
+
+/-- **Cochrane (2023), §3.6.3, (3.42)–(3.49), pp. 76–78: a stochastic linearised equilibrium.**
+Processes `v` (value), `q` (bond price), `b` (real face value), `R^n` (expected nominal return
+rate), `π` (`infl`) and `s̃` (`s`), with versions `F^x_u(τ)` of the forecasts `E_u x_τ`
+(`τ ≥ u ≥ 0`) such that for every `u ≥ 0` and a.e. state the forecast paths form a linearised
+equilibrium from `u` (`ContinuousLinear.Eqm.LinearEqm`); the value split `v = q + b − 1` holds at
+every date; `v`, `q`, `b` are adapted and integrable. -/
+structure StochLinearEqm where
+  fcV : ∀ u τ, 0 ≤ u → u ≤ τ → Fv u τ =ᵐ[μ] μ[v τ | 𝓕 u]
+  fcQ : ∀ u τ, 0 ≤ u → u ≤ τ → Fq u τ =ᵐ[μ] μ[q τ | 𝓕 u]
+  fcB : ∀ u τ, 0 ≤ u → u ≤ τ → Fb u τ =ᵐ[μ] μ[b τ | 𝓕 u]
+  fcRn : ∀ u τ, 0 ≤ u → u ≤ τ → FRn u τ =ᵐ[μ] μ[Rn τ | 𝓕 u]
+  fcInfl : ∀ u τ, 0 ≤ u → u ≤ τ → Finfl u τ =ᵐ[μ] μ[infl τ | 𝓕 u]
+  fcS : ∀ u τ, 0 ≤ u → u ≤ τ → Fs u τ =ᵐ[μ] μ[s τ | 𝓕 u]
+  path : ∀ u, 0 ≤ u → ∀ᵐ x ∂μ, Eqm.LinearEqm r ω u (fun τ => Fv u τ x)
+    (fun τ => Fq u τ x) (fun τ => Fb u τ x) (fun τ => FRn u τ x) (fun τ => Finfl u τ x)
+    (fun τ => Fs u τ x)
+  value : ∀ τ, 0 ≤ τ → v τ =ᵐ[μ] fun x => q τ x + b τ x - 1
+  adV : ∀ u, StronglyMeasurable[𝓕 u] (v u)
+  adQ : ∀ u, StronglyMeasurable[𝓕 u] (q u)
+  adB : ∀ u, StronglyMeasurable[𝓕 u] (b u)
+  intV : ∀ u, Integrable (v u) μ
+  intQ : ∀ u, Integrable (q u) μ
+  intB : ∀ u, Integrable (b u) μ
+
+variable {μ 𝓕 r ω v q b Rn infl s Fv Fq Fb FRn Finfl Fs}
+
+namespace StochLinearEqm
+
+variable [IsFiniteMeasure μ]
+  (E : StochLinearEqm μ 𝓕 r ω v q b Rn infl s Fv Fq Fb FRn Finfl Fs)
+include E
+
+/-- Cochrane (2023), §3.6.3, p. 77: the date-`u` forecast of a date-`u` adapted variable is the
+variable itself, `F^v_u(u) = v_u` a.s.
+From Mathlib `condExp_of_stronglyMeasurable`. -/
+theorem forecast_self_v {u : ℝ} (hu : 0 ≤ u) : Fv u u =ᵐ[μ] v u := by
+  rw [← condExp_of_stronglyMeasurable (𝓕.le u) (E.adV u) (E.intV u)]
+  exact E.fcV u u hu le_rfl
+
+/-- Cochrane (2023), §3.6.3, p. 78: `F^q_u(u) = q_u` a.s. -/
+theorem forecast_self_q {u : ℝ} (hu : 0 ≤ u) : Fq u u =ᵐ[μ] q u := by
+  rw [← condExp_of_stronglyMeasurable (𝓕.le u) (E.adQ u) (E.intQ u)]
+  exact E.fcQ u u hu le_rfl
+
+/-- Cochrane (2023), §3.6.3, p. 77: `F^b_u(u) = b_u` a.s. -/
+theorem forecast_self_b {u : ℝ} (hu : 0 ≤ u) : Fb u u =ᵐ[μ] b u := by
+  rw [← condExp_of_stronglyMeasurable (𝓕.le u) (E.adB u) (E.intB u)]
+  exact E.fcB u u hu le_rfl
+
+/-- Cochrane (2023), pp. 76–77: the value split holds for forecasts, `F^v_{t₀}(t) =
+F^q_{t₀}(t) + F^b_{t₀}(t) − 1` a.s. (linearity of conditional expectation).
+By Mathlib `condExp_add` and `condExp_sub`. -/
+theorem forecast_value {t₀ t : ℝ} (h0 : 0 ≤ t₀) (h : t₀ ≤ t) :
+    ∀ᵐ x ∂μ, Fv t₀ t x = Fq t₀ t x + Fb t₀ t x - 1 := by
+  have e1 := condExp_congr_ae (m := 𝓕 t₀) (E.value t (h0.trans h))
+  have e2 : (fun x => q t x + b t x - 1) = q t + b t - fun _ => (1 : ℝ) := by
+    funext x
+    simp
+  rw [e2] at e1
+  filter_upwards [E.fcV t₀ t h0 h, E.fcQ t₀ t h0 h, E.fcB t₀ t h0 h, e1,
+    condExp_sub (m := 𝓕 t₀) ((E.intQ t).add (E.intB t)) (integrable_const (1 : ℝ)),
+    condExp_add (m := 𝓕 t₀) (E.intQ t) (E.intB t)] with x h1 h2 h3 h4 h5 h6
+  rw [h1, h2, h3, h4, h5, Pi.sub_apply, h6, condExp_const (𝓕.le t₀)]
+  rfl
+
+/-- **Cochrane (2023), §3.6.3, p. 77: link to the deterministic news.** For `0 ≤ t₀ ≤ t` and a.e.
+state, the date-`t₀` forecast paths (old) and the date-`t` forecast paths (new) are two
+linearised equilibria from `t`; `ContinuousLinear.news_value`, `ContinuousLinear.news_bond`,
+`ContinuousLinear.news_weighted_inflation` apply to them, the face value being predetermined
+exactly when `F^b_{t₀}(t) = F^b_t(t)`. -/
+theorem revision_is_news {t₀ t : ℝ} (h0 : 0 ≤ t₀) (h : t₀ ≤ t) :
+    ∀ᵐ x ∂μ, Eqm.LinearEqm r ω t (fun τ => Fv t₀ τ x) (fun τ => Fq t₀ τ x)
+        (fun τ => Fb t₀ τ x) (fun τ => FRn t₀ τ x) (fun τ => Finfl t₀ τ x) (fun τ => Fs t₀ τ x) ∧
+      Eqm.LinearEqm r ω t (fun τ => Fv t τ x) (fun τ => Fq t τ x)
+        (fun τ => Fb t τ x) (fun τ => FRn t τ x) (fun τ => Finfl t τ x) (fun τ => Fs t τ x) := by
+  filter_upwards [E.path t₀ h0, E.path t (h0.trans h), E.forecast_value h0 h] with x h1 h2 h3
+  exact ⟨linearEqm_restrict h1 h h3, h2⟩
+
+/-- **Cochrane (2023), (3.46), p. 77: the innovation in the value of debt, exactly.** For
+`0 ≤ t₀ ≤ t`, a.s.
+`v_t − E_{t₀}v_t = ∫_0^∞ e^{−rτ}(F^s̃_t − F^s̃_{t₀})(t+τ)dτ
+  − ∫_0^∞ e^{−rτ}((F^{R^n}_t − F^π_t) − (F^{R^n}_{t₀} − F^π_{t₀}))(t+τ)dτ`:
+the news in the value of debt is the news in discounted surpluses minus the news in discounted
+real returns. -/
+theorem revision_value {t₀ t : ℝ} (h0 : 0 ≤ t₀) (h : t₀ ≤ t) :
+    ∀ᵐ x ∂μ, v t x - μ[v t | 𝓕 t₀] x =
+      (∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) * (Fs t (t + τ) x - Fs t₀ (t + τ) x)) -
+        ∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) *
+          ((FRn t (t + τ) x - Finfl t (t + τ) x) - (FRn t₀ (t + τ) x - Finfl t₀ (t + τ) x)) := by
+  filter_upwards [E.revision_is_news h0 h, E.forecast_self_v (h0.trans h),
+    E.fcV t₀ t h0 h] with x hE h1 h2
+  rw [← h1, ← h2]
+  exact news_value_total hE.1 hE.2
+
+/-- **Cochrane (2023), (3.50), p. 78: the unexpected bond price.** For `0 ≤ t₀ ≤ t`, a.s.
+`q_t − E_{t₀}q_t = −∫_0^∞ e^{−(r+ω)τ}(F^{R^n}_t − F^{R^n}_{t₀})(t+τ)dτ`. -/
+theorem revision_bond {t₀ t : ℝ} (h0 : 0 ≤ t₀) (h : t₀ ≤ t) :
+    ∀ᵐ x ∂μ, q t x - μ[q t | 𝓕 t₀] x =
+      -∫ τ in Set.Ioi 0, Real.exp (-((r + ω) * τ)) * (FRn t (t + τ) x - FRn t₀ (t + τ) x) := by
+  filter_upwards [E.revision_is_news h0 h, E.forecast_self_q (h0.trans h),
+    E.fcQ t₀ t h0 h] with x hE h1 h2
+  rw [← h1, ← h2]
+  exact news_bond hE.1 hE.2
+
+/-- **Cochrane (2023), (3.51), p. 78: the weighted-inflation identity with the face-value
+revision.** For `ω ≥ 0`, `0 ≤ t₀ ≤ t`, a.s.
+`∫_0^∞ e^{−(r+ω)τ}Δπ_{t+τ}dτ = −∫_0^∞ e^{−rτ}Δs̃_{t+τ}dτ
+  + ∫_0^∞ (e^{−rτ} − e^{−(r+ω)τ})ΔR'_{t+τ}dτ + (b_t − E_{t₀}b_t)`, `Δ = F_t − F_{t₀}`. -/
+theorem revision_weighted_inflation (hω : 0 ≤ ω) {t₀ t : ℝ} (h0 : 0 ≤ t₀) (h : t₀ ≤ t) :
+    ∀ᵐ x ∂μ, ∫ τ in Set.Ioi 0, Real.exp (-((r + ω) * τ)) *
+        (Finfl t (t + τ) x - Finfl t₀ (t + τ) x) =
+      -(∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) * (Fs t (t + τ) x - Fs t₀ (t + τ) x)) +
+        (∫ τ in Set.Ioi 0, (Real.exp (-(r * τ)) - Real.exp (-((r + ω) * τ))) *
+          ((FRn t (t + τ) x - Finfl t (t + τ) x) - (FRn t₀ (t + τ) x - Finfl t₀ (t + τ) x))) +
+        (b t x - μ[b t | 𝓕 t₀] x) := by
+  filter_upwards [E.revision_is_news h0 h, E.forecast_self_b (h0.trans h),
+    E.fcB t₀ t h0 h] with x hE h1 h2
+  rw [← h1, ← h2]
+  exact news_weighted_inflation_total hω hE.1 hE.2
+
+/-- **Cochrane (2023), (3.51), p. 78, verbatim: a predetermined face value.** If `b_t` is
+`𝓕_{t₀}`-measurable (`ω ≥ 0`, `0 ≤ t₀ ≤ t`), a.s.
+`∫_0^∞ e^{−(r+ω)τ}Δπ_{t+τ}dτ = −∫_0^∞ e^{−rτ}Δs̃_{t+τ}dτ
+  + ∫_0^∞ (e^{−rτ} − e^{−(r+ω)τ})ΔR'_{t+τ}dτ`. -/
+theorem revision_weighted_inflation_predetermined (hω : 0 ≤ ω) {t₀ t : ℝ} (h0 : 0 ≤ t₀)
+    (h : t₀ ≤ t) (hb : StronglyMeasurable[𝓕 t₀] (b t)) :
+    ∀ᵐ x ∂μ, ∫ τ in Set.Ioi 0, Real.exp (-((r + ω) * τ)) *
+        (Finfl t (t + τ) x - Finfl t₀ (t + τ) x) =
+      -(∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) * (Fs t (t + τ) x - Fs t₀ (t + τ) x)) +
+        ∫ τ in Set.Ioi 0, (Real.exp (-(r * τ)) - Real.exp (-((r + ω) * τ))) *
+          ((FRn t (t + τ) x - Finfl t (t + τ) x) - (FRn t₀ (t + τ) x - Finfl t₀ (t + τ) x)) := by
+  filter_upwards [E.revision_weighted_inflation hω h0 h] with x hx
+  rw [hx, condExp_of_stronglyMeasurable (𝓕.le t₀) hb (E.intB t), sub_self, add_zero]
+
+end StochLinearEqm
+
+/-! ## The face-value revision is second order -/
+
+/-- **Cochrane (2023), (3.51), pp. 78–79 (`dB` of order `dt`): the face-value term is second
+order.** If `b` is an Itô process on `[t₀, t]` (`0 ≤ t₀ ≤ t`) with drift bounded by `C` and no
+diffusion, `E[(b_t − E_{t₀}b_t)²] ≤ (2C(t − t₀))²`, against `O(t − t₀)` for the `dW`-terms: (3.51)
+holds to first order in `t − t₀`. From `TidyR7ItoInnovation.innovation_sq_le`. -/
+theorem faceValue_revision_sq_le {μ : Measure Ω} {𝓕 : Filtration ℝ mΩ} {W : ℝ≥0 → Ω → ℝ}
+    {b a : ℝ → Ω → ℝ} {t₀ t C : ℝ} (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (h0 : 0 ≤ t₀) (h : t₀ ≤ t)
+    (hb : ItoProcess μ 𝓕 W b a (fun _ _ => 0) t₀ t C 0) :
+    ∫ x, (b t x - μ[b t | 𝓕 t₀] x) ^ 2 ∂μ ≤ (2 * C * (t - t₀)) ^ 2 := by
+  have hle := innovation_sq_le hBM hWm h𝓕 h0 h hb
+  have z := itoInt_const hBM hWm h𝓕 h0 h (c := fun _ => (0 : ℝ)) stronglyMeasurable_const
+    (C := 0) fun _ => by simp
+  have e : (fun x => (b t x - μ[b t | 𝓕 t₀] x
+      - itoInt μ 𝓕 W (fun _ _ => 0) t₀ t x) ^ 2) =ᵐ[μ]
+      fun x => (b t x - μ[b t | 𝓕 t₀] x) ^ 2 := by
+    filter_upwards [z] with x hx
+    rw [hx, zero_mul, sub_zero]
+  rw [← integral_congr_ae e]
+  refine hle.trans (le_of_eq ?_)
+  ring
+
+
+/-! ## Forward integrals of forecasts are conditional expectations -/
+
+/-- **Cochrane (2023), (3.43), (3.46), p. 77
+(`E_u∫_0^∞e^{−rτ}s̃_{t+τ}dτ = ∫_0^∞e^{−rτ}E_us̃_{t+τ}dτ`):
+the forward integral of a forecast path is the conditional expectation of the forward integral of
+the actual path.** For `u ≤ t`, if `F_u(τ)` is a version of `E_u s_τ` (`τ ≥ u`), jointly
+measurable for `𝓑(ℝ) ⊗ 𝓕_u` in `τ` and the state, and `e^{−rτ}s_{t+τ}` is integrable on
+`(0, ∞) × Ω`, then a.s. `E_u[∫_0^∞ e^{−rτ}s_{t+τ}dτ] = ∫_0^∞ e^{−rτ}F_u(t+τ)dτ`.
+`TidyR8ConditionalFubini.condExp_integral_interchange`. -/
+theorem forecast_pv_condExp {μ : Measure Ω} [IsFiniteMeasure μ] {𝓕 : Filtration ℝ mΩ}
+    {s : ℝ → Ω → ℝ} {Fs : ℝ → ℝ → Ω → ℝ} {r u t : ℝ} (hut : u ≤ t)
+    (hfc : ∀ τ, u ≤ τ → Fs u τ =ᵐ[μ] μ[s τ | 𝓕 u])
+    (hX : Integrable (uncurry fun τ x => Real.exp (-(r * τ)) * s (t + τ) x)
+      ((volume.restrict (Set.Ioi 0)).prod μ))
+    (hY : @StronglyMeasurable (ℝ × Ω) ℝ _ (@Prod.instMeasurableSpace ℝ Ω _ (𝓕 u))
+      (uncurry fun τ x => Fs u (t + τ) x)) :
+    μ[fun x => ∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) * s (t + τ) x | 𝓕 u] =ᵐ[μ]
+      fun x => ∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) * Fs u (t + τ) x := by
+  have hY' : @StronglyMeasurable (ℝ × Ω) ℝ _ (@Prod.instMeasurableSpace ℝ Ω _ (𝓕 u))
+      (uncurry fun τ x => Real.exp (-(r * τ)) * Fs u (t + τ) x) := by
+    let _ : MeasurableSpace Ω := 𝓕 u
+    have hc : Continuous fun τ : ℝ => Real.exp (-(r * τ)) :=
+      Real.continuous_exp.comp (continuous_const.mul continuous_id).neg
+    exact ((hc.measurable.comp measurable_fst).mul hY.measurable).stronglyMeasurable
+  refine condExp_integral_interchange (𝓕.le u) hX hY'
+    ((ae_restrict_iff' measurableSet_Ioi).2 (ae_of_all _ fun τ hτ => ?_))
+  have hτ' : (0 : ℝ) < τ := hτ
+  have e : (fun x => Real.exp (-(r * τ)) * s (t + τ) x) = Real.exp (-(r * τ)) • s (t + τ) := by
+    funext x
+    simp [smul_eq_mul]
+  rw [e]
+  filter_upwards [condExp_smul (μ := μ) (Real.exp (-(r * τ))) (s (t + τ)) (𝓕 u),
+    hfc (t + τ) (by linarith)] with x h1 h2
+  rw [h1, Pi.smul_apply, smul_eq_mul, h2]
+
+/-! ## Non-vacuity: a fiscal shock absorbed by expected inflation -/
+
+/-- Cochrane (2023), §3.6.3, p. 77 (non-vacuity): the forecast `E_u x_τ = e^{−η(τ−u)}x_u` of the
+AR(1) surplus deviation `x = TidyR7ItoInnovation.ou`.
+The forecast of `TidyR7ItoInnovation.ou_condExp` and `TidyR7ItoInnovation.forecast_condExp`. -/
+noncomputable def ouForecast (μ : Measure Ω) (𝓕 : Filtration ℝ mΩ) (W : ℝ≥0 → Ω → ℝ)
+    (η σ s0 u τ : ℝ) (x : Ω) : ℝ :=
+  Real.exp (-(η * (τ - u))) * ou μ 𝓕 W η σ s0 u x
+
+variable {W : ℝ≥0 → Ω → ℝ}
+
+/-- Cochrane (2023), pp. 76–77 (non-vacuity): `e^{−rτ}(c + e^{−η(τ−u)}X)` is integrable on
+`(u, ∞)` for `r > 0`, `r + η > 0`. -/
+theorem integrableOn_forecast {r η : ℝ} (hr : 0 < r) (hrη : 0 < r + η) (c X u : ℝ) :
+    IntegrableOn (fun τ => Real.exp (-(r * τ)) * (c + Real.exp (-(η * (τ - u))) * X))
+      (Set.Ioi u) := by
+  have i1 := (integrableOn_exp_mul_Ioi (a := -r) (by linarith) u).mul_const c
+  have i2 := (integrableOn_exp_mul_Ioi (a := -(r + η)) (by linarith) u).mul_const
+    (Real.exp (η * u) * X)
+  refine IntegrableOn.congr_fun (i1.add i2) (fun τ _ => ?_) measurableSet_Ioi
+  have e : Real.exp (-(r * τ)) * Real.exp (-(η * (τ - u))) =
+      Real.exp (-(r + η) * τ) * Real.exp (η * u) := by
+    rw [← Real.exp_add, ← Real.exp_add]; ring_nf
+  simp only [Pi.add_apply]
+  rw [neg_mul r τ]
+  linear_combination (-X) * e
+
+/-- **Cochrane (2023), §3.6.3, pp. 76–79 (non-vacuity of `StochLinearEqm`): a fiscal shock
+absorbed entirely by expected inflation.** With the AR(1) surplus deviation
+`x_u = ouPath_u` (`ds = −ηs dt + σ dε`), the economy `v = q = b = 1`, `R^n = r`,
+`s̃ = r + x`, `π = −x`, with forecasts `F^x_u(τ) = e^{−η(τ−u)}x_u`, is a stochastic linearised
+equilibrium for every maturity parameter `ω`, when `r > 0`, `r + η > 0` and `W` has continuous
+paths. -/
+theorem fiscalInflation (hBM : IsPreBrownianReal W μ) (hWm : ∀ t, Measurable (W t))
+    (h𝓕 : BMFiltration μ W 𝓕) (hcont : ∀ x, Continuous fun t => W t x) {r η : ℝ} (hr : 0 < r)
+    (hrη : 0 < r + η) (ω σ s0 : ℝ) :
+    StochLinearEqm μ 𝓕 r ω (fun _ _ => 1) (fun _ _ => 1) (fun _ _ => 1) (fun _ _ => r)
+      (fun τ x => -TidyR8OUPresentValue.ouPath W η σ s0 τ x)
+      (fun τ x => r + TidyR8OUPresentValue.ouPath W η σ s0 τ x)
+      (fun _ _ _ => 1) (fun _ _ _ => 1) (fun _ _ _ => 1) (fun _ _ _ => r)
+      (fun u τ x => -ouForecast μ 𝓕 W η σ s0 u τ x)
+      (fun u τ x => r + ouForecast μ 𝓕 W η σ s0 u τ x) := by
+  have : IsProbabilityMeasure μ := hBM.isGaussianProcess.isProbabilityMeasure
+  have hc1 : ∀ u, μ[fun (_ : Ω) => (1 : ℝ) | 𝓕 u] = fun _ => 1 := fun u =>
+    condExp_const (𝓕.le u) 1
+  have hcr : ∀ u, μ[fun (_ : Ω) => r | 𝓕 u] = fun _ => r := fun u => condExp_const (𝓕.le u) r
+  have hfx : ∀ u τ, 0 ≤ u → u ≤ τ → μ[TidyR8OUPresentValue.ouPath W η σ s0 τ | 𝓕 u] =ᵐ[μ]
+      ouForecast μ 𝓕 W η σ s0 u τ := fun u τ hu huτ => by
+    filter_upwards [condExp_congr_ae (m := 𝓕 u)
+      (TidyR8OUPresentValue.ouPath_ae_eq hBM hWm h𝓕 hcont η σ s0 (hu.trans huτ)),
+      ou_condExp hBM hWm h𝓕 η σ s0 hu huτ] with x h1 h2
+    rw [h1, h2]
+    rfl
+  have hint : ∀ τ, 0 ≤ τ → Integrable (TidyR8OUPresentValue.ouPath W η σ s0 τ) μ :=
+    fun τ hτ => (TidyR8OUPresentValue.integrable_ou hBM hWm h𝓕 η σ s0 τ).congr
+      (TidyR8OUPresentValue.ouPath_ae_eq hBM hWm h𝓕 hcont η σ s0 hτ).symm
+  exact
+    { fcV := fun u _ _ _ => by rw [hc1]
+      fcQ := fun u _ _ _ => by rw [hc1]
+      fcB := fun u _ _ _ => by rw [hc1]
+      fcRn := fun u _ _ _ => by rw [hcr]
+      fcInfl := fun u τ hu huτ => by
+        have e : (fun x => -TidyR8OUPresentValue.ouPath W η σ s0 τ x) =
+            -TidyR8OUPresentValue.ouPath W η σ s0 τ := rfl
+        rw [e]
+        filter_upwards [condExp_neg (μ := μ) (TidyR8OUPresentValue.ouPath W η σ s0 τ) (𝓕 u),
+          hfx u τ hu huτ] with x h1 h2
+        rw [h1, Pi.neg_apply, h2]
+      fcS := fun u τ hu huτ => by
+        have e : (fun x => r + TidyR8OUPresentValue.ouPath W η σ s0 τ x) =
+            (fun _ => r) + TidyR8OUPresentValue.ouPath W η σ s0 τ := rfl
+        rw [e]
+        filter_upwards [condExp_add (m := 𝓕 u) (integrable_const r) (hint τ (hu.trans huτ)),
+          hfx u τ hu huτ] with x h1 h2
+        rw [h1, Pi.add_apply, hcr, h2]
+      path := fun u _ => ae_of_all _ fun x =>
+        { flow := fun τ _ => (hasDerivAt_const τ (1 : ℝ)).congr_deriv (by ring)
+          bond := fun τ _ => (hasDerivAt_const τ (1 : ℝ)).congr_deriv (by ring)
+          value := by ring
+          tvcV := tvc_of_bounded (t := u) (K := 1) hr fun _ _ => by simp
+          tvcQ := by simp
+          intS := integrableOn_forecast hr hrη r (ou μ 𝓕 W η σ s0 u x) u
+          intR := (integrableOn_forecast hr hrη 0 (ou μ 𝓕 W η σ s0 u x) u).congr_fun
+            (fun τ _ => by simp only [ouForecast]; ring) measurableSet_Ioi
+          intN := (integrableOn_zero (s := Set.Ioi u) (μ := volume)).congr_fun
+            (fun τ _ => by simp) measurableSet_Ioi }
+      value := fun _ _ => ae_of_all _ fun _ => by ring
+      adV := fun _ => stronglyMeasurable_const
+      adQ := fun _ => stronglyMeasurable_const
+      adB := fun _ => stronglyMeasurable_const
+      intV := fun _ => integrable_const _
+      intQ := fun _ => integrable_const _
+      intB := fun _ => integrable_const _ }
+
+/-- **Cochrane (2023), §3.6.3, p. 77, in the economy `fiscalInflation`: the surplus news is
+`σ/(r + η) dε`.** For `0 ≤ t₀ ≤ t`, a.s.
+`∫_0^∞ e^{−rτ}(F^s̃_t − F^s̃_{t₀})(t+τ)dτ = (σ/(r + η))e^{−ηt}∫_{t₀}^t e^{ηv}dW_v`.
+Its right side is that of `TidyR7ItoInnovation.pv_innovation` and
+`TidyR8OUPresentValue.pv_revision`. -/
+theorem fiscalInflation_surplus_news (hBM : IsPreBrownianReal W μ)
+    (hWm : ∀ t, Measurable (W t)) (h𝓕 : BMFiltration μ W 𝓕) {r η : ℝ} (hrη : 0 < r + η)
+    (σ s0 : ℝ) {t₀ t : ℝ} (h0 : 0 ≤ t₀) (h : t₀ ≤ t) :
+    ∀ᵐ x ∂μ, ∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) *
+        ((r + ouForecast μ 𝓕 W η σ s0 t (t + τ) x) - (r + ouForecast μ 𝓕 W η σ s0 t₀ (t + τ) x)) =
+      σ / (r + η) * Real.exp (-(η * t)) * itoInt μ 𝓕 W (fun v _ => Real.exp (η * v)) t₀ t x := by
+  filter_upwards [ou_condExp hBM hWm h𝓕 η σ s0 h0 h, ou_innovation hBM hWm h𝓕 η σ s0 h0 h]
+    with x h1 h2
+  have e : ∀ τ, Real.exp (-(r * τ)) *
+      ((r + ouForecast μ 𝓕 W η σ s0 t (t + τ) x) - (r + ouForecast μ 𝓕 W η σ s0 t₀ (t + τ) x)) =
+      Real.exp (-(r * τ)) * (Real.exp (-(η * τ)) *
+        (ou μ 𝓕 W η σ s0 t x - μ[ou μ 𝓕 W η σ s0 t | 𝓕 t₀] x)) := fun τ => by
+    rw [h1]
+    simp only [ouForecast]
+    rw [show -(η * (t + τ - t₀)) = -(η * τ) + -(η * (t - t₀)) by ring, Real.exp_add,
+      show t + τ - t = τ by ring]
+    ring
+  simp_rw [e]
+  rw [ContinuousLinear.ar1_pv hrη, h2]
+  ring
+
+/-- **Cochrane (2023), §3.6.3, p. 77 (non-vacuity): the surplus news of `fiscalInflation` is not
+zero.** On the constructed motion `bmPath`, for `σ ≠ 0`, `r > 0`, `r + η > 0`, `0 ≤ t₀ < t`, the
+present-value surplus news has positive mean square; by `StochLinearEqm.revision_value` it is
+matched one for one by news in discounted real returns (expected inflation), since `v ≡ 1`.
+From `TidyR8OUPresentValue.bmPath_pv_revision_pos`. -/
+theorem bmPath_fiscalInflation_news_pos {r η : ℝ} (hr : 0 < r) (hrη : 0 < r + η) (s0 : ℝ)
+    {σ : ℝ} (hσ : σ ≠ 0) {t₀ t : ℝ} (h0 : 0 ≤ t₀) (h : t₀ < t) :
+    0 < ∫ x, (∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) *
+        ((r + ouForecast gaussSeq bmF bmPath η σ s0 t (t + τ) x)
+          - (r + ouForecast gaussSeq bmF bmPath η σ s0 t₀ (t + τ) x))) ^ 2 ∂gaussSeq := by
+  have hB := isPreBrownianReal_bmPath
+  have hF := bmFiltrationReal_isBM isPreBrownianReal_bmPath measurable_bmPath
+  have hpos := TidyR8OUPresentValue.bmPath_pv_revision_pos hr hrη s0 hσ h0 h
+  have e : (fun x => (∫ τ in Set.Ioi 0, Real.exp (-(r * τ)) *
+        ((r + ouForecast gaussSeq bmF bmPath η σ s0 t (t + τ) x)
+          - (r + ouForecast gaussSeq bmF bmPath η σ s0 t₀ (t + τ) x))) ^ 2) =ᵐ[gaussSeq]
+      fun x => (gaussSeq[TidyR8OUPresentValue.pvPath bmPath r η σ s0 t | bmF t] x
+        - gaussSeq[TidyR8OUPresentValue.pvPath bmPath r η σ s0 t | bmF t₀] x) ^ 2 := by
+    filter_upwards [fiscalInflation_surplus_news hB measurable_bmPath hF hrη σ s0 h0 h.le,
+      TidyR8OUPresentValue.pv_revision hB measurable_bmPath hF continuous_bmPath hr hrη σ s0 h0
+        h.le] with x h1 h2
+    rw [h1, h2]
+  rw [integral_congr_ae e]
+  exact hpos
+
+end Cochrane.Generality.TidyR8StochasticNews
+
 set_option linter.style.longLine false
 #print axioms Cochrane.Generality.SchurStable
 #print axioms Cochrane.Generality.discQ
@@ -31984,3 +33598,79 @@ set_option linter.style.longLine false
 #print axioms Cochrane.Generality.TidyR7JumpDiscountFactor.innovation_martingale
 #print axioms Cochrane.Generality.TidyR7JumpDiscountFactor.innovation_martingale_bound
 #print axioms Cochrane.Generality.TidyR7JumpDiscountFactor.coin_innovation
+#print axioms Cochrane.Generality.TidyR8ConditionalFubini.measurableSpace_prod_le_prod
+#print axioms Cochrane.Generality.TidyR8ConditionalFubini.integrable_uncurry_of_integral_abs
+#print axioms Cochrane.Generality.TidyR8ConditionalFubini.integrable_uncurry_version
+#print axioms Cochrane.Generality.TidyR8ConditionalFubini.condExp_integral_interchange
+#print axioms Cochrane.Generality.TidyR8ConditionalFubini.integral_integral_interchange
+#print axioms Cochrane.Generality.TidyR8ConditionalFubini.condExp_integral_interchange_of_integral_abs
+#print axioms Cochrane.Generality.TidyR8ConditionalFubini.condExp_integral_revision
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.ouPath
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.pvPath
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.hasDerivAt_exp_mul
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.ouI_byParts
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.ouPath_ae_eq
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.continuous_ouPath
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.measurable_uncurry_expW
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.measurable_ouPath
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.measurable_uncurry_pv
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.integrable_ou
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.stronglyMeasurable_ou
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.integral_abs_ou_le
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.integrableOn_pv_bound
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.integrable_uncurry_pv
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.pv_integrable_ae
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.pv_condExp
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.pv_revision
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.pv_revision_sq_le
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.pv_sigma_zero
+#print axioms Cochrane.Generality.TidyR8OUPresentValue.bmPath_pv_revision_pos
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.realForm_iff
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.shortDebt_realForm
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.shortDebt_realForm_integral
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.cosLam
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.cos_level_bounds
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.stronglyMeasurable_cos_level
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.abs_cosLam_drift_le
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.itoProcess_cosLam
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.integrable_cos_level
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.tendsto_const_mul_exp_decay
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.integral_cosLam
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.integral_Ioi_cosLam
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.cosEconomy_realForm
+#print axioms Cochrane.Generality.TidyR8ShortDebtRealForm.bmPath_cosEconomy_realForm
+#print axioms Cochrane.Generality.TidyR8StochasticNews.linearEqm_restrict
+#print axioms Cochrane.Generality.TidyR8StochasticNews.news_value_total
+#print axioms Cochrane.Generality.TidyR8StochasticNews.news_weighted_inflation_total
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.mk
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcV
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcQ
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcB
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcRn
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcInfl
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.fcS
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.path
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.value
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.adV
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.adQ
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.adB
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.intV
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.intQ
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.intB
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.forecast_self_v
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.forecast_self_q
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.forecast_self_b
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.forecast_value
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_is_news
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_value
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_bond
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_weighted_inflation
+#print axioms Cochrane.Generality.TidyR8StochasticNews.StochLinearEqm.revision_weighted_inflation_predetermined
+#print axioms Cochrane.Generality.TidyR8StochasticNews.faceValue_revision_sq_le
+#print axioms Cochrane.Generality.TidyR8StochasticNews.forecast_pv_condExp
+#print axioms Cochrane.Generality.TidyR8StochasticNews.ouForecast
+#print axioms Cochrane.Generality.TidyR8StochasticNews.integrableOn_forecast
+#print axioms Cochrane.Generality.TidyR8StochasticNews.fiscalInflation
+#print axioms Cochrane.Generality.TidyR8StochasticNews.fiscalInflation_surplus_news
+#print axioms Cochrane.Generality.TidyR8StochasticNews.bmPath_fiscalInflation_news_pos

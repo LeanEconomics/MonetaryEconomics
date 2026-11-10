@@ -53,3 +53,7 @@ import Generality.TidyR7JumpSums
 import Generality.TidyR7ProductStepJump
 import Generality.TidyR7ProductStepJumpCoin
 import Generality.TidyR7JumpDiscountFactor
+import Generality.TidyR8ConditionalFubini
+import Generality.TidyR8OUPresentValue
+import Generality.TidyR8ShortDebtRealForm
+import Generality.TidyR8StochasticNews
