@@ -16,7 +16,7 @@ optimisation, under perfect foresight, on a finite event tree and on a genuine p
 whose information grows forever, there without bounds on prices or plans. Continuous time is
 deterministic, except the `E_td(·)` forms, the product step and the chain (1.31)–(1.34) of Online
 Appendix §1.6 (`TidyR6StochasticDrift`, `TidyR7ProductStep`, `TidyR7MonetarismModel`,
-`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **2529 theorems**, including the shared core; 578 of them are in the fourteen
+`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **2609 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
@@ -32,9 +32,11 @@ diffusive money and bonds,
 its quadratic variation and the infinite variation of its paths, 66 of them copied from the
 Meyn–Tweedie project, 239 in the eleven `TidyR7Ito…` modules, the Itô integral `∫ H dW`,
 Itô processes, Itô's product rule with covariation and the general product step of (1.32)
-with diffusive bonds, and 100 in the five `TidyR8Monetarism…` modules, the sharp condition
+with diffusive bonds, 100 in the five `TidyR8Monetarism…` modules, the sharp condition
 for the printed (1.33)–(1.34), the dominated (1.33) with the bracket and infinite-horizon
-instances with nonzero and with jumping money.
+instances with nonzero and with jumping money, and 80 in the eight `TidyR9…` modules, Itô's
+formula for `f(t, X)`, `1/X` and `exp X` and the counterexamples to (1.32) and (1.33) with a
+positive diffusive `Λ/P`.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -347,6 +349,29 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   `H = 0` it is Track 1's product step term by term
   (`TidyR7ItoProductRule.condExp_product_rule_bv`), and for `X = Y = W` on the constructed motion
   it fails (`TidyR7ItoProductRule.not_bookForm_bmPath`).
+* **Itô's formula `df(t, X) = f_t dt + f_x dX + ½f_xx d[X]`.** For an Itô process `X` with almost
+  surely continuous paths on `[s, t]` and `f(u, x)` with jointly continuous partials, `f_t` and
+  `f_xx` bounded and `f_x(u, X_u)` mean-square continuous, almost surely
+  `f(t, X_t) − f(s, X_s) = ∫ f_t du + ∫ f_x a du + ∫ f_x H dW + ½∫ f_xx H² du`
+  (`TidyR9ItoFormula.ito_formula_time`); the Taylor remainder is controlled by uniform continuity
+  on the compact range of each path, so no global uniform continuity of `f''` is needed. For
+  `f ∈ C²` with `f''` bounded (`f'` may be unbounded)
+  `f(X_t) − f(X_s) = ∫ f'(X)a du + ∫ f'(X)H dW + ½∫ f''(X)H² du` (`TidyR9ItoFormula.ito_formula`);
+  `f(x) = x²` gives back `TidyR7ItoProductRule.ito_formula_sq`
+  (`TidyR9ItoFormula.ito_formula_sq_recovers`), and on the constructed motion
+  `sin W_1 = ∫_0^1 cos W dW − ½∫_0^1 sin W du` (`TidyR9ItoFormula.ito_formula_sin_bmPath`). With
+  `f'` bounded as well, `f(X)` is again an Itô process, with drift `f'(X)a + ½f''(X)H²` and
+  diffusion `f'(X)H` (`TidyR9ItoFormula.itoProcess_comp`), and
+  `E_s[f(X_t) − f(X_s)] = E_s[∫_s^t (f'(X)a + ½f''(X)H²) du]` a.s.
+  (`TidyR9ItoFormula.condExp_ito_formula`). So are `f(u, X_u)`
+  (`TidyR9ItoFormulaVariants.itoProcess_comp_time`), the discounted `e^{−ru}g(X_u)`
+  (`TidyR9ItoFormulaVariants.itoProcess_discount`), `1/X` for `X ≥ c > 0` on `[s, t]`, with drift
+  `−a/X² + H²/X³` and diffusion `−H/X²` (`TidyR9ItoFormulaVariants.itoProcess_inv`), and `exp X`
+  for `|X| ≤ M` on `[s, t]`, with drift `e^X(a + ½H²)` and diffusion `e^X H`
+  (`TidyR9ItoFormulaVariants.itoProcess_exp`). The lognormal discount factor
+  `Λ_u = exp(σW_u − σ²u/2)`, whose diffusion coefficient is unbounded, is not an Itô process
+  here; its martingale property `E_s[Λ_t/Λ_s] = 1` is proved from the Gaussian law of the
+  increment (`TidyR9ExpMartingale.condExp_exp_increment`).
 * **(1.32)–(1.34) with diffusive bonds.** For bonds `B` and `X = Λ/P` Itô processes on the same
   Brownian motion, with diffusions `σ_B` and `σ_X`, the step from the middle line of (1.32) to its
   last line is `E_t d(BX) = X dB + B E_t dX + E_t d[B, X]` with `d[B, X] = σ_Bσ_X dt`: almost
@@ -378,6 +403,17 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   (`TidyR8MonetarismItoDom.valuation_1_33_ito_dom_pathwise`); on the `[0, ∞)` economy these
   hypotheses hold, `n_0B_0 = 1/3 = E_0[G]`, and the book's form fails, `0 ≠ 1/3`
   (`TidyR8MonetarismItoDomInf.itoDomInf_headline`).
+  The counterexamples persist with a positive diffusive `Λ/P`. With `P = 1` and
+  `Λ/P = Λ = 2 + sin W ∈ [1, 3]` the bond-pricing drift forces the random adapted rate
+  `i = sin W/(2(2 + sin W))`, `|i| ≤ 1/2`; with bonds `b + c sin W` and money `M₀ − c sin W` this
+  is a `TidyR7MonetarismIto.ItoMonetaryModel` (`TidyR9MonetarismItoPositive.posModel`), and for
+  every `c ≠ 0` and `t > 0` the printed line 3 of (1.32) fails on `[0, t]`, the bracket having
+  mean `cE∫_0^t cos²W du ≠ 0`, while the corrected line holds
+  (`TidyR9MonetarismItoPositive.pos_headline`). With time-varying loadings,
+  `Λ/P = 2 + φ(u) sin W ∈ [1, 3]`, bonds and `Λ/P` diffusing on disjoint time sets satisfy the
+  printed (1.32) (`TidyR9MonetarismItoPositiveInf.disjP_1_32`), and on `[0, ∞)` the
+  transversality condition holds exactly while the bracket stays below `−κ < 0` and the printed
+  (1.33) fails (`TidyR9MonetarismItoPositiveInf.infP_headline`).
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -554,17 +590,29 @@ Not formalised:
   with the bracket in line 3 of (1.32) and in the flow of (1.33)
   (`TidyR7MonetarismIto.ItoMonetaryModel.incr_1_32_ito_general`,
   `TidyR7MonetarismItoValuation.valuation_1_33_ito`, `TidyR7MonetarismItoValuation.valuation_1_34_ito`).
-  What remains: a positive diffusive `Λ/P` (the counterexamples' `Λ/P = 1 + W` and `1 + ∫ φ dW`
-  can be negative; a positive one such as `exp(W − t/2)` has an unbounded diffusion coefficient
-  and needs a general Itô formula for `f(X)`, of which only `x²` is proved, or solutions of SDEs;
-  the algebra of (1.32) uses only `P ≠ 0`, and positivity of `Λ` enters only the division by
-  `Λ_s`, `TidyR7MonetarismItoValuation.real_form_ito`); Itô processes whose drift or diffusion is
-  unbounded or merely measurable (the coefficients are bounded with almost surely continuous
+  A positive diffusive `Λ/P` with bounded coefficients is done: Itô's formula with time
+  dependence, for `1/X` and for `exp X` (`TidyR9ItoFormula.ito_formula_time`,
+  `TidyR9ItoFormulaVariants.itoProcess_inv`, `TidyR9ItoFormulaVariants.itoProcess_exp`) gives
+  `Λ/P = 2 + sin W ∈ [1, 3]`, at the price of a random nominal rate `i`, and the counterexamples
+  for (1.32), for disjoint diffusions and for the infinite-horizon (1.33) hold with `Λ/P > 0`
+  throughout (`TidyR9MonetarismItoPositive.pos_headline`,
+  `TidyR9MonetarismItoPositiveInf.disjP_1_32`, `TidyR9MonetarismItoPositiveInf.infP_headline`).
+  What remains: a `Λ/P` with unbounded coefficients, `exp(W − t/2)` itself included (only its
+  martingale property is proved, `TidyR9ExpMartingale.condExp_exp_increment`); Itô's formula
+  without path continuity of `X` as a hypothesis (`TidyR7ItoProcess.ItoProcess` is specified at
+  fixed times, and no continuous adapted version of `a + ∫ φ dW` is packaged); Itô's formula
+  with `f''` unbounded, or localised by stopping times (`f''` is bounded globally and
+  localisation is only by deterministic bounds on the range, so `1/W` and `exp(σW)` are not
+  covered); the failure of the printed line 3 of (1.32) in the positive economy on `[s, t]` with
+  `s > 0` (only on `[0, t]`); Itô's formula for `f(X, Y)` (only one-dimensional `f(t, X)`); Itô
+  processes whose drift or diffusion is unbounded or merely measurable (the coefficients are bounded with almost surely continuous
   paths, so the drift `−i·n` of `Λ/P` must be bounded, and `uW_u`, whose drift `W_u` is
   unbounded, is not covered); pathwise time integrals in the model statements (they use the
   mean-square `TidyR7ItoProducts.dtInt`, which equals the pathwise integral a.s. for a.s.
   continuous paths, `TidyR7ItoProducts.dtInt_ae_eq_integral`; only the corrected flow of
-  (1.33) is restated path by path, `TidyR8MonetarismItoDom.flowItoC_pathwise`); the dominated
+  (1.33) and Itô's formula are restated path by path,
+  `TidyR8MonetarismItoDom.flowItoC_pathwise`, `TidyR9ItoFormula.ito_formula_pathwise`,
+  `TidyR9ItoFormulaVariants.ito_formula_time_pathwise`); the dominated
   form of (1.33) with the bracket without assuming that the Itô part
   `J_k = ∫_s^{T_k} nσ_M dW` converges almost surely under an integrable dominator
   (`TidyR8MonetarismItoDom.valuation_1_33_ito_dom_pathwise` takes it as a hypothesis, verified
@@ -715,6 +763,14 @@ Not formalised:
 | [TidyR8MonetarismItoDomInf](Monetarism/TidyR8MonetarismItoDomInf.lean) | 11 | A1 §1.6, (1.33), p. 567: on economy 3 on `[0, ∞)` the hypotheses of the dominated (1.33) hold; with the bracket `n_0B_0 = 1/3 = E_0[G]`, the book's dominated form fails (`0 ≠ 1/3`) |
 | [TidyR8MonetarismMoneyInf](Monetarism/TidyR8MonetarismMoneyInf.lean) | 31 | A1 §1.6, (1.31)–(1.34), pp. 567–568: an infinite-horizon economy with nonzero money and interest on money and a decaying discount factor with news (`M = B = 2`, `i = 1`, `i^m = 1/2`); transversality holds and the printed and `L¹` forms of (1.34) hold, both sides `4` |
 | [TidyR8MonetarismJumpInf](Monetarism/TidyR8MonetarismJumpInf.lean) | 23 | A1 §1.6, (1.31)–(1.34), pp. 567–568: an open-market operation at the news date on `[0, ∞)`: transversality and the post-jump dominated (1.33) hold, the pre-jump (1.33) fails (`2 ≠ 2 − e^{−1}/2`, the jump covariation `e^{−1}/2`); (1.34) verbatim with jumping money |
+| [TidyR9ExpMartingale](Monetarism/TidyR9ExpMartingale.lean) | 3 | A1 §1.6, pp. 567–568: the lognormal discount factor `exp(σW − σ²t/2)` has mean one and is a martingale, `E_s[Λ_t/Λ_s] = 1`, from the Gaussian law of the increment; on the constructed motion |
+| [TidyR9ItoTaylor](Monetarism/TidyR9ItoTaylor.lean) | 4 | A1 §1.6, pp. 567–568 (tool for Itô's formula): Taylor bounds with second-order remainder in space and first-order in time, Lipschitz from a bounded derivative, and the uniform estimate along a continuous path |
+| [TidyR9ItoPathSums](Monetarism/TidyR9ItoPathSums.lean) | 6 | A1 §1.6, pp. 567–568 (tool for Itô's formula): the exact partition identity for `f(t, x_t)`, the time sum and its limit `∫ f_t du`, and the Taylor remainder `o(Σ(Δx)²)` |
+| [TidyR9ItoWeightedBracket](Monetarism/TidyR9ItoWeightedBracket.lean) | 5 | A1 §1.6, pp. 567–568 (tool for Itô's formula): the weighted bracket `Σ G_iΔX_iΔY_i → ∫ GHK du` in `L¹` for a bounded adapted weight with a.s. continuous paths; the weight `1` gives back the bracket |
+| [TidyR9ItoFormula](Monetarism/TidyR9ItoFormula.lean) | 16 | A1 §1.6, pp. 567–568: Itô's formula with time dependence and for `f ∈ C²` with `f''` bounded, with pathwise time integrals, `f(X)` as an Itô process, the conditional form, `x²` recovered, and `sin W` on the constructed motion |
+| [TidyR9ItoFormulaVariants](Monetarism/TidyR9ItoFormulaVariants.lean) | 17 | A1 §1.6, pp. 567–568: localisation to `[s, t]`, `f(X)` with `f'` bounded on the range, `f(u, X_u)` and discounting `e^{−ru}g(X)` as Itô processes, `1/X` for `X ≥ c > 0` and `exp X` for `\|X\| ≤ M` |
+| [TidyR9MonetarismItoPositive](Monetarism/TidyR9MonetarismItoPositive.lean) | 11 | A1 §1.6, (1.31)–(1.34), pp. 567–568: the economy `Λ/P = 2 + sin W ∈ [1, 3]` with the forced random rate, bonds `b + c sin W`; the printed line 3 of (1.32) fails on `[0, t]` for `c ≠ 0` with `Λ > 0` throughout, the corrected line and (1.34) hold |
+| [TidyR9MonetarismItoPositiveInf](Monetarism/TidyR9MonetarismItoPositiveInf.lean) | 18 | A1 §1.6, (1.32)–(1.33), p. 567: time-varying loadings, `Λ/P = 2 + φ(u) sin W ∈ [1, 3]`; disjoint diffusions satisfy the printed (1.32) and (1.33) iff transversality; on `[0, ∞)` transversality holds exactly while the printed (1.33) fails |
 
 ## Modelling conventions
 

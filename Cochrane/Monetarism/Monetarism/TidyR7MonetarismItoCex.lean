@@ -22,11 +22,13 @@ continuous time", pp. 567–568, eqs. (1.31)–(1.34). Two instances of
 corrected (1.32) holds, `c = 0 + c`, and for `c ≠ 0` the book's last line of (1.32) fails
 conditionally on every `[s, t]` (`cex_book_fails`). With `c = 1`: `1 ≠ 0`.
 
-`Λ/P = 1 + W` is not positive. Positivity cannot be had here: the toolkit's Itô processes have
-bounded a.s. continuous coefficients, and a positive diffusive `Λ/P` such as `exp(W − t/2)` has
-diffusion coefficient `Λ/P` itself (unbounded) and needs the Itô formula for `exp`, which is
-not formalised. The algebra of (1.32) uses only `P ≠ 0` (`P = 1` here); positivity of `Λ` enters
-only the book's division by `Λ_s` (`TidyR7MonetarismItoValuation.real_form_ito`).
+`Λ/P = 1 + W` is not positive. A positive diffusive `Λ/P` with bounded coefficients,
+`2 + sin W ∈ [1, 3]` with a random adapted rate, is built later with Itô's formula, and the
+counterexamples are redone there (`TidyR9MonetarismItoPositive.pos_headline`,
+`TidyR9MonetarismItoPositiveInf.infP_headline`); `exp(W − t/2)` itself has an unbounded diffusion
+coefficient and stays outside the Itô processes used here. The algebra of (1.32) uses only
+`P ≠ 0` (`P = 1` here); positivity of `Λ` enters only the book's division by `Λ_s`
+(`TidyR7MonetarismItoValuation.real_form_ito`).
 
 ## Economy 2: both diffusive, driven on disjoint time intervals (`disjModel`)
 

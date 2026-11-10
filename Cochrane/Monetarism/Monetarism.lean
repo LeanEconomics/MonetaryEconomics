@@ -102,3 +102,11 @@ import Monetarism.TidyR8MonetarismItoDom
 import Monetarism.TidyR8MonetarismItoDomInf
 import Monetarism.TidyR8MonetarismMoneyInf
 import Monetarism.TidyR8MonetarismJumpInf
+import Monetarism.TidyR9ExpMartingale
+import Monetarism.TidyR9ItoTaylor
+import Monetarism.TidyR9ItoPathSums
+import Monetarism.TidyR9ItoWeightedBracket
+import Monetarism.TidyR9ItoFormula
+import Monetarism.TidyR9ItoFormulaVariants
+import Monetarism.TidyR9MonetarismItoPositive
+import Monetarism.TidyR9MonetarismItoPositiveInf
