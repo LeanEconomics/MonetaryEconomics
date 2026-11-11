@@ -16,7 +16,7 @@ optimisation, under perfect foresight, on a finite event tree and on a genuine p
 whose information grows forever, there without bounds on prices or plans. Continuous time is
 deterministic, except the `E_td(·)` forms, the product step and the chain (1.31)–(1.34) of Online
 Appendix §1.6 (`TidyR6StochasticDrift`, `TidyR7ProductStep`, `TidyR7MonetarismModel`,
-`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **2782 theorems**, including the shared core; 578 of them are in the fourteen
+`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **2853 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
@@ -38,8 +38,10 @@ instances with nonzero and with jumping money, 80 in the eight `TidyR9…` modul
 formula for `f(t, X)`, `1/X` and `exp X` and the counterexamples to (1.32) and (1.33) with a
 positive diffusive `Λ/P`, 79 in the eight `TidyR10Doob…` modules, Doob's `L²` inequality,
 adapted continuous versions of `∫ G dW`, the product step with `M = W` and `M = ∫ K dW` and the
-Fubini isometry, and 94 in the five `TidyR10TwoBM…` modules, two independent Brownian motions,
-their cross variation and the (1.32) product step with bonds and `Λ/P` on different shocks.
+Fubini isometry, 94 in the five `TidyR10TwoBM…` modules, two independent Brownian motions,
+their cross variation and the (1.32) product step with bonds and `Λ/P` on different shocks,
+and 71 in the four `TidyR11JumpDiff…` modules, the (1.32) product step with jumps and diffusion
+together, in terms of money and on a Brownian motion with an independent coin.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -239,7 +241,9 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   `TidyR7JumpSums.tendsto_crossSum_jumpSum`). On the coin, bonds jumping with the news break the
   left-point reading, `1 ≠ 0` (`TidyR7ProductStepJumpCoin.jump_book_fails`), and bonds jumping with
   the drift part break the Lebesgue–Stieltjes reading, `1 ≠ 1 + 1`
-  (`TidyR7ProductStepJumpCoin.jumpA_ls_fails`).
+  (`TidyR7ProductStepJumpCoin.jumpA_ls_fails`). Bonds that jump and diffuse at once are covered
+  by the unified step below (`TidyR11JumpDiffStep.JumpDiffData.jump_diff_step`), which without
+  diffusion is the jump step above (`TidyR11JumpDiffStep.JumpDiffData.jd_recovers_jump_step`).
 * **The §1.6 chain (1.31) → (1.32) → (1.33)–(1.34) under uncertainty.** In
   `TidyR7MonetarismModel.MonetaryModel`, `Λ, P > 0` are adapted, `Λ/P = A + N` with `N` a càdlàg
   martingale and `dA = −i(Λ/P) dt`, bonds and money are adapted, money has continuous
@@ -459,7 +463,38 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   bonds `b + c sin W²` it holds on every `[s, t]`
   (`TidyR10TwoBMBondStep.indepDrv_book_holds`), while with correlated shocks,
   `Λ/P = 2 + arctan W¹ > 0` and bonds `b + cW³`, it holds on `[s, t]` iff `ρc = 0`
-  (`TidyR10TwoBMBondStep.corrDrv_book_iff`).
+  (`TidyR10TwoBMBondStep.corrDrv_book_iff`). Diffusive bonds that also jump with `Λ/P` are
+  covered by the unified step of the next item
+  (`TidyR11JumpDiffStep.JumpDiffData.jump_diff_step`), which without jumps and with `C¹` drifts
+  is the form of `TidyR7ItoBondStep.bond_step`
+  (`TidyR11JumpDiffStep.JumpDiffData.jd_recovers_bond_step`).
+* **The (1.32) step with jumps and diffusion together.** For `Λ/P = X = A + M_d + M_c` and bonds
+  `B = B_bv + B_c`, with `A` and `B_bv` adapted, càdlàg and of bounded variation, `M_d` a càdlàg
+  bounded-variation martingale and `M_c = ∫K dW`, `B_c = ∫σ_B dW` driftless Itô processes with
+  every path continuous (`TidyR11JumpDiffStep.JumpDiffData`), almost surely
+  `E_s[B_tX_t − B_sX_s] = E_s[∫ X_− dB_bv] + E_s[∫ B_− dA] + E_s[∫_s^t σ_BK du] +
+  E_s[Σ_{s<u≤t} ΔB_uΔX_u]` (`TidyR11JumpDiffStep.JumpDiffData.jump_diff_step`). The last two
+  terms are the full covariation `[B, X]_t − [B, X]_s` (`TidyR11JumpDiffStep.fullCov`,
+  `TidyR11JumpDiffStep.JumpDiffData.jump_diff_step_fullCov`), and the book's two-term step holds
+  iff its conditional expectation vanishes (`TidyR11JumpDiffStep.JumpDiffData.jd_book_iff`). The
+  proof splits `BX` into four products and applies
+  `TidyR7ProductStepJump.JumpStepData.jump_step` to three of them and
+  `TidyR7ItoProductRule.condExp_product_rule` to the fourth. Without diffusion the step is the
+  jump step (`TidyR11JumpDiffStep.JumpDiffData.jd_recovers_jump_step`), without jumps and with
+  `C¹` drifts the form of `TidyR7ItoBondStep.bond_step`
+  (`TidyR11JumpDiffStep.JumpDiffData.jd_recovers_bond_step`), with neither
+  `TidyR7ProductStep.ProductStepData.product_step`
+  (`TidyR11JumpDiffStep.JumpDiffData.jd_recovers_product_step`). Under the flow (1.31), with
+  `B_bv + M_bv` continuous and `σ_B = −σ_M`, the covariation of bonds with `Λ/P` is minus that of
+  money path by path (`TidyR11JumpDiffMoney.fullCov_bonds_eq_neg_money`), so the omitted term is
+  `−E_s([M, Λ/P]_t − [M, Λ/P]_s)` (`TidyR11JumpDiffMoney.jump_diff_step_money`,
+  `TidyR11JumpDiffMoney.jump_diff_book_iff_money`). On a Brownian motion with an independent fair
+  coin revealed at time 1 (`TidyR11JumpDiffCoinBM.cbF_isBM`, `TidyR11JumpDiffCoinBM.martingale_cbJ`),
+  with `Λ/P = eξ1{u≥1} + dW` and bonds `eξ1{u≥1} + cW` on `[0, 2]`, the continuous covariation is
+  `2cd` and the jump covariation `e²` (`TidyR11JumpDiffCoinBMStep.jdcb_fullCov`); the book's step
+  holds iff `2cd + e² = 0` (`TidyR11JumpDiffCoinBMStep.jdcb_book_iff`), fails for `c = d = e = 1`,
+  `2 + 1 ≠ 0` (`TidyR11JumpDiffCoinBMStep.jdcb_book_fails`), and holds for `c = −1/2`, `d = e = 1`,
+  where both parts are nonzero and cancel, `−1 + 1 = 0` (`TidyR11JumpDiffCoinBMStep.jdcb_cancel`).
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -678,10 +713,25 @@ Not formalised:
   `TidyR10TwoBMCross.L2Tendsto_cvSum`; `n > 2` drivers are not packaged, and correlated motions
   are built only from an independent pair, `TidyR10TwoBMIto.corrBM`); the money–bond model
   (1.31)–(1.34) with two drivers (only its (1.32) product step is restated,
-  `TidyR10TwoBMBondStep.twoBM_bond_step`); a unified
-  model with both jumps and diffusion (the jump and the diffusive corrections of (1.32) are proved
-  in separate models, `TidyR7MonetarismJump.JumpMonetaryModel` and
-  `TidyR7MonetarismIto.ItoMonetaryModel`); the bracket of Itô processes in `L²`, with one or two drivers (only in
+  `TidyR10TwoBMBondStep.twoBM_bond_step`); a full jump-diffusion money–bond model with the
+  valuation equations (1.33)–(1.34) (the unified (1.32) step is done,
+  `TidyR11JumpDiffStep.JumpDiffData.jump_diff_step`, in terms of money,
+  `TidyR11JumpDiffMoney.jump_diff_step_money`, with an instance in which the continuous and jump
+  parts cancel, `TidyR11JumpDiffCoinBMStep.jdcb_cancel`; the models (1.31)–(1.34) with jumps and
+  with diffusion remain separate, `TidyR7MonetarismJump.JumpMonetaryModel` and
+  `TidyR7MonetarismIto.ItoMonetaryModel`); a positive `Λ/P` in a jump-diffusion instance (the
+  instance has `Λ/P = eξ1{u≥1} + dW`; a positive one needs an adapted version of `∫ cos W dW` with
+  every path continuous, adaptedness of `∫ sin W dr` and measurability of its path variation);
+  Itô parts with drift inside `TidyR11JumpDiffStep.JumpDiffData` (`B_c` and `M_c` are driftless;
+  the drifts sit in the bounded-variation parts); a constructor of
+  `TidyR11JumpDiffStep.JumpDiffData` from the data of `TidyR7ProductStepJump.JumpStepData` alone
+  (it also needs `A` adapted and `M_d` of bounded variation); the no-jump reduction with the
+  mean-square time integrals of `TidyR7ItoBondStep.bond_step`
+  (`TidyR11JumpDiffStep.JumpDiffData.jd_recovers_bond_step` uses pathwise ones, and
+  `TidyR7ItoProducts.dtInt_ae_eq_integral` is not applied to restate it); an expected-increment
+  form of the unified step; the value of the instance's first term `E_0[∫ X_− dB_bv]`; the
+  unified step, like `TidyR7ItoBondStep.bond_step`, assumes bounded almost surely continuous Itô
+  coefficients, and it assumes every path of `B_c` and `M_c` continuous; the bracket of Itô processes in `L²`, with one or two drivers (only in
   `L¹`; for the raw motions `(dW)² = dt` and `dW¹dW² = 0` hold in `L²`; it needs `E[(∫ H dW)⁴] ≤ cC⁴(b − a)²`, a Burkholder–Davis–Gundy inequality with `p = 4`
   or Itô's formula for `x⁴`, whose `f''` is unbounded). `M = W` and `M = ∫ K dW` in
   `TidyR7ProductStep.ProductStepData` are covered (`TidyR10DoobProductStep.productStepData_bm`,
@@ -853,6 +903,10 @@ Not formalised:
 | [TidyR10TwoBMIto](Monetarism/TidyR10TwoBMIto.lean) | 26 | A1 §1.6, pp. 567–568: Itô integrals per driver, two-driver Itô processes and their split, brackets `(H¹K¹ + H²K²) dt` in `L¹`, the two-driver product rule and its conditional form, the correlated motion `W³` with `d[W¹, W³] = ρ dt` |
 | [TidyR10TwoBMBondStep](Monetarism/TidyR10TwoBMBondStep.lean) | 19 | A1 §1.6, (1.32), p. 567: the product step with bonds and `Λ/P` on two shocks, bracket `σ_B¹σ_X¹ + σ_B²σ_X²`; the book's step holds with separate drivers (`2 + sin W¹`, `b + c sin W²`) and with correlated shocks iff `ρc = 0` |
 | [TidyR10TwoBMCorr](Monetarism/TidyR10TwoBMCorr.lean) | 7 | A1 §1.6, pp. 567–568: independent Gaussian processes are jointly Gaussian, `W³ = ρW¹ + √(1 − ρ²)W²` is a Brownian motion for `\|ρ\| ≤ 1`, a common filtration is admissible for it |
+| [TidyR11JumpDiffStep](Monetarism/TidyR11JumpDiffStep.lean) | 24 | A1 §1.6, (1.32), p. 567: the product step with bonds and `Λ/P` that jump and diffuse together, `X = A + M_d + M_c`, `B = B_bv + B_c`; the full covariation `∫σ_BK du + ΣΔBΔX`; the book's step iff its conditional expectation vanishes; reductions to the jump step, the Itô bond step and the bounded-variation product step |
+| [TidyR11JumpDiffCoinBM](Monetarism/TidyR11JumpDiffCoinBM.lean) | 20 | A1 §1.6, pp. 567–568 (tool): a Brownian motion and an independent fair coin revealed at time 1 on `gaussSeq ⊗ coinMeasure`, an admissible filtration with the coin, the jump martingale `e·ξ·1{u ≥ 1}`, `c·W` as an Itô process, domination for processes bounded by `a + b\|W\|` |
+| [TidyR11JumpDiffCoinBMStep](Monetarism/TidyR11JumpDiffCoinBMStep.lean) | 21 | A1 §1.6, (1.32), p. 567: the unified step on `Λ/P = eξ1{u≥1} + dW`, bonds `eξ1{u≥1} + cW` on `[0, 2]`: continuous covariation `2cd`, jump covariation `e²`; the book's step iff `2cd + e² = 0`, failing for `c = d = e = 1`, holding for `c = −1/2`, `d = e = 1` as the parts cancel; the reductions are not vacuous |
+| [TidyR11JumpDiffMoney](Monetarism/TidyR11JumpDiffMoney.lean) | 6 | A1 §1.6, (1.31)–(1.32), p. 567: under (1.31) the covariation of bonds with `Λ/P` is minus that of money; the unified step and the book's condition in terms of money; money on the coin instance |
 
 ## Modelling conventions
 

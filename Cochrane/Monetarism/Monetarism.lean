@@ -123,3 +123,7 @@ import Monetarism.TidyR10TwoBMCross
 import Monetarism.TidyR10TwoBMIto
 import Monetarism.TidyR10TwoBMBondStep
 import Monetarism.TidyR10TwoBMCorr
+import Monetarism.TidyR11JumpDiffStep
+import Monetarism.TidyR11JumpDiffCoinBM
+import Monetarism.TidyR11JumpDiffCoinBMStep
+import Monetarism.TidyR11JumpDiffMoney
