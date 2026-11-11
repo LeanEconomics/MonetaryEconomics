@@ -14,7 +14,9 @@ discount factors of (1.32)–(1.34): the lognormal SDF `exp(σW_t − σ²t/2)` 
 diffusive `Λ`) has `E_s[Λ_t/Λ_s] = 1`. Its diffusion coefficient `σΛ` is unbounded, so it is not
 an Itô process in the sense of `TidyR7ItoProcess.ItoProcess` (bounded coefficients); the
 identity is proved directly from the Gaussian law of the increment (Mathlib `mgf_gaussianReal`)
-and its independence of the past (`TidyR7BrownianTools.condExp_fun_increment`).
+and its independence of the past (`TidyR7BrownianTools.condExp_fun_increment`). It is an Itô
+process with mean-square continuous coefficients solving `dΛ = σΛ dW`
+(`TidyR12SDEGBM.expMart_eq`, `TidyR12SDEGBM.condExp_expMart`).
 
 ## Main results
 

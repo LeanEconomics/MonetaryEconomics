@@ -16,7 +16,7 @@ optimisation, under perfect foresight, on a finite event tree and on a genuine p
 whose information grows forever, there without bounds on prices or plans. Continuous time is
 deterministic, except the `E_td(·)` forms, the product step and the chain (1.31)–(1.34) of Online
 Appendix §1.6 (`TidyR6StochasticDrift`, `TidyR7ProductStep`, `TidyR7MonetarismModel`,
-`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **2853 theorems**, including the shared core; 578 of them are in the fourteen
+`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **2990 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
@@ -40,8 +40,11 @@ positive diffusive `Λ/P`, 79 in the eight `TidyR10Doob…` modules, Doob's `L²
 adapted continuous versions of `∫ G dW`, the product step with `M = W` and `M = ∫ K dW` and the
 Fubini isometry, 94 in the five `TidyR10TwoBM…` modules, two independent Brownian motions,
 their cross variation and the (1.32) product step with bonds and `Λ/P` on different shocks,
-and 71 in the four `TidyR11JumpDiff…` modules, the (1.32) product step with jumps and diffusion
-together, in terms of money and on a Brownian motion with an independent coin.
+71 in the four `TidyR11JumpDiff…` modules, the (1.32) product step with jumps and diffusion
+together, in terms of money and on a Brownian motion with an independent coin, and 137 in the
+eleven `TidyR12SDE…` modules, existence and uniqueness for stochastic differential equations,
+Itô processes with unbounded coefficients, geometric Brownian motion and a positive diffusive
+`Λ/P` with a known constant rate.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -377,8 +380,10 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   for `|X| ≤ M` on `[s, t]`, with drift `e^X(a + ½H²)` and diffusion `e^X H`
   (`TidyR9ItoFormulaVariants.itoProcess_exp`). The lognormal discount factor
   `Λ_u = exp(σW_u − σ²u/2)`, whose diffusion coefficient is unbounded, is not an Itô process
-  here; its martingale property `E_s[Λ_t/Λ_s] = 1` is proved from the Gaussian law of the
-  increment (`TidyR9ExpMartingale.condExp_exp_increment`).
+  with bounded coefficients; its martingale property `E_s[Λ_t/Λ_s] = 1` is proved from the
+  Gaussian law of the increment (`TidyR9ExpMartingale.condExp_exp_increment`), and it solves
+  `dΛ = σΛ dW` as an Itô process with mean-square continuous coefficients
+  (`TidyR12SDEGBM.expMart_eq`, see the item on stochastic differential equations below).
 * **Doob's inequality and continuous versions.** Mathlib v4.34 has only the weak-type maximal
   inequality. Doob's `L²` inequality is proved in discrete time,
   `E[(max_{l ≤ N}|Y_l|)²] ≤ 4E[Y_N²]` (`TidyR10DoobDiscrete.doob_sq_discrete`), and in continuous
@@ -414,6 +419,35 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   (`TidyR10TwoBMBondStep.twoBM_bond_step_separate_drivers`), so the book's step holds with
   `Λ/P = 2 + sin W¹` and bonds `b + c sin W²` (`TidyR10TwoBMBondStep.indepDrv_book_holds`), and
   with correlated shocks it holds iff `ρc = 0` (`TidyR10TwoBMBondStep.corrDrv_book_iff`).
+* **Stochastic differential equations and Itô processes with unbounded coefficients.** Itô
+  processes with mean-square continuous, possibly unbounded drift and diffusion
+  (`TidyR12SDEProcess.ItoProcessMS`) contain those with bounded coefficients
+  (`TidyR12SDEProcess.ItoProcess.toItoProcessMS`). For `dX = b(t, X) dt + σ(t, X) dW` on
+  `[s, T]`, `X_s = ξ` square integrable and `𝓕_s`-measurable, with `b` and `σ` Lipschitz in `x`
+  uniformly on `[s, T]`, `|b(t, 0)| ≤ K` and continuous in `t` against the weight `1 + |x|`
+  (`TidyR12SDEPicard.SDECoeff`; linear coefficients `α(t) + β(t)x` with `α, β` continuous
+  qualify, `TidyR12SDEPicard.sdeCoeff_linear`), Picard iteration gives a mean-square continuous
+  solution, unique among mean-square continuous solutions (`TidyR12SDEExist.sde_existsUnique`,
+  from the contraction `TidyR12SDEPicard.picard_sub_sq_le` and `TidyR12SDEPicard.sde_unique`).
+  It is an `ItoProcessMS` with drift `b(u, X_u)` and diffusion `σ(u, X_u)`
+  (`TidyR12SDEExist.sdeSol_itoProcessMS`) and has an adapted version with almost surely
+  continuous paths (`TidyR12SDEVersion.exists_adapted_continuous_sdeSol`). Geometric Brownian
+  motion `G_u = ξ·exp(κ(u − s) + σ(W_u − W_s))` solves `dG = (κ + σ²/2)G dt + σG dW`, proved
+  from the left-point sums with remainder moments `o(h)` and no Itô formula for `exp`
+  (`TidyR12SDEGBM.gbm_eq`, `TidyR12SDEGauss.gbmMean_littleO`, `TidyR12SDEGauss.gbmSq_littleO`); it is
+  the solution of that equation (`TidyR12SDEGBM.gbm_eq_sdeSol`), positive for `ξ > 0`, with
+  `E_s[G_t] = e^{(κ + σ²/2)(t − s)}G_s` (`TidyR12SDEGBM.gbm_pos`, `TidyR12SDEGBM.condExp_gbm`).
+  The exponential martingale solves `dG = σG dW` (`TidyR12SDEGBM.expMart_eq`,
+  `TidyR12SDEGBM.condExp_expMart`), and `uW_u` is an `ItoProcessMS` with the unbounded drift `W`
+  (`TidyR12SDEGBM.itoProcessMS_mul_bm`). For `X` an `ItoProcessMS` and `Y` an Itô process with
+  bounded coefficients and bounded values, `Σ ΔX_iΔY_i → ∫_s^t H_uK_u du` in `L¹`
+  (`TidyR12SDEBracket.tendsto_integral_abs_sumCross_ms`) and
+  `E_s[X_tY_t − X_sY_s] = E_s[∫_s^t (Xb + Ya + HK) du]` a.s.
+  (`TidyR12SDEProductRule.condExp_product_rule_ms`). In the money–bond model with such a `Λ/P`
+  (`TidyR12SDEMonetary.ItoMonetaryModelMS`) the corrected (1.32) holds, and its printed line 3
+  holds iff `E_s[∫_s^t σ_Xσ_B du] = 0`
+  (`TidyR12SDEMonetary.ItoMonetaryModelMS.incr_1_32_ms_general`,
+  `TidyR12SDEMonetary.ItoMonetaryModelMS.incr_1_32_ms_book_iff`).
 * **(1.32)–(1.34) with diffusive bonds.** For bonds `B` and `X = Λ/P` Itô processes on the same
   Brownian motion, with diffusions `σ_B` and `σ_X`, the step from the middle line of (1.32) to its
   last line is `E_t d(BX) = X dB + B E_t dX + E_t d[B, X]` with `d[B, X] = σ_Bσ_X dt`: almost
@@ -451,7 +485,14 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   is a `TidyR7MonetarismIto.ItoMonetaryModel` (`TidyR9MonetarismItoPositive.posModel`), and for
   every `c ≠ 0` and `t > 0` the printed line 3 of (1.32) fails on `[0, t]`, the bracket having
   mean `cE∫_0^t cos²W du ≠ 0`, while the corrected line holds
-  (`TidyR9MonetarismItoPositive.pos_headline`). With time-varying loadings,
+  (`TidyR9MonetarismItoPositive.pos_headline`). With unbounded coefficients the random rate is
+  not needed: with `P = 1`, `Λ/P = n₀e^{−iu}exp(σW_u − σ²u/2) > 0` for a constant known rate
+  `i`, so that `E_s[n_t] = e^{−i(t − s)}n_s`, bonds `b₀ + c·arctan W` and money `M₀ − c·arctan W`
+  (`TidyR12SDEMonetaryGBM.gbmModel`, a `TidyR12SDEMonetary.ItoMonetaryModelMS`), the printed
+  line 3 of (1.32) fails on every `[s, t]`, `0 ≤ s < t`, for every `σ ≠ 0` and `c ≠ 0`, while
+  the corrected line holds (`TidyR12SDEMonetaryGBM.gbm_book_fails`,
+  `TidyR12SDEMonetaryGBM.gbm_headline`); with `c = 0` the printed line holds although `Λ/P`
+  diffuses (`TidyR12SDEMonetaryGBM.gbm_book_holds_bv`). With time-varying loadings,
   `Λ/P = 2 + φ(u) sin W ∈ [1, 3]`, bonds and `Λ/P` diffusing on disjoint time sets satisfy the
   printed (1.32) (`TidyR9MonetarismItoPositiveInf.disjP_1_32`), and on `[0, ∞)` the
   transversality condition holds exactly while the bracket stays below `−κ < 0` and the printed
@@ -673,29 +714,48 @@ Not formalised:
   with the bracket in line 3 of (1.32) and in the flow of (1.33)
   (`TidyR7MonetarismIto.ItoMonetaryModel.incr_1_32_ito_general`,
   `TidyR7MonetarismItoValuation.valuation_1_33_ito`, `TidyR7MonetarismItoValuation.valuation_1_34_ito`).
-  A positive diffusive `Λ/P` with bounded coefficients is done: Itô's formula with time
+  A positive diffusive `Λ/P` is done. With bounded coefficients, Itô's formula with time
   dependence, for `1/X` and for `exp X` (`TidyR9ItoFormula.ito_formula_time`,
   `TidyR9ItoFormulaVariants.itoProcess_inv`, `TidyR9ItoFormulaVariants.itoProcess_exp`) gives
-  `Λ/P = 2 + sin W ∈ [1, 3]`, at the price of a random nominal rate `i`, and the counterexamples
+  `Λ/P = 2 + sin W ∈ [1, 3]` with a random nominal rate `i`, and the counterexamples
   for (1.32), for disjoint diffusions and for the infinite-horizon (1.33) hold with `Λ/P > 0`
   throughout (`TidyR9MonetarismItoPositive.pos_headline`,
   `TidyR9MonetarismItoPositiveInf.disjP_1_32`, `TidyR9MonetarismItoPositiveInf.infP_headline`).
-  What remains: a `Λ/P` with unbounded coefficients, `exp(W − t/2)` itself included (only its
-  martingale property is proved, `TidyR9ExpMartingale.condExp_exp_increment`); Itô's formula
+  With unbounded coefficients (`TidyR12SDEProcess.ItoProcessMS`), the geometric Brownian motion
+  `Λ/P = n₀e^{−iu}exp(σW_u − σ²u/2)` has a constant known rate `i`, and the printed line 3 of
+  (1.32) fails inside the money–bond model `TidyR12SDEMonetary.ItoMonetaryModelMS` on every
+  `[s, t]`, `0 ≤ s < t` (`TidyR12SDEMonetaryGBM.gbm_book_fails`,
+  `TidyR12SDEMonetaryGBM.gbm_headline`; inside the bounded-coefficient
+  `TidyR7MonetarismIto.ItoMonetaryModel` it is shown only on `[0, t]`,
+  `TidyR9MonetarismItoPositive.pos_book_fails`). Stochastic differential equations with Lipschitz
+  coefficients have unique solutions (`TidyR12SDEExist.sde_existsUnique`) with adapted almost
+  surely continuous versions (`TidyR12SDEVersion.exists_adapted_continuous_sdeSol`), geometric
+  Brownian motion is one (`TidyR12SDEGBM.gbm_eq_sdeSol`), and `exp(σW − σ²t/2)` is an Itô process
+  with mean-square continuous coefficients (`TidyR12SDEGBM.expMart_eq`).
+  What remains: for these equations, uniqueness among solutions that are not mean-square
+  continuous, coefficients without the time continuity of `TidyR12SDEPicard.SDECoeff`, systems
+  and several Brownian motions (one dimension and one driver only), and continuous versions for
+  `W` without almost surely continuous paths or for `s = T`; Itô's formula for
+  `TidyR12SDEProcess.ItoProcessMS`; the almost sure product rule for an `ItoProcessMS` against
+  an Itô process with bounded coefficients (only the conditional form,
+  `TidyR12SDEProductRule.condExp_product_rule_ms`; it needs `Σ Y_iI_i → ∫ YH dW`), and any
+  product rule with both factors unbounded (it needs `L⁴` bounds); (1.33)–(1.34), the infinite
+  horizon and the dominated forms in `TidyR12SDEMonetary.ItoMonetaryModelMS` (only the (1.32)
+  step is restated there); Itô's formula
   without path continuity of `X` as a hypothesis (`TidyR7ItoProcess.ItoProcess` is specified at
   fixed times; adapted continuous versions of `∫ H dW` are proved,
   `TidyR10DoobVersion.exists_adapted_continuous_itoInt`, but none of `X_s + ∫ a dr + ∫ φ dW` is
   packaged or used in Itô's formula); Itô's formula
   with `f''` unbounded, or localised by stopping times (`f''` is bounded globally and
-  localisation is only by deterministic bounds on the range, so `1/W` and `exp(σW)` are not
-  covered); the failure of the printed line 3 of (1.32) inside the money–bond model
-  `TidyR7MonetarismIto.ItoMonetaryModel` on `[s, t]` with `s > 0` (only on `[0, t]`; at the
-  product-step level a positive `Λ/P = 2 + arctan W¹` with bonds `b + cW³` fails on every
-  `[s, t]` iff `ρc ≠ 0`, `TidyR10TwoBMBondStep.corrDrv_book_iff`); Itô's formula for `f(X, Y)`,
+  localisation is only by deterministic bounds on the range, so `1/W` is not covered and
+  `exp(σW)` only directly, from the left-point sums, `TidyR12SDEGBM.gbm_eq`); Itô's formula for `f(X, Y)`,
   with one or with two drivers (only one-dimensional `f(t, X)`); Itô
-  processes whose drift or diffusion is unbounded or merely measurable (the coefficients are bounded with almost surely continuous
-  paths, so the drift `−i·n` of `Λ/P` must be bounded, and `uW_u`, whose drift `W_u` is
-  unbounded, is not covered); pathwise time integrals in the model statements (they use the
+  processes whose drift or diffusion is merely measurable, or unbounded without mean-square
+  continuity (`TidyR7ItoProcess.ItoProcess` has bounded coefficients with almost surely
+  continuous paths; `TidyR12SDEProcess.ItoProcessMS` admits unbounded mean-square continuous
+  ones, among them geometric Brownian motion and `uW_u`, `TidyR12SDEGBM.gbm_itoProcessMS`,
+  `TidyR12SDEGBM.itoProcessMS_mul_bm`, but of the results built on `TidyR7ItoProcess.ItoProcess`
+  only the bracket, the conditional product rule and the (1.32) step are redone for it); pathwise time integrals in the model statements (they use the
   mean-square `TidyR7ItoProducts.dtInt`, which equals the pathwise integral a.s. for a.s.
   continuous paths, `TidyR7ItoProducts.dtInt_ae_eq_integral`; only the corrected flow of
   (1.33) and Itô's formula are restated path by path,
@@ -907,6 +967,17 @@ Not formalised:
 | [TidyR11JumpDiffCoinBM](Monetarism/TidyR11JumpDiffCoinBM.lean) | 20 | A1 §1.6, pp. 567–568 (tool): a Brownian motion and an independent fair coin revealed at time 1 on `gaussSeq ⊗ coinMeasure`, an admissible filtration with the coin, the jump martingale `e·ξ·1{u ≥ 1}`, `c·W` as an Itô process, domination for processes bounded by `a + b\|W\|` |
 | [TidyR11JumpDiffCoinBMStep](Monetarism/TidyR11JumpDiffCoinBMStep.lean) | 21 | A1 §1.6, (1.32), p. 567: the unified step on `Λ/P = eξ1{u≥1} + dW`, bonds `eξ1{u≥1} + cW` on `[0, 2]`: continuous covariation `2cd`, jump covariation `e²`; the book's step iff `2cd + e² = 0`, failing for `c = d = e = 1`, holding for `c = −1/2`, `d = e = 1` as the parts cancel; the reductions are not vacuous |
 | [TidyR11JumpDiffMoney](Monetarism/TidyR11JumpDiffMoney.lean) | 6 | A1 §1.6, (1.31)–(1.32), p. 567: under (1.31) the covariation of bonds with `Λ/P` is minus that of money; the unified step and the book's condition in terms of money; money on the coin instance |
+| [TidyR12SDETools](Monetarism/TidyR12SDETools.lean) | 13 | A1 §1.6, pp. 567–568 (tool for SDEs): additivity and linearity of the mean-square time integral and of `∫ G dW` for mean-square continuous integrands, Cauchy–Schwarz for Riemann sums, `E[(∫_s^t G du)²] ≤ (t − s)∫_s^t E[G_u²] du`, bounded second moments on `[s, t]` |
+| [TidyR12SDEProcess](Monetarism/TidyR12SDEProcess.lean) | 6 | A1 §1.6, (1.32)–(1.34), pp. 567–568: Itô processes with mean-square continuous, possibly unbounded coefficients (`ItoProcessMS`), containing those with bounded coefficients; increments, the mean-square increment bound, restriction to subintervals |
+| [TidyR12SDEPicard](Monetarism/TidyR12SDEPicard.lean) | 16 | A1 §1.6, pp. 567–568: admissible SDE coefficients (Lipschitz, linear growth, continuous in `t` against `1 + \|x\|`), linear coefficients, the Picard map and its contraction estimate, the Gronwall iteration, uniqueness among mean-square continuous solutions |
+| [TidyR12SDEExist](Monetarism/TidyR12SDEExist.lean) | 13 | A1 §1.6, pp. 567–568: the Picard iterates converge uniformly in mean square; existence and uniqueness for `dX = b(t, X)dt + σ(t, X)dW`, `X_s = ξ`; the solution is an `ItoProcessMS` |
+| [TidyR12SDEGauss](Monetarism/TidyR12SDEGauss.lean) | 19 | A1 §1.6, pp. 567–568 (tool for GBM): Gaussian moments of a Brownian increment, `E[e^{cZ}]` and `E[Ze^{cZ}]` from Mathlib `hasDerivAt_mgf`, independence through the increment, the left-point remainder of GBM with `E[R], E[R²] = o(h)` |
+| [TidyR12SDEGBM](Monetarism/TidyR12SDEGBM.lean) | 24 | A1 §1.6, pp. 567–568: geometric Brownian motion solves `dG = (κ + σ²/2)G dt + σG dW` (from the left-point sums), is an `ItoProcessMS`, is the SDE solution, is positive, `E_s[G_t] = e^{m(t − s)}G_s`; the exponential martingale `dG = σG dW`; `uW_u` with unbounded drift; instances on the constructed motion |
+| [TidyR12SDEBracket](Monetarism/TidyR12SDEBracket.lean) | 8 | A1 §1.6, pp. 567–568: the bracket `Σ ΔXΔY → ∫ HK du` in `L¹` for `X` an `ItoProcessMS` and `Y` with bounded coefficients; the cell decomposition and the four sums with mean-square bounds |
+| [TidyR12SDEProductRule](Monetarism/TidyR12SDEProductRule.lean) | 6 | A1 §1.6, (1.32), p. 567: the conditional product rule `E_s[X_tY_t − X_sY_s] = E_s[∫ (Xb + Ya + HK) du]` for `X` an `ItoProcessMS` and bounded `Y`, and its bracket-free form iff `E_s[∫ HK du] = 0` |
+| [TidyR12SDEMonetary](Monetarism/TidyR12SDEMonetary.lean) | 6 | A1 §1.6, (1.31)–(1.32), pp. 567–568: the money–bond model with `Λ/P` an `ItoProcessMS` (`ItoMonetaryModelMS`); the corrected (1.32), the printed line 3 iff the expected bracket vanishes, holding when `σ_Xσ_B = 0`, failing when `E∫σ_Xσ_B ≠ 0` |
+| [TidyR12SDEMonetaryGBM](Monetarism/TidyR12SDEMonetaryGBM.lean) | 15 | A1 §1.6, (1.31)–(1.32), pp. 567–568: the GBM economy `Λ/P = n₀e^{−iu}exp(σW_u − σ²u/2) > 0` with a constant known rate, bonds `b₀ + c·arctan W`; the printed line 3 of (1.32) fails on every `[s, t]` for `σc ≠ 0`, the corrected line holds, the printed line holds for `c = 0` |
+| [TidyR12SDEVersion](Monetarism/TidyR12SDEVersion.lean) | 11 | A1 §1.6, pp. 567–568: a continuous modification of `t ↦ ∫_s^t G du` (stopped Riemann sums against `W_u = u`, a uniform cell bound, Borel–Cantelli), a continuous modification and an adapted a.s. continuous version of the SDE solution |
 
 ## Modelling conventions
 

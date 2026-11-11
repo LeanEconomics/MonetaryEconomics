@@ -127,3 +127,14 @@ import Monetarism.TidyR11JumpDiffStep
 import Monetarism.TidyR11JumpDiffCoinBM
 import Monetarism.TidyR11JumpDiffCoinBMStep
 import Monetarism.TidyR11JumpDiffMoney
+import Monetarism.TidyR12SDETools
+import Monetarism.TidyR12SDEProcess
+import Monetarism.TidyR12SDEPicard
+import Monetarism.TidyR12SDEExist
+import Monetarism.TidyR12SDEGauss
+import Monetarism.TidyR12SDEGBM
+import Monetarism.TidyR12SDEBracket
+import Monetarism.TidyR12SDEProductRule
+import Monetarism.TidyR12SDEMonetary
+import Monetarism.TidyR12SDEMonetaryGBM
+import Monetarism.TidyR12SDEVersion
