@@ -26,9 +26,9 @@ equilibria with constant innovation loadings `b`. Here we describe **all** of th
 So the free constant `C` (equivalently `π_T`) of Figure 20.4 becomes a free martingale; the
 "innovation processes that occur" are exactly the increments of such martingales. Which
 martingales exist on the natural filtration of a Brownian motion is the content of the
-martingale representation theorem (`M_t = M_0 + ∫_0^t H dW` with `H` adapted), which is not
-available here; we do not need it for the description above, only to express `M` as a
-stochastic integral.
+martingale representation theorem (`M_t = M_0 + ∫_0^t H dW` with `H` adapted); we do not need
+it for the description above, only to express `M` as a stochastic integral. That is done in
+TidyR9StochWerningInnovations (`swinnov_eqm_rep`, for `π_t ∈ L²`).
 
 Existence with **deterministic time-varying loadings** `b(u)` (`C¹`, bounded with its
 derivative continuous) through Wiener integrals: `M_t = ∫_0^t e^{λ^b u} b(u) dW_u`, in the
@@ -36,8 +36,9 @@ pathwise by-parts form `wienerBP` (`wienerM`), is a continuous adapted martingal
 (`condExp_wienerBP`, `martingale_wienerM`), and `ζ_t = e^{−λ^b t}M_t` is bounded in mean square
 (`integral_zetaB_sq_le`); hence **`isStochEqm_loading`**: the equilibrium with
 innovations `dπ_t = b(t) dW_t`, `dx_t = (λ^f/κ)b(t) dW_t` exists and is `L²`-bounded. Continuous
-loadings that are not `C¹` would need the Itô integral as a continuous adapted process (its
-continuous modification is not shown adapted here). Non-vacuity on bmPath with `b = cos`:
+loadings that are not `C¹` need the Itô integral as a continuous adapted process; they are
+treated in TidyR9StochWerningInnovations (`swinnov_loading_continuous`), with the equilibrium
+for the completed filtration. Non-vacuity on bmPath with `b = cos`:
 `bmPath_loading_cos`.
 -/
 

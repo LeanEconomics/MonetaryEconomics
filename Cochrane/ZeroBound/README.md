@@ -16,17 +16,18 @@ deterministic paths `ℝ → ℝ`, exact derivatives off a countable set of date
 improper integrals; its stochastic version uses processes on a filtered probability space, with
 the expectational equations in integrated form and Mathlib's conditional expectation. In both, an equilibrium is a solution of the model
 equations, "determinate" means exactly one bounded solution, and the fiscal theory selects instead through the valuation
-equation. The library contains **1767 theorems**, including the shared core and its
+equation. The library contains **2236 theorems**, including the shared core and its
 measure-theoretic copy (`TidyR6ExpectationsMeasure`, `TidyR6ExpectationsMeasureIID`, 108) and the
-Brownian-motion, Itô and Ornstein–Uhlenbeck tools copied from the Monetarism and FiscalConstraints
-projects (eighteen modules, 464); 1087 of them are in the thirty-eight chapter modules, 124 of
+Brownian-motion, Itô, Ornstein–Uhlenbeck and martingale-representation tools copied from the
+Monetarism and FiscalConstraints projects (fifty modules, 905); 1115 of them are in the forty
+chapter modules, 124 of
 these in verbatim copies of Woodford results
 (`GlobalDynamics`, 49, from Chapter 2; `TidyR6WoodfordSequences` and `TidyR6WoodfordZLB`, 75,
 from Chapter 6), 305 in the seven modules on Galí's and Woodford's treatments of the bound
 (`LinksGaliWoodford`, `LinksGaliWoodfordLimit`, `LiftoffTiming`, `LiftoffStructure`,
-`LiftoffRhoZero`, `TidyR6CommonModel`, `TidyR6CommonModelExist`), and 171 in the twelve modules on
-the Werning model under uncertainty (`TidyR7StochWerning`, its five companions and the six
-TidyR8StochWerning modules).
+`LiftoffRhoZero`, `TidyR6CommonModel`, `TidyR6CommonModelExist`), and 199 in the fourteen modules on
+the Werning model under uncertainty (`TidyR7StochWerning`, its five companions, the six
+TidyR8StochWerning modules and the two TidyR9StochWerning modules).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E1–E11 and E20 refer to
@@ -162,6 +163,40 @@ Headline results, in the namespace `Cochrane.ZeroBound`:
   and such equilibria exist (`TidyR8StochWerningNaturalTrack.isStochEqmTrack_trackPi`). The
   Brownian-motion and Itô modules are copied from the Monetarism project (via the
   FiscalConstraints copies) and the Ornstein–Uhlenbeck modules from the FiscalConstraints project.
+* **Which innovations occur.** On the Brownian filtration the martingales that index the
+  equilibria are stochastic integrals. The extended Itô integral `t ↦ ∫_s^t H dW` has a
+  modification with almost surely continuous paths (`TidyR9StochWerningMRepVersion.swmrep_exists_continuous_modification`),
+  a version adapted to `𝓕` with almost every path continuous
+  (`TidyR9StochWerningMRepVersion.swmrep_exists_adapted_continuous`), and a version with every path continuous that is
+  adapted to, and a martingale for, the completed filtration `augment P 𝓕`
+  (`TidyR9StochWerningMRepVersion.swmrep_exists_continuous_augment`). Every martingale on `[0, ∞)` with `M_t ∈ L²` is
+  `M_t = E[M_0] + ∫_0^t H dW` with one `H` for all horizons, unique `dt × dP`-a.e.
+  (`TidyR9StochWerningMRepVersion.swmrep_martingale_rep`, `TidyR9StochWerningMRepVersion.swmrep_martingale_rep_unique`). Hence every regular
+  `L¹`-bounded equilibrium of the experiment with `π_t ∈ L²` is
+  `π_t = wPi(0)_t + e^{−λ^b t}(c + ∫_0^t H dW)`, and `x` likewise with the factor `λ^f/κ`, where
+  `c = E[π_0] − wPi(0)_0` and `(c, H)` is unique: the free constant `C` of p. 475 becomes the
+  pair `(c, H)` (`TidyR9StochWerningInnovations.swinnov_eqm_rep`, `TidyR9StochWerningInnovations.swinnov_eqm_rep_unique`,
+  `TidyR9StochWerningInnovations.swinnov_eqm_rep_natural`). Conversely every `c` and every `H` with
+  `E∫_0^t H² ≤ K e^{2λ^b t}`, in particular every bounded `H`, give a regular mean-square-bounded
+  equilibrium (`TidyR9StochWerningInnovations.swinnov_eqm_of_integrand`, `TidyR9StochWerningInnovations.swinnov_growth_of_bdd`); for
+  mean-square-bounded equilibria the growth condition is also necessary, so they correspond
+  exactly to the pairs `(c, H)` that satisfy it (`TidyR9StochWerningInnovations.swinnov_growth_of_rep`,
+  `TidyR9StochWerningInnovations.swinnov_eqm_rep_bddL2`). Every continuous bounded deterministic loading `b`, not only a
+  `C¹` one, gives an equilibrium with innovations `dπ_t = b(t)dW_t`
+  (`TidyR9StochWerningInnovations.swinnov_loading_continuous`). The filtration matters: the converse and the continuous
+  loadings give equilibria for the completed filtration `augment P 𝓕`, not for `𝓕` itself,
+  because a version of `∫ H dW` with every path continuous is adapted only to the completion; the
+  direct direction holds on both, `swinnov_eqm_rep` for `augment P 𝓕` and
+  `swinnov_eqm_rep_natural` for `𝓕`, every equilibrium for `𝓕` being one for `augment P 𝓕`
+  (`TidyR9StochWerningInnovations.swinnov_isStochEqm_augment`). On `TidyR7BrownianExist.bmPath` at the book's calibration:
+  the representation of the constant-loading equilibrium, news only between dates `1` and `2`
+  (`H = 1_{(1,2]}`), and the continuous loading `|sin t|`, not differentiable at `0`
+  (`TidyR9StochWerningInnovations.bmPath_swinnov_rep`, `TidyR9StochWerningInnovations.bmPath_swinnov_window`, `TidyR9StochWerningInnovations.bmPath_swinnov_abs_sin`). Doob's
+  inequality, continuous versions of the Itô integral, the completed filtration, Itô processes
+  and the product rule, Itô's formula and the martingale representation theorem on `[0, T]`
+  with the extended integral (`TidyR13MRepTheorem.mrep_martingale`) are thirty-two modules
+  copied from the Monetarism project, two of them (`TidyR8MonetarismItoDom`,
+  `TidyR13MRepMonetarism`) in part.
 * **Welfare at the zero bound.** E9: with exact Calvo dispersion, the zero-bound steady state
   `Π_L = β` is better than `Π*` iff `βΠ* > 1` (`ZLBWelfare.zlb_better_iff`,
   `ZLBWelfare.e9_counterexample`); the book's calibration satisfies the condition
@@ -255,19 +290,24 @@ Not formalised:
   deflation" (p. 477), which has no precise statement;
 * the illustrative numbers of Figures 20.4–20.6 (`π_0 = −132.46%`, `π_T ≈ 1.01%`, multipliers of
   66 and 528); only the E20 point `T = 1` is formalised;
-* parts of the stochastic versions of §§20.2.2–20.2.5, which the `TidyR7StochWerning` and
-  TidyR8StochWerning modules otherwise give on the natural filtration of a Brownian motion with
-  the `TidyR7StochWerning.BddL1` and `TidyR7StochWerning.BddL2` selections (proved: the
-  almost-sure unboundedness of the Ornstein–Uhlenbeck equilibria, the active rule and the trap in
-  one model, the frictionless limit and the multipliers, `E_sπ_t` and `L²` bounds under
-  natural-rate shocks, the tracking rate after `T`, and every equilibrium as a martingale):
-  martingale representation on the Brownian filtration, `M = M_0 + ∫H dW`, so the martingales
-  are not written as stochastic integrals; existence for loadings that are continuous but not
-  `C¹`, which needs the Itô integral as an adapted continuous process; almost-sure unboundedness
-  beyond constant loadings; conditional (not only mean) multipliers under the fiscal `π_0 = 0`
-  selection; and, in the tracking model, an added stable-direction innovation (only `b = 0`),
-  the martingale description (proved for the trap with `ν = 0` only) and a separate statement of
-  `E_sx_t`;
+* parts of the stochastic versions of §§20.2.2–20.2.5, which the `TidyR7StochWerning`,
+  TidyR8StochWerning and TidyR9StochWerning modules otherwise give on the natural filtration of a
+  Brownian motion with the `TidyR7StochWerning.BddL1` and `TidyR7StochWerning.BddL2` selections
+  (proved: the almost-sure unboundedness of the Ornstein–Uhlenbeck equilibria, the active rule
+  and the trap in one model, the frictionless limit and the multipliers, `E_sπ_t` and `L²` bounds
+  under natural-rate shocks, the tracking rate after `T`, every equilibrium as a martingale and,
+  when `π_t ∈ L²`, as `c + ∫ H dW`, and existence for continuous loadings): the representation
+  of equilibria with `π_t` only in `L¹`, since an `L¹` martingale of the Brownian filtration is
+  `M_0 + ∫ H dW` only with `∫_0^t H² < ∞` almost surely, which needs a local-martingale integral;
+  the converse (every admissible `(c, H)`) and existence for continuous non-`C¹` loadings on the
+  natural filtration `𝓕` itself, which are proved for the completed filtration `augment P 𝓕`
+  only, so that on `𝓕` the only existence result for time-varying loadings is the `C¹` one
+  (`TidyR8StochWerningMartingale.isStochEqm_loading`); existence for general deterministic
+  loadings that are only locally square integrable (proved: continuous bounded loadings and the
+  window `1_{(1,2]}`); almost-sure unboundedness beyond constant loadings; conditional (not only
+  mean) multipliers under the fiscal `π_0 = 0` selection; and, in the tracking model, an added
+  stable-direction innovation (only `b = 0`), the martingale description (proved for the trap
+  with `ν = 0` only) and a separate statement of `E_sx_t`;
 * a nonlinear sticky-price valuation equation: the linearisation with remainder is of the
   frictionless `P = B/S` of Chapter 21, and the sticky-price (5.13) is linked to it only through
   the frictionless limit of the impact coefficient (`Links.fiscal_impact_frictionless`);
@@ -330,6 +370,11 @@ Not formalised:
 | [TidyR8StochWerningMartingale](ZeroBound/TidyR8StochWerningMartingale.lean) | 16 | §20.2.2 under uncertainty: the equilibria are exactly the martingales `e^{λ^b t}(π_t − wPi(0)_t)`; Wiener-integral martingales and equilibria with `C¹` time-varying loadings, non-vacuity |
 | [TidyR8StochWerningNaturalTrack](ZeroBound/TidyR8StochWerningNaturalTrack.lean) | 19 | Natural-rate shocks with the rate tracking the natural rate after the trap: the unstable combination state by state, `E_sπ_t`, existence and `L²` bounds, non-vacuity |
 | [TidyR8StochWerningRecurrence](ZeroBound/TidyR8StochWerningRecurrence.lean) | 21 | §20.2.2 under uncertainty: recurrence of the sampled Ornstein–Uhlenbeck process (0-1 law), almost every equilibrium path with `b ≠ 0` has `sup π = +∞`, `inf π = −∞`, non-vacuity |
+| [TidyR10DoobDiscrete](ZeroBound/TidyR10DoobDiscrete.lean), [TidyR7StieltjesVariation](ZeroBound/TidyR7StieltjesVariation.lean), [TidyR7CondDominated](ZeroBound/TidyR7CondDominated.lean), [TidyR10DoobContinuous](ZeroBound/TidyR10DoobContinuous.lean), [TidyR7ItoContinuity](ZeroBound/TidyR7ItoContinuity.lean), [TidyR7ItoUnbounded](ZeroBound/TidyR7ItoUnbounded.lean), [TidyR7ItoProducts](ZeroBound/TidyR7ItoProducts.lean), [TidyR7ItoProcess](ZeroBound/TidyR7ItoProcess.lean), [TidyR7ProductStep](ZeroBound/TidyR7ProductStep.lean), [TidyR7ItoCovariation](ZeroBound/TidyR7ItoCovariation.lean), [TidyR7ItoProductRule](ZeroBound/TidyR7ItoProductRule.lean), [TidyR7ItoBondStep](ZeroBound/TidyR7ItoBondStep.lean), [TidyR8MonetarismItoDom](ZeroBound/TidyR8MonetarismItoDom.lean), [TidyR10DoobIto](ZeroBound/TidyR10DoobIto.lean), [TidyR10DoobVersion](ZeroBound/TidyR10DoobVersion.lean), [TidyR10DoobAugment](ZeroBound/TidyR10DoobAugment.lean), [TidyR7BrownianVariation](ZeroBound/TidyR7BrownianVariation.lean) | 272 | Doob's `L²` inequality in discrete and continuous time, the variation of paths, conditional dominated convergence, continuous modifications of the Itô integral, unbounded mean-square integrands, Itô processes, the product step and Itô's product rule, the product step for two Itô processes, additivity of the Itô integral over intervals, Doob for `W` and `∫ G dW`, adapted continuous versions, the completed filtration `augment` with an every-path-continuous Itô integral, infinite variation of Brownian paths (TidyR10DoobDiscrete 18, TidyR7StieltjesVariation 21, TidyR7CondDominated 14, TidyR10DoobContinuous 11, TidyR7ItoContinuity 16, TidyR7ItoUnbounded 23, TidyR7ItoProducts 19, TidyR7ItoProcess 18, TidyR7ProductStep 35, TidyR7ItoCovariation 14, TidyR7ItoProductRule 22, TidyR7ItoBondStep 15, TidyR8MonetarismItoDom 4, TidyR10DoobIto 9, TidyR10DoobVersion 7, TidyR10DoobAugment 9, TidyR7BrownianVariation 17; copied from the Monetarism project, `TidyR8MonetarismItoDom` in part) |
+| [TidyR9ItoTaylor](ZeroBound/TidyR9ItoTaylor.lean), [TidyR9ItoPathSums](ZeroBound/TidyR9ItoPathSums.lean), [TidyR9ItoWeightedBracket](ZeroBound/TidyR9ItoWeightedBracket.lean), [TidyR9ItoFormula](ZeroBound/TidyR9ItoFormula.lean), [TidyR10DoobProductStep](ZeroBound/TidyR10DoobProductStep.lean), [TidyR10DoobFubini](ZeroBound/TidyR10DoobFubini.lean), [TidyR10DoobMSVersion](ZeroBound/TidyR10DoobMSVersion.lean), [TidyR9ItoFormulaVariants](ZeroBound/TidyR9ItoFormulaVariants.lean), [TidyR12SDETools](ZeroBound/TidyR12SDETools.lean) | 86 | Itô's formula (Taylor tools, path sums, the weighted bracket, the formula and its variants), the product step with a Brownian or Itô-integral martingale part, the Itô isometry in Fubini form, continuous versions for mean-square integrands, mean-square time integrals and `L²` bounds (TidyR9ItoTaylor 4, TidyR9ItoPathSums 6, TidyR9ItoWeightedBracket 5, TidyR9ItoFormula 16, TidyR10DoobProductStep 12, TidyR10DoobFubini 6, TidyR10DoobMSVersion 7, TidyR9ItoFormulaVariants 17, TidyR12SDETools 13; copied from the Monetarism project) |
+| [TidyR13MRepIntegral](ZeroBound/TidyR13MRepIntegral.lean), [TidyR13MRepCutoff](ZeroBound/TidyR13MRepCutoff.lean), [TidyR13MRepOneStep](ZeroBound/TidyR13MRepOneStep.lean), [TidyR13MRepDensity](ZeroBound/TidyR13MRepDensity.lean), [TidyR13MRepTheorem](ZeroBound/TidyR13MRepTheorem.lean), [TidyR13MRepMonetarism](ZeroBound/TidyR13MRepMonetarism.lean) | 83 | The martingale representation theorem on the Brownian filtration on `[0, T]`: the extended integrand class and integral `mrepInt`, integrands switched on over a sub-interval, the density argument, the theorem with uniqueness, instances on `bmPath` (TidyR13MRepIntegral 35, TidyR13MRepCutoff 15, TidyR13MRepOneStep 8, TidyR13MRepDensity 8, TidyR13MRepTheorem 11, TidyR13MRepMonetarism 6; copied from the Monetarism project, `TidyR13MRepMonetarism` in part) |
+| [TidyR9StochWerningMRepVersion](ZeroBound/TidyR9StochWerningMRepVersion.lean) | 10 | §20.2.2 under uncertainty (tools): continuous and every-path-continuous versions of the extended Itô integral, martingale representation on `[0, ∞)` with one integrand, uniqueness |
+| [TidyR9StochWerningInnovations](ZeroBound/TidyR9StochWerningInnovations.lean) | 18 | §20.2.2 under uncertainty: which innovations occur, `π = wPi(0) + e^{−λ^b t}(c + ∫H dW)` with `(c, H)` unique; the converse for the completed filtration, the exact correspondence for mean-square-bounded equilibria, continuous non-`C¹` loadings, non-vacuity |
 
 ## Modelling conventions
 
@@ -551,7 +596,15 @@ one model.
   `TidyR8StochWerningRecurrence` are restated from its DebtLimitStochasticMeasure module, where
   they give the almost-sure unboundedness of debt. There the Ornstein–Uhlenbeck process is the
   AR(1) surplus of p. 197; here it is the stable-direction inflation innovation and the
-  natural-rate shock of the stochastic Werning model.
+  natural-rate shock of the stochastic Werning model. A further thirty-two Monetarism modules
+  (`TidyR10DoobDiscrete` to `TidyR13MRepMonetarism` in the library map: Doob's inequality,
+  continuous versions of the Itô integral, Itô's formula and the martingale representation
+  theorem) are copied directly from the Monetarism project, with only the namespace renamed and
+  proofs unchanged, as the import closure that `TidyR9StochWerningMRepVersion` needs; there they
+  serve the (1.32) product step of Online Appendix §1.6, here the description of the
+  innovations of the stochastic Werning model. `TidyR8MonetarismItoDom` keeps only its four Itô
+  tools and `TidyR13MRepMonetarism` only its six results without the stochastic discount factor;
+  no Monetarism economics module is copied.
 * **Chapter 22 (`ObservationalEquivalence`).** That project owns the observational-equivalence
   remark of p. 476 and the Leeper model (23.1)–(23.4) with constant coefficients and its four
   regions (`LeeperRegions`), and the Markov-switching determinacy condition of Davig and Leeper

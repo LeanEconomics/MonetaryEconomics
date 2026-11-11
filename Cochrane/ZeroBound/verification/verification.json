@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-11-10T21:45:43.915883+00:00",
-  "theorems": 1767,
+  "checked_at_utc": "2026-11-11T08:47:16.589539+00:00",
+  "theorems": 2236,
   "module_theorems": {
     "ZeroBound/Determinacy.lean": 23,
     "ZeroBound/Expectations.lean": 20,
@@ -63,9 +63,43 @@
     "ZeroBound/TidyR8StochWerningNaturalMean.lean": 21,
     "ZeroBound/TidyR8StochWerningMartingale.lean": 16,
     "ZeroBound/TidyR8StochWerningNaturalTrack.lean": 19,
-    "ZeroBound/TidyR8StochWerningRecurrence.lean": 21
+    "ZeroBound/TidyR8StochWerningRecurrence.lean": 21,
+    "ZeroBound/TidyR10DoobDiscrete.lean": 18,
+    "ZeroBound/TidyR7StieltjesVariation.lean": 21,
+    "ZeroBound/TidyR7CondDominated.lean": 14,
+    "ZeroBound/TidyR10DoobContinuous.lean": 11,
+    "ZeroBound/TidyR7ItoContinuity.lean": 16,
+    "ZeroBound/TidyR7ItoUnbounded.lean": 23,
+    "ZeroBound/TidyR7ItoProducts.lean": 19,
+    "ZeroBound/TidyR7ItoProcess.lean": 18,
+    "ZeroBound/TidyR7ProductStep.lean": 35,
+    "ZeroBound/TidyR7ItoCovariation.lean": 14,
+    "ZeroBound/TidyR7ItoProductRule.lean": 22,
+    "ZeroBound/TidyR7ItoBondStep.lean": 15,
+    "ZeroBound/TidyR8MonetarismItoDom.lean": 4,
+    "ZeroBound/TidyR10DoobIto.lean": 9,
+    "ZeroBound/TidyR10DoobVersion.lean": 7,
+    "ZeroBound/TidyR10DoobAugment.lean": 9,
+    "ZeroBound/TidyR7BrownianVariation.lean": 17,
+    "ZeroBound/TidyR9ItoTaylor.lean": 4,
+    "ZeroBound/TidyR9ItoPathSums.lean": 6,
+    "ZeroBound/TidyR9ItoWeightedBracket.lean": 5,
+    "ZeroBound/TidyR9ItoFormula.lean": 16,
+    "ZeroBound/TidyR10DoobProductStep.lean": 12,
+    "ZeroBound/TidyR10DoobFubini.lean": 6,
+    "ZeroBound/TidyR10DoobMSVersion.lean": 7,
+    "ZeroBound/TidyR9ItoFormulaVariants.lean": 17,
+    "ZeroBound/TidyR12SDETools.lean": 13,
+    "ZeroBound/TidyR13MRepIntegral.lean": 35,
+    "ZeroBound/TidyR13MRepCutoff.lean": 15,
+    "ZeroBound/TidyR13MRepOneStep.lean": 8,
+    "ZeroBound/TidyR13MRepDensity.lean": 8,
+    "ZeroBound/TidyR13MRepTheorem.lean": 11,
+    "ZeroBound/TidyR13MRepMonetarism.lean": 6,
+    "ZeroBound/TidyR9StochWerningMRepVersion.lean": 10,
+    "ZeroBound/TidyR9StochWerningInnovations.lean": 18
   },
-  "audited_declarations": 2179,
+  "audited_declarations": 2724,
   "declarations": [
     {
       "name": "Cochrane.ZeroBound.SchurStable",
@@ -10961,6 +10995,2731 @@
       "name": "Cochrane.ZeroBound.TidyR8StochWerningRecurrence.bmPath_eqPi_sup_inf",
       "kind": "theorem",
       "module": "ZeroBound/TidyR8StochWerningRecurrence.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax",
+      "kind": "def",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMaxStep",
+      "kind": "def",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_succ",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.le_runMax",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_nonneg",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_le_succ",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_le_sum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMaxStep_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMaxStep_succ",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMaxStep_nonneg",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.sum_runMaxStep",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_mul_step",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_sq_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.stronglyMeasurable_runMax",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.stronglyMeasurable_runMaxStep",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.memLp_runMax",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.memLp_runMaxStep",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.doob_sq_discrete",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobDiscrete.integral_mul_sub_eq_zero_of_condExp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobDiscrete.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.denseSet",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.countable_denseSet",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.dyadicUp",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.dyadicUp_bounds",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.dyadicUp_mono",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.dyadicUp_rat",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.pushRight",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.pushRight_mem",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.pushRight_mono",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.tendsto_pushRight",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.eVariationOn_Icc_eq_denseSet",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.extFin",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.eVariationOn_eq_iSup_fin",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_eVariationOn_countable",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_eVariationOn",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_variation_toReal",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_eVariationOn_of_isCadlag",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_eVariationOn_of_continuousOn",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_variation_toReal_of_isCadlag",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_variation_toReal_of_continuousOn",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.eVariationOn_Icc_self",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.rsInt_self",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.partition_self_n",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.rsSum_self",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7StieltjesVariation.crossSum_self",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7StieltjesVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.tailSup",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.tailSup_bddAbove",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.tailSup_mem",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.le_tailSup",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.tailSup_succ_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.tendsto_tailSup",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.measurable_tailSup",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.ae_tendsto_condExp_of_dominated",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.pathSup",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.pathSup_nonneg",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.measurable_pathSup",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.abs_le_pathSup_of_right",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.abs_le_pathSup_of_isCadlag",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.abs_le_pathSup_of_continuousOn",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.pointPartition",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.mesh_pointPartition",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7CondDominated.exists_partition_seq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7CondDominated.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.pathSup_le_of_forall_abs_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.gridSeq",
+      "kind": "def",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.dyadicMax",
+      "kind": "def",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.dyadic_t_min_mem",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.dyadic_t_two_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.dyadicMax_mono",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.dyadic_ceil_mem",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.tendsto_dyadic_ceil",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.doob_sq_dyadic",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.measurable_dyadicMax",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.doob_sq_pathSup",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.doob_sq_martingale",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobContinuous.memLp_pathSup_martingale",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobContinuous.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.kolmogorov_maximal",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.four_point",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.stronglyMeasurable_cellSum_trunc",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.integral_mul_cellSum_trunc_sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.maximal_cellSum_trunc",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.truncSum",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.truncSum_of_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.truncSum_of_le_start",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.continuous_truncSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.truncSum_sub_truncSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.cutIndex",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.cutIndex_spec",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.restrict",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.restrict_t_of_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.restrict_t_succ",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.truncSum_eq_itoSum_restrict",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.mesh_restrict_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.abs_le_of_dyadic",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoContinuity.exists_continuous_modification",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoContinuity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.integrable_sq_mul_incr_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.memLp_mul_incr_of_memLp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.memLp_cellSum_of_memLp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_cellSum_sq_of_memLp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_mul_cellSum_of_memLp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSUnifCont",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand",
+      "kind": "structure",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand.mk",
+      "kind": "constructor",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand.adapted",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand.memLp",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand.cont",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand.measurable",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand.mono",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.ItoIntegrand.toMS",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.msIntegrand_const",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.memLp_itoSum_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_itoSum_sq_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_mul_itoSum_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_itoSum_sub_sq_le_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.cauchy_itoSum_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.exists_dyadic_limit_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.L2Tendsto_dyadic_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.memLp_itoInt_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.L2Tendsto_itoSum_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.tendsto_sum_integral_sq_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_itoInt_sq_le_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.tendsto_integral_mul_of_L2Tendsto_memLp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_mul_itoInt_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoUnbounded.condExp_itoInt_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoUnbounded.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.sq_mul_sq_le",
+      "kind": "lemma",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.tendsto_integral_sq_mul_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.exists_delta_integral_sq_mul_sub_sq_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.MSIntegrand.mul_itoIntegrand",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.itoInt_mul_left",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.dtSum",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.dtInt",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.dtInt_of_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.dtInt_spec",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.stronglyMeasurable_dtInt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.stronglyMeasurable_dtSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.memLp_dtSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.dtSum_sub_dtSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.integral_dtSum_sub_sq_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.cauchy_dtSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.exists_dyadic_limit_dt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.L2Tendsto_dyadic_dt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.memLp_dtInt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.L2Tendsto_dtSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.dtInt_ae_eq_integral",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProducts.dtInt_of_eq_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProducts.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.add_sq_le_two",
+      "kind": "lemma",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.integral_sum_sq_of_orth",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.sq_integral_abs_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.sq_integral_abs_sum_mul_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.tendsto_integral_abs_sum_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.abs_integral_drift_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.aestronglyMeasurable_integral_drift",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.memLp_integral_drift",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.driftErr",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.abs_integral_sub_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.abs_driftErr_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.aestronglyMeasurable_driftErr",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.eventually_integral_sq_mul_driftErr_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess",
+      "kind": "structure",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.mk",
+      "kind": "constructor",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.adapted",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.init",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.drift",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.diff",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.eq",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.memLp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.incr_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.itoIntegrand_sub_left",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.incr_decomp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.integral_incr_sq_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.toMS",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProcess.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.pathVar",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.sumRS",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.sumCross",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.intRS",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.addProc",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData",
+      "kind": "structure",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.mk",
+      "kind": "constructor",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.le",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.B_adapted",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.B_cont",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.B_bv",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.A_meas",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.A_cadlag",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.A_bv",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.M_mart",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.M_cadlag",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.int_XB",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.int_BA",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.int_BM",
+      "kind": "projection",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.sumRS_add_right",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.pathwise_identity",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.measurable_sumRS",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.measurable_sumCross",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.measurable_B",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.measurable_M",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.measurable_X",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.X_cadlag",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.abs_sumXB_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.abs_sumBA_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.abs_sumCross_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_sumXB",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_sumBA",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_sumCross",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_term",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_sumBM",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_lhs",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_intXB",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_intBA",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.condExp_mart_incr_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.sum_condExp_mart_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.condExp_sumBM_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.discrete_identity",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.condExp_sumBX_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.tendsto_condExp_sumXB",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.tendsto_condExp_sumBA",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.tendsto_condExp_cross",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.tendsto_condExp_sumBX",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.tendsto_condExp_dyadic",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.product_step",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ExpIncrLimit",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.ExpIncrLimit.ae_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.expIncrLimit_condExp_rsInt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.product_step_expIncr",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.product_step_1_32",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ProductStep.integrable_mul_incr_of_bound",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.driftRem",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.diffRem",
+      "kind": "def",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.t_le_succ",
+      "kind": "lemma",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.step_le",
+      "kind": "lemma",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.L2Tendsto_driftRem",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.L2Tendsto_diffRem",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.sumRS_ae_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.L2Tendsto_sumRS",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.sum_integral_drift_sq_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.tendsto_sum_integral_drift_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.tendsto_sum_integral_itoInt_sub_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.sum_integral_mul_incr_sq_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.sum_integral_incr_sq_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.abs_riemannSum_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.tendsto_integral_abs_sumCross",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoCovariation.tendsto_integral_abs_sumCross_bv",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoCovariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.itoIntegrand_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.integrable_sumCross",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.tendsto_integral_abs_of_L2Tendsto",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.product_rule",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.product_rule_pathwise",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.product_rule_noDrift",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.ito_formula_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.condExp_product_rule",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.tendsto_integral_abs_condExp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.tendsto_condExp_sumRS",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.tendsto_condExp_sumCross",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.expected_increment_product_rule",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.condExp_product_rule_bookForm_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.condExp_product_rule_bv",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.itoProcess_bm",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.ito_formula_bm",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.itoInt_bm_of_product_rule",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.itoProcess_id",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.product_rule_bm_id",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.ito_formula_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.integral_ito_formula_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoProductRule.not_bookForm_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoProductRule.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.dtSum_add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.dtSum_const_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.dtInt_add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.dtInt_const_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.MSIntegrand.add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.MSIntegrand.const_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.condExp_eq_of_ae_eq_add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.itoProcess_itoInt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.condExp_bracket_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.bond_step",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.bond_step_expIncr",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.bond_step_bv",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.bond_step_book_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.ae_zero_of_condExp_integral_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7ItoBondStep.bookForm_forall_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7ItoBondStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8MonetarismItoDom.itoInt_add_itoInt_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8MonetarismItoDom.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8MonetarismItoDom.itoInt_ae_zero_of_vanish",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8MonetarismItoDom.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8MonetarismItoDom.itoInt_eventually_const",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8MonetarismItoDom.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR8MonetarismItoDom.abs_intervalIntegral_le_Ioi",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR8MonetarismItoDom.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobIto.rightCont_of_continuousOn",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobIto.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobIto.doob_sq_bm",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobIto.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobIto.doob_sq_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobIto.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobIto.integral_mul_itoInt_sub_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobIto.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobIto.doob_sq_itoInt_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobIto.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobIto.doob_sq_itoInt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobIto.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobIto.exists_continuous_modification_doob",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobIto.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobIto.itoIntegrand_id_unit",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobIto.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobIto.doob_sq_itoInt_id_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobIto.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobVersion.dyadicFloor",
+      "kind": "def",
+      "module": "ZeroBound/TidyR10DoobVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobVersion.dyadicFloor_of_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobVersion.dyadicFloor_mem",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobVersion.tendsto_dyadicFloor",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobVersion.dyadicLim",
+      "kind": "def",
+      "module": "ZeroBound/TidyR10DoobVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobVersion.dyadicLim_of_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobVersion.stronglyMeasurable_dyadicLim",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobVersion.exists_adapted_continuous_version",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobVersion.exists_adapted_continuous_itoInt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobAugment.augSigma",
+      "kind": "abbrev",
+      "module": "ZeroBound/TidyR10DoobAugment.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobAugment.augment",
+      "kind": "def",
+      "module": "ZeroBound/TidyR10DoobAugment.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobAugment.measurableSet_augment_iff",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobAugment.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobAugment.le_augment",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobAugment.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobAugment.measurableSet_augment_of_null",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobAugment.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobAugment.stronglyMeasurable_augment_of_ae_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobAugment.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobAugment.bmFiltration_augment",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobAugment.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobAugment.condExp_augment",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobAugment.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobAugment.itoIntegrand_augment",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobAugment.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobAugment.itoInt_augment",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobAugment.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobAugment.exists_continuous_itoInt_augment",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobAugment.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.isCadlag_bmReal",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.tendsto_qvSum_zero_of_bv",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.ae_not_bv",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.ae_forall_not_bv",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.ae_forall_eVariationOn_eq_top",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.not_productStepData_bm",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.tendsto_crossSum_bm_bv",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.ae_tendsto_sumCross_bm_bv",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.bv_id",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.tendsto_crossSum_bm_id",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.integral_qvSum_sub_sq_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.condExp_qvSum_sub_sq_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.tendstoInMeasure_qvSum_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.ae_tendsto_qvSum_dyadic_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.ae_forall_not_bv_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.not_productStepData_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR7BrownianVariation.tendsto_crossSum_bmPath_id",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR7BrownianVariation.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoTaylor.abs_taylor2_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoTaylor.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoTaylor.abs_taylor1_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoTaylor.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoTaylor.abs_sub_le_of_deriv_bound",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoTaylor.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoTaylor.exists_delta_taylor_path",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoTaylor.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoPathSums.timeSum",
+      "kind": "def",
+      "module": "ZeroBound/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoPathSums.remSum",
+      "kind": "def",
+      "module": "ZeroBound/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoPathSums.itoTaylor_partition_identity",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoPathSums.cell_mem",
+      "kind": "lemma",
+      "module": "ZeroBound/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoPathSums.tendsto_timeSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoPathSums.abs_timeSum_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoPathSums.abs_remSum_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoPathSums.eventually_abs_remSum_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoWeightedBracket.wSumCross",
+      "kind": "def",
+      "module": "ZeroBound/TidyR9ItoWeightedBracket.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoWeightedBracket.wSumCross_one",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoWeightedBracket.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoWeightedBracket.memLp_mul_of_bound",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoWeightedBracket.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoWeightedBracket.integrable_wSumCross",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoWeightedBracket.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoWeightedBracket.tendsto_integral_abs_wSumCross",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoWeightedBracket.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoWeightedBracket.tendsto_integral_abs_wSumCross_one",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoWeightedBracket.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.stronglyMeasurable_comp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.itoIntegrand_comp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.memLp_comp_lipschitz",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.msIntegrand_comp_lipschitz",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.msIntegrand_comp_of_bound",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.itoProcess_restrict",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.ito_formula_time",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.itoProcess_of_coeff_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.ito_formula",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.ito_formula_pathwise",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.itoProcess_comp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.condExp_ito_formula",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.itoInt_const_mul_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.ito_formula_sq_recovers",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.itoProcess_sin_bm",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormula.ito_formula_sin_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobProductStep.pathVar_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobProductStep.addProc_zero_left",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobProductStep.intRS_zero_right",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobProductStep.productStepData_of_martingale",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobProductStep.martingale_bmReal_of_bmFiltration",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobProductStep.productStepData_bm",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobProductStep.productStepData_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobProductStep.pathSup_le_pathSup",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobProductStep.exists_productStepData_itoInt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobProductStep.product_step_itoInt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobProductStep.itoIntegrand_cos_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobProductStep.exists_productStepData_itoInt_cos_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobProductStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobFubini.continuousOn_integral_sq_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobFubini.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobFubini.integral_itoInt_sq_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobFubini.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobFubini.integral_integral_sq_comm",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobFubini.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobFubini.doob_sq_itoInt_fubini_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobFubini.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobFubini.integral_itoInt_bm_sq_fubini_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobFubini.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobFubini.integral_integral_cos_sq_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobFubini.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobMSVersion.stronglyMeasurable_truncSum",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobMSVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobMSVersion.memLp_truncSum_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobMSVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobMSVersion.integral_mul_truncSum_sub_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobMSVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobMSVersion.exists_continuous_modification_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobMSVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobMSVersion.martingale_itoInt_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobMSVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobMSVersion.exists_adapted_continuous_itoInt_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobMSVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR10DoobMSVersion.exists_adapted_continuous_itoInt_bm_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR10DoobMSVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoInt_congr_Icc",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoIntegrand_congr_Icc",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoProcess_congr_Icc",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.hasDerivAt_ite_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoProcess_comp_range",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.ito_formula_time_pathwise",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoProcess_comp_time",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoProcess_discount",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.invExt",
+      "kind": "def",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.invExt'",
+      "kind": "def",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.invExt''",
+      "kind": "def",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.hasDerivAt_invExt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.hasDerivAt_invExt'",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.invExt''_props",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.invExt_of_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoProcess_inv",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.expExt",
+      "kind": "def",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.expExt'",
+      "kind": "def",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.expExt''",
+      "kind": "def",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.hasDerivAt_expExt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.hasDerivAt_expExt'",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.expExt_of_abs_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoProcess_exp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.dtSum_concat",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.dtInt_add_dtInt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.MSIntegrand.sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.dtInt_sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.itoInt_add_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.itoInt_sub_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.sq_dtSum_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.integral_dtSum_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.integral_dtInt_sq_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.exists_bound_integral_sq_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.intervalIntegral_integral_sq_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.integral_dtInt_sq_le_const",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR12SDETools.integral_itoInt_sq_le_const",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR12SDETools.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepMeasure",
+      "kind": "def",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.MRepApprox",
+      "kind": "def",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.MRepIntegrand",
+      "kind": "def",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt",
+      "kind": "def",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_memLp_uncurry",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_integral_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepMeasure_of_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_isometry_ms",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_ms_sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_isometry_sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_cauchy_of_L2Tendsto",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_tendsto_integral_sq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_itoInt_cauchy",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_L2Tendsto_of_approx",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_spec",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.stronglyMeasurable_mrepInt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.memLp_mrepInt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.MRepIntegrand.memLp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_agree",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_isometry",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.MRepApprox.add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.MRepApprox.const_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_const_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_const_mul",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_isometry_sub",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_integral_mul_eq_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_integral_eq_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepMeasure_mono",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_L2Tendsto_mono",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.MRepApprox.mono",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_mono",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_add_mrepInt",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_condExp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_of_L2Tendsto",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_L2Tendsto",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_ms_congr",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_ms_glue",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_ms_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_itoInt_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrepBump",
+      "kind": "def",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrepBump_mem",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.continuous_mrepBump",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrepBump_eq_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.tendsto_mrepBump",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrepCut",
+      "kind": "def",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.itoIntegrand_mrepBump",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_ms_bump",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.measurable_mrep_bump",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_ae_ne",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_bump_L2Tendsto",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrepMeasure_restrict_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_cut",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_measurable_bm",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_hasDerivAt_exp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_exp_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_ito_cos",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_ito_sin",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_orth_step",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_onestep_cos",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_onestep_sin",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepDensity.mrepNat",
+      "kind": "abbrev",
+      "module": "ZeroBound/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepDensity.mrepNat_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepDensity.mrepVec",
+      "kind": "def",
+      "module": "ZeroBound/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepDensity.measurable_mrepVec",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepDensity.mrepVecSigma",
+      "kind": "abbrev",
+      "module": "ZeroBound/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepDensity.mrepVecSigma_mono",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepDensity.mrepNat_eq_generateFrom",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepDensity.mrep_density_step",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepDensity.mrep_trig_vanish",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepDensity.mrep_setIntegral_vec",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepDensity.mrep_density",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_L2Tendsto_of_tendsto_Lp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_L2Tendsto_const",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_integral_const_add",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepTheorem.mrepInt_self",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepTheorem.mrepSpace",
+      "kind": "def",
+      "module": "ZeroBound/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepTheorem.isClosed_mrepSpace",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_inner_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_representation",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_unique",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_martingale",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_martingale_zero",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepMonetarism.mrep_bmFiltrationReal_le",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepMonetarism.mrep_representation_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepMonetarism.mrep_martingale_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepMonetarism.mrep_indicator_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepMonetarism.mrep_sq_bmPath",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR13MRepMonetarism.mrepInt_congr_ae",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_L2Tendsto_comp",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningMRepVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_integrand_congr_ae",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningMRepVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_measure_eq",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningMRepVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_exists_continuous_modification",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningMRepVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_exists_adapted_continuous",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningMRepVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_exists_continuous_augment",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningMRepVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_horizon_consistent",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningMRepVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_glue",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningMRepVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_martingale_rep",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningMRepVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_martingale_rep_unique",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningMRepVersion.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_expDrift_augment",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_isStochEqm_augment",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_regular_augment",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_martingale_of_augment",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_eqm_rep",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_eqm_rep_unique",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_eqm_rep_natural",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.innovZeta",
+      "kind": "def",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_eqm_of_integrand",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_growth_of_bdd",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_growth_of_rep",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_eqm_rep_bddL2",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_msIntegrand_det",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_loading_continuous",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.bmPath_swinnov_rep",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.bmPath_window_integrand",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.bmPath_swinnov_window",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.not_differentiableAt_abs_sin",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
+    },
+    {
+      "name": "Cochrane.ZeroBound.TidyR9StochWerningInnovations.bmPath_swinnov_abs_sin",
+      "kind": "theorem",
+      "module": "ZeroBound/TidyR9StochWerningInnovations.lean"
     }
   ],
   "full_build": "passed",
@@ -21859,6 +24618,2731 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMaxStep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.le_runMax": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_le_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_le_sum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMaxStep_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMaxStep_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMaxStep_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.sum_runMaxStep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_mul_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.runMax_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.stronglyMeasurable_runMax": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.stronglyMeasurable_runMaxStep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.memLp_runMax": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.memLp_runMaxStep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.doob_sq_discrete": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobDiscrete.integral_mul_sub_eq_zero_of_condExp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.denseSet": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.countable_denseSet": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.dyadicUp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.dyadicUp_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.dyadicUp_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.dyadicUp_rat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.pushRight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.pushRight_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.pushRight_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.tendsto_pushRight": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.eVariationOn_Icc_eq_denseSet": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.extFin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.eVariationOn_eq_iSup_fin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_eVariationOn_countable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_eVariationOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_variation_toReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_eVariationOn_of_isCadlag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_eVariationOn_of_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_variation_toReal_of_isCadlag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.measurable_variation_toReal_of_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.eVariationOn_Icc_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.rsInt_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.partition_self_n": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.rsSum_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7StieltjesVariation.crossSum_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.tailSup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.tailSup_bddAbove": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.tailSup_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.le_tailSup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.tailSup_succ_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.tendsto_tailSup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.measurable_tailSup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.ae_tendsto_condExp_of_dominated": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.pathSup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.pathSup_nonneg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.measurable_pathSup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.abs_le_pathSup_of_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.abs_le_pathSup_of_isCadlag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.abs_le_pathSup_of_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.pointPartition": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.mesh_pointPartition": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7CondDominated.exists_partition_seq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.pathSup_le_of_forall_abs_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.gridSeq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.dyadicMax": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.dyadic_t_min_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.dyadic_t_two_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.dyadicMax_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.dyadic_ceil_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.tendsto_dyadic_ceil": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.doob_sq_dyadic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.measurable_dyadicMax": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.doob_sq_pathSup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.doob_sq_martingale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobContinuous.memLp_pathSup_martingale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.kolmogorov_maximal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.four_point": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.stronglyMeasurable_cellSum_trunc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.integral_mul_cellSum_trunc_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.maximal_cellSum_trunc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.truncSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.truncSum_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.truncSum_of_le_start": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.continuous_truncSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.truncSum_sub_truncSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.cutIndex": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.cutIndex_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.restrict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.restrict_t_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.restrict_t_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.truncSum_eq_itoSum_restrict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.mesh_restrict_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.abs_le_of_dyadic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoContinuity.exists_continuous_modification": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.integrable_sq_mul_incr_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.memLp_mul_incr_of_memLp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.memLp_cellSum_of_memLp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_cellSum_sq_of_memLp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_mul_cellSum_of_memLp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSUnifCont": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand.adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand.memLp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand.cont": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand.measurable": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.MSIntegrand.mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.ItoIntegrand.toMS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.msIntegrand_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.memLp_itoSum_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_itoSum_sq_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_mul_itoSum_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_itoSum_sub_sq_le_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.cauchy_itoSum_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.exists_dyadic_limit_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.L2Tendsto_dyadic_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.memLp_itoInt_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.L2Tendsto_itoSum_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.tendsto_sum_integral_sq_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_itoInt_sq_le_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.tendsto_integral_mul_of_L2Tendsto_memLp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.integral_mul_itoInt_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoUnbounded.condExp_itoInt_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.sq_mul_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.tendsto_integral_sq_mul_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.exists_delta_integral_sq_mul_sub_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.MSIntegrand.mul_itoIntegrand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.itoInt_mul_left": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.dtSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.dtInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.dtInt_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.dtInt_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.stronglyMeasurable_dtInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.stronglyMeasurable_dtSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.memLp_dtSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.dtSum_sub_dtSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.integral_dtSum_sub_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.cauchy_dtSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.exists_dyadic_limit_dt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.L2Tendsto_dyadic_dt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.memLp_dtInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.L2Tendsto_dtSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.dtInt_ae_eq_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProducts.dtInt_of_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.add_sq_le_two": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.integral_sum_sq_of_orth": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.sq_integral_abs_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.sq_integral_abs_sum_mul_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.tendsto_integral_abs_sum_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.abs_integral_drift_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.aestronglyMeasurable_integral_drift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.memLp_integral_drift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.driftErr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.abs_integral_sub_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.abs_driftErr_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.aestronglyMeasurable_driftErr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.eventually_integral_sq_mul_driftErr_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.init": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.drift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.diff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.memLp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.incr_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.itoIntegrand_sub_left": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.incr_decomp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.integral_incr_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProcess.ItoProcess.toMS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.pathVar": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.sumRS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.sumCross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.intRS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.addProc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.mk": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.B_adapted": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.B_cont": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.B_bv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.A_meas": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.A_cadlag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.A_bv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.M_mart": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.M_cadlag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.int_XB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.int_BA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.int_BM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.sumRS_add_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.pathwise_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.measurable_sumRS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.measurable_sumCross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.measurable_B": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.measurable_M": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.measurable_X": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.X_cadlag": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.abs_sumXB_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.abs_sumBA_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.abs_sumCross_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_sumXB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_sumBA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_sumCross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_term": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_sumBM": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_lhs": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_intXB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.integrable_intBA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.condExp_mart_incr_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.sum_condExp_mart_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.condExp_sumBM_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.discrete_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.condExp_sumBX_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.tendsto_condExp_sumXB": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.tendsto_condExp_sumBA": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.tendsto_condExp_cross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.tendsto_condExp_sumBX": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.tendsto_condExp_dyadic": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ProductStepData.product_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ExpIncrLimit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.ExpIncrLimit.ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.expIncrLimit_condExp_rsInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.product_step_expIncr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.product_step_1_32": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ProductStep.integrable_mul_incr_of_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.driftRem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.diffRem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.t_le_succ": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.step_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.L2Tendsto_driftRem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.L2Tendsto_diffRem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.sumRS_ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.L2Tendsto_sumRS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.sum_integral_drift_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.tendsto_sum_integral_drift_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.tendsto_sum_integral_itoInt_sub_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.sum_integral_mul_incr_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.sum_integral_incr_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.abs_riemannSum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.tendsto_integral_abs_sumCross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoCovariation.tendsto_integral_abs_sumCross_bv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.itoIntegrand_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.integrable_sumCross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.tendsto_integral_abs_of_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.product_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.product_rule_pathwise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.product_rule_noDrift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.ito_formula_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.condExp_product_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.tendsto_integral_abs_condExp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.tendsto_condExp_sumRS": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.tendsto_condExp_sumCross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.expected_increment_product_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.condExp_product_rule_bookForm_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.condExp_product_rule_bv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.itoProcess_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.ito_formula_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.itoInt_bm_of_product_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.itoProcess_id": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.product_rule_bm_id": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.ito_formula_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.integral_ito_formula_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoProductRule.not_bookForm_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.dtSum_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.dtSum_const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.dtInt_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.dtInt_const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.MSIntegrand.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.MSIntegrand.const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.condExp_eq_of_ae_eq_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.itoProcess_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.condExp_bracket_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.bond_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.bond_step_expIncr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.bond_step_bv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.bond_step_book_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.ae_zero_of_condExp_integral_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7ItoBondStep.bookForm_forall_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8MonetarismItoDom.itoInt_add_itoInt_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8MonetarismItoDom.itoInt_ae_zero_of_vanish": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8MonetarismItoDom.itoInt_eventually_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR8MonetarismItoDom.abs_intervalIntegral_le_Ioi": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobIto.rightCont_of_continuousOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobIto.doob_sq_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobIto.doob_sq_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobIto.integral_mul_itoInt_sub_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobIto.doob_sq_itoInt_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobIto.doob_sq_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobIto.exists_continuous_modification_doob": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobIto.itoIntegrand_id_unit": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobIto.doob_sq_itoInt_id_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobVersion.dyadicFloor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobVersion.dyadicFloor_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobVersion.dyadicFloor_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobVersion.tendsto_dyadicFloor": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobVersion.dyadicLim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobVersion.dyadicLim_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobVersion.stronglyMeasurable_dyadicLim": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobVersion.exists_adapted_continuous_version": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobVersion.exists_adapted_continuous_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobAugment.augSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobAugment.augment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobAugment.measurableSet_augment_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobAugment.le_augment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobAugment.measurableSet_augment_of_null": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobAugment.stronglyMeasurable_augment_of_ae_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobAugment.bmFiltration_augment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobAugment.condExp_augment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobAugment.itoIntegrand_augment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobAugment.itoInt_augment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobAugment.exists_continuous_itoInt_augment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.isCadlag_bmReal": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.tendsto_qvSum_zero_of_bv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.ae_not_bv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.ae_forall_not_bv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.ae_forall_eVariationOn_eq_top": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.not_productStepData_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.tendsto_crossSum_bm_bv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.ae_tendsto_sumCross_bm_bv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.bv_id": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.tendsto_crossSum_bm_id": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.integral_qvSum_sub_sq_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.condExp_qvSum_sub_sq_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.tendstoInMeasure_qvSum_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.ae_tendsto_qvSum_dyadic_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.ae_forall_not_bv_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.not_productStepData_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR7BrownianVariation.tendsto_crossSum_bmPath_id": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoTaylor.abs_taylor2_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoTaylor.abs_taylor1_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoTaylor.abs_sub_le_of_deriv_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoTaylor.exists_delta_taylor_path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoPathSums.timeSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoPathSums.remSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoPathSums.itoTaylor_partition_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoPathSums.cell_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoPathSums.tendsto_timeSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoPathSums.abs_timeSum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoPathSums.abs_remSum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoPathSums.eventually_abs_remSum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoWeightedBracket.wSumCross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoWeightedBracket.wSumCross_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoWeightedBracket.memLp_mul_of_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoWeightedBracket.integrable_wSumCross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoWeightedBracket.tendsto_integral_abs_wSumCross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoWeightedBracket.tendsto_integral_abs_wSumCross_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.stronglyMeasurable_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.itoIntegrand_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.memLp_comp_lipschitz": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.msIntegrand_comp_lipschitz": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.msIntegrand_comp_of_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.itoProcess_restrict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.ito_formula_time": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.itoProcess_of_coeff_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.ito_formula": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.ito_formula_pathwise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.itoProcess_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.condExp_ito_formula": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.itoInt_const_mul_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.ito_formula_sq_recovers": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.itoProcess_sin_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormula.ito_formula_sin_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobProductStep.pathVar_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobProductStep.addProc_zero_left": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobProductStep.intRS_zero_right": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobProductStep.productStepData_of_martingale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobProductStep.martingale_bmReal_of_bmFiltration": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobProductStep.productStepData_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobProductStep.productStepData_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobProductStep.pathSup_le_pathSup": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobProductStep.exists_productStepData_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobProductStep.product_step_itoInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobProductStep.itoIntegrand_cos_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobProductStep.exists_productStepData_itoInt_cos_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobFubini.continuousOn_integral_sq_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobFubini.integral_itoInt_sq_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobFubini.integral_integral_sq_comm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobFubini.doob_sq_itoInt_fubini_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobFubini.integral_itoInt_bm_sq_fubini_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobFubini.integral_integral_cos_sq_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobMSVersion.stronglyMeasurable_truncSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobMSVersion.memLp_truncSum_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobMSVersion.integral_mul_truncSum_sub_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobMSVersion.exists_continuous_modification_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobMSVersion.martingale_itoInt_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobMSVersion.exists_adapted_continuous_itoInt_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR10DoobMSVersion.exists_adapted_continuous_itoInt_bm_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoInt_congr_Icc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoIntegrand_congr_Icc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoProcess_congr_Icc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.hasDerivAt_ite_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoProcess_comp_range": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.ito_formula_time_pathwise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoProcess_comp_time": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoProcess_discount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.invExt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.invExt'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.invExt''": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.hasDerivAt_invExt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.hasDerivAt_invExt'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.invExt''_props": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.invExt_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoProcess_inv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.expExt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.expExt'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.expExt''": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.hasDerivAt_expExt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.hasDerivAt_expExt'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.expExt_of_abs_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9ItoFormulaVariants.itoProcess_exp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.dtSum_concat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.dtInt_add_dtInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.MSIntegrand.sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.dtInt_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.itoInt_add_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.itoInt_sub_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.sq_dtSum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.integral_dtSum_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.integral_dtInt_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.exists_bound_integral_sq_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.intervalIntegral_integral_sq_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.integral_dtInt_sq_le_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR12SDETools.integral_itoInt_sq_le_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.MRepApprox": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.MRepIntegrand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_memLp_uncurry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_integral_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepMeasure_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_isometry_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_ms_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_isometry_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_cauchy_of_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_tendsto_integral_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_itoInt_cauchy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_L2Tendsto_of_approx": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.stronglyMeasurable_mrepInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.memLp_mrepInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.MRepIntegrand.memLp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_agree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_isometry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.MRepApprox.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.MRepApprox.const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_isometry_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_integral_mul_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_integral_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepMeasure_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_L2Tendsto_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.MRepApprox.mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_add_mrepInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_condExp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrep_of_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepIntegral.mrepInt_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_ms_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_ms_glue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_ms_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_itoInt_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrepBump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrepBump_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.continuous_mrepBump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrepBump_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.tendsto_mrepBump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrepCut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.itoIntegrand_mrepBump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_ms_bump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.measurable_mrep_bump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_ae_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_bump_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrepMeasure_restrict_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepCutoff.mrep_cut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_measurable_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_hasDerivAt_exp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_exp_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_ito_cos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_ito_sin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_orth_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_onestep_cos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepOneStep.mrep_onestep_sin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepDensity.mrepNat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepDensity.mrepNat_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepDensity.mrepVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepDensity.measurable_mrepVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepDensity.mrepVecSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepDensity.mrepVecSigma_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepDensity.mrepNat_eq_generateFrom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepDensity.mrep_density_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepDensity.mrep_trig_vanish": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepDensity.mrep_setIntegral_vec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepDensity.mrep_density": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_L2Tendsto_of_tendsto_Lp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_L2Tendsto_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_integral_const_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepTheorem.mrepInt_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepTheorem.mrepSpace": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepTheorem.isClosed_mrepSpace": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_inner_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_representation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_martingale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepTheorem.mrep_martingale_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepMonetarism.mrep_bmFiltrationReal_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepMonetarism.mrep_representation_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepMonetarism.mrep_martingale_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepMonetarism.mrep_indicator_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepMonetarism.mrep_sq_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR13MRepMonetarism.mrepInt_congr_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_L2Tendsto_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_integrand_congr_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_measure_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_exists_continuous_modification": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_exists_adapted_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_exists_continuous_augment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_horizon_consistent": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_glue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_martingale_rep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningMRepVersion.swmrep_martingale_rep_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_expDrift_augment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_isStochEqm_augment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_regular_augment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_martingale_of_augment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_eqm_rep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_eqm_rep_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_eqm_rep_natural": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.innovZeta": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_eqm_of_integrand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_growth_of_bdd": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_growth_of_rep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_eqm_rep_bddL2": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_msIntegrand_det": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.swinnov_loading_continuous": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.bmPath_swinnov_rep": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.bmPath_window_integrand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.bmPath_swinnov_window": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.not_differentiableAt_abs_sin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.ZeroBound.TidyR9StochWerningInnovations.bmPath_swinnov_abs_sin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -21911,7 +27395,7 @@
     "ZeroBound/TidyR7OUPath.lean": "879b4c6d43b22062737638ac00a555c4553b5dc0badfe342fa9b56eb608150b5",
     "ZeroBound/TidyR7WienerGaussian.lean": "86f7f23eca14a07491b338ac10fae0cb8f20096d67a596deeb6a7a6d6867a41c",
     "ZeroBound/TidyR7OrnsteinUhlenbeck.lean": "9b583d1f6c0e766cac0a767cefe61b47c62cdb0805c0cd0caff94e23c36902f1",
-    "ZeroBound/TidyR7StochWerning.lean": "f06226511406fedbc0d8cec4200881700cdbcf3cad0f169ef0bef87cf9c147b6",
+    "ZeroBound/TidyR7StochWerning.lean": "4918d7733f715eccc7f78c5c6e67216ea716ae6de6f4d5883d99b976a229459d",
     "ZeroBound/TidyR7StochWerningTrap.lean": "65a6100181f45ea9f0e6cb490b224ff58d43c1f205480f4f525199addf8710c0",
     "ZeroBound/TidyR7StochWerningExist.lean": "9757760545d06e2c4e0c746e1ddc317892f3380c24f4a4a87e46836db27a4a86",
     "ZeroBound/TidyR7StochWerningSelect.lean": "55c11bc06636d489265ae8129ece91c40aee3fbcf8be17afe06cf42901c448b4",
@@ -21921,18 +27405,52 @@
     "ZeroBound/TidyR8StochWerningActiveTrap.lean": "72d66b5efc332634aba0505c20a2f71651152d3188662a1018724ed0befc3415",
     "ZeroBound/TidyR8StochWerningLimits.lean": "00abe1978900e12990d35c3bd3ba2062eceb7756e042fb3500b0f16c246e1313",
     "ZeroBound/TidyR8StochWerningNaturalMean.lean": "370f8cdf932a5bda14176abe2432bd54a370af0ae052f7f501f00cf6948dcfdd",
-    "ZeroBound/TidyR8StochWerningMartingale.lean": "3cb172a8d5496b7af056138a8f86893bdb0f4ee0afc839eb06db343edf968f26",
+    "ZeroBound/TidyR8StochWerningMartingale.lean": "58dc7f9274d68ff99165534f25183503e02fedd532a4121e17225eeba437da7b",
     "ZeroBound/TidyR8StochWerningNaturalTrack.lean": "6b363a3c42d7270fbec60d2e8dfbf07c8b5eb50582a11b2fb34ba3a8e9294779",
     "ZeroBound/TidyR8StochWerningRecurrence.lean": "870a1ac26b40707618661277312029a606a7bd230b9a8be6c158bfbdc87bd542",
-    "ZeroBound.lean": "f1e57e23427ac36cd4e8099ccc062d91bbfd695b3aea470c732df91705555762",
+    "ZeroBound/TidyR10DoobDiscrete.lean": "4a19c6fa19f58db4ca78386528075813b6f1b8d06f6119241c6650b9b2999de3",
+    "ZeroBound/TidyR7StieltjesVariation.lean": "360ae2ed5eb004faaf301674e711ec2efeecc53fb7bbe439a1651045a0d34f6f",
+    "ZeroBound/TidyR7CondDominated.lean": "343ee6ca554a8af23928165b7989177144e71817b4d3a73cac40094d906e1208",
+    "ZeroBound/TidyR10DoobContinuous.lean": "85ad888588fa396ebe23fda9d59361d91dae4a9d5412af35c43562a362530eba",
+    "ZeroBound/TidyR7ItoContinuity.lean": "db2ac57325ad7c9f4a81a113d8fec28705fa593fa698647be7237d8fc9de0107",
+    "ZeroBound/TidyR7ItoUnbounded.lean": "53e8ca41d9e8692a624e0bea7b8abb96f8d41706df377e9148ef44cdcfcf404e",
+    "ZeroBound/TidyR7ItoProducts.lean": "7d53064cc1025bd32d9d6d1f15ca3352fb8fe3c840b66d7a44a42608348417fd",
+    "ZeroBound/TidyR7ItoProcess.lean": "610744be0ee0aae18dec67a008babfc5e6d74e62af229e70edc5018a99de161a",
+    "ZeroBound/TidyR7ProductStep.lean": "b4a540e964b15af72cd84fc5291f3f5a920e83d7c723fde59faea7c915044ea9",
+    "ZeroBound/TidyR7ItoCovariation.lean": "40010ab7d9d3418e84ed0b6985dd0e5801689c1f4313698e8d1c4a89a5083325",
+    "ZeroBound/TidyR7ItoProductRule.lean": "a9afb72e4437b8d1843cded2e7d1d738898d2da5180d8248f5a6e451702d9309",
+    "ZeroBound/TidyR7ItoBondStep.lean": "948271da0d8debce6eff0c668c515cc13a3485ace0039f2f921df46f9aad4065",
+    "ZeroBound/TidyR8MonetarismItoDom.lean": "f10dd051890f91cbb5989d50633a52e20530d1741800a137610238357426796f",
+    "ZeroBound/TidyR10DoobIto.lean": "9ad7a0bdb6ee066eff24bca249704232120cc70815aa96a6316135d441b1e148",
+    "ZeroBound/TidyR10DoobVersion.lean": "667665ce4c433d49f39cab9cf9ee7f68fa0ed43bbed01f649bac9b2f4882f7a4",
+    "ZeroBound/TidyR10DoobAugment.lean": "e3b67a6ad876ff2542a7aa0d2df13cbcd849584ce7f0387486d11c5c18e9d47d",
+    "ZeroBound/TidyR7BrownianVariation.lean": "073c8c62b28390346754797d72e9ecdc9313f73450044ef4a10edd6cd07520b5",
+    "ZeroBound/TidyR9ItoTaylor.lean": "97446c6478d3cd25305b617eb1ada46ef5b2dfbf6891fadf1a1ba63385371d03",
+    "ZeroBound/TidyR9ItoPathSums.lean": "d6b1510bc477a8f3c82e593eb3d15990dce23c35e066d1672b8da81fed0ff3b6",
+    "ZeroBound/TidyR9ItoWeightedBracket.lean": "c787ac1ed22a8818d762ab60a2150e5e96ac7f4173ac527af23653a6b022c036",
+    "ZeroBound/TidyR9ItoFormula.lean": "7516f1a788d796fe52bab3411089b8858d794dd50d0a4c8d816ea8f9ca10fb00",
+    "ZeroBound/TidyR10DoobProductStep.lean": "3f6cc348c71e8151a285db94e86f60d47482e08b1e9e1c77bdbc641e149af298",
+    "ZeroBound/TidyR10DoobFubini.lean": "6f4fe2e06a1199eb7897383a7de521ed4b2eccf7c6e10c510a7caca9f63a1b9e",
+    "ZeroBound/TidyR10DoobMSVersion.lean": "4d59a191c32dd9f7e44227b1594045f94c7604fd154226c8f603531d9ef53231",
+    "ZeroBound/TidyR9ItoFormulaVariants.lean": "6caf49c762a65b98d98ccd4be427cf319b2df541bb4617989b4560af6fa1cb71",
+    "ZeroBound/TidyR12SDETools.lean": "9a82c610c904bc0369f4d6f0af1107dd92df08c366d68e92d0a3cfdb59f56f5d",
+    "ZeroBound/TidyR13MRepIntegral.lean": "2c5e2859146024b1d9c7146ed6184759bf4571b47892365a1cf6ba4d8e78b01d",
+    "ZeroBound/TidyR13MRepCutoff.lean": "557c2126c04b5952338b45d8120eac10fafc136fcf0fdd36152b44141967b3e6",
+    "ZeroBound/TidyR13MRepOneStep.lean": "9b2f286eba608fbdc4d3bc14c25619f543d1be043a3de4c9b45239dfd808046b",
+    "ZeroBound/TidyR13MRepDensity.lean": "c90fe3f262ba6c56b2f4d845fed8159d35ba19193079a4bd212d50150336ebaf",
+    "ZeroBound/TidyR13MRepTheorem.lean": "9b2c0954a381ae7b96a099e84a6047f59c14034cf21fee3627334435b4125ee6",
+    "ZeroBound/TidyR13MRepMonetarism.lean": "a9ee956349e908a2021c2838fd77533df3accca16e0d9b9626fc4a4ea9dbb20c",
+    "ZeroBound/TidyR9StochWerningMRepVersion.lean": "96d50881da94b7085b8d57a989310e4db07486c8fc7e20d9a7abdc679da5656c",
+    "ZeroBound/TidyR9StochWerningInnovations.lean": "129844a842f0c9d1958266297b1512aa1da589bca123ac53174bf127ddf927a4",
+    "ZeroBound.lean": "0341e5df52d34c69c22d9484af1fe9de2e3e6255431231c06121ce52e316a09e",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "7ef77f0cb3da29c46a8a062c4c8b974cf418e49cf41e435f74ac0f4ddfacc5ed",
     "lake-manifest.json": "b69d55f3c11b62b0f7b40bcc8cbee17a9071adc355272601c2b0faddab148f14",
-    "proof-manifest.json": "18db22ff8864c1447bc9bbe8fa0120cfa7b87b63639d07f5bd5f2f54d157f336",
+    "proof-manifest.json": "0249a04b0bdcc134a5bb0750266906172fcf97a34a452565d821f9dc015af4a4",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "c45572355cb015da18b668bcc8fbfbc0654d8941e195817f8889d9940d0cb252",
+  "fresh_audit_sha256": "3bc57736a7998ba79befa1d28fe33aa781c0b0a803f138d637e74ccac45dd48f",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapters 20-21 (with Chapter 24 future-selection claims): The zero bound and Covid inflation. The new Keynesian model at a peg (roots straddle the unit circle, a continuum of sunspot equilibria; fiscal valuation makes the peg determinate, stable and quiet); the zero-bound rule (20.1)-(20.4) with the kink corrected (E1), the steady-state existence condition and no steady state at the Figure 20.3 values (E2), the selected path with early lift-off (E3), global versus local uniqueness; future selection by a deterministic regime switch, monetary and fiscal; the Gabaix model (determinacy iff (1-M)(1-beta M^f) > sigma kappa, E8 counterexamples); the continuous-time Werning model (20.5)-(20.10) with the bounded equilibria a one-parameter family, the pi_T = 0 and pi_0 = 0 equilibria, the discontinuity at the frictionless limit, the jump as a fiscal innovation, forward guidance and delayed lift-off, fiscal multipliers (E20: not greater than one for short traps) and the zero-bound welfare comparison (E9: the zero-bound steady state is better iff beta Pi* > 1); Covid helicopter arithmetic exact and first order (E10, E11); links between the discrete and continuous models; links to Gali (optimal commitment at the zero bound as delayed lift-off, the discretionary path as the end-of-shock lift-off, the commitment path strictly above both, the sign condition behind Gali (42)-(43) characterised and shown to fail at an exact optimum, discrete trap paths converging to the continuous Werning paths) and to Woodford (his interest-rate-variance constraint and the pathwise zero bound: neither implies the other; the zero-bound steady state under Woodford welfare). The Gali commitment optimum is fully characterised: it exists and is unique, the optimality conditions are necessary, the zero bound binds on the whole shock (t_C >= t_Z), the zero-rate spell is an initial interval with a positive rate after lift-off (rho > 0; at rho = 0 a dichotomy, and the rate never lifts off when sigma kappa = vartheta), and every hypothesis of Gali algorithm holds at the optimum. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 20, pp. 465-485, Chapter 21, pp. 486-494, and Chapter 24, pp. 522-524."

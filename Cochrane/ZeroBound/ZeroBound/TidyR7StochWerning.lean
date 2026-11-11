@@ -31,8 +31,8 @@ select the same equilibria. Uniform (`L^∞`) boundedness is a different and str
 TidyR7StochWerningExist shows that the explicit equilibria with a constant non-zero inflation
 innovation loading (Ornstein–Uhlenbeck inflation, bounded in `L²`) are not bounded in `L^∞`, so
 a uniform reading of "do not explode" would discard equilibria that the moment reading keeps.
-(Their paths are also almost surely unbounded on `[0, ∞)`; that recurrence statement is not
-formalised here.)
+(Their paths are also almost surely unbounded on `[0, ∞)`: TidyR8StochWerningRecurrence,
+`eqPi_sup_inf`.)
 
 ## Main results
 
