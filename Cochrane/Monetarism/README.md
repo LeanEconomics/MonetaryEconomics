@@ -16,7 +16,7 @@ optimisation, under perfect foresight, on a finite event tree and on a genuine p
 whose information grows forever, there without bounds on prices or plans. Continuous time is
 deterministic, except the `E_td(·)` forms, the product step and the chain (1.31)–(1.34) of Online
 Appendix §1.6 (`TidyR6StochasticDrift`, `TidyR7ProductStep`, `TidyR7MonetarismModel`,
-`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **2990 theorems**, including the shared core; 578 of them are in the fourteen
+`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **3075 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
@@ -41,10 +41,12 @@ adapted continuous versions of `∫ G dW`, the product step with `M = W` and `M 
 Fubini isometry, 94 in the five `TidyR10TwoBM…` modules, two independent Brownian motions,
 their cross variation and the (1.32) product step with bonds and `Λ/P` on different shocks,
 71 in the four `TidyR11JumpDiff…` modules, the (1.32) product step with jumps and diffusion
-together, in terms of money and on a Brownian motion with an independent coin, and 137 in the
+together, in terms of money and on a Brownian motion with an independent coin, 137 in the
 eleven `TidyR12SDE…` modules, existence and uniqueness for stochastic differential equations,
 Itô processes with unbounded coefficients, geometric Brownian motion and a positive diffusive
-`Λ/P` with a known constant rate.
+`Λ/P` with a known constant rate, and 85 in the six `TidyR13MRep…` modules, the martingale
+representation theorem on the Brownian filtration with an Itô integral extended beyond
+mean-square continuous integrands.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -448,6 +450,35 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   holds iff `E_s[∫_s^t σ_Xσ_B du] = 0`
   (`TidyR12SDEMonetary.ItoMonetaryModelMS.incr_1_32_ms_general`,
   `TidyR12SDEMonetary.ItoMonetaryModelMS.incr_1_32_ms_book_iff`).
+* **The martingale representation theorem.** The Itô integral extends to the
+  `L²(dt × dP)`-closure of the jointly measurable mean-square continuous integrands
+  (`TidyR13MRepIntegral.MRepIntegrand`, `TidyR13MRepIntegral.mrepInt`), where it is well
+  defined along any approximating sequence (`TidyR13MRepIntegral.mrep_spec`), agrees with
+  `TidyR7ItoIntegral.itoInt` (`TidyR13MRepIntegral.mrep_agree`), satisfies the isometry
+  `E[(∫_s^t H dW)²] = ∫ H² d(dt × dP)` (`TidyR13MRepIntegral.mrep_isometry`), is linear, has
+  mean zero and is a martingale, `E[∫_s^t H dW | 𝓕_r] = ∫_s^r H dW`
+  (`TidyR13MRepIntegral.mrepInt_condExp`). The class contains integrands that jump: `1_{(b, a]}G`
+  lies in it with integral `∫_b^a G dW` (`TidyR13MRepCutoff.mrep_cut`). Let `W`
+  have every path continuous and `𝓕` be admissible. A square-integrable `Y` measurable with
+  respect to `𝓖_T = σ(W_r : 0 ≤ r ≤ T)`, with mean zero and orthogonal to every `∫_b^a G dW`, is
+  `0` a.s. (`TidyR13MRepDensity.mrep_density`, from the trigonometric exponential martingales
+  `e^{λ²(u − b)/2}cos λW_u`, `TidyR13MRepOneStep.mrep_ito_cos`, characteristic functions and
+  the π-λ theorem). Hence, if `𝓕_T ⊆ 𝓖_T`, every square-integrable `𝓖_T`-measurable `Y` is
+  `E[Y] + ∫_0^T H dW` a.s. (`TidyR13MRepTheorem.mrep_representation`), the constant is unique
+  and `H` is unique `dt × dP`-a.e. (`TidyR13MRepTheorem.mrep_unique`), and every
+  `𝓕`-martingale with `M_T ∈ L²` is `M_t = E[M_T] + ∫_0^t H dW` for all `t ∈ [0, T]` with one
+  `H` (`TidyR13MRepTheorem.mrep_martingale`). On the constructed motion with its natural
+  filtration no further hypothesis is needed
+  (`TidyR13MRepMonetarism.mrep_representation_bmPath`,
+  `TidyR13MRepMonetarism.mrep_martingale_bmPath`); the digital payoff `1{W_T > 0}` is
+  represented (`TidyR13MRepMonetarism.mrep_indicator_bmPath`), `W_T² = T + ∫_0^T 2W dW` uniquely
+  (`TidyR13MRepMonetarism.mrep_sq_bmPath`), and the SDF `Λ_t = exp(σ(W_t − W_0) − σ²t/2)` has
+  `Λ_T = 1 + ∫_0^T σΛ dW` with the loading `σΛ` identified by `Λ` alone
+  (`TidyR13MRepMonetarism.mrep_sdf_gbm_bmPath`). A represented martingale is a zero-drift
+  `TidyR12SDEProcess.ItoProcessMS` with diffusion `G`, the form
+  `TidyR12SDEMonetary.ItoMonetaryModelMS` requires of `Λ/P`, iff `H = G` `dt × dP`-a.e.
+  (`TidyR13MRepMonetarism.mrep_itoProcessMS_iff`): the corrected (1.32) step covers exactly
+  the martingales whose integrand has a mean-square continuous version.
 * **(1.32)–(1.34) with diffusive bonds.** For bonds `B` and `X = Λ/P` Itô processes on the same
   Brownian motion, with diffusions `σ_B` and `σ_X`, the step from the middle line of (1.32) to its
   last line is `E_t d(BX) = X dB + B E_t dX + E_t d[B, X]` with `d[B, X] = σ_Bσ_X dt`: almost
@@ -698,7 +729,9 @@ Not formalised:
   linearity, the martingale property, the conditional isometry, the Fubini isometry
   (`TidyR10DoobFubini.integral_itoInt_sq_ms`), Doob's bound (`TidyR10DoobIto.doob_sq_itoInt_ms`)
   and an adapted version on `[s, ∞)` with almost every path continuous
-  (`TidyR10DoobMSVersion.exists_adapted_continuous_itoInt_ms`); it agrees with Track 1 for bounded-variation integrands
+  (`TidyR10DoobMSVersion.exists_adapted_continuous_itoInt_ms`), and, with the isometry,
+  linearity and the martingale property, on their `L²(dt × dP)`-closure
+  (`TidyR13MRepIntegral.mrepInt`); it agrees with Track 1 for bounded-variation integrands
   (`TidyR7ItoBridge.itoInt_eq_byParts`), `∫ W dW = (W_t² − W_s² − (t − s))/2`
   (`TidyR7ItoBridge.itoInt_bm`), and `∫ cH dW = c∫ H dW` for square-integrable
   `𝓕_s`-measurable `c` (`TidyR7ItoProducts.itoInt_mul_left`). Itô's product rule with
@@ -751,7 +784,11 @@ Not formalised:
   `exp(σW)` only directly, from the left-point sums, `TidyR12SDEGBM.gbm_eq`); Itô's formula for `f(X, Y)`,
   with one or with two drivers (only one-dimensional `f(t, X)`); Itô
   processes whose drift or diffusion is merely measurable, or unbounded without mean-square
-  continuity (`TidyR7ItoProcess.ItoProcess` has bounded coefficients with almost surely
+  continuity (the stochastic integral `∫ H dW` exists on the `L²(dt × dP)`-closure of the
+  jointly measurable mean-square continuous integrands, `TidyR13MRepIntegral.mrepInt`, which
+  contains integrands that jump, `TidyR13MRepCutoff.mrep_cut`, and every martingale
+  representation integrand, but Itô processes and Itô's formula with such a diffusion are not
+  defined; `TidyR7ItoProcess.ItoProcess` has bounded coefficients with almost surely
   continuous paths; `TidyR12SDEProcess.ItoProcessMS` admits unbounded mean-square continuous
   ones, among them geometric Brownian motion and `uW_u`, `TidyR12SDEGBM.gbm_itoProcessMS`,
   `TidyR12SDEGBM.itoProcessMS_mul_bm`, but of the results built on `TidyR7ItoProcess.ItoProcess`
@@ -825,6 +862,19 @@ Not formalised:
   infinite-horizon failure of the pre-jump reading of (1.33)
   (`TidyR8MonetarismJumpInf.jumpInf_headline`) is stated as `n_0B_0 ≠ E_0[G⁻]`, not restated
   in the real form `B_0/P_0`;
+* parts of the martingale representation theorem (`TidyR13MRepTheorem.mrep_representation`,
+  `TidyR13MRepTheorem.mrep_martingale`): it is not shown that every progressively measurable `H`
+  with `E∫H² < ∞` lies in the class `TidyR13MRepIntegral.MRepIntegrand` (the theorem needs only
+  the class); nor that the integrand representing `1{W_T > 0}`
+  (`TidyR13MRepMonetarism.mrep_indicator_bmPath`) is not mean-square continuous (it needs a
+  `√(T − t)` lower bound; there is no Clark–Ocone formula). The theorem assumes every path of
+  `W` continuous and `𝓕_T ⊆ σ(W_r : r ≤ T)`, so the augmented filtration is not treated; the
+  horizon is finite and there is one Brownian motion. For `t ↦ ∫_0^t H dW` on the extended
+  class there is no continuous version, no Doob bound and no `MeasureTheory.Martingale`
+  statement (only `TidyR13MRepIntegral.mrepInt_condExp` at fixed times). In the economics,
+  the positivity of `Λ` is not used, and only the coverage of the corrected (1.32) step is
+  characterised (`TidyR13MRepMonetarism.mrep_itoProcessMS_iff`), not that of (1.33)–(1.34);
+  the theorem is not yet carried to the zero-bound project;
 * a `TidyR7MonetarismModel.MonetaryModel` economy in which the printed (1.33) holds while the
   flows do not converge in `L¹`: the integrable lower bound of
   `TidyR8MonetarismUISharp.valuation_iff_L1_char` is shown necessary for "printed ⇒ `L¹`" only
@@ -978,6 +1028,12 @@ Not formalised:
 | [TidyR12SDEMonetary](Monetarism/TidyR12SDEMonetary.lean) | 6 | A1 §1.6, (1.31)–(1.32), pp. 567–568: the money–bond model with `Λ/P` an `ItoProcessMS` (`ItoMonetaryModelMS`); the corrected (1.32), the printed line 3 iff the expected bracket vanishes, holding when `σ_Xσ_B = 0`, failing when `E∫σ_Xσ_B ≠ 0` |
 | [TidyR12SDEMonetaryGBM](Monetarism/TidyR12SDEMonetaryGBM.lean) | 15 | A1 §1.6, (1.31)–(1.32), pp. 567–568: the GBM economy `Λ/P = n₀e^{−iu}exp(σW_u − σ²u/2) > 0` with a constant known rate, bonds `b₀ + c·arctan W`; the printed line 3 of (1.32) fails on every `[s, t]` for `σc ≠ 0`, the corrected line holds, the printed line holds for `c = 0` |
 | [TidyR12SDEVersion](Monetarism/TidyR12SDEVersion.lean) | 11 | A1 §1.6, pp. 567–568: a continuous modification of `t ↦ ∫_s^t G du` (stopped Riemann sums against `W_u = u`, a uniform cell bound, Borel–Cantelli), a continuous modification and an adapted a.s. continuous version of the SDE solution |
+| [TidyR13MRepIntegral](Monetarism/TidyR13MRepIntegral.lean) | 35 | A1 §1.6, (1.32)–(1.34), pp. 567–568: the Itô integral on the `L²(dt × dP)`-closure of the jointly measurable mean-square continuous integrands (`MRepIntegrand`, `mrepInt`): well defined, agrees with `itoInt`, the isometry, linearity, zero mean, additivity over intervals, the martingale property, the class closed and the integral continuous |
+| [TidyR13MRepCutoff](Monetarism/TidyR13MRepCutoff.lean) | 15 | A1 §1.6, pp. 567–568: gluing of mean-square continuous integrands; continuous bumps and dominated convergence; `1_{(b, a]}G`, which jumps at `a`, is in the extended class with integral `∫_b^a G dW` |
+| [TidyR13MRepOneStep](Monetarism/TidyR13MRepOneStep.lean) | 8 | A1 §1.6, pp. 567–568: the trigonometric exponential martingales `e^{λ²(u − b)/2}cos λW_u` and `e^{λ²(u − b)/2}sin λW_u` by Itô's formula; for `Y` orthogonal to all Itô integrals, `E[YV cos λW_a] = e^{−λ²(a − b)/2}E[YV cos λW_b]` |
+| [TidyR13MRepDensity](Monetarism/TidyR13MRepDensity.lean) | 8 | A1 §1.6, pp. 567–568: `𝓖_T = σ(W_r : 0 ≤ r ≤ T)` and its finite-dimensional generators; trigonometric functionals vanish (induction), characteristic functions and π-λ: a square-integrable `𝓖_T`-measurable `Y` with mean zero, orthogonal to all Itô integrals, is `0` |
+| [TidyR13MRepTheorem](Monetarism/TidyR13MRepTheorem.lean) | 11 | A1 §1.6, pp. 567–568: the closed subspace `{c + ∫_0^T H dW}` of `L²(P)`; the martingale representation theorem for random variables and for martingales, with the constant and the integrand unique |
+| [TidyR13MRepMonetarism](Monetarism/TidyR13MRepMonetarism.lean) | 8 | A1 §1.6, (1.31)–(1.32), pp. 567–568: the representation on `bmPath` with its natural filtration; `1{W_T > 0}`; `W_T² = T + ∫_0^T 2W dW` uniquely; the SDF `exp(σW − σ²t/2)` with its loading identified; a represented martingale is a zero-drift `ItoProcessMS` with diffusion `G` iff its integrand is `G` a.e. |
 
 ## Modelling conventions
 

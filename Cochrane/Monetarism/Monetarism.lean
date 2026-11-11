@@ -138,3 +138,9 @@ import Monetarism.TidyR12SDEProductRule
 import Monetarism.TidyR12SDEMonetary
 import Monetarism.TidyR12SDEMonetaryGBM
 import Monetarism.TidyR12SDEVersion
+import Monetarism.TidyR13MRepIntegral
+import Monetarism.TidyR13MRepCutoff
+import Monetarism.TidyR13MRepOneStep
+import Monetarism.TidyR13MRepDensity
+import Monetarism.TidyR13MRepTheorem
+import Monetarism.TidyR13MRepMonetarism

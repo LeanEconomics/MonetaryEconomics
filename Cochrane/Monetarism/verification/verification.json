@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-11-11T05:15:55.047608+00:00",
-  "theorems": 2990,
+  "checked_at_utc": "2026-11-11T06:56:01.109912+00:00",
+  "theorems": 3075,
   "module_theorems": {
     "Monetarism/Determinacy.lean": 23,
     "Monetarism/Expectations.lean": 20,
@@ -136,9 +136,15 @@
     "Monetarism/TidyR12SDEProductRule.lean": 6,
     "Monetarism/TidyR12SDEMonetary.lean": 6,
     "Monetarism/TidyR12SDEMonetaryGBM.lean": 15,
-    "Monetarism/TidyR12SDEVersion.lean": 11
+    "Monetarism/TidyR12SDEVersion.lean": 11,
+    "Monetarism/TidyR13MRepIntegral.lean": 35,
+    "Monetarism/TidyR13MRepCutoff.lean": 15,
+    "Monetarism/TidyR13MRepOneStep.lean": 8,
+    "Monetarism/TidyR13MRepDensity.lean": 8,
+    "Monetarism/TidyR13MRepTheorem.lean": 11,
+    "Monetarism/TidyR13MRepMonetarism.lean": 8
   },
-  "audited_declarations": 3771,
+  "audited_declarations": 3866,
   "declarations": [
     {
       "name": "Cochrane.Monetarism.SchurStable",
@@ -18994,6 +19000,481 @@
       "name": "Cochrane.Monetarism.TidyR12SDEVersion.exists_adapted_continuous_sdeSol",
       "kind": "theorem",
       "module": "Monetarism/TidyR12SDEVersion.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepMeasure",
+      "kind": "def",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.MRepApprox",
+      "kind": "def",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.MRepIntegrand",
+      "kind": "def",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt",
+      "kind": "def",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_memLp_uncurry",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_integral_sq",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepMeasure_of_le",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_isometry_ms",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_ms_sub",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_isometry_sub",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_cauchy_of_L2Tendsto",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_tendsto_integral_sq",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_itoInt_cauchy",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_L2Tendsto_of_approx",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_spec",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.stronglyMeasurable_mrepInt",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.memLp_mrepInt",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.MRepIntegrand.memLp",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_agree",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_isometry",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.MRepApprox.add",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.MRepApprox.const_mul",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_add",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_const_mul",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_sub",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_add",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_const_mul",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_sub",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_isometry_sub",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_integral_mul_eq_zero",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_integral_eq_zero",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepMeasure_mono",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_L2Tendsto_mono",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.MRepApprox.mono",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_mono",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_add_mrepInt",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_condExp",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_of_L2Tendsto",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_L2Tendsto",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepIntegral.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_ms_congr",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_ms_glue",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_ms_zero",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_itoInt_zero",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrepBump",
+      "kind": "def",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrepBump_mem",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.continuous_mrepBump",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrepBump_eq_zero",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.tendsto_mrepBump",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrepCut",
+      "kind": "def",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.itoIntegrand_mrepBump",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_ms_bump",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.measurable_mrep_bump",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_ae_ne",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_bump_L2Tendsto",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrepMeasure_restrict_le",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_cut",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepCutoff.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_measurable_bm",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_hasDerivAt_exp",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_exp_le",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_ito_cos",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_ito_sin",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_orth_step",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_onestep_cos",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_onestep_sin",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepOneStep.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepDensity.mrepNat",
+      "kind": "abbrev",
+      "module": "Monetarism/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepDensity.mrepNat_le",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepDensity.mrepVec",
+      "kind": "def",
+      "module": "Monetarism/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepDensity.measurable_mrepVec",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepDensity.mrepVecSigma",
+      "kind": "abbrev",
+      "module": "Monetarism/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepDensity.mrepVecSigma_mono",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepDensity.mrepNat_eq_generateFrom",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepDensity.mrep_density_step",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepDensity.mrep_trig_vanish",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepDensity.mrep_setIntegral_vec",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepDensity.mrep_density",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepDensity.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_L2Tendsto_of_tendsto_Lp",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_L2Tendsto_const",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_integral_const_add",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_zero",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepTheorem.mrepInt_self",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepTheorem.mrepSpace",
+      "kind": "def",
+      "module": "Monetarism/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepTheorem.isClosed_mrepSpace",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_inner_eq",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_representation",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_unique",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_martingale",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_martingale_zero",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepTheorem.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_bmFiltrationReal_le",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_representation_bmPath",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_martingale_bmPath",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_indicator_bmPath",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_sq_bmPath",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_sdf_gbm_bmPath",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepMonetarism.mrepInt_congr_ae",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepMonetarism.lean"
+    },
+    {
+      "name": "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_itoProcessMS_iff",
+      "kind": "theorem",
+      "module": "Monetarism/TidyR13MRepMonetarism.lean"
     }
   ],
   "full_build": "passed",
@@ -37847,6 +38328,481 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepMeasure": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.MRepApprox": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.MRepIntegrand": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_memLp_uncurry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_integral_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepMeasure_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_isometry_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_ms_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_isometry_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_cauchy_of_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_tendsto_integral_sq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_itoInt_cauchy": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_L2Tendsto_of_approx": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_spec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.stronglyMeasurable_mrepInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.memLp_mrepInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.MRepIntegrand.memLp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_agree": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_isometry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.MRepApprox.add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.MRepApprox.const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_const_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_isometry_sub": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_integral_mul_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_integral_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepMeasure_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_L2Tendsto_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.MRepApprox.mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_add_mrepInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_condExp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrep_of_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepIntegral.mrepInt_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_ms_congr": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_ms_glue": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_ms_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_itoInt_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrepBump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrepBump_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.continuous_mrepBump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrepBump_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.tendsto_mrepBump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrepCut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.itoIntegrand_mrepBump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_ms_bump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.measurable_mrep_bump": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_ae_ne": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_bump_L2Tendsto": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrepMeasure_restrict_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepCutoff.mrep_cut": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_measurable_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_hasDerivAt_exp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_exp_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_ito_cos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_ito_sin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_orth_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_onestep_cos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepOneStep.mrep_onestep_sin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepDensity.mrepNat": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepDensity.mrepNat_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepDensity.mrepVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepDensity.measurable_mrepVec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepDensity.mrepVecSigma": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepDensity.mrepVecSigma_mono": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepDensity.mrepNat_eq_generateFrom": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepDensity.mrep_density_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepDensity.mrep_trig_vanish": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepDensity.mrep_setIntegral_vec": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepDensity.mrep_density": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_L2Tendsto_of_tendsto_Lp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_L2Tendsto_const": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_integral_const_add": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepTheorem.mrepInt_self": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepTheorem.mrepSpace": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepTheorem.isClosed_mrepSpace": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_inner_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_representation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_unique": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_martingale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepTheorem.mrep_martingale_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_bmFiltrationReal_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_representation_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_martingale_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_indicator_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_sq_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_sdf_gbm_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepMonetarism.mrepInt_congr_ae": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Monetarism.TidyR13MRepMonetarism.mrep_itoProcessMS_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -37985,15 +38941,21 @@
     "Monetarism/TidyR12SDEMonetary.lean": "afa5ecaadc068862f44c5dbad9fb5bc07ad15da977d1d30f9c7ab19b57f8679a",
     "Monetarism/TidyR12SDEMonetaryGBM.lean": "b10e0cc009c39fb0589ab8d83f1d85f979993c738ab9b986f7d44e8c2d639e9a",
     "Monetarism/TidyR12SDEVersion.lean": "e37be82b8f9d4763f7f8835b9849711e554f328038b4a15f49dd9ce293b7777f",
-    "Monetarism.lean": "799f420db4ead087ef9fe214df807788b983c341ecdec932c44d486e43286548",
+    "Monetarism/TidyR13MRepIntegral.lean": "1532595c2dfa51443b18a47f5fa7993e990a4f638e5746958411373ad8075dba",
+    "Monetarism/TidyR13MRepCutoff.lean": "d4c2fabba1d8af1b6ae1236307f17fa86a5ae2d4920bb1ff6cb48f7c0e3e8cbe",
+    "Monetarism/TidyR13MRepOneStep.lean": "8c92b4b57676960416e03271445ba84df2ae1b69d84d4aaf72177156eb67361a",
+    "Monetarism/TidyR13MRepDensity.lean": "821fd09a83b99b41391985db1f423a56f8972a4aa5246dcf1e293e5754cf4734",
+    "Monetarism/TidyR13MRepTheorem.lean": "acc7cd7c25322c47f1b7bce1047bafb30cadbb2177b4514fd3b5200394bf2824",
+    "Monetarism/TidyR13MRepMonetarism.lean": "188028145a373896f16d3c7fb7ab6b64f68d2058a0de14c3c2307e80080eac2f",
+    "Monetarism.lean": "9db271c09cb06ff1dd87fb1eddb11cf1259e3870d0357ce591dfc2d5e1b09ab3",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "f9126750f6439e08fceda3b5fd0df208cfdf0d7ef86ced2b8445258e9cfce056",
     "lake-manifest.json": "b124474aabfdc4f64ec7c7e39cb487344df2e915bd40177bde034e3daecf6ff5",
-    "proof-manifest.json": "e6cb06aa5f9942694ac409e85ed1ae1e353c8bf7cf4a82e12c321687d795ecf8",
+    "proof-manifest.json": "5012bbadd933ecd79e008039182bf5880de88fd1db61c5452f7157a3cd30a370",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "9e915ac468902427298b7d2ee528dc73ee4ce1e3d69a596d9d3b032aff310909",
+  "fresh_audit_sha256": "d2ed843a8ed3ec3b53556b2658dea0b30946ecb7f0f82dee40790bd9155f6d45",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 19 (with Chapter 11 and 14 claims and Online Appendix A1.6, A3 and A4): Monetarism. Monetary and fiscal regimes, NI-7 observational equivalence and double-passive indeterminacy; open-market-operation claims of Chapter 11 and the helicopter arithmetic; Cagan money demand under rational expectations with the full solution family, sunspots and fiscal selection of the price level; money in the utility function with FOCs derived from optimisation under perfect foresight and on a finite event tree, the value of money, power utility and certified Figure 19.1 numbers (E13: 1 + mu > beta); global money-targeting dynamics; unpleasant arithmetic; seigniorage, the Laffer peak (E16) and Baumol-Tobin elasticities; pruning deflations (E17: TVC fails iff mu >= 0) and inflations (finite-time explosion, countably many equilibria, modified utility); Obstfeld-Rogoff redemption and Cochrane's demonetised equilibrium (E18 caption corrected); nonseparable utility (E19: stable iff b > 1 + i/2); cash in advance with the stochastic Euler equation derived from optimality ((19.29) needs the money TVC, (19.38) corrected, E14, E15); continuous-time money with CES limits (E20) and the IS curve with money (E21). Printed errors corrected with Lean counterexamples. Genuine probability models: a measure-theoretic expectation system (Mathlib conditional expectation on a filtered probability space, bounded measurable processes, almost-sure statements, bridges both ways to the core finite-tree systems, a genuine i.i.d. infinite-product economy that is not finitely supported) and the chapter's stochastic results re-proved there.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 19, pp. 433-464, Chapter 11, pp. 315-318, Section 14.1, p. 342, and Online Appendix A1.6, A3.1-A3.2 and A4, pp. 567-569, 612-632 and 635-641."
