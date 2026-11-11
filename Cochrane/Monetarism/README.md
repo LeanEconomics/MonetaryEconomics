@@ -16,7 +16,7 @@ optimisation, under perfect foresight, on a finite event tree and on a genuine p
 whose information grows forever, there without bounds on prices or plans. Continuous time is
 deterministic, except the `E_td(·)` forms, the product step and the chain (1.31)–(1.34) of Online
 Appendix §1.6 (`TidyR6StochasticDrift`, `TidyR7ProductStep`, `TidyR7MonetarismModel`,
-`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **2609 theorems**, including the shared core; 578 of them are in the fourteen
+`TidyR7MonetarismValuation`, `TidyR7MonetarismIto`). The library contains **2782 theorems**, including the shared core; 578 of them are in the fourteen
 chapter modules, 175 in the six measure-theoretic household modules, 195 in the four `TidyR5…`
 modules, 108 of these in a verbatim copy of the general Blanchard–Kahn theorem (`TidyR5BK`), 136
 in the eleven `TidyR6Household…` modules, 142 in the twelve further `TidyR6…` modules: 27 on
@@ -34,9 +34,12 @@ Meyn–Tweedie project, 239 in the eleven `TidyR7Ito…` modules, the Itô integ
 Itô processes, Itô's product rule with covariation and the general product step of (1.32)
 with diffusive bonds, 100 in the five `TidyR8Monetarism…` modules, the sharp condition
 for the printed (1.33)–(1.34), the dominated (1.33) with the bracket and infinite-horizon
-instances with nonzero and with jumping money, and 80 in the eight `TidyR9…` modules, Itô's
+instances with nonzero and with jumping money, 80 in the eight `TidyR9…` modules, Itô's
 formula for `f(t, X)`, `1/X` and `exp X` and the counterexamples to (1.32) and (1.33) with a
-positive diffusive `Λ/P`.
+positive diffusive `Λ/P`, 79 in the eight `TidyR10Doob…` modules, Doob's `L²` inequality,
+adapted continuous versions of `∫ G dW`, the product step with `M = W` and `M = ∫ K dW` and the
+Fubini isometry, and 94 in the five `TidyR10TwoBM…` modules, two independent Brownian motions,
+their cross variation and the (1.32) product step with bonds and `Λ/P` on different shocks.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E13–E23 refer to the
@@ -372,6 +375,41 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   `Λ_u = exp(σW_u − σ²u/2)`, whose diffusion coefficient is unbounded, is not an Itô process
   here; its martingale property `E_s[Λ_t/Λ_s] = 1` is proved from the Gaussian law of the
   increment (`TidyR9ExpMartingale.condExp_exp_increment`).
+* **Doob's inequality and continuous versions.** Mathlib v4.34 has only the weak-type maximal
+  inequality. Doob's `L²` inequality is proved in discrete time,
+  `E[(max_{l ≤ N}|Y_l|)²] ≤ 4E[Y_N²]` (`TidyR10DoobDiscrete.doob_sq_discrete`), and in continuous
+  time for any modification with almost surely right-continuous paths of a square-integrable
+  martingale, `E[(sup_{[s,T]}|M|)²] ≤ 4E[M_T²]` (`TidyR10DoobContinuous.doob_sq_pathSup`); hence
+  for Brownian motion (`TidyR10DoobIto.doob_sq_bm`) and for the Itô integral,
+  `E[(sup_{[s,T]}|∫ H dW|)²] ≤ 4E[∫_s^T H_u² du]` (`TidyR10DoobIto.doob_sq_itoInt`). The Itô
+  integral has a version on `[s, ∞)` adapted to `𝓕` itself, with almost every path continuous, a
+  martingale satisfying Doob's bound (`TidyR10DoobVersion.exists_adapted_continuous_itoInt`), also
+  for unbounded mean-square continuous integrands
+  (`TidyR10DoobMSVersion.exists_adapted_continuous_itoInt_ms`); for the `P`-completed filtration
+  (`TidyR10DoobAugment.augment`), which leaves conditional expectations and the Itô integral
+  unchanged, EVERY path is continuous (`TidyR10DoobAugment.exists_continuous_itoInt_augment`).
+  So Track 1's product step takes a Brownian martingale part, `M = W`
+  (`TidyR10DoobProductStep.productStepData_bm`), and `M = ∫ K dW`
+  (`TidyR10DoobProductStep.exists_productStepData_itoInt`), with the conclusion
+  `E[B_tX_t − B_sX_s | 𝓕_s] = E[∫_s^t X dB | 𝓕_s]` for `𝓕` itself
+  (`TidyR10DoobProductStep.product_step_itoInt`). The isometry holds in Fubini form,
+  `E[(∫_s^t G dW)²] = ∫_s^t E[G_u²] du` for mean-square continuous `G`
+  (`TidyR10DoobFubini.integral_itoInt_sq_ms`).
+* **Two Brownian motions.** Two independent Brownian motions with every path continuous and a
+  filtration admissible for both exist (`TidyR10TwoBMExist.exists_two_independent_bm`,
+  `TidyR10TwoBMExist.TwoBMFiltration`). Their cross variation vanishes:
+  `E[(Σ ΔW¹_iΔW²_i)²] = Σ(Δt_i)²` (`TidyR10TwoBMCross.integral_cvSum_sq`), so `dW¹dW² = 0` in
+  `L²` along any partitions with mesh `→ 0` (`TidyR10TwoBMCross.L2Tendsto_cvSum`) and almost
+  surely along dyadic ones. For Itô processes with two drivers
+  (`TidyR10TwoBMIto.ItoProcess2`), Itô's product rule is
+  `d(XY) = X dY + Y dX + (H¹K¹ + H²K²) dt` (`TidyR10TwoBMIto.product_rule_two`). The correlated
+  motion `W³ = ρW¹ + √(1 − ρ²)W²` (`TidyR10TwoBMIto.corrBM`) is a Brownian motion for `|ρ| ≤ 1`
+  (`TidyR10TwoBMCorr.isBrownianReal_corrBM`) with `d[W¹, W³] = ρ dt`. In the (1.32) product
+  step the bracket is `σ_B¹σ_X¹ + σ_B²σ_X²` (`TidyR10TwoBMBondStep.twoBM_bond_step`); it vanishes
+  when bonds and `Λ/P` load on separate drivers
+  (`TidyR10TwoBMBondStep.twoBM_bond_step_separate_drivers`), so the book's step holds with
+  `Λ/P = 2 + sin W¹` and bonds `b + c sin W²` (`TidyR10TwoBMBondStep.indepDrv_book_holds`), and
+  with correlated shocks it holds iff `ρc = 0` (`TidyR10TwoBMBondStep.corrDrv_book_iff`).
 * **(1.32)–(1.34) with diffusive bonds.** For bonds `B` and `X = Λ/P` Itô processes on the same
   Brownian motion, with diffusions `σ_B` and `σ_X`, the step from the middle line of (1.32) to its
   last line is `E_t d(BX) = X dB + B E_t dX + E_t d[B, X]` with `d[B, X] = σ_Bσ_X dt`: almost
@@ -413,7 +451,15 @@ Headline results, in the namespace `Cochrane.Monetarism`:
   `Λ/P = 2 + φ(u) sin W ∈ [1, 3]`, bonds and `Λ/P` diffusing on disjoint time sets satisfy the
   printed (1.32) (`TidyR9MonetarismItoPositiveInf.disjP_1_32`), and on `[0, ∞)` the
   transversality condition holds exactly while the bracket stays below `−κ < 0` and the printed
-  (1.33) fails (`TidyR9MonetarismItoPositiveInf.infP_headline`).
+  (1.33) fails (`TidyR9MonetarismItoPositiveInf.infP_headline`). With bonds and `Λ/P` on two
+  independent shocks the bracket is `σ_B¹σ_X¹ + σ_B²σ_X²`
+  (`TidyR10TwoBMBondStep.twoBM_bond_step`), and the book's step holds when bonds load only on one
+  shock and `Λ/P` only on the other, however diffusive both are
+  (`TidyR10TwoBMBondStep.twoBM_bond_step_separate_drivers`): with `Λ/P = 2 + sin W¹ ∈ [1, 3]` and
+  bonds `b + c sin W²` it holds on every `[s, t]`
+  (`TidyR10TwoBMBondStep.indepDrv_book_holds`), while with correlated shocks,
+  `Λ/P = 2 + arctan W¹ > 0` and bonds `b + cW³`, it holds on `[s, t]` iff `ρc = 0`
+  (`TidyR10TwoBMBondStep.corrDrv_book_iff`).
 * **Links: explosions, the tree problem and Galí's money rule.** The finite-time exit of
   Figure 19.1 and the finite-time explosion of A3 (3.3) are each derived from the other
   (`LinksTidy.exits_iff_explosion`). The cash-in-advance tree problem with `V = 1` is the
@@ -573,8 +619,10 @@ Not formalised:
   integral exists for mean-square continuous integrands (`TidyR7ItoUnbounded.MSIntegrand`,
   `TidyR7ItoUnbounded.L2Tendsto_itoSum_ms`), which include the bounded adapted almost surely
   continuous ones, Itô processes and their products with bounded ones, with the isometry,
-  linearity, the martingale property, the conditional isometry and, for bounded integrands, a
-  continuous modification; it agrees with Track 1 for bounded-variation integrands
+  linearity, the martingale property, the conditional isometry, the Fubini isometry
+  (`TidyR10DoobFubini.integral_itoInt_sq_ms`), Doob's bound (`TidyR10DoobIto.doob_sq_itoInt_ms`)
+  and an adapted version on `[s, ∞)` with almost every path continuous
+  (`TidyR10DoobMSVersion.exists_adapted_continuous_itoInt_ms`); it agrees with Track 1 for bounded-variation integrands
   (`TidyR7ItoBridge.itoInt_eq_byParts`), `∫ W dW = (W_t² − W_s² − (t − s))/2`
   (`TidyR7ItoBridge.itoInt_bm`), and `∫ cH dW = c∫ H dW` for square-integrable
   `𝓕_s`-measurable `c` (`TidyR7ItoProducts.itoInt_mul_left`). Itô's product rule with
@@ -600,11 +648,16 @@ Not formalised:
   What remains: a `Λ/P` with unbounded coefficients, `exp(W − t/2)` itself included (only its
   martingale property is proved, `TidyR9ExpMartingale.condExp_exp_increment`); Itô's formula
   without path continuity of `X` as a hypothesis (`TidyR7ItoProcess.ItoProcess` is specified at
-  fixed times, and no continuous adapted version of `a + ∫ φ dW` is packaged); Itô's formula
+  fixed times; adapted continuous versions of `∫ H dW` are proved,
+  `TidyR10DoobVersion.exists_adapted_continuous_itoInt`, but none of `X_s + ∫ a dr + ∫ φ dW` is
+  packaged or used in Itô's formula); Itô's formula
   with `f''` unbounded, or localised by stopping times (`f''` is bounded globally and
   localisation is only by deterministic bounds on the range, so `1/W` and `exp(σW)` are not
-  covered); the failure of the printed line 3 of (1.32) in the positive economy on `[s, t]` with
-  `s > 0` (only on `[0, t]`); Itô's formula for `f(X, Y)` (only one-dimensional `f(t, X)`); Itô
+  covered); the failure of the printed line 3 of (1.32) inside the money–bond model
+  `TidyR7MonetarismIto.ItoMonetaryModel` on `[s, t]` with `s > 0` (only on `[0, t]`; at the
+  product-step level a positive `Λ/P = 2 + arctan W¹` with bonds `b + cW³` fails on every
+  `[s, t]` iff `ρc ≠ 0`, `TidyR10TwoBMBondStep.corrDrv_book_iff`); Itô's formula for `f(X, Y)`,
+  with one or with two drivers (only one-dimensional `f(t, X)`); Itô
   processes whose drift or diffusion is unbounded or merely measurable (the coefficients are bounded with almost surely continuous
   paths, so the drift `−i·n` of `Λ/P` must be bounded, and `uW_u`, whose drift `W_u` is
   unbounded, is not covered); pathwise time integrals in the model statements (they use the
@@ -617,24 +670,40 @@ Not formalised:
   `J_k = ∫_s^{T_k} nσ_M dW` converges almost surely under an integrable dominator
   (`TidyR8MonetarismItoDom.valuation_1_33_ito_dom_pathwise` takes it as a hypothesis, verified
   when money's diffusion vanishes after a date, `TidyR8MonetarismItoDom.itoInt_eventually_const`;
-  the general case needs the Fubini isometry and the Doob bound below), or with drift
-  integrands that are not almost surely continuous;
-  several Brownian motions (the cross variation of two Brownian motions is not proved); a unified
+  the Doob bound and the Fubini isometry are now proved, `TidyR10DoobIto.doob_sq_itoInt_ms`,
+  `TidyR10DoobFubini.integral_itoInt_sq_ms`, but the general case is not derived from them), or
+  with drift integrands that are not almost surely continuous;
+  more than two Brownian motions (two independent ones with a common filtration and
+  `dW¹dW² = 0` are proved, `TidyR10TwoBMExist.exists_two_independent_bm`,
+  `TidyR10TwoBMCross.L2Tendsto_cvSum`; `n > 2` drivers are not packaged, and correlated motions
+  are built only from an independent pair, `TidyR10TwoBMIto.corrBM`); the money–bond model
+  (1.31)–(1.34) with two drivers (only its (1.32) product step is restated,
+  `TidyR10TwoBMBondStep.twoBM_bond_step`); a unified
   model with both jumps and diffusion (the jump and the diffusive corrections of (1.32) are proved
   in separate models, `TidyR7MonetarismJump.JumpMonetaryModel` and
-  `TidyR7MonetarismIto.ItoMonetaryModel`); `M = ∫ K dW` or a Brownian `W` in
-  `TidyR7ProductStep.ProductStepData`, which needs càdlàg paths for every `ω` and an integrable
-  `pathSup·Var`, with no adapted path-regular version proved (only the term-by-term match with
-  its product step is, `TidyR7ItoProductRule.condExp_product_rule_bv`); the isometry in the
-  Fubini form `∫_s^t E[H_u²] du` (for unbounded integrands only as the limit of its Riemann sums);
-  the bracket in `L²` (only in `L¹`); a Doob bound for `sup_{[s,T]} |∫ H dW|` (only
-  Kolmogorov's maximal inequality on finite grids, enough for continuity; needed for a
-  product-step instance with `M = W`). Infrastructure that the results above do not use is also
-  not proved: adaptedness of the continuous modification, which is built for one fixed `T` and
-  bounded integrands, with no single version on `[s, ∞)`; integrands `X·Y` with both factors
+  `TidyR7MonetarismIto.ItoMonetaryModel`); the bracket of Itô processes in `L²`, with one or two drivers (only in
+  `L¹`; for the raw motions `(dW)² = dt` and `dW¹dW² = 0` hold in `L²`; it needs `E[(∫ H dW)⁴] ≤ cC⁴(b − a)²`, a Burkholder–Davis–Gundy inequality with `p = 4`
+  or Itô's formula for `x⁴`, whose `f''` is unbounded). `M = W` and `M = ∫ K dW` in
+  `TidyR7ProductStep.ProductStepData` are covered (`TidyR10DoobProductStep.productStepData_bm`,
+  `TidyR10DoobProductStep.exists_productStepData_itoInt`, the latter for the completed filtration
+  with the conclusion stated for `𝓕_s`, `TidyR10DoobProductStep.product_step_itoInt`), but the
+  bonds' variation `Var_{[s,t]}(B)` is assumed measurable and bounded and the instances use the
+  deterministic `B_u = u`; and the data with a mean-square continuous, unbounded `K` are not
+  derived. Doob's inequality is proved for `p = 2` only, and for `s < T` (the degenerate `s = T`
+  is not stated). Infrastructure that the results above do not use is also
+  not proved: a version of `∫ G dW` with every path continuous for an unbounded mean-square
+  continuous `G` (only almost every path,
+  `TidyR10DoobMSVersion.exists_adapted_continuous_itoInt_ms`; every path for bounded integrands
+  and the completed filtration, `TidyR10DoobAugment.exists_continuous_itoInt_augment`); a
+  counterexample showing that an `𝓕`-adapted version with every path continuous needs the
+  completion; the conditional form of the cross-variation `L²` identity of two motions (only
+  with a bounded `𝓕_s`-measurable weight, `TidyR10TwoBMCross.integral_mul_wcvSum_sq`); integrands
+  `X·Y` with both factors
   unbounded (only `X·K` with `K` bounded); `Σ ΔXΔB → 0` for a general continuous
   bounded-variation `B` (only for `B` an Itô process with zero diffusion); a measurable
-  modification of an arbitrary `IsBrownianReal` and the usual augmentation of its filtration.
+  modification of an arbitrary `IsBrownianReal` and the usual augmentation of its filtration
+  (only the `P`-completion, `TidyR10DoobAugment.augment`, without right continuity; the joint
+  filtration of two motions is their natural one).
   Adapted bonds of bounded variation are covered, with
   continuous paths (`TidyR7ProductStep.ProductStepData.product_step`) and with càdlàg paths that
   jump together with `Λ/P` (`TidyR7ProductStepJump.JumpStepData.jump_step`). The domination and
@@ -771,6 +840,19 @@ Not formalised:
 | [TidyR9ItoFormulaVariants](Monetarism/TidyR9ItoFormulaVariants.lean) | 17 | A1 §1.6, pp. 567–568: localisation to `[s, t]`, `f(X)` with `f'` bounded on the range, `f(u, X_u)` and discounting `e^{−ru}g(X)` as Itô processes, `1/X` for `X ≥ c > 0` and `exp X` for `\|X\| ≤ M` |
 | [TidyR9MonetarismItoPositive](Monetarism/TidyR9MonetarismItoPositive.lean) | 11 | A1 §1.6, (1.31)–(1.34), pp. 567–568: the economy `Λ/P = 2 + sin W ∈ [1, 3]` with the forced random rate, bonds `b + c sin W`; the printed line 3 of (1.32) fails on `[0, t]` for `c ≠ 0` with `Λ > 0` throughout, the corrected line and (1.34) hold |
 | [TidyR9MonetarismItoPositiveInf](Monetarism/TidyR9MonetarismItoPositiveInf.lean) | 18 | A1 §1.6, (1.32)–(1.33), p. 567: time-varying loadings, `Λ/P = 2 + φ(u) sin W ∈ [1, 3]`; disjoint diffusions satisfy the printed (1.32) and (1.33) iff transversality; on `[0, ∞)` transversality holds exactly while the printed (1.33) fails |
+| [TidyR10DoobDiscrete](Monetarism/TidyR10DoobDiscrete.lean) | 18 | A1 §1.6, pp. 567–568 (tool for (1.32) with diffusive bonds): the running maximum and its increments, the pathwise bound `S_N² ≤ 2Σ\|Y_l\|D_l`, and Doob's `L²` inequality `E[(max_{l ≤ N}\|Y_l\|)²] ≤ 4E[Y_N²]` in discrete time from orthogonal increments |
+| [TidyR10DoobContinuous](Monetarism/TidyR10DoobContinuous.lean) | 11 | A1 §1.6, pp. 567–568 (tool): dyadic grids and their maxima, Doob's `L²` inequality on a grid and in continuous time for a modification with a.s. right-continuous paths, and for a Mathlib martingale |
+| [TidyR10DoobIto](Monetarism/TidyR10DoobIto.lean) | 9 | A1 §1.6, pp. 567–568: Doob's inequality for Brownian motion and for `∫ G dW` (mean-square continuous and bounded integrands), orthogonal increments of the Itô integral, on the constructed motion |
+| [TidyR10DoobVersion](Monetarism/TidyR10DoobVersion.lean) | 7 | A1 §1.6, pp. 567–568: left dyadic limits, and a version of `∫ H dW` on `[s, ∞)` adapted to `𝓕` itself, a.s. continuous, a martingale with Doob's bound |
+| [TidyR10DoobAugment](Monetarism/TidyR10DoobAugment.lean) | 9 | A1 §1.6, pp. 567–568: the `P`-completed filtration, admissible, with the same conditional expectations and Itô integral, and a version of `∫ H dW` with every path continuous adapted to it |
+| [TidyR10DoobProductStep](Monetarism/TidyR10DoobProductStep.lean) | 12 | A1 §1.6, (1.32), p. 567: the product step of Track 1 with a martingale part `M = W` or `M = ∫ K dW` (the latter for the completed filtration, its conclusion for `𝓕_s`), with bounded-variation bonds; on the constructed motion |
+| [TidyR10DoobFubini](Monetarism/TidyR10DoobFubini.lean) | 6 | A1 §1.6, pp. 567–568: continuity of `u ↦ E[G_u²]`, the Itô isometry in Fubini form `E[(∫ G dW)²] = ∫ E[G_u²] du`, `E∫H² = ∫E[H²]` for bounded integrands, Doob in Fubini form; on the constructed motion |
+| [TidyR10DoobMSVersion](Monetarism/TidyR10DoobMSVersion.lean) | 7 | A1 §1.6, pp. 567–568: stopped sums with orthogonal increments, a continuous modification and an adapted a.s. continuous version of `∫ G dW` for mean-square continuous `G` without a bound, its martingale property |
+| [TidyR10TwoBMExist](Monetarism/TidyR10TwoBMExist.lean) | 15 | A1 §1.6, pp. 567–568 (tool for (1.32) with two shocks): a filtration admissible for two Brownian motions, independence of joins, the joint natural filtration, and two independent Brownian motions on `gaussSeq ⊗ gaussSeq` |
+| [TidyR10TwoBMCross](Monetarism/TidyR10TwoBMCross.lean) | 27 | A1 §1.6, pp. 567–568 (tool): moments of `ΔW¹ΔW²`, `E[ΔW¹ΔW² \| 𝓕_u] = 0`, the exact identity `E[(ΣΔW¹_iΔW²_i)²] = Σ(Δt_i)²` and its weighted forms, `dW¹dW² = 0` in `L²` and a.s. along dyadic partitions |
+| [TidyR10TwoBMIto](Monetarism/TidyR10TwoBMIto.lean) | 26 | A1 §1.6, pp. 567–568: Itô integrals per driver, two-driver Itô processes and their split, brackets `(H¹K¹ + H²K²) dt` in `L¹`, the two-driver product rule and its conditional form, the correlated motion `W³` with `d[W¹, W³] = ρ dt` |
+| [TidyR10TwoBMBondStep](Monetarism/TidyR10TwoBMBondStep.lean) | 19 | A1 §1.6, (1.32), p. 567: the product step with bonds and `Λ/P` on two shocks, bracket `σ_B¹σ_X¹ + σ_B²σ_X²`; the book's step holds with separate drivers (`2 + sin W¹`, `b + c sin W²`) and with correlated shocks iff `ρc = 0` |
+| [TidyR10TwoBMCorr](Monetarism/TidyR10TwoBMCorr.lean) | 7 | A1 §1.6, pp. 567–568: independent Gaussian processes are jointly Gaussian, `W³ = ρW¹ + √(1 − ρ²)W²` is a Brownian motion for `\|ρ\| ≤ 1`, a common filtration is admissible for it |
 
 ## Modelling conventions
 

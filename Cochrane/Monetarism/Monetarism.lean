@@ -110,3 +110,16 @@ import Monetarism.TidyR9ItoFormula
 import Monetarism.TidyR9ItoFormulaVariants
 import Monetarism.TidyR9MonetarismItoPositive
 import Monetarism.TidyR9MonetarismItoPositiveInf
+import Monetarism.TidyR10DoobDiscrete
+import Monetarism.TidyR10DoobContinuous
+import Monetarism.TidyR10DoobIto
+import Monetarism.TidyR10DoobVersion
+import Monetarism.TidyR10DoobAugment
+import Monetarism.TidyR10DoobProductStep
+import Monetarism.TidyR10DoobFubini
+import Monetarism.TidyR10DoobMSVersion
+import Monetarism.TidyR10TwoBMExist
+import Monetarism.TidyR10TwoBMCross
+import Monetarism.TidyR10TwoBMIto
+import Monetarism.TidyR10TwoBMBondStep
+import Monetarism.TidyR10TwoBMCorr
