@@ -1,6 +1,6 @@
 {
-  "checked_at_utc": "2026-11-10T22:03:38.550456+00:00",
-  "theorems": 1581,
+  "checked_at_utc": "2026-11-11T00:03:35.305379+00:00",
+  "theorems": 1688,
   "module_theorems": {
     "Generality/Determinacy.lean": 23,
     "Generality/Expectations.lean": 20,
@@ -55,9 +55,19 @@
     "Generality/TidyR8ConditionalFubini.lean": 7,
     "Generality/TidyR8OUPresentValue.lean": 18,
     "Generality/TidyR8ShortDebtRealForm.lean": 13,
-    "Generality/TidyR8StochasticNews.lean": 18
+    "Generality/TidyR8StochasticNews.lean": 18,
+    "Generality/TidyR9ExpMartingale.lean": 3,
+    "Generality/TidyR9ItoTaylor.lean": 4,
+    "Generality/TidyR9ItoPathSums.lean": 6,
+    "Generality/TidyR9ItoWeightedBracket.lean": 5,
+    "Generality/TidyR9ItoFormula.lean": 16,
+    "Generality/TidyR9ItoFormulaVariants.lean": 17,
+    "Generality/TidyR9MartingaleDrift.lean": 12,
+    "Generality/TidyR9ReturnRatio.lean": 7,
+    "Generality/TidyR9PositiveDiscount.lean": 27,
+    "Generality/TidyR9PositiveRealForm.lean": 10
   },
-  "audited_declarations": 1993,
+  "audited_declarations": 2125,
   "declarations": [
     {
       "name": "Cochrane.Generality.SchurStable",
@@ -10023,6 +10033,666 @@
       "name": "Cochrane.Generality.TidyR8StochasticNews.bmPath_fiscalInflation_news_pos",
       "kind": "theorem",
       "module": "Generality/TidyR8StochasticNews.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ExpMartingale.integral_exp_increment",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ExpMartingale.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ExpMartingale.condExp_exp_increment",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ExpMartingale.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ExpMartingale.condExp_exp_increment_bmPath",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ExpMartingale.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoTaylor.abs_taylor2_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoTaylor.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoTaylor.abs_taylor1_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoTaylor.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoTaylor.abs_sub_le_of_deriv_bound",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoTaylor.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoTaylor.exists_delta_taylor_path",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoTaylor.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoPathSums.timeSum",
+      "kind": "def",
+      "module": "Generality/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoPathSums.remSum",
+      "kind": "def",
+      "module": "Generality/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoPathSums.itoTaylor_partition_identity",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoPathSums.cell_mem",
+      "kind": "lemma",
+      "module": "Generality/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoPathSums.tendsto_timeSum",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoPathSums.abs_timeSum_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoPathSums.abs_remSum_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoPathSums.eventually_abs_remSum_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoPathSums.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoWeightedBracket.wSumCross",
+      "kind": "def",
+      "module": "Generality/TidyR9ItoWeightedBracket.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoWeightedBracket.wSumCross_one",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoWeightedBracket.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoWeightedBracket.memLp_mul_of_bound",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoWeightedBracket.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoWeightedBracket.integrable_wSumCross",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoWeightedBracket.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoWeightedBracket.tendsto_integral_abs_wSumCross",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoWeightedBracket.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoWeightedBracket.tendsto_integral_abs_wSumCross_one",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoWeightedBracket.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.stronglyMeasurable_comp",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.itoIntegrand_comp",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.memLp_comp_lipschitz",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.msIntegrand_comp_lipschitz",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.msIntegrand_comp_of_bound",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.itoProcess_restrict",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.ito_formula_time",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.itoProcess_of_coeff_eq",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.ito_formula",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.ito_formula_pathwise",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.itoProcess_comp",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.condExp_ito_formula",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.itoInt_const_mul_ms",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.ito_formula_sq_recovers",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.itoProcess_sin_bm",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormula.ito_formula_sin_bmPath",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormula.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.itoInt_congr_Icc",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.itoIntegrand_congr_Icc",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.itoProcess_congr_Icc",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.hasDerivAt_ite_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.itoProcess_comp_range",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.ito_formula_time_pathwise",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.itoProcess_comp_time",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.itoProcess_discount",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.invExt",
+      "kind": "def",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.invExt'",
+      "kind": "def",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.invExt''",
+      "kind": "def",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.hasDerivAt_invExt",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.hasDerivAt_invExt'",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.invExt''_props",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.invExt_of_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.itoProcess_inv",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.expExt",
+      "kind": "def",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.expExt'",
+      "kind": "def",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.expExt''",
+      "kind": "def",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.hasDerivAt_expExt",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.hasDerivAt_expExt'",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.expExt_of_abs_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ItoFormulaVariants.itoProcess_exp",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ItoFormulaVariants.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9MartingaleDrift.continuousOn_integral_mul",
+      "kind": "theorem",
+      "module": "Generality/TidyR9MartingaleDrift.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9MartingaleDrift.integral_mul_dtInt",
+      "kind": "theorem",
+      "module": "Generality/TidyR9MartingaleDrift.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9MartingaleDrift.eq_zero_of_integral_eq_zero",
+      "kind": "theorem",
+      "module": "Generality/TidyR9MartingaleDrift.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9MartingaleDrift.ae_zero_of_condExp_dtInt",
+      "kind": "theorem",
+      "module": "Generality/TidyR9MartingaleDrift.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9MartingaleDrift.dtInt_ae_zero",
+      "kind": "theorem",
+      "module": "Generality/TidyR9MartingaleDrift.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9MartingaleDrift.condExp_incr_eq_condExp_dtInt",
+      "kind": "theorem",
+      "module": "Generality/TidyR9MartingaleDrift.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9MartingaleDrift.msIntegrand_drift",
+      "kind": "theorem",
+      "module": "Generality/TidyR9MartingaleDrift.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9MartingaleDrift.drift_ae_zero_of_martingale",
+      "kind": "theorem",
+      "module": "Generality/TidyR9MartingaleDrift.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9MartingaleDrift.martingale_iff_drift_ae_zero",
+      "kind": "theorem",
+      "module": "Generality/TidyR9MartingaleDrift.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9MartingaleDrift.drift_pathwise_zero_of_martingale",
+      "kind": "theorem",
+      "module": "Generality/TidyR9MartingaleDrift.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9MartingaleDrift.pricing_ae_of_step",
+      "kind": "theorem",
+      "module": "Generality/TidyR9MartingaleDrift.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9MartingaleDrift.w_drift_of_martingale",
+      "kind": "theorem",
+      "module": "Generality/TidyR9MartingaleDrift.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ReturnRatio.itoInt_add_ms",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ReturnRatio.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ReturnRatio.quotient_rule",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ReturnRatio.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ReturnRatio.brackets_cancel_127",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ReturnRatio.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ReturnRatio.ratio_127",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ReturnRatio.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ReturnRatio.ratio_crossFree_iff",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ReturnRatio.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ReturnRatio.valuation_128_seq",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ReturnRatio.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9ReturnRatio.valuation_128_iff",
+      "kind": "theorem",
+      "module": "Generality/TidyR9ReturnRatio.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.itoProcess_affine_sin",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.itoProcess_discount_sin",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.two_add_sin_bounds",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.bmReal_bmPath_zero",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.continuous_bmReal_bmPath",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pw\u039b",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pwa\u039b",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pw\u03c3\u039b",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pwR",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pwaR",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pw\u03c3R",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pw_lam_ito",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pw_ret_ito",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pwModel",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pw_bounds",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pw_step",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pw_bracket_neg",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pw_bookForm_fails",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pv\u039b",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pva\u039b",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pv\u03c3\u039b",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pvSp",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pv_lam_ito",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pvModel",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pv_bounds",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pv_initial",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pv_tvc",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pv_valuation",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pv_bracket_pos",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.pv_bookForm_fails",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.rrV",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.rraV",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.rr\u03c3V",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.rrSp",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.rr_val_ito",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.rr_flow",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.rr_ratio_step",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.rr_ratio_eq",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.rr_valuation",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.rr_E23",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveDiscount.rr_crossFree_fails",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveDiscount.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveRealForm.prI",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveRealForm.prSp",
+      "kind": "abbrev",
+      "module": "Generality/TidyR9PositiveRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveRealForm.prI_bound",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveRealForm.pr_lamSp_eq",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveRealForm.pr_abs_lamSp_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveRealForm.pr_cont_state",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveRealForm.pr_cont_path",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveRealForm.pr_measurable_uncurry",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveRealForm.pr_integrableOn",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveRealForm.pr_abs_integral_Ioi_le",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveRealForm.pr_measurable_integral",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveRealForm.lean"
+    },
+    {
+      "name": "Cochrane.Generality.TidyR9PositiveRealForm.realForm_positive",
+      "kind": "theorem",
+      "module": "Generality/TidyR9PositiveRealForm.lean"
     }
   ],
   "full_build": "passed",
@@ -19979,6 +20649,666 @@
       "propext",
       "Classical.choice",
       "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ExpMartingale.integral_exp_increment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ExpMartingale.condExp_exp_increment": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ExpMartingale.condExp_exp_increment_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoTaylor.abs_taylor2_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoTaylor.abs_taylor1_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoTaylor.abs_sub_le_of_deriv_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoTaylor.exists_delta_taylor_path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoPathSums.timeSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoPathSums.remSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoPathSums.itoTaylor_partition_identity": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoPathSums.cell_mem": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoPathSums.tendsto_timeSum": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoPathSums.abs_timeSum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoPathSums.abs_remSum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoPathSums.eventually_abs_remSum_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoWeightedBracket.wSumCross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoWeightedBracket.wSumCross_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoWeightedBracket.memLp_mul_of_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoWeightedBracket.integrable_wSumCross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoWeightedBracket.tendsto_integral_abs_wSumCross": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoWeightedBracket.tendsto_integral_abs_wSumCross_one": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.stronglyMeasurable_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.itoIntegrand_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.memLp_comp_lipschitz": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.msIntegrand_comp_lipschitz": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.msIntegrand_comp_of_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.itoProcess_restrict": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.ito_formula_time": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.itoProcess_of_coeff_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.ito_formula": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.ito_formula_pathwise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.itoProcess_comp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.condExp_ito_formula": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.itoInt_const_mul_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.ito_formula_sq_recovers": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.itoProcess_sin_bm": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormula.ito_formula_sin_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.itoInt_congr_Icc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.itoIntegrand_congr_Icc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.itoProcess_congr_Icc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.hasDerivAt_ite_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.itoProcess_comp_range": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.ito_formula_time_pathwise": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.itoProcess_comp_time": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.itoProcess_discount": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.invExt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.invExt'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.invExt''": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.hasDerivAt_invExt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.hasDerivAt_invExt'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.invExt''_props": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.invExt_of_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.itoProcess_inv": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.expExt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.expExt'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.expExt''": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.hasDerivAt_expExt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.hasDerivAt_expExt'": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.expExt_of_abs_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ItoFormulaVariants.itoProcess_exp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9MartingaleDrift.continuousOn_integral_mul": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9MartingaleDrift.integral_mul_dtInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9MartingaleDrift.eq_zero_of_integral_eq_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9MartingaleDrift.ae_zero_of_condExp_dtInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9MartingaleDrift.dtInt_ae_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9MartingaleDrift.condExp_incr_eq_condExp_dtInt": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9MartingaleDrift.msIntegrand_drift": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9MartingaleDrift.drift_ae_zero_of_martingale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9MartingaleDrift.martingale_iff_drift_ae_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9MartingaleDrift.drift_pathwise_zero_of_martingale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9MartingaleDrift.pricing_ae_of_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9MartingaleDrift.w_drift_of_martingale": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ReturnRatio.itoInt_add_ms": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ReturnRatio.quotient_rule": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ReturnRatio.brackets_cancel_127": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ReturnRatio.ratio_127": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ReturnRatio.ratio_crossFree_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ReturnRatio.valuation_128_seq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9ReturnRatio.valuation_128_iff": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.itoProcess_affine_sin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.itoProcess_discount_sin": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.two_add_sin_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.bmReal_bmPath_zero": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.continuous_bmReal_bmPath": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pw\u039b": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pwa\u039b": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pw\u03c3\u039b": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pwR": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pwaR": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pw\u03c3R": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pw_lam_ito": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pw_ret_ito": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pwModel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pw_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pw_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pw_bracket_neg": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pw_bookForm_fails": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pv\u039b": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pva\u039b": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pv\u03c3\u039b": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pvSp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pv_lam_ito": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pvModel": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pv_bounds": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pv_initial": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pv_tvc": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pv_valuation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pv_bracket_pos": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.pv_bookForm_fails": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.rrV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.rraV": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.rr\u03c3V": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.rrSp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.rr_val_ito": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.rr_flow": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.rr_ratio_step": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.rr_ratio_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.rr_valuation": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.rr_E23": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveDiscount.rr_crossFree_fails": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveRealForm.prI": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveRealForm.prSp": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveRealForm.prI_bound": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveRealForm.pr_lamSp_eq": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveRealForm.pr_abs_lamSp_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveRealForm.pr_cont_state": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveRealForm.pr_cont_path": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveRealForm.pr_measurable_uncurry": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveRealForm.pr_integrableOn": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveRealForm.pr_abs_integral_Ioi_le": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveRealForm.pr_measurable_integral": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
+    ],
+    "Cochrane.Generality.TidyR9PositiveRealForm.realForm_positive": [
+      "propext",
+      "Classical.choice",
+      "Quot.sound"
     ]
   },
   "source_sha256": {
@@ -20034,17 +21364,27 @@
     "Generality/TidyR7JumpDiscountFactor.lean": "4b9186e17c475f9d22a476380643c88154e3ffda332e175d986b95c593ec971e",
     "Generality/TidyR8ConditionalFubini.lean": "79792dac3cb6ca3699cf11e4c0e392f7cd6b4f9ce8ec2410c6efda038fd31a99",
     "Generality/TidyR8OUPresentValue.lean": "67efda9f81afb0923203ab2baf56a841b657e0d75591448e5b1d3fbc0a9695d1",
-    "Generality/TidyR8ShortDebtRealForm.lean": "ac9ee266abe45e5751c6b51fe9f57f2c3b9810cfdf5bfdf15f54df57544b294e",
+    "Generality/TidyR8ShortDebtRealForm.lean": "6752d7aaf77a6692104803ff64bd3079caec4d4dbea0081726e660413a96fffe",
     "Generality/TidyR8StochasticNews.lean": "b1b6bbb5103d26593b6edb0b0fae37bde0798821953942519fee62f2e13eb7a8",
-    "Generality.lean": "3f5f67dacc879fa829f4d681fa718073cf505a7659ba49047df5e389a4048e15",
+    "Generality/TidyR9ExpMartingale.lean": "b1c33ccaf5e733ec506a6fb53693666a116648161e4f92bb7e53ae217e974d88",
+    "Generality/TidyR9ItoTaylor.lean": "a405abd997303ab5ede7777f51683f09f5f9a397f5e3e241952f746345622a68",
+    "Generality/TidyR9ItoPathSums.lean": "5d7dca7f11e73d58a4f83112752810473a81b482b1b9f3948ad7ade1a4f2b6dd",
+    "Generality/TidyR9ItoWeightedBracket.lean": "8f9aacae769a2280e6ff16bfa21bf484ddc3e9b9527a9da37299b030e4af571c",
+    "Generality/TidyR9ItoFormula.lean": "677947642e9dafe22b7dfa2e134fcca3b717fa1100b8412e011ed79724e363c3",
+    "Generality/TidyR9ItoFormulaVariants.lean": "97fd79f4e25ae8eb24b8feeae39382b4d11294ece9836fbf146fd072565385cf",
+    "Generality/TidyR9MartingaleDrift.lean": "7de79d472264dac252d46c68b6f8654628670d1f13d4429384bbabb2b03d297a",
+    "Generality/TidyR9ReturnRatio.lean": "4bb72f28da544dbd07c62afad69a9217ed77d9c10177534272f428126ed8dc4b",
+    "Generality/TidyR9PositiveDiscount.lean": "14875ce86362866e265f08863545da360524ea1e4c7c43e2e063fc5f5185f0c6",
+    "Generality/TidyR9PositiveRealForm.lean": "0cf0290d3232df3f3b0f1f3d184853111bd459f7014d3e168859b6b4014bb271",
+    "Generality.lean": "dcb0009427bfd8e57af034baaa8e7b1a34c10ab5617d3248a29e42bc2bf85e8c",
     "lean-toolchain": "8733782dc070a99b312039cda424f601b80f3be6f6f512627da5ba25adc27632",
     "lakefile.toml": "3dc7ec493361b7b0b8d9f2caf735020fe498c721d7afbc5be6c3b37393920325",
     "lake-manifest.json": "0de844cbb3765f75be5af6b0599f90772090bce532f7b74df153cf6645d4cc5b",
-    "proof-manifest.json": "62a8ba4e59e68adbf962e9869ac2826425a72bb9966f8f6e198aa425aa64a6fc",
+    "proof-manifest.json": "1f17c894f4f6440b03ed727ab5c3a30c298b96e87e833d4eddd0efb532fa836a",
     "scripts/verify.py": "11c83b7a68f40c1db2b14eafb53aa761aa8dd2f849c47664cdc803ddc78d75ff",
     "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
   },
-  "fresh_audit_sha256": "a6b74092a968a95f4fa5b44559f5d0dcc5c344225bd1624e47d994800e1b6164",
+  "fresh_audit_sha256": "29cf05949af701b93947e18778b232e6adb796ee5bebf1adbc520e448fd858ea",
   "lean_toolchain": "leanprover/lean4:v4.34.0",
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 3 (with Online Appendix A1.2-A1.6, A1.9.1): A bit of generality. Long-term debt with finite and geometric maturity structures (flow plus transversality equivalent to the present value), price jumps and forward guidance; ratios to GDP; stochastic discount factors, inverse returns and ex-post present values (which converge on every finite event tree); money and the three present-value forms with their transversality conditions; the log-linear identities as exact derivatives (rho = e^{-(r-g)}, bond-return weight omega/(1+i)), the unexpected-inflation and weighted-inflation identities, Figure 3.1 reconciled; the MSV solution; continuous time with short, long and general maturity densities, linear identities and money; links between discrete and continuous weights and valuations. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 3, pp. 52-80, and Online Appendix A1.2-A1.6 and A1.9.1."

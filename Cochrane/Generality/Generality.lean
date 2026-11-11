@@ -57,3 +57,13 @@ import Generality.TidyR8ConditionalFubini
 import Generality.TidyR8OUPresentValue
 import Generality.TidyR8ShortDebtRealForm
 import Generality.TidyR8StochasticNews
+import Generality.TidyR9ExpMartingale
+import Generality.TidyR9ItoTaylor
+import Generality.TidyR9ItoPathSums
+import Generality.TidyR9ItoWeightedBracket
+import Generality.TidyR9ItoFormula
+import Generality.TidyR9ItoFormulaVariants
+import Generality.TidyR9MartingaleDrift
+import Generality.TidyR9ReturnRatio
+import Generality.TidyR9PositiveDiscount
+import Generality.TidyR9PositiveRealForm

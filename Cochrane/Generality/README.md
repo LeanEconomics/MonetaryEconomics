@@ -15,13 +15,13 @@ equation holds state by state, present values are genuine infinite sums and surp
 Continuous-time results are deterministic, with paths `ℝ → ℝ`, present values as improper
 integrals, and a price level free to jump at the initial date, except for the diffusions and jumps
 of (3.44)–(3.45) and A1.4–A1.5, which are treated on a probability space with Itô processes driven
-by a Brownian motion and with càdlàg martingales; the Brownian, Itô and jump modules are copied
-from the Monetarism project. The common thread is one theorem in many settings: **the flow
+by a Brownian motion and with càdlàg martingales; the Brownian, Itô, Itô-formula and jump
+modules are copied from the Monetarism project. The common thread is one theorem in many settings: **the flow
 condition plus the transversality condition at every date hold iff the real value of the debt
 equals the present value of surpluses at every date**, and then the valuation equation determines
-the price level. The library contains **1581 theorems**, including the shared core and 660 in the
-twenty-five copied Brownian, Itô and jump modules; 757 of them are in the twenty-one chapter
-modules.
+the price level. The library contains **1688 theorems**, including the shared core and 711 in the
+thirty-one copied Brownian, Itô, Itô-formula and jump modules; 757 of them are in the twenty-one
+chapter modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises.
@@ -131,10 +131,25 @@ Headline results, in the namespace `Cochrane.Generality`:
   processes (`TidyR8StochasticNews.forecast_pv_condExp`). That the forecast paths satisfy the
   linear model is a field of `StochLinearEqm`, assumed in general and verified in the AR(1)
   example `TidyR8StochasticNews.fiscalInflation`, a fiscal shock absorbed entirely by
-  expected inflation. With jumps, `dΛdW` is the jump covariation `ΔΛΔW`
+  expected inflation. With Itô's formula, for a return bounded below by a positive constant, the
+  book's quotient rule for `d(V/W)` holds verbatim with its bracket terms
+  (`TidyR9ReturnRatio.quotient_rule`), which cancel under (1.27)
+  (`TidyR9ReturnRatio.brackets_cancel_127`), so `d(V/W) = −(s/W)dt` holds pathwise
+  (`TidyR9ReturnRatio.ratio_127`); dropping the covariation `dV·d(1/W)` is right iff
+  `∫σ_Vσ_W/W² = 0` (`TidyR9ReturnRatio.ratio_crossFree_iff`); (1.28) holds with diffusions iff
+  the transversality condition (`TidyR9ReturnRatio.valuation_128_iff`), and "so the limit is
+  zero" fails in a diffusive economy (`TidyR9PositiveDiscount.rr_E23`). Conversely, a martingale
+  `ΛW` forces the coefficient identity almost surely at every date
+  (`TidyR9MartingaleDrift.drift_ae_zero_of_martingale`), and `ΛW` is a martingale iff its drift
+  vanishes (`TidyR9MartingaleDrift.martingale_iff_drift_ae_zero`). Positive diffusive discount
+  factors exist: `Λ = 2 + sin B` with zero surplus (`TidyR9PositiveDiscount.pwModel`),
+  `Λ = e^{−u}(2 + sin B)` with surplus, in which valuation holds
+  (`TidyR9PositiveDiscount.pv_valuation`), and the real form of A1.4 holds with the fully
+  diffusive `Λ = e^{−ru}(2 + sin B)` (`TidyR9PositiveRealForm.realForm_positive`). With jumps, `dΛdW` is the jump covariation `ΔΛΔW`
   (`TidyR7JumpDiscountFactor.jump_pricing_iff`), and dropping it fails on a coin
-  (`TidyR7JumpDiscountFactor.coin_jump_bookForm_fails`). The Brownian, Itô and jump modules are
-  copied, with only the namespace renamed, from the Monetarism project.
+  (`TidyR7JumpDiscountFactor.coin_jump_bookForm_fails`). The Brownian, Itô, Itô-formula (Itô's
+  formula for `f(u, X_u)`, `1/X` and `exp X`) and jump modules are copied, with only the namespace
+  renamed, from the Monetarism project.
 * **The simplest model by undetermined coefficients (A1.9.1).** The bounded-debt equilibrium
   exists and is unique, and bounded debt holds iff debt is the forward solution
   (`MSV.msv_exists`, `MSV.msv_unique`, `MSV.msv_determinacy`). Inflation is
@@ -223,10 +238,11 @@ Not formalised:
   `Λ_t ≠ 0` a.s. and `G/Λ_t` integrable (`TidyR8ShortDebtRealForm`). (3.46)–(3.51) are revisions
   of conditional expectations in a stochastic linearised equilibrium whose forecast paths
   satisfy the linear model (`TidyR8StochasticNews`); that forecast-path property is assumed in
-  general and verified in the AR(1) example. Remaining: the pathwise `d(V/W) = −(s/W)dt` and
-  (1.28) with diffusions, which need Itô's formula for `1/W`; the converse, that a martingale
-  `ΛW` forces the coefficient identity; positivity of `Λ` (the Gaussian discount factors of the
-  examples can be negative); with jumps, an instance with `E_t[d(ΛW)] = 0` and a nonzero jump
+  general and verified in the AR(1) example. The pathwise `d(V/W) = −(s/W)dt` and (1.28) with
+  diffusions are proved for returns bounded below by a positive constant (`TidyR9ReturnRatio`;
+  `1/W` for a return that can hit `0` needs stopping times). A martingale `ΛW` forces the
+  coefficient identity almost surely (`TidyR9MartingaleDrift`). Positive diffusive discount
+  factors are in `TidyR9PositiveDiscount` and `TidyR9PositiveRealForm`; there the positive martingale `ΛW` of economy W⁺ is constant, the bracket-free failures are shown on `[0, t]` only, the converse along whole paths needs a.s. continuous paths, and the positive real-form instance needs a random rate. Remaining: with jumps, an instance with `E_t[d(ΛW)] = 0` and a nonzero jump
   covariation, and any jump-diffusion model; a derivation of the forecast-path property from a
   general Itô-process model; a theorem identifying the value revision in (3.46) with the
   `dW`-part of the bond return; an instance with a nonzero bond-price innovation (`σ_R ≠ 0`);
@@ -304,6 +320,16 @@ Stated limits of the results that are formalised:
 | [TidyR8OUPresentValue](Generality/TidyR8OUPresentValue.lean) | 18 | §3.6.3, (3.45), p. 77: the AR(1) surplus as a continuous path (the Wiener integral by parts, a modification of `TidyR7ItoInnovation.ou`); `E_t∫_0^∞e^{−rτ}s_{t+τ}dτ = s_t/(r + η)` over the actual path for `r > 0`, `r + η > 0`; its exact revision `(σ/(r + η))e^{−ηt}∫_q^te^{ηv}dW`, first order `σ/(r + η)dε`; non-vacuity on `bmPath` |
 | [TidyR8ShortDebtRealForm](Generality/TidyR8ShortDebtRealForm.lean) | 13 | A1.4, pp. 564–565: the real form `B_t/P_t = E_t∫_t^∞(Λ_τ/Λ_t)s_τdτ` iff the transversality condition with an Itô discount factor, under `Λ_t ≠ 0` a.s. and `G/Λ_t` integrable; an economy with the random discount factor `Λ_s = 2 + cos W_s` |
 | [TidyR8StochasticNews](Generality/TidyR8StochasticNews.lean) | 18 | §3.6.3, (3.42)–(3.51), pp. 76–79: the stochastic linearised equilibrium `StochLinearEqm` (forecast paths satisfying the linear model, a field); (3.46), (3.50) and (3.51) as revisions of conditional expectations, (3.51) with the face-value revision; forecast integrals as conditional expectations; the link with `ContinuousLinear`; the AR(1) example `fiscalInflation` |
+| [TidyR9ExpMartingale](Generality/TidyR9ExpMartingale.lean) | 3 | Copied from the Monetarism project: the lognormal discount factor `exp(σW − σ²t/2)` has mean one and is a martingale, `E_s[Λ_t/Λ_s] = 1`, from the Gaussian law of the increment; on the constructed motion |
+| [TidyR9ItoTaylor](Generality/TidyR9ItoTaylor.lean) | 4 | Copied from the Monetarism project: tools for Itô's formula: Taylor bounds with second-order remainder in space and first-order in time, Lipschitz from a bounded derivative, and the uniform estimate along a continuous path |
+| [TidyR9ItoPathSums](Generality/TidyR9ItoPathSums.lean) | 6 | Copied from the Monetarism project: tools for Itô's formula: the exact partition identity for `f(t, x_t)`, the time sum and its limit `∫ f_t du`, and the Taylor remainder `o(Σ(Δx)²)` |
+| [TidyR9ItoWeightedBracket](Generality/TidyR9ItoWeightedBracket.lean) | 5 | Copied from the Monetarism project: tools for Itô's formula: the weighted bracket `Σ G_iΔX_iΔY_i → ∫ GHK du` in `L¹` for a bounded adapted weight with a.s. continuous paths; the weight `1` gives back the bracket |
+| [TidyR9ItoFormula](Generality/TidyR9ItoFormula.lean) | 16 | Copied from the Monetarism project: Itô's formula with time dependence and for `f ∈ C²` with `f''` bounded, with pathwise time integrals, `f(X)` as an Itô process, the conditional form, `x²` recovered, and `sin W` on the constructed motion |
+| [TidyR9ItoFormulaVariants](Generality/TidyR9ItoFormulaVariants.lean) | 17 | Copied from the Monetarism project: localisation to `[s, t]`, `f(X)` with `f'` bounded on the range, `f(u, X_u)` and discounting `e^{−ru}g(X)` as Itô processes, `1/X` for `X ≥ c > 0` and `exp X` for `\|X\| ≤ M` |
+| [TidyR9MartingaleDrift](Generality/TidyR9MartingaleDrift.lean) | 12 | A1.5, p. 566, (3.35), p. 74: the converse: a martingale `ΛW` forces `Λa_W + Wa_Λ + σ_Λσ_W = 0` a.s. at every date (iff; at every date along a.s. every path with continuous paths); the converse of `E_t[d(ΛV)] = −Λs dt`; uniqueness of the drift in `L²`; economy W |
+| [TidyR9ReturnRatio](Generality/TidyR9ReturnRatio.lean) | 7 | A1.5, (1.27)–(1.28), pp. 565–566: the book's quotient rule for `d(V/W)` with its bracket terms, for `R ≥ c > 0`; the brackets cancel under (1.27); `d(V/W) = −(s/W)dt` pathwise; dropping `dV·d(1/W)` iff `∫σ_Vσ_R/R² = 0`; (1.28) with diffusions iff the transversality condition |
+| [TidyR9PositiveDiscount](Generality/TidyR9PositiveDiscount.lean) | 27 | A1.5, (1.27)–(1.28), (3.35), pp. 74, 565–566: positive diffusive discount factors on `bmPath`: economy W⁺ (`Λ = 2 + sin B`, `ΛW = 1`, bracket negative), economy V⁺ (`Λ = e^{−u}(2 + sin B)`, transversality, valuation `4`, bracket positive), the bracket-free step failing in both; the return-ratio economy: `d(V/W) = −(s/W)dt`, (1.28) for `r > 0`, E23 with diffusions for `r = 0` |
+| [TidyR9PositiveRealForm](Generality/TidyR9PositiveRealForm.lean) | 10 | A1.4, (1.26), pp. 564–565: the real form `B_t/P_t = E_t∫_t^∞(Λ_τ/Λ_t)s_τdτ` with the positive, fully diffusive `Λ = e^{−ru}(2 + sin B)` and the random rate `i = r + sin B/(2(2 + sin B))` forced by (1.26) |
 
 ## Modelling conventions
 

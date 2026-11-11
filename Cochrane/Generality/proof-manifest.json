@@ -54,7 +54,17 @@
     "Generality/TidyR8ConditionalFubini.lean",
     "Generality/TidyR8OUPresentValue.lean",
     "Generality/TidyR8ShortDebtRealForm.lean",
-    "Generality/TidyR8StochasticNews.lean"
+    "Generality/TidyR8StochasticNews.lean",
+    "Generality/TidyR9ExpMartingale.lean",
+    "Generality/TidyR9ItoTaylor.lean",
+    "Generality/TidyR9ItoPathSums.lean",
+    "Generality/TidyR9ItoWeightedBracket.lean",
+    "Generality/TidyR9ItoFormula.lean",
+    "Generality/TidyR9ItoFormulaVariants.lean",
+    "Generality/TidyR9MartingaleDrift.lean",
+    "Generality/TidyR9ReturnRatio.lean",
+    "Generality/TidyR9PositiveDiscount.lean",
+    "Generality/TidyR9PositiveRealForm.lean"
   ],
   "theorem_counts": {
     "Generality/Determinacy.lean": 23,
@@ -110,7 +120,17 @@
     "Generality/TidyR8ConditionalFubini.lean": 7,
     "Generality/TidyR8OUPresentValue.lean": 18,
     "Generality/TidyR8ShortDebtRealForm.lean": 13,
-    "Generality/TidyR8StochasticNews.lean": 18
+    "Generality/TidyR8StochasticNews.lean": 18,
+    "Generality/TidyR9ExpMartingale.lean": 3,
+    "Generality/TidyR9ItoTaylor.lean": 4,
+    "Generality/TidyR9ItoPathSums.lean": 6,
+    "Generality/TidyR9ItoWeightedBracket.lean": 5,
+    "Generality/TidyR9ItoFormula.lean": 16,
+    "Generality/TidyR9ItoFormulaVariants.lean": 17,
+    "Generality/TidyR9MartingaleDrift.lean": 12,
+    "Generality/TidyR9ReturnRatio.lean": 7,
+    "Generality/TidyR9PositiveDiscount.lean": 27,
+    "Generality/TidyR9PositiveRealForm.lean": 10
   },
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 3 (with Online Appendix A1.2-A1.6, A1.9.1): A bit of generality. Long-term debt with finite and geometric maturity structures (flow plus transversality equivalent to the present value), price jumps and forward guidance; ratios to GDP; stochastic discount factors, inverse returns and ex-post present values (which converge on every finite event tree); money and the three present-value forms with their transversality conditions; the log-linear identities as exact derivatives (rho = e^{-(r-g)}, bond-return weight omega/(1+i)), the unexpected-inflation and weighted-inflation identities, Figure 3.1 reconciled; the MSV solution; continuous time with short, long and general maturity densities, linear identities and money; links between discrete and continuous weights and valuations. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 3, pp. 52-80, and Online Appendix A1.2-A1.6 and A1.9.1."

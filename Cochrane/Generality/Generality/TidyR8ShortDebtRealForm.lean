@@ -19,9 +19,9 @@ iff the transversality condition. This module adds the first, **real** line: div
 
 ## Positivity is a hypothesis
 
-Mathlib-level Itô calculus here has no exponential martingale, and the Gaussian discount factors
-of the examples can be negative, so `Λ_t > 0` is not available; the results assume
-`Λ_t = n_tP_t ≠ 0` almost surely, which is all the division needs.
+The results assume only `Λ_t = n_tP_t ≠ 0` almost surely, which is all the division needs. A
+positive, fully diffusive discount factor satisfying every hypothesis is built later with Itô's
+formula (`TidyR9PositiveRealForm.realForm_positive`).
 
 ## Integrability is a hypothesis too, and it is genuine
 
