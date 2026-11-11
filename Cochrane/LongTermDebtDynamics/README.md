@@ -17,10 +17,13 @@ genuine uncertainty. Fourteen further modules take the book's deterministic pass
 guidance, §7.6.1, §A1.14) to uncertainty and settle existence in §7.4, and five more take the
 continuous-time forward-guidance formula of §A1.2.1 to Brownian uncertainty, with the Brownian
 motion and the Itô integral copied from the Cochrane Monetarism project (twenty modules); three
-more prove it for an announcement at any date. The library contains **1107 theorems**, including
-the shared core; 197 of them are in the eight chapter modules, 180 in the fourteen further
-modules, 65 in the five continuous-time guidance modules, 34 in the three date-`a` guidance
-modules and 523 in the twenty copied modules.
+more prove it for an announcement at any date, and three more for a continuous-valued random
+rate after the news date and for a positive diffusive discount factor, with Itô's formula also
+copied from the Monetarism project (seven more modules). The library contains **1238 theorems**,
+including the shared core; 197 of them are in the eight chapter modules, 180 in the fourteen
+further modules, 65 in the five continuous-time guidance modules, 34 in the three date-`a`
+guidance modules, 65 in the three random-rate and positive-`Λ` modules and 589 in the
+twenty-seven copied modules.
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. "Theorem W" (the general formula
@@ -96,8 +99,27 @@ Headline results, in the namespace `Cochrane.LongTermDebtDynamics`:
   depend on `W_a` (`TidyR8GuidanceDateTBM.condExp_debtAt_bm_not_const`,
   `TidyR8GuidanceDateTBM.pvSurplusAt_bm_not_const`), and both formulas hold with random date-`a`
   price levels (`TidyR8GuidanceDateTBM.bm_guidance_jump_at`,
-  `TidyR8GuidanceDateTBM.bm_random_jump_at`). The Brownian motion, the Itô integral and
-  Itô's product rule are the Monetarism project's, copied into this project.
+  `TidyR8GuidanceDateTBM.bm_random_jump_at`). With a continuous-valued random rate `i` after
+  the news date, any bounded jointly measurable one (`TidyR9GuidanceRandomRate.RateSDF`), bond
+  prices at the news date are `Q_T^{(T+j)} = E_T[exp(−∫_T^{T+j} i)]`
+  (`TidyR9GuidanceRandomRate.condExp_bond_rate`), and the jump is the pathwise jump at the
+  realised rate path averaged under the `T`-forward measure,
+  `P_0/P_0' − 1 = E_0[e^{rT}Λ_T · rateJump]/Λ_0` (`TidyR9GuidanceRandomRate.random_rate_jump`):
+  the book's formula verbatim for a constant rate (`TidyR9GuidanceRandomRate.constant_rate_jump`),
+  in general the mean jump plus a covariance term
+  (`TidyR9GuidanceRandomRate.random_rate_jump_decomp`), and by Jensen the mean value of the debt
+  is at least its value at the mean rate path (`TidyR9GuidanceRandomRate.integral_rateValue_ge`).
+  With continuous paths `i` is the short rate, `dΛ = −iΛ dt`, by Itô's formula for the
+  exponential (`TidyR9GuidanceRandomRate.itoProcess_rateDisc`). On the constructed motion with
+  `i_u = ī + c sin W_u`, `c ≠ 0`, so that `E i_u = ī`, and `Λ > 0` throughout, the book's formula
+  at the expected rate strictly understates the jump (`TidyR9GuidanceRandomRateBM.bm_sinRate_jump`).
+  A positive diffusive discount factor with a known rate,
+  `Λ_t = e^{−rt}(1 + κe^{t/2} sin W_t)` up to `T`, is positive when `|κ|e^{T/2} < 1`
+  (`TidyR9GuidancePositiveBM.posSDF_pos`) and not when `|κ|e^{T/2} > 1`
+  (`TidyR9GuidancePositiveBM.posSDF_not_pos`), and the formula holds verbatim with `Λ, Λ' > 0`,
+  at date 0 and at any date `a` (`TidyR9GuidancePositiveBM.pos_guidance_jump`,
+  `TidyR9GuidancePositiveBM.pos_guidance_jump_at`). The Brownian motion, the Itô integral,
+  Itô's product rule and Itô's formula are the Monetarism project's, copied into this project.
 * **The buffer and runs.** With no sales after date 0, `B_{−1}^{(t)}/P_t = s_t` (7.6), so
   unexpected inflation reflects only news about the current surplus while news about later
   surpluses moves bond prices (`MaturingDebt.price_eq_maturing`, `MaturingDebt.noSales_price_news`,
@@ -256,8 +278,9 @@ those found during formalisation:
   announcement can give the higher price level (a precision: the book's §7.1 is deterministic),
   also with the flow conditions imposed at every date under the rollover policy;
 * the continuous-time formula of p. 561 holds verbatim under uncertainty for a known rate path,
-  announced at any date, but for a future rate revealed as news it is not the formula at the expected rate (an
-  extension: the book derives p. 561 for a known path).
+  announced at any date, but for a future rate revealed as news, finitely or continuously
+  valued, it is not the formula at the expected rate (an extension: the book derives p. 561 for
+  a known path).
 
 In addition, the labels (7.14) and (7.15) are swapped in the text (E7.1), the innovation display
 of p. 224 mixes the dates `0` and `t` and is corrected at a general date (E7.9), the "25%" drop of
@@ -274,7 +297,9 @@ that by the project's conventions continuous time is deterministic, with no stoc
 the continuous-time formula is now proved under Brownian uncertainty. It also said that the
 interchange `E∫ = ∫E` was stated at date 0 only, with trivial date-0 information in the
 examples, and that none was proved for the surplus side; both interchanges are now proved at any
-date `a`, and the examples at `a > 0` have nontrivial date-`a` information.
+date `a`, and the examples at `a > 0` have nontrivial date-`a` information. It also listed a
+continuous-valued rate after the news date and positivity of `Λ` for `κ ≠ 0` as not
+formalised; the first is proved at date 0 and the second for known-rate instances.
 
 Not formalised:
 * §7.7, the U.S. maturity structure (pp. 234–236), and Figures 7.6–7.7, which are data. The other
@@ -286,13 +311,25 @@ Not formalised:
   §7.6.2 (pp. 232–234) and the summary §7.6.3;
 * Theorem W with an infinite horizon under neither the row condition nor no buy-backs: it is false
   in general (the counterexample above);
-* for the continuous-time formula of §A1.2.1 (p. 561) under uncertainty: a rate after the news
-  date (`T`, or `a + τ` for an announcement at `a`) that is itself an Itô process with
-  continuous values (this needs Itô's formula for the exponential); the rates are known
-  piecewise and take finitely many values (`TidyR7GuidanceSDF.SDFPiece`), and the diffusion `H`
-  is bounded, although the drift may be unbounded. Positivity of `Λ` is not proved
-  when `κ ≠ 0`: in the model economy `1 + κW_T` can be negative. No theorem uses it: the
-  results hold where `Λ_a ≠ 0`, and the Jensen counterexample (`κ = 0`) is positive throughout.
+* for the continuous-time formula of §A1.2.1 (p. 561) under uncertainty: a continuous-valued
+  random rate after the news date is covered at the announcement date 0 only (any bounded
+  jointly measurable rate, `TidyR9GuidanceRandomRate.RateSDF`, an Itô process via
+  `TidyR9ItoFormulaVariants.itoProcess_exp`), with no date-`a` version; after the news date `Λ`
+  has no diffusion there (with one, bond prices need a change of measure); the Jensen
+  comparison is unconditional (the instance has trivial `𝓕_0`), with no conditional Jensen at
+  `a > 0`, and is strict at some maturity `j₀ > T` only (existential); in the instance
+  `ī + c sin W` the covariance term is zero, and no continuous-rate instance with a nonzero
+  covariance term is constructed; adaptedness of `∫_T^u i`
+  (`TidyR9GuidanceRandomRate.stronglyMeasurable_integral_adapted`) needs continuous paths for
+  every `ω`. Otherwise the rates are known piecewise and take finitely many values
+  (`TidyR7GuidanceSDF.SDFPiece`), and the diffusion `H` is bounded, although the drift may be
+  unbounded. Positivity of `Λ` for `κ ≠ 0` is proved for known-rate instances, at date 0 and at
+  date `a` (`TidyR9GuidancePositiveBM.posSDF_pos`, `TidyR9GuidancePositiveBM.pos_guidance_jump`,
+  `TidyR9GuidancePositiveBM.pos_guidance_jump_at`), for noise of size `|κ| < e^{−T/2}`, which is
+  sharp within the family (`TidyR9GuidancePositiveBM.posSDF_not_pos`); that a positive noise of
+  fixed size on an unbounded horizon forces a random rate is stated in text only, and the `κ ≠ 0`
+  covariance counterexample (`TidyR7GuidanceItoCex.bm_covariance`) is not redone with `Λ > 0`.
+  The general results do not use positivity: they hold where `Λ_a ≠ 0`.
   The Jensen and covariance counterexamples are at date 0, where information is trivial
   (`TidyR7GuidanceItoCex.bmF_zero`); at `a > 0` the news-corrected jump is proved
   (`TidyR8GuidanceDateTBM.bm_random_jump_at`) but not shown to depend on the state, which needs
@@ -364,6 +401,16 @@ Not formalised:
 | [TidyR8GuidanceDateT](LongTermDebtDynamics/TidyR8GuidanceDateT.lean) | 13 | §A1.2.1, pp. 559–561, under uncertainty, announced at any date `a ≥ 0` under a general filtration: the valuation at `a` in the book's form `∫_a^∞`, bond prices, the interchange `E_a∫ = ∫E_a` for the debt, the formula of p. 561 verbatim at `a` and its news correction; `a = 0` is the date-0 setting |
 | [TidyR8SurplusInterchange](LongTermDebtDynamics/TidyR8SurplusInterchange.lean) | 6 | §A1.2.1, p. 559, under uncertainty: the surplus side `E_a∫_0^∞e^{−rj}s_{a+j} dj = ∫_0^∞e^{−rj}E_a[s_{a+j}] dj`, on test sets and a.s. for a jointly measurable version; the valuation equation and the price level at `a` with both sides interchanged |
 | [TidyR8GuidanceDateTBM](LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean) | 15 | §A1.2.1, pp. 559–561, at a date `a > 0` on the constructed Brownian motion: the model economy from `a`, random surpluses `s̄ + σW_j`, the date-`a` debt value and present value of surpluses depending on `W_a`, non-vacuity of the date-`a` formula and of its news correction |
+| [TidyR7ItoBondStep](LongTermDebtDynamics/TidyR7ItoBondStep.lean) | 15 | Copied from Monetarism (tool for Itô's formula): the product step for Itô bonds and Itô `Λ/P` with the bracket, the bracket-free step iff `E_s∫σ_Bσ_X du = 0`, linearity of the mean-square time integral |
+| [TidyR9ExpMartingale](LongTermDebtDynamics/TidyR9ExpMartingale.lean) | 3 | Copied from Monetarism: the lognormal discount factor `exp(σW − σ²t/2)` has mean one and is a martingale, `E_s[Λ_t/Λ_s] = 1`; on the constructed motion |
+| [TidyR9ItoTaylor](LongTermDebtDynamics/TidyR9ItoTaylor.lean) | 4 | Copied from Monetarism (tool for Itô's formula): Taylor bounds with second-order remainder in space and first-order in time, Lipschitz from a bounded derivative, the uniform estimate along a continuous path |
+| [TidyR9ItoPathSums](LongTermDebtDynamics/TidyR9ItoPathSums.lean) | 6 | Copied from Monetarism (tool for Itô's formula): the exact partition identity for `f(t, x_t)`, the time sum and its limit `∫ f_t du`, the Taylor remainder `o(Σ(Δx)²)` |
+| [TidyR9ItoWeightedBracket](LongTermDebtDynamics/TidyR9ItoWeightedBracket.lean) | 5 | Copied from Monetarism (tool for Itô's formula): the weighted bracket `Σ G_iΔX_iΔY_i → ∫ GHK du` in `L¹` for a bounded adapted weight with a.s. continuous paths |
+| [TidyR9ItoFormula](LongTermDebtDynamics/TidyR9ItoFormula.lean) | 16 | Copied from Monetarism (tool): Itô's formula with time dependence and for `f ∈ C²` with `f''` bounded, `f(X)` as an Itô process, the conditional form, `x²` recovered, `sin W` on the constructed motion |
+| [TidyR9ItoFormulaVariants](LongTermDebtDynamics/TidyR9ItoFormulaVariants.lean) | 17 | Copied from Monetarism (tool): localisation to `[s, t]`, `f(X)` with `f'` bounded on the range, `f(u, X_u)` and discounting `e^{−ru}g(X)` as Itô processes, `1/X` for `X ≥ c > 0` and `exp X` for `\|X\| ≤ M` |
+| [TidyR9GuidancePositiveBM](LongTermDebtDynamics/TidyR9GuidancePositiveBM.lean) | 18 | §A1.2.1, p. 561: a positive diffusive discount factor with a known rate, `Λ_t = e^{−rt}(1 + κe^{t/2} sin W_t)`, its SDE by Itô's formula, positivity for `\|κ\|e^{T/2} < 1` and its sharpness; the date-0 and date-`a` formulas with `Λ, Λ' > 0` |
+| [TidyR9GuidanceRandomRate](LongTermDebtDynamics/TidyR9GuidanceRandomRate.lean) | 32 | §A1.2.1, pp. 559–561, under uncertainty with a continuous-valued random rate after the news date: bond prices `E_T[exp(−∫ i)]`, the debt value and the corrected jump under the `T`-forward measure, the book's formula for a constant rate, the covariance decomposition, Jensen, `i` as the short rate |
+| [TidyR9GuidanceRandomRateBM](LongTermDebtDynamics/TidyR9GuidanceRandomRateBM.lean) | 15 | §A1.2.1, p. 561: the rate `ī + c sin W_u` on the constructed Brownian motion, an Itô process with mean `ī`; the hypotheses verified, genuine randomness, bond prices, and the headline: the formula at the expected rate strictly understates the jump with `Λ > 0` |
 
 ## Modelling conventions
 
@@ -387,9 +434,9 @@ Not formalised:
   foresight (`perfectForesight`). The fourteen further modules redo forward guidance (except the
   continuous-time formula), §7.6.1 and §A1.14 with random surpluses, price levels and debt, and
   their counterexamples live on a finite coin-flip tree. The five continuous-time guidance
-  modules and the three date-`a` modules (`TidyR8SurplusInterchange` needs only a filtration)
-  work on a probability space with a Brownian motion and a filtration for which it is a
-  Brownian motion, with `E_t` Mathlib's conditional expectation and statements almost surely;
+  modules, the three date-`a` modules (`TidyR8SurplusInterchange` needs only a filtration) and
+  the three random-rate and positive-`Λ` modules work on a probability space with a Brownian
+  motion and a filtration for which it is a Brownian motion, with `E_t` Mathlib's conditional expectation and statements almost surely;
   their examples live on the constructed motion `TidyR7BrownianExist.bmPath` with its natural
   filtration. `TidyR6StrictSignMeasure` restates the
   §A1.14 sign rule on a probability space, with `E_0` Mathlib's conditional expectation and

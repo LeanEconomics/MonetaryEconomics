@@ -54,7 +54,17 @@
     "LongTermDebtDynamics/TidyR7GuidanceItoLinks.lean",
     "LongTermDebtDynamics/TidyR8GuidanceDateT.lean",
     "LongTermDebtDynamics/TidyR8SurplusInterchange.lean",
-    "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean"
+    "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean",
+    "LongTermDebtDynamics/TidyR7ItoBondStep.lean",
+    "LongTermDebtDynamics/TidyR9ExpMartingale.lean",
+    "LongTermDebtDynamics/TidyR9ItoTaylor.lean",
+    "LongTermDebtDynamics/TidyR9ItoPathSums.lean",
+    "LongTermDebtDynamics/TidyR9ItoWeightedBracket.lean",
+    "LongTermDebtDynamics/TidyR9ItoFormula.lean",
+    "LongTermDebtDynamics/TidyR9ItoFormulaVariants.lean",
+    "LongTermDebtDynamics/TidyR9GuidancePositiveBM.lean",
+    "LongTermDebtDynamics/TidyR9GuidanceRandomRate.lean",
+    "LongTermDebtDynamics/TidyR9GuidanceRandomRateBM.lean"
   ],
   "theorem_counts": {
     "LongTermDebtDynamics/Determinacy.lean": 23,
@@ -110,7 +120,17 @@
     "LongTermDebtDynamics/TidyR7GuidanceItoLinks.lean": 4,
     "LongTermDebtDynamics/TidyR8GuidanceDateT.lean": 13,
     "LongTermDebtDynamics/TidyR8SurplusInterchange.lean": 6,
-    "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean": 15
+    "LongTermDebtDynamics/TidyR8GuidanceDateTBM.lean": 15,
+    "LongTermDebtDynamics/TidyR7ItoBondStep.lean": 15,
+    "LongTermDebtDynamics/TidyR9ExpMartingale.lean": 3,
+    "LongTermDebtDynamics/TidyR9ItoTaylor.lean": 4,
+    "LongTermDebtDynamics/TidyR9ItoPathSums.lean": 6,
+    "LongTermDebtDynamics/TidyR9ItoWeightedBracket.lean": 5,
+    "LongTermDebtDynamics/TidyR9ItoFormula.lean": 16,
+    "LongTermDebtDynamics/TidyR9ItoFormulaVariants.lean": 17,
+    "LongTermDebtDynamics/TidyR9GuidancePositiveBM.lean": 18,
+    "LongTermDebtDynamics/TidyR9GuidanceRandomRate.lean": 32,
+    "LongTermDebtDynamics/TidyR9GuidanceRandomRateBM.lean": 15
   },
   "scope": "Cochrane, The Fiscal Theory of the Price Level, Chapter 7 (with Online Appendix A1.2.1, A1.14): Long-term debt dynamics. The maturity structure with flow and present-value relations (equivalent under transversality); forward guidance and bond-price targets (T >= k sharp), with discrete and continuous closed forms; maturing debt as a buffer; bond sales, dilution and unit elasticity; future sales in three periods; the general formula (7.17) with the explicit chain-sum weights, its convergence under a row condition, uniqueness of the price level without buy-backs, and a counterexample showing the present-value system need not determine the price level; policy constraints (Theorem P), QE trade-offs; quantitative easing with existence and uniqueness of the required purchases. Printed errors corrected with Lean counterexamples.",
   "source": "John H. Cochrane, The Fiscal Theory of the Price Level, Princeton University Press, Chapter 7, pp. 212-236, and Online Appendix A1.2.1 and A1.14."
