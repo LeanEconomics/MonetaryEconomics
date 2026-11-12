@@ -7,15 +7,22 @@ Run the commands below from this directory. [Return to the library index](../../
 A checked formalisation of John H. Cochrane, *The Fiscal Theory of the Price Level* (Princeton
 University Press, 2023), Chapter 22, "Observational equivalence" (pp. 495–510), together with the
 precise claims of Chapters 23–24 (pp. 512–523) and of Online Appendix Chapter 2, "How not to test
-fiscal theory" (pp. 593–611). The linear models are stated for an arbitrary expectation operator,
-so every result covers perfect foresight and genuine uncertainty: processes are `ℕ → Ω → ℝ` and
-every equation holds state by state. The central object is the frictionless model
-`i_t = E_tπ_{t+1}`, `ρv_{t+1} = v_t + i_t − π_{t+1} − s̃_{t+1}` (22.2), closed by monetary and
+fiscal theory" (pp. 593–611). The linear models of the chapter modules are stated for an arbitrary
+expectation operator, so every result covers perfect foresight and genuine uncertainty: processes
+are `ℕ → Ω → ℝ` and every equation holds state by state. Theorem RG, Granger causality, Markov
+switching, the money model and the Leeper model at the boundary `|φ| = 1` are also proved on genuine
+probability spaces, with equations holding almost everywhere. The central object is the frictionless
+model `i_t = E_tπ_{t+1}`, `ρv_{t+1} = v_t + i_t − π_{t+1} − s̃_{t+1}` (22.2), closed by monetary and
 fiscal rules written around a target path, the "starred" form (16.20)–(16.24), (22.1),
 (22.7)–(22.11). Its equilibria are judged by the book's criterion: adapted, bounded inflation and
-the transversality condition for debt. "Unique" means that the target is the only such
-equilibrium. The library contains **484 theorems**, including the shared core; 376 of them are in
-the fifteen chapter modules.
+the transversality condition for debt. "Unique" means that the target is the only such equilibrium.
+The library contains **1262 theorems**: 376 in the fifteen chapter modules, 108 in the shared core
+restated from the earlier projects, 406 in the eleven modules from `ExpectationsMeasure` to
+`MarkovRegimesReach` (the measure-theoretic modules and the `N`-regime Markov tree), 198 in the
+eight `TidyR5…` modules (the boundary `|φ| = 1`, Theorem RG and Granger causality with
+square-integrable shocks, and the money model under uncertainty), 101 in the five
+`TidyR6MoneyHousehold…` modules (the household problem behind the money model), and 73 in the
+four `TidyR6Markov…` modules (`N`-regime Markov switching in an abstract expectation system).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E12–E19 refer to the
@@ -68,7 +75,16 @@ Headline results, in the namespace `Cochrane.ObservationalEquivalence`:
   `LeeperRegions.region_d_sunspot`). At the boundary `|φ| = 1` the model is neither determinate
   nor always indeterminate: there is a continuum when the monetary equation has a bounded
   solution and no equilibrium for `u_{i,t} = −φ^{t+1}` (`LeeperRegions.region_d_of_solution`,
-  `LeeperRegions.region_d_unit_nonexistence`). Double-active policy is uniquely determinate in the
+  `LeeperRegions.region_d_unit_nonexistence`). Precisely, at `φ² = 1` the admissible equilibria
+  are empty or uncountable (`TidyR5UnitRoot.leeper_unit_dichotomy`), and they exist iff the
+  conditional sums `∑_{j<T}φʲE_tu_{i,t+j}` are bounded. This iff is proved when information stops
+  arriving (`TidyR5UnitRoot.leeper_unit_iff_eventually`), on every countable state space
+  (`TidyR5UnitRootCompact.leeper_unit_iff_countable`) and, with essential bounds, on every
+  probability space with any filtration (`TidyR5LeeperMeasure.leeperM_unit_iff`,
+  `TidyR5LeeperMeasure.leeperM_unit_dichotomy`). `φ = 1` and `φ = −1` differ: a constant
+  disturbance gives no equilibrium at `φ = 1` and a continuum at `φ = −1`
+  (`TidyR5UnitRoot.leeper_const`), and the vanishing `u_{i,t} = 1/(t + 1)` still gives none at
+  `φ = 1` (`TidyR5UnitRoot.leeper_harmonic`). Double-active policy is uniquely determinate in the
   starred form and generically has no equilibrium in the unstarred form (E19;
   `LeeperRegions.e19_starred_vs_unstarred`).
 * **OE-2: money regimes.** In the money model `MV = Py`, `W_t/P_t = ∑βʲs_{t+j}`, an equilibrium
@@ -76,7 +92,39 @@ Headline results, in the namespace `Cochrane.ObservationalEquivalence`:
   regime given `(W, s)` (`MoneyRegimes.oe2`). With `M`, `s` and `W` all fixed an equilibrium exists
   iff they are consistent, and halving `M` leaves none (`MoneyRegimes.inconsistent_iff`,
   `MoneyRegimes.halve_money_no_eqm`). The money model's observable path is also the unique
-  equilibrium of every determinate interest-rate regime (`Links.oe2_oe1`).
+  equilibrium of every determinate interest-rate regime (`Links.oe2_oe1`). OE-2 holds under
+  uncertainty, in any `ExpectationSystem` (`TidyR5MoneyUncertainty.oe2`) and almost surely on any
+  probability space (`TidyR5MoneyMeasure.oe2`). There the surprise in `1/P_{t+1}` equals both the
+  fiscal news and the money news, "fiscal surprises control unexpected inflation"
+  (`TidyR5MoneyUncertainty.unexpected_price_level`, `TidyR5MoneyMeasure.unexpected_price_level`),
+  and on the coin economy the equilibrium is genuinely random
+  (`TidyR5MoneyUncertainty.coin_random_eqm`, `TidyR5MoneyMeasure.coin_random_eqmM`).
+* **The money model from the household problem.** A risk-neutral household (the chapter's
+  discounting `βʲ`) with the budget (3.9), money priced at `Q^m`, no borrowing and the cash
+  constraint `M_tV_t ≥ P_ty_t` is solved on any probability space with any filtration. The bond
+  first-order condition `Q_t ≥ βP_tE_t[1/P_{t+1}]` holds with equality where bonds are held (the
+  Fisher equation), money is never dominated, the transversality condition is necessary, and the
+  first-order conditions with it are sufficient (`TidyR6MoneyHousehold.eulerGap_eq_zero`,
+  `TidyR6MoneyHousehold.moneyGap_nonneg`, `TidyR6MoneyHousehold.tvc_of_optimal`,
+  `TidyR6MoneyHousehold.optimal_iff_foc`). At `c = y` the budget is the flow condition and, with
+  the transversality condition, the valuation equation with the seigniorage-inclusive surplus
+  `s̄_t = τ_t + ι_tM_t/P_t` (`TidyR6MoneyHouseholdEqm.flow_of_hhFlow`,
+  `TidyR6MoneyHouseholdEqm.valuation_of_tvc`). With positive debt the derived equilibria are
+  exactly the imposed-equation equilibria, and when money is costly to hold they are the Fisher
+  equation plus `TidyR5MoneyMeasure.EqmM` (`TidyR6MoneyHouseholdEqm.derived_iff_imposed`,
+  `TidyR6MoneyHouseholdEqm.derived_iff_eqmM`); the same holds node by node on every finite tree
+  with `TidyR5MoneyUncertainty.Eqm` and under perfect foresight with `MoneyRegimes.Eqm`
+  (`TidyR6MoneyHouseholdTree.tree_derived_iff_eqm`, `TidyR6MoneyHouseholdTree.pf_derived_iff`).
+  Both halves of the linear (22.2) follow, exactly once second-order remainders are folded into
+  the rate (`|J_t| ≤ 9δ²`) and the surplus (`|R| ≤ 2η² + ρδ_v²`), on every expectation system, on
+  every finite tree and almost surely on any probability space
+  (`TidyR6MoneyHouseholdFlowLin.consistent_core`, `TidyR6MoneyHouseholdFlowLin.derived_lin_meas`,
+  `TidyR6MoneyHouseholdFlowLin.derived_consistent_tree`); under perfect foresight they hold with
+  no remainder (`TidyR6MoneyHouseholdTree.pf_derived_linear`), and the Fisher half is the exact
+  derivative of the bond-pricing condition (`TidyR6MoneyHouseholdLinear.gateaux_log_fisher`).
+  Two corrections follow: when money pays interest optimisation gives only `MV ≥ Py`
+  (`TidyR6MoneyHouseholdEqm.money_pays_interest`), and the imposed equations miss the zero bound
+  `ι_t = Q^m_t − Q_t ≥ 0` (`TidyR6MoneyHouseholdEqm.negative_spread_not_derived`).
 * **Theorem RG: a positive surplus-on-debt coefficient.** With an exogenous moving-average surplus
   and the valuation equation, `2Cov(s_{t+1}, v_t) = ∑_{k≥1}a_k² + ∑_{k,l≥1}ρ^{|k−l|}a_ka_l`, and
   the regression coefficient is positive iff the surplus is not white noise
@@ -114,6 +162,70 @@ Headline results, in the namespace `Cochrane.ObservationalEquivalence`:
   (`MarkovRegimes.determinate_iff`, `MarkovRegimes.dl_iff_schur`). A temporarily passive regime
   can be determinate and a locally active one indeterminate
   (`MarkovRegimes.temporarily_passive_determinate`, `MarkovRegimes.locally_active_indeterminate`).
+  With `N` regimes and coefficients of any sign, the model is determinate iff every `φ_i ≠ 0` and
+  the spectral radius of `|Φ|⁻¹P` (entries `P_ij/|φ_i|`) is below one
+  (`MarkovRegimesGeneral.determinate_iff`), so determinacy depends only on `|φ_i|`
+  (`MarkovRegimesGeneral.determinate_iff_abs`). A regime with `φ_i = 0` always makes the model
+  indeterminate (`MarkovRegimesGeneral.zero_coeff_indeterminate`). The two-regime Davig–Leeper
+  formula fails with a negative coefficient and holds for `|φ_0|, |φ_1|`
+  (`MarkovRegimesGeneral.dl_formula_fails_negative`, `MarkovRegimesGeneral.dl_corrected`), and the
+  naive condition on `Φ⁻¹P` is necessary but not sufficient
+  (`MarkovRegimesGeneral.naive_necessary`, `MarkovRegimesGeneral.naive_not_sufficient`). With
+  i.i.d. regimes the condition is `∑_jq_j/|φ_j| < 1` (`MarkovRegimesGeneral.iid_determinate_iff`).
+  In any `ExpectationSystem` carrying an `N`-state Markov regime, the same condition gives at most
+  one bounded equilibrium, for any signs (`TidyR6MarkovAbstractN.absN_homog_eq_zero`,
+  `TidyR6MarkovAbstractN.absN_unique`); failure of the naive condition gives a nonzero bounded
+  solution, so for `φ_i > 0` the dichotomy holds (`TidyR6MarkovAbstractN.absN_homog_nonzero_of_not_naive`,
+  `TidyR6MarkovAbstractN.absN_pos_dichotomy`). With mixed signs the Markov property alone does not
+  give non-uniqueness (`TidyR6MarkovAbstractN.markov_only_nonzero_fails`). Under the regime-tree
+  hypothesis `TidyR6MarkovAbstractN.HistMarkovN` the any-sign dichotomy and determinacy hold
+  (`TidyR6MarkovAbstractN.hist_dichotomy`, `TidyR6MarkovAbstractN.hist_determinate_iff`), and with
+  the pull-out property and a known regime there is exactly one bounded equilibrium for every
+  bounded adapted disturbance iff the condition holds (`TidyR6MarkovPullOut.pullOut_determinate_iff`).
+  With non-degenerate transitions these hypotheses have no countable model: no pointwise-linear
+  forecast carries a known non-degenerate regime, and forecasts are atomless
+  (`TidyR6MarkovNoGo.not_pointwiseLinear`, `TidyR6MarkovNoGo.countable_no_regime`,
+  `TidyR6MarkovInstances.histMarkov_no_atoms`, `TidyR6MarkovInstances.pullOut_no_atoms`); the
+  theorems are instantiated on deterministic chains (`TidyR6MarkovInstances.id_hist_determinate_iff`,
+  `TidyR6MarkovInstances.id_pullOut_determinate_iff`).
+* **Genuine probability models.** Theorem RG holds with Mathlib's `covariance` and `variance` for
+  martingale-difference shocks on a probability space with a filtration: the valuation equation with
+  Mathlib's `condExp` gives `v_t = b(L)ε_t` a.e., and `2Cov(s_{t+1}, v_t) = σ²(∑a_k² +
+  ∑∑ρ^{|k−l|}a_ka_l)` (`SurplusRegressionMeasure.valueM_eq`,
+  `SurplusRegressionMeasure.two_covM_eq_kms`, `SurplusRegressionMeasure.regM_pos_iff`); the genuine
+  covariance is `σ²` times the abstract one (`SurplusRegressionMeasure.covM_finite_eq_abstract`).
+  The hypotheses hold in the i.i.d. coin economy with an infinite past, which is not
+  certainty-equivalent (`SurplusRegressionMeasure.coinZ_theoremRG`,
+  `SurplusRegressionMeasure.iidZ_not_certainty_equivalent`). Theorem RG extends to square-summable
+  moving averages in `L²` (`SquareSummableRG.two_covInf_eq_of_sq`,
+  `SurplusRegressionL2.two_covL2_eq_kms`, `SurplusRegressionL2.regL2_pos_iff`), and the surplus
+  `∑ε_{t−k}/k`, not absolutely summable, has a positive coefficient
+  (`SurplusRegressionL2.coinZ_harmonic_regL2_pos`). With Granger causality defined by conditional
+  expectations on observed histories, debt Granger-causes exogenous news surpluses and not
+  conversely, as in the VAR version (`GrangerMeasure.debt_granger_causes_surplus`,
+  `GrangerMeasure.surplus_not_granger_cause_debt`, `GrangerMeasure.granger_matches_var`). Neither
+  result needs bounded shocks: with square-integrable martingale-difference shocks in any filtration
+  (`TidyR5ShockL2.ShockMDS2`), Theorem RG holds in `L²` (`TidyR5ShockL2.two_covL2_eq_kms`,
+  `TidyR5ShockL2.regL2_pos_iff`), normal shocks included (`TidyR5ShockL2.gaussZ_theoremRG`), and
+  debt Granger-causes the news surplus and not conversely
+  (`TidyR5GrangerL2.debt_granger_causes_surplus`, `TidyR5GrangerL2.surplus_not_granger_cause_debt`).
+  Past surpluses do not forecast from date 1 on (`TidyR5GrangerL2.forecast_own_succ`); at date 0
+  this needs `E[ε_0 | ε_{−1}] = 0`, which uncorrelated pre-sample shocks need not satisfy
+  (`TidyR5GrangerL2.Presample.forecast_own_zero_fails`). The Davig–Leeper theorem holds on a genuine
+  Markov chain built from i.i.d. uniforms, in which every path has probability zero
+  (`MarkovRegimesMeasure.meas_determinate_iff`, `MarkovRegimesMeasure.chain_determinate_iff`,
+  `MarkovRegimesMeasure.chain_singleton_null`). The `N`-regime, any-sign theorem holds in any
+  `MeasExpectationSystem` carrying an `N`-state Markov regime and on a genuine `N`-state chain built
+  from i.i.d. uniforms by inverse-CDF sampling (`MarkovRegimesGeneralMeasure.meas_determinate_iff`,
+  `MarkovRegimesGeneralMeasure.chainN_determinate_iff`). Without assuming every regime possible at
+  date 0, the exact condition counts only reachable regimes: `φ_i ≠ 0` on them and the spectral
+  radius of `|Φ|⁻¹P` with the unreachable rows set to zero below one
+  (`MarkovRegimesReach.meas_determinate_iff_reach`). A zero coefficient first reached at date `t₀`
+  gives a finite-horizon "peg-date" sunspot on the regime history alone
+  (`MarkovRegimesReach.pegSunspot_solves`), so determinacy is the same in the filtration generated
+  by the regimes (`MarkovRegimesReach.determinate_filtration_invariant`); a chain that never reaches
+  its `φ = 0` regime is determinate though the regime tree is not
+  (`MarkovRegimesReach.chain_unreachable_zero_determinate`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -132,7 +244,18 @@ the printed text precise. The main corrections are the confirmed errors of the c
 In addition, the formalisation shows that the regime boundary depends on the equilibrium
 criterion, that the boundary `|φ| = 1` is neither determinate nor indeterminate, that region (b)
 needs bounded inherited debt, and that an exact present-value identity in a VAR needs singular
-shocks.
+shocks. Deriving the money model of p. 495 from the household problem shows that when money pays
+interest optimisation gives only `MV ≥ Py`, with `MV = Py` derived only where money is costly to
+hold (`TidyR6MoneyHouseholdEqm.money_pays_interest`), and that the imposed equations of
+pp. 495–496 miss the restriction `ι_t = Q^m_t − Q_t ≥ 0`, the zero bound for cash
+(`TidyR6MoneyHouseholdEqm.negative_spread_not_derived`). It also corrects the Davig–Leeper formula as this project first restated it
+(`MarkovRegimes.DLCondition`): it characterises determinacy only for `φ_i > 0`, and with `N`
+regimes the right matrix is `|Φ|⁻¹P`, not `Φ⁻¹P`; and with `N` regimes and mixed signs the
+Markov property alone gives no analogue of `MarkovRegimes.abstract_homog_nonzero`
+(`TidyR6MarkovAbstractN.markov_only_nonzero_fails`). Finally, the date-0 claim "past surpluses do
+not forecast" of `GrangerMeasure.forecast_own` does not extend from the i.i.d. economy to a
+general martingale-difference system (`TidyR5GrangerL2.Presample.forecast_own_zero_fails`; see
+[corrections](docs/corrections.md)).
 
 Not formalised:
 * the verbal and empirical parts of Chapter 22: §§22.2.1–22.2.3 beyond the recipe, narrative
@@ -144,19 +267,37 @@ Not formalised:
   the label swap in Beck-Friis–Willems (p. 525, E15) and the two-currency results (p. 527);
 * Online Appendix §§2.1.1–2.1.6 and the permanent-transitory model of §2.4 (pp. 607–611), which
   belong to the `DebtDeficitsInflation` project;
-* Theorem RG for square-summable but not absolutely summable moving averages: the covariance is an
-  abstract bilinear form with no `L²` structure to control the Toeplitz operator;
-* covariances as genuine probability covariances: they are a symmetric bilinear form for which the
-  shocks are orthonormal, and the model that shows the hypotheses consistent
-  (`SurplusRegression.truncSystem`) is certainty-equivalent;
-* Markov switching with more than two regimes, with `φ_i ≤ 0`, or with a non-degenerate chain in
-  an abstract `ExpectationSystem` (no pointwise-linear expectation carries one; the abstract
-  results are stated for any system that does);
-* region (d) sunspot families in the unstarred model at `|φ| = 1` (they exist exactly when the
-  monetary equation has a bounded solution, `LeeperRegions.region_d_of_solution`);
-* the money model under uncertainty: OE-2 is proved under perfect foresight, as in the book;
-* the household problems behind the Fisher equation, the flow condition and `MV = Py`: all are
-  imposed as equilibrium conditions.
+* a non-degenerate model of the abstract `N`-regime theorems: Markov-only uniqueness
+  (`TidyR6MarkovAbstractN.absN_unique`), the dichotomy and determinacy under `HistMarkovN`
+  (`TidyR6MarkovAbstractN.hist_dichotomy`, `TidyR6MarkovAbstractN.hist_determinate_iff`) and
+  pull-out determinacy for every bounded adapted disturbance
+  (`TidyR6MarkovPullOut.pullOut_determinate_iff`) hold, but with non-degenerate `P` and a known
+  regime none has a constructible model (the Markov-only theorems have one only with a regime that
+  is not known, `TidyR6MarkovAbstractN.avgSystem`): forecasts are atomless, never finitely
+  supported, and no countable state space works (`TidyR6MarkovInstances.histMarkov_no_atoms`,
+  `TidyR6MarkovInstances.pullOut_no_atoms`, `TidyR6MarkovNoGo.not_pointwiseLinear`,
+  `TidyR6MarkovNoGo.countable_no_regime`, `TidyR6MarkovNoGo.countable_no_histMarkov`). An
+  uncountable model is believed to need large cardinals; this is not formalised. The theorems are
+  instantiated on deterministic chains (`TidyR6MarkovInstances`), and the substantive
+  non-degenerate results are `MarkovRegimesGeneral.determinate_iff` and
+  `MarkovRegimesGeneralMeasure.meas_determinate_iff`. There is no counterexample showing that
+  existence fails without pull-out;
+* the boundary `|φ| = 1` in a core `ExpectationSystem` on an uncountable state space whose
+  forecasts `E_t(·)(ω)` are not finitely supported and in which information keeps arriving. There
+  only necessity (`TidyR5UnitRoot.condBdd_of_sol`) and sufficiency from bounded realised sums
+  (`TidyR5UnitRoot.sol_of_pathBdd`) are proved, not the iff in the conditional sums. This is a
+  foundational limit: a countably complete nonprincipal ultrafilter on `Ω`, which exists exactly
+  when `|Ω|` is at least a measurable cardinal, gives a core forecast that is not finitely
+  supported, and the compactness argument of `TidyR5UnitRootCompact` needs finite support.
+  Neither ZFC nor Lean's type theory can prove that measurable cardinals exist, nor, if they are
+  consistent, refute it. Every genuine probability space is covered
+  (`TidyR5UnitRootMeasure.exists_iff_condBddM`, `TidyR5LeeperMeasure.leeperM_unit_iff`); the
+  module docstring of `TidyR5LeeperMeasure` gives the argument;
+* for the household problem behind the money model (`TidyR6MoneyHousehold` onward), a household
+  with concave utility and a random endowment: it would give the `Λ`-weighted model, discounting
+  at `βʲu′(y_{t+j})/u′(y_t)`, not the chapter's `βʲ`, so the household is risk neutral; and the
+  cash-in-advance timing of §19.5 with `V ≠ 1`, which puts a velocity wedge into the Fisher
+  equation and is treated in the `Monetarism` project instead.
 
 ## Library map
 
@@ -181,6 +322,34 @@ Not formalised:
 | [AssetPricingOE](ObservationalEquivalence/AssetPricingOE.lean) | 11 | §22.2.4: rational and behavioural pricing, the risk-neutral measure, the finite-state FTAP |
 | [MarkovRegimes](ObservationalEquivalence/MarkovRegimes.lean) | 27 | §24.2: Davig–Leeper Markov switching, determinacy iff the long-run Taylor principle, examples |
 | [Links](ObservationalEquivalence/Links.lean) | 20 | Agreement between the two halves of the project; OE-2 with OE-1; links to Woodford Prop. 4.11 |
+| [ExpectationsMeasure](ObservationalEquivalence/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, built here and copied to the other projects): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](ObservationalEquivalence/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core, built here): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [ExpectationsMeasureIIDZ](ObservationalEquivalence/ExpectationsMeasureIIDZ.lean) | 17 | p. 501: the i.i.d. economy on `ℤ → ℝ` under `ν^ℤ`, with the whole past known at date 0; independence, `E[ε_jε_k] = σ²1{j = k}` |
+| [SurplusRegressionMeasure](ObservationalEquivalence/SurplusRegressionMeasure.lean) | 44 | p. 501, §24.1, A2 pp. 593, 602, 604: Theorem RG with genuine covariances for martingale-difference shocks, the link to the abstract version, the coin economy |
+| [GrangerMeasure](ObservationalEquivalence/GrangerMeasure.lean) | 17 | p. 501 footnote 1, pp. 501–502: Granger causality with genuine conditional expectations; debt causes exogenous news surpluses |
+| [MarkovRegimesMeasure](ObservationalEquivalence/MarkovRegimesMeasure.lean) | 35 | §24.2: Davig–Leeper determinacy on a probability space; a genuine Markov chain from i.i.d. uniforms |
+| [SquareSummableRG](ObservationalEquivalence/SquareSummableRG.lean) | 26 | p. 501, §24.1: the coefficient identities of Theorem RG for square-summable moving averages; the Kac–Murdock–Szegő form on `ℓ²` |
+| [SurplusRegressionL2](ObservationalEquivalence/SurplusRegressionL2.lean) | 29 | p. 501, §24.1: Theorem RG in `L²` for square-summable moving averages; `E_t` as Mathlib's `condExpL2`; the harmonic surplus |
+| [MarkovRegimesGeneral](ObservationalEquivalence/MarkovRegimesGeneral.lean) | 44 | §24.2: Davig–Leeper for `N` regimes and coefficients of any sign on the regime tree; spectral radius of `\|Φ\|⁻¹P`, zero coefficients, the corrected two-regime formula, the naive condition, i.i.d. regimes |
+| [MarkovRegimesGeneralMeasure](ObservationalEquivalence/MarkovRegimesGeneralMeasure.lean) | 48 | §24.2: the `N`-regime, any-sign theorem in any `MeasExpectationSystem`; a genuine `N`-state chain from i.i.d. uniforms by inverse-CDF sampling; examples |
+| [MarkovRegimesReach](ObservationalEquivalence/MarkovRegimesReach.lean) | 38 | §24.2: the exact condition on reachable regimes, the peg-date sunspot, the regime-only filtration, the law `p_t = p_0Pᵗ`, the chain with any initial distribution |
+| [TidyR5MoneyUncertainty](ObservationalEquivalence/TidyR5MoneyUncertainty.lean) | 17 | §22.1, §22.7: the money model in any `ExpectationSystem`; the flow constraint with the bond price, OE-2, fiscal and money news, inconsistent policies, a random equilibrium on the coin tree |
+| [TidyR5UnitRoot](ObservationalEquivalence/TidyR5UnitRoot.lean) | 39 | §22.7, (23.1)–(23.2): the monetary equation at `φ² = 1`; necessity, realised-sum sufficiency, the iff when information stops arriving or the disturbance is known; the Leeper dichotomy; `φ = ±1` counterexamples |
+| [TidyR5UnitRootCompact](ObservationalEquivalence/TidyR5UnitRootCompact.lean) | 10 | §22.7: the iff for finitely supported forecasts by Tychonoff, hence on every countable state space |
+| [TidyR5UnitRootMeasure](ObservationalEquivalence/TidyR5UnitRootMeasure.lean) | 31 | §22.7: the iff on any probability space via nested closed convex sets in `ℓ²(ℕ; L²(P))`; realised sums not necessary (coin random walk) |
+| [TidyR5ShockL2](ObservationalEquivalence/TidyR5ShockL2.lean) | 36 | p. 501, §24.1, A2 p. 593: Theorem RG with square-integrable martingale-difference shocks (`ShockMDS2`); links to the bounded case; i.i.d. and normal shocks |
+| [TidyR5GrangerL2](ObservationalEquivalence/TidyR5GrangerL2.lean) | 38 | p. 501 footnote 1, pp. 501–502: Granger causality in any filtration with `ShockMDS2` shocks; the date-0 own-forecast counterexample |
+| [TidyR5MoneyMeasure](ObservationalEquivalence/TidyR5MoneyMeasure.lean) | 14 | §22.1, §22.7: the money model on any probability space, a.s.; OE-2, news, inconsistent policies, the coin economy |
+| [TidyR5LeeperMeasure](ObservationalEquivalence/TidyR5LeeperMeasure.lean) | 13 | (22.3)–(22.6), §22.7, (23.1)–(23.4): the Leeper model on any probability space; existence iff a bounded solution, the `φ² = 1` characterisation and dichotomy, region (d); the foundational limit of the core version |
+| [TidyR6MoneyHousehold](ObservationalEquivalence/TidyR6MoneyHousehold.lean) | 41 | §22.1, (3.9), §19.3, (19.24)–(19.28): the risk-neutral household with money on any probability space; the reallocation inequality, the bond and money first-order conditions, necessity of the transversality condition, sufficiency, `optimal_iff_foc` |
+| [TidyR6MoneyHouseholdEqm](ObservationalEquivalence/TidyR6MoneyHouseholdEqm.lean) | 21 | §22.1, (3.10): derived equilibria; the flow and valuation equations from the budget; derived iff imposed, and iff the Fisher equation plus `EqmM` when money is costly; money paying interest and the negative spread (corrections); random derived equilibria |
+| [TidyR6MoneyHouseholdTree](ObservationalEquivalence/TidyR6MoneyHouseholdTree.lean) | 17 | §22.1, (22.2): the derivation on every finite tree (`TidyR5MoneyUncertainty.Eqm`) and under perfect foresight (`MoneyRegimes.Eqm`); the exact linear model under perfect foresight; the coin tree |
+| [TidyR6MoneyHouseholdFlowLin](ObservationalEquivalence/TidyR6MoneyHouseholdFlowLin.lean) | 16 | (22.2), (3.17), Online Appendix (1.9)–(1.13): both halves of (22.2) from the derived model with explicit remainders `9δ²` and `2η² + ρδ_v²`; linearisation steps restated from `AssetsRulesBalanceSheets` |
+| [TidyR6MoneyHouseholdLinear](ObservationalEquivalence/TidyR6MoneyHouseholdLinear.lean) | 6 | (22.2), (16.25): the derived bond-pricing condition in logs; the Fisher equation as its exact Gateaux derivative |
+| [TidyR6MarkovAbstractN](ObservationalEquivalence/TidyR6MarkovAbstractN.lean) | 21 | §24.2: `N`-regime Markov switching in any `ExpectationSystem`; uniqueness for any signs from the Markov property, non-uniqueness when the naive condition fails, the `φ_i > 0` dichotomy, the two-regime results recovered; the Markov property does not give any-sign non-uniqueness (correction); the tree hypothesis `HistMarkovN`, its dichotomy and determinacy |
+| [TidyR6MarkovNoGo](ObservationalEquivalence/TidyR6MarkovNoGo.lean) | 17 | §24.2: no pointwise-linear forecast carries a known non-degenerate Markov regime; every forecast on a countable state space is pointwise-linear, so no countable model; the known-regime hypothesis is needed |
+| [TidyR6MarkovPullOut](ObservationalEquivalence/TidyR6MarkovPullOut.lean) | 18 | §24.2: with pull-out and a known Markov regime, the forward solution, the sign-twisted sunspot, and determinacy for every bounded adapted disturbance |
+| [TidyR6MarkovInstances](ObservationalEquivalence/TidyR6MarkovInstances.lean) | 17 | §24.2: deterministic chains under full information as models of the abstract theorems; the absorbing chain and examples; non-degenerate transitions force atomless forecasts |
 
 ## Modelling conventions
 
@@ -192,6 +361,23 @@ Not formalised:
   instances; the coin-flip tree (`ExpectationsFiniteTree.coinSystem`) makes the sunspot and
   non-existence examples genuinely random. The innovation `ΔE_{t+1} = E_{t+1} − E_t` is the
   linear map `ExpectationTools.innov`.
+* **Measure-theoretic expectations.** The core `ExpectationSystem` is kept unchanged, and every
+  result stated for it still holds. On a countable `Ω` it forces finitely supported forecasts, so
+  it cannot carry an infinite-horizon model with nondegenerate shocks. `ExpectationsMeasure`, built
+  in this project and copied to the others, adds alongside it a probability space with a filtration
+  (`ExpectationsMeasure.MeasExpectationSystem`): `E_t` is Mathlib's `condExp`, variables are
+  bounded measurable functions and processes (`BddRV`, `BddProc`, Mathlib's `StronglyAdapted`), and
+  equations hold almost everywhere. The bridge is additive and runs both ways: a finite event tree
+  is a measure system with the same `E_t` at every state
+  (`ExpectationsMeasure.TreeBridge.treeSystem_E`), and a measure system on a finite discrete state
+  space with full support is a core system with the pull-out property
+  (`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem`,
+  `ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`). The genuine instances
+  are the i.i.d. economies on `ℕ → ℝ` under `ν^ℕ` (`ExpectationsMeasureIID.iidSystem`, every
+  history null by `ExpectationsMeasureIID.iid_not_finitely_supported`) and on `ℤ → ℝ` under `ν^ℤ`
+  with the whole past known at date 0 (`ExpectationsMeasureIIDZ.iidZSystem`), which carries the
+  stationary moving averages. Moving averages with square-summable coefficients live in `L²`
+  (`SurplusRegressionL2.maL2`), where `E_t` is Mathlib's `condExpL2` (`SurplusRegressionL2.proj`).
 * **The starred model.** A path is `StarredModel.Outcome` `(π, i, v, s̃)`. The target obeys the
   Fisher equation and the flow condition (`StarredModel.Consistent`), and its debt is driven by
   the target surplus `s̃*_{t+1} = αv*_t + u_{s,t+1}` (`StarredModel.StarredSurplus`). The printed
@@ -217,27 +403,49 @@ Not formalised:
   variables for which the shocks are orthonormal (`MACovariance.WhiteNoise`); the shocks are a
   martingale difference sequence for the agents (`SurplusRegression.ShockInfo`). Every `L²` model
   is an instance, and `SurplusRegression.truncSystem` with `SurplusRegression.truncCov` satisfies
-  all the hypotheses with nonzero bounded shocks.
+  all the hypotheses with nonzero bounded shocks. Genuine covariances are Mathlib's `covariance`
+  for shocks satisfying `SurplusRegressionMeasure.ShockMDS`; they are `σ²` times the abstract ones
+  (`SurplusRegressionMeasure.covM_finite_eq_abstract`).
 * **VARs.** `z_{t+1} = Az_t + ε_{t+1}` with `E_tε_{t+1} = 0` (`Granger.IsVAR`,
   `Granger.ShockMDS`); stability is geometric decay of the powers of `A`
   (`PresentValueIdentity.PowDecay`), implied by eigenvalues in the open unit disc
   (`PresentValueIdentity.powDecay_of_eigs`).
 * **The money model.** Deterministic sequences under perfect foresight, as in the book, with
   `W_t = B_{t−1} + M_{t−1}`, positive velocity and output, bounded surpluses and `0 ≤ β < 1`
-  (`MoneyRegimes.Eqm`).
+  (`MoneyRegimes.Eqm`). Under uncertainty the same model is stated state by state in any
+  `ExpectationSystem` (`TidyR5MoneyUncertainty.Eqm`, which reduces to `MoneyRegimes.Eqm` under
+  perfect foresight by `TidyR5MoneyUncertainty.eqm_perfectForesight_iff`) and almost surely on a
+  probability space (`TidyR5MoneyMeasure.EqmM`). These conditions are imposed there and derived
+  from a risk-neutral household's optimisation in `TidyR6MoneyHousehold`: a derived equilibrium
+  (`TidyR6MoneyHouseholdEqm.DerivedEqm`) is a price system at which consuming the endowment and
+  holding the government's bonds and money is optimal, and its surplus is the
+  seigniorage-inclusive `TidyR6MoneyHouseholdEqm.sbar`.
 * **Markov switching.** All uncertainty comes from the regimes, so a process is a function of the
   regime history (`MarkovRegimes.Node`) and bounded means bounded over all histories
   (`MarkovRegimes.BoundedFn`). The same uniqueness dichotomy is proved for any `ExpectationSystem`
-  carrying a Markov regime process (`MarkovRegimes.MarkovRegime`).
+  carrying a Markov regime process (`MarkovRegimes.MarkovRegime`), and, with a.e. statements, for
+  any `MeasExpectationSystem` carrying one (`MarkovRegimesMeasure.MeasMarkovRegime`), such as the
+  chain `MarkovRegimesMeasure.chainRegime`, where bounded means essentially bounded. With `N`
+  regimes the transition matrix is `MarkovRegimesGeneral.TransitionN`, the regime tree
+  `MarkovRegimesGeneral.NodeN`, the measure version `MarkovRegimesGeneralMeasure.MeasMarkovRegimeN`,
+  and in an abstract `ExpectationSystem` the regime `TidyR6MarkovAbstractN.MarkovRegimeN` and the
+  tree hypothesis `TidyR6MarkovAbstractN.HistMarkovN`;
+  spectral radii are Mathlib's `spectralRadius ℂ` of the matrix viewed over `ℂ`
+  (`MarkovRegimesGeneral.specRad`).
 * **Explicit hypotheses.** Bounded adapted disturbances, `0 < ρ < 1` (or `|ρ| < 1`, or `ρ ≠ 0`,
   as each proof needs), bounded inherited debt in region (b), absolute summability of
-  infinite moving averages and `φ_i > 0` for Markov switching are stated in each theorem.
+  infinite moving averages (square summability in `SquareSummableRG` and `SurplusRegressionL2`),
+  essentially bounded shocks in the measure-theoretic modules (square-integrable ones in
+  `TidyR5ShockL2` and `TidyR5GrangerL2`), and `φ_i > 0` for two-regime Markov
+  switching (`φ_i ≠ 0` with `N` regimes), with every regime of positive probability at date 0 on a
+  probability space unless the reachable-regime theorem is used, are stated in each theorem.
 
 ## Relation to the Woodford projects
 
 The shared core (`Determinacy`, `Expectations`, `ExpectationsFiniteTree`, `ForwardSolution`) is
 restated from the Woodford projects, so the project builds on its own. Nothing is imported from
-those projects. Two further blocks are restated from the Woodford Chapter 4 project
+those projects. The measure-theoretic core (`ExpectationsMeasure`, `ExpectationsMeasureIID`) goes
+the other way: it was built here and copied, with the namespace renamed, into the other projects. Two further blocks are restated from the Woodford Chapter 4 project
 (`NeoWicksellianFramework`), and their docstrings say so:
 * `FiscalRec`, from its `Fiscal` and `BlanchardKahn` modules: Woodford's (4.2), (4.4) and (4.5)
   (`FiscalRec.Debt42`, `FiscalRec.Tax44`, `FiscalRec.Debt45`, `FiscalRec.debt42_iff_45`), the

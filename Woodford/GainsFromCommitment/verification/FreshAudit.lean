@@ -28,6 +28,49 @@ import Mathlib.LinearAlgebra.Matrix.Charpoly.Eigs
 import Mathlib.LinearAlgebra.Matrix.ToLinearEquiv
 import Mathlib.Analysis.Complex.Polynomial.Basic
 import Mathlib.Analysis.SpecialFunctions.Sqrt
+import Mathlib.MeasureTheory.Function.ConditionalExpectation.PullOut
+import Mathlib.MeasureTheory.Function.ConditionalExpectation.Real
+import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+import Mathlib.Probability.Process.Filtration
+import Mathlib.Probability.Process.Adapted
+import Mathlib.Probability.CondVar
+import Mathlib.Probability.ProductMeasure
+import Mathlib.Probability.Independence.InfinitePi
+import Mathlib.Probability.ConditionalExpectation
+import Mathlib.MeasureTheory.Measure.Lebesgue.Basic
+import Mathlib.MeasureTheory.Measure.Prod
+import Mathlib.Algebra.Polynomial.Roots
+import Mathlib.LinearAlgebra.Matrix.Notation
+import Mathlib.Analysis.Normed.Ring.InfiniteSum
+import Mathlib.Algebra.BigOperators.Option
+import Mathlib.Analysis.Asymptotics.Lemmas
+import Mathlib.Analysis.Asymptotics.Prod
+import Mathlib.Analysis.Calculus.ContDiff.Comp
+import Mathlib.Analysis.Calculus.ContDiff.Deriv
+import Mathlib.Analysis.Calculus.Deriv.Comp
+import Mathlib.Analysis.Calculus.Deriv.Inv
+import Mathlib.Analysis.Calculus.Deriv.MeanValue
+import Mathlib.Analysis.Calculus.Deriv.Prod
+import Mathlib.Analysis.Calculus.FDeriv.CompCLM
+import Mathlib.Analysis.Calculus.FDeriv.Prod
+import Mathlib.Analysis.Calculus.InverseFunctionTheorem.Deriv
+import Mathlib.Analysis.Calculus.MeanValue
+import Mathlib.Analysis.Calculus.TangentCone.Real
+import Mathlib.Analysis.Calculus.Taylor
+import Mathlib.Analysis.Complex.Exponential
+import Mathlib.Analysis.MeanInequalities
+import Mathlib.Analysis.Normed.Module.FiniteDimension
+import Mathlib.Analysis.Normed.Operator.Asymptotics
+import Mathlib.Analysis.Normed.Operator.Bilinear
+import Mathlib.Analysis.SpecialFunctions.ExpDeriv
+import Mathlib.Analysis.SpecialFunctions.Exponential
+import Mathlib.Analysis.SpecialFunctions.Log.Deriv
+import Mathlib.Analysis.SpecialFunctions.Pow.Deriv
+import Mathlib.MeasureTheory.Integral.Bochner.Set
+import Mathlib.MeasureTheory.Integral.Bochner.SumMeasure
+import Mathlib.MeasureTheory.Integral.IntegrableOn
+import Mathlib.Probability.Moments.Variance
+import Mathlib.Topology.Order.Compact
 set_option autoImplicit false
 
 /-
@@ -21601,6 +21644,16306 @@ theorem zero_gap_unique_faithful (hf : TargetingRule.Faithful 𝔼) {β lam : �
 
 end Woodford.GainsFromCommitment.Links
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Measure-theoretic conditional expectations
+
+Cochrane (2023), Ch. 2, §2.3–2.4, pp. 29–30 (expectations `E_t`, the news operator
+`ΔE_{t+1} = E_{t+1} − E_t` of eq. (2.13), forward-looking present values) and §2.7, p. 42 (AR(1)
+surpluses). The core `ExpectationSystem` defines `E_t` on **all** functions `Ω → ℝ` with exact
+equalities; on a countable `Ω` this forces finitely supported forecasts (proved in the Woodford
+Chapter 2 project, `SGUStochasticMeasure.expectationSystem_finite_support`), so no genuine
+infinite-horizon model with nondegenerate shocks fits it. This module is an **additive bridge**:
+a probability space with a filtration and Mathlib's `condExp`, with every property stated in its
+almost-everywhere form. Existing core theorems are untouched.
+
+## How to use (API)
+
+* `MeasExpectationSystem Ω` (fields `P : ProbabilityMeasure Ω`, `𝓕 : Filtration ℕ _`);
+  `S.μ` the measure, `S.E t x = S.μ[x | S.𝓕 t]`.
+* Carriers: plain functions `Ω → ℝ` and processes `ℕ → Ω → ℝ`; `S.BddRV x` (a.e. measurable,
+  essentially bounded; closed under `add`, `sub`, `smul`, `mul`, `sq`, `E`; `.integrable`),
+  `S.BddProc x` (uniform essential bound), Mathlib's `StronglyAdapted S.𝓕 x` (adapted).
+* Axioms (a.e.): `E_add`, `E_sub`, `E_smul`, `E_const` (exact), `E_zero`, `E_mono`, `E_tower`,
+  `E_known` (exact), `E_E_self`, `E_of_stronglyMeasurable` (exact), `E_of_aestronglyMeasurable`,
+  `E_congr`, `E_pullOut`, `abs_E_le`, `integral_E`, `stronglyMeasurable_E`, `integrable_E`.
+* News: `innov t x = ΔE_{t+1} x`, `E_innov` (martingale difference), `E_mul_innov`,
+  `E_sub_E_eq_sum_innov`, `eq_E_add_innov`.
+* Series: `E_hasSum` (`E_t` through a dominated `tsum`).
+* Forward equation `z_t = a E_t z_{t+1} + u_t` (`Solves`): `forwardSol` (with `forwardSol_hasSum`:
+  it is `∑ aᵏ E_t u_{t+k}`), `forwardSol_solves`, `forward_unique`, `existsUnique_forward`;
+  for `|a| ≥ 1`: `sunspot`, `sunspot_solves`, `not_unique_of_one_le`, `sunspot_not_predictable`;
+  criteria `unique_iff`, `existsUnique_iff`.
+* AR(1) with martingale-difference shocks: `ar1_E`, `ar1_E_sq_dev`, `ar1_condVar`,
+  `ar1_condVar_closed`.
+* Bridges: `toExpectationSystem` (finite discrete full-support `Ω` → core system, with
+  `toExpectationSystem_E`, `toExpectationSystem_pullOut`) and `TreeBridge.treeSystem` (core
+  `FiniteTree` → measure system, `TreeBridge.treeSystem_E`: `E_t` equals the cell average at every
+  state, `TreeBridge.treeSystem_toExpectationSystem_E`: round trip).
+
+The genuine infinite-horizon instance (i.i.d. shocks on `ℕ → ℝ`) is `ExpectationsMeasureIID`.
+To copy into another project: rename the namespace prefix and the `import` of
+`ExpectationsFiniteTree`; the module uses the core only through `ExpectationSystem`,
+`ExpectationSystem.PullOut`, `ExpectationsFiniteTree.FiniteTree` and its `condE`,
+`condE_of_trivial`, `condE_tower`, `condE_congr`, `condE_of_const_on_cell`,
+`toExpectationSystem_E`, `finiteTree_pullOut`.
+-/
+
+namespace Woodford.GainsFromCommitment.ExpectationsMeasure
+
+open MeasureTheory ProbabilityTheory Filter Topology
+
+variable (Ω : Type*) [mΩ : MeasurableSpace Ω]
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30 (the conditional expectations `E_t`): a probability space
+`(Ω, P)` with a filtration `𝓕 : ℕ → MeasurableSpace Ω`; `E_t x := P[x | 𝓕 t]`. -/
+structure MeasExpectationSystem where
+  /-- The probability measure. -/
+  P : ProbabilityMeasure Ω
+  /-- The information available at each date. -/
+  𝓕 : Filtration ℕ mΩ
+
+namespace MeasExpectationSystem
+
+variable {Ω} (S : MeasExpectationSystem Ω)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the probability measure as a measure. -/
+abbrev μ : Measure Ω := S.P
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x = μ[x | 𝓕 t]`, Mathlib's conditional expectation. -/
+noncomputable abbrev E (t : ℕ) (x : Ω → ℝ) : Ω → ℝ := S.μ[x | S.𝓕 t]
+
+/-- Cochrane (2023), Ch. 2, p. 29: a bounded random variable (a.e. strongly measurable and
+essentially bounded). -/
+def BddRV (x : Ω → ℝ) : Prop := AEStronglyMeasurable x S.μ ∧ ∃ M, ∀ᵐ ω ∂S.μ, |x ω| ≤ M
+
+/-- Cochrane (2023), Ch. 2, p. 29: a uniformly (essentially) bounded process. -/
+def BddProc (x : ℕ → Ω → ℝ) : Prop := ∃ M, ∀ t, ∀ᵐ ω ∂S.μ, |x t ω| ≤ M
+
+/-- Cochrane (2023), Ch. 2, p. 29: a bounded random variable is integrable. -/
+theorem BddRV.integrable {S : MeasExpectationSystem Ω}
+    {x : Ω → ℝ} (hx : S.BddRV x) : Integrable x S.μ := by
+  obtain ⟨hm, M, hM⟩ := hx
+  exact Integrable.of_bound hm M (hM.mono fun ω h => by rwa [Real.norm_eq_abs])
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is additive (a.e.). -/
+theorem E_add {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ) (t : ℕ) :
+    S.E t (x + y) =ᵐ[S.μ] S.E t x + S.E t y := condExp_add hx hy _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` commutes with differences (a.e.). -/
+theorem E_sub {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ) (t : ℕ) :
+    S.E t (x - y) =ᵐ[S.μ] S.E t x - S.E t y := condExp_sub hx hy _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is homogeneous (a.e.). -/
+theorem E_smul (c : ℝ) (x : Ω → ℝ) (t : ℕ) : S.E t (c • x) =ᵐ[S.μ] c • S.E t x :=
+  condExp_smul c x _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: constants are known (exactly). -/
+theorem E_const (t : ℕ) (c : ℝ) : S.E t (fun _ => c) = fun _ => c :=
+  condExp_const (S.𝓕.le t) c
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t 0 = 0`. -/
+theorem E_zero (t : ℕ) : S.E t 0 = 0 := condExp_zero
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is monotone (a.e.). -/
+theorem E_mono {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ)
+    (hxy : x ≤ᵐ[S.μ] y) (t : ℕ) : S.E t x ≤ᵐ[S.μ] S.E t y := condExp_mono hx hy hxy
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the law of iterated expectations `E_s E_t = E_s`, `s ≤ t`
+(a.e.). -/
+theorem E_tower {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E s (S.E t x) =ᵐ[S.μ] S.E s x :=
+  condExp_condExp_of_le (S.𝓕.mono hst) (S.𝓕.le t)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x` is `𝓕 t`-strongly measurable. -/
+theorem stronglyMeasurable_E (t : ℕ) (x : Ω → ℝ) : StronglyMeasurable[S.𝓕 t] (S.E t x) :=
+  stronglyMeasurable_condExp
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x` is integrable. -/
+theorem integrable_E (t : ℕ) (x : Ω → ℝ) : Integrable (S.E t x) S.μ := integrable_condExp
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: what is known at `t` is its own forecast (exactly). -/
+theorem E_of_stronglyMeasurable {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 t] x)
+    (hi : Integrable x S.μ) : S.E t x = x :=
+  condExp_of_stronglyMeasurable (S.𝓕.le t) hx hi
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: what is a.e. known at `t` is a.e. its own forecast. -/
+theorem E_of_aestronglyMeasurable {t : ℕ} {x : Ω → ℝ} (hx : AEStronglyMeasurable[S.𝓕 t] x S.μ)
+    (hi : Integrable x S.μ) : S.E t x =ᵐ[S.μ] x :=
+  condExp_of_aestronglyMeasurable' (S.𝓕.le t) hx hi
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: earlier forecasts are known later, `E_t E_s = E_s` for
+`s ≤ t` (exactly). -/
+theorem E_known {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E t (S.E s x) = S.E s x :=
+  S.E_of_stronglyMeasurable ((S.stronglyMeasurable_E s x).mono (S.𝓕.mono hst))
+    (S.integrable_E s x)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is idempotent (exactly). -/
+theorem E_E_self (t : ℕ) (x : Ω → ℝ) : S.E t (S.E t x) = S.E t x := S.E_known le_rfl x
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` respects a.e. equality. -/
+theorem E_congr {x y : Ω → ℝ} (h : x =ᵐ[S.μ] y) (t : ℕ) : S.E t x =ᵐ[S.μ] S.E t y :=
+  condExp_congr_ae h
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the unconditional mean of a forecast is the mean. -/
+theorem integral_E (t : ℕ) (x : Ω → ℝ) : ∫ ω, S.E t x ω ∂S.μ = ∫ ω, x ω ∂S.μ :=
+  integral_condExp (S.𝓕.le t)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: **pull-out** — a bounded factor known at `t` comes out of
+`E_t` (a.e.). -/
+theorem E_pullOut {t : ℕ} {f y : Ω → ℝ} (hf : StronglyMeasurable[S.𝓕 t] f) {C : ℝ}
+    (hfC : ∀ᵐ ω ∂S.μ, |f ω| ≤ C) (hy : Integrable y S.μ) :
+    S.E t (f * y) =ᵐ[S.μ] f * S.E t y := by
+  have hint : Integrable (f * y) S.μ :=
+    hy.bdd_mul (hf.mono (S.𝓕.le t)).aestronglyMeasurable
+      (hfC.mono fun ω h => by rwa [Real.norm_eq_abs])
+  exact condExp_mul_of_stronglyMeasurable_left hf hint hy
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `|E_t x| ≤ M` a.e. whenever `|x| ≤ M` a.e. -/
+theorem abs_E_le {x : Ω → ℝ} {M : ℝ} (hx : ∀ᵐ ω ∂S.μ, |x ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, |S.E t x ω| ≤ M :=
+  ae_bdd_abs_condExp_of_ae_bdd_abs hx
+
+/-! ### Bounded random variables -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: a variable known at `t` with an a.e. bound is bounded. -/
+theorem BddRV.of_stronglyMeasurable {S : MeasExpectationSystem Ω}
+    {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 t] x)
+    {M : ℝ} (hM : ∀ᵐ ω ∂S.μ, |x ω| ≤ M) : S.BddRV x :=
+  ⟨(hx.mono (S.𝓕.le t)).aestronglyMeasurable, M, hM⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: constants are bounded. -/
+theorem BddRV.const {S : MeasExpectationSystem Ω} (c : ℝ) : S.BddRV (fun _ => c) :=
+  ⟨aestronglyMeasurable_const, |c|, Eventually.of_forall fun _ => le_rfl⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: sums of bounded variables are bounded. -/
+theorem BddRV.add {S : MeasExpectationSystem Ω}
+    {x y : Ω → ℝ} (hx : S.BddRV x) (hy : S.BddRV y) : S.BddRV (x + y) := by
+  obtain ⟨hxm, M, hM⟩ := hx
+  obtain ⟨hym, N, hN⟩ := hy
+  refine ⟨hxm.add hym, M + N, ?_⟩
+  filter_upwards [hM, hN] with ω h1 h2
+  exact (abs_add_le _ _).trans (add_le_add h1 h2)
+
+/-- Cochrane (2023), Ch. 2, p. 29: multiples of bounded variables are bounded. -/
+theorem BddRV.smul {S : MeasExpectationSystem Ω}
+    {x : Ω → ℝ} (hx : S.BddRV x) (c : ℝ) : S.BddRV (c • x) := by
+  obtain ⟨hxm, M, hM⟩ := hx
+  refine ⟨hxm.const_smul c, |c| * M, ?_⟩
+  filter_upwards [hM] with ω h1
+  rw [Pi.smul_apply, smul_eq_mul, abs_mul]
+  exact mul_le_mul_of_nonneg_left h1 (abs_nonneg c)
+
+/-- Cochrane (2023), Ch. 2, p. 29: differences of bounded variables are bounded. -/
+theorem BddRV.sub {S : MeasExpectationSystem Ω}
+    {x y : Ω → ℝ} (hx : S.BddRV x) (hy : S.BddRV y) : S.BddRV (x - y) := by
+  have h := hx.add (hy.smul (-1))
+  rwa [neg_one_smul, ← sub_eq_add_neg] at h
+
+/-- Cochrane (2023), Ch. 2, p. 29: products of bounded variables are bounded. -/
+theorem BddRV.mul {S : MeasExpectationSystem Ω}
+    {x y : Ω → ℝ} (hx : S.BddRV x) (hy : S.BddRV y) : S.BddRV (x * y) := by
+  obtain ⟨hxm, M, hM⟩ := hx
+  obtain ⟨hym, N, hN⟩ := hy
+  refine ⟨hxm.mul hym, M * N, ?_⟩
+  filter_upwards [hM, hN] with ω h1 h2
+  rw [Pi.mul_apply, abs_mul]
+  exact mul_le_mul h1 h2 (abs_nonneg _) ((abs_nonneg _).trans h1)
+
+/-- Cochrane (2023), Ch. 2, p. 29: forecasts of bounded variables are bounded. -/
+theorem BddRV.E {S : MeasExpectationSystem Ω}
+    {x : Ω → ℝ} (hx : S.BddRV x) (t : ℕ) : S.BddRV (S.E t x) := by
+  obtain ⟨-, M, hM⟩ := hx
+  exact ⟨(S.integrable_E t x).aestronglyMeasurable, M, S.abs_E_le hM t⟩
+
+/-! ### Innovations (news) -/
+
+/-- Cochrane (2023), eq. (2.13), p. 30: the innovation `ΔE_{t+1} x = E_{t+1} x − E_t x`. -/
+noncomputable def innov (t : ℕ) (x : Ω → ℝ) : Ω → ℝ := S.E (t + 1) x - S.E t x
+
+/-- Cochrane (2023), eq. (2.13), p. 30: the innovation is known at `t + 1`. -/
+theorem stronglyMeasurable_innov (t : ℕ) (x : Ω → ℝ) :
+    StronglyMeasurable[S.𝓕 (t + 1)] (S.innov t x) :=
+  (S.stronglyMeasurable_E (t + 1) x).sub
+    ((S.stronglyMeasurable_E t x).mono (S.𝓕.mono (Nat.le_succ t)))
+
+/-- Cochrane (2023), eq. (2.13), p. 30: **innovations are martingale differences**,
+`E_s ΔE_{t+1} x = 0` a.e. for every `s ≤ t`. -/
+theorem E_innov {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E s (S.innov t x) =ᵐ[S.μ] 0 := by
+  filter_upwards [S.E_sub (S.integrable_E (t + 1) x) (S.integrable_E t x) s,
+    S.E_tower (hst.trans (Nat.le_succ t)) x, S.E_tower hst x] with ω h1 h2 h3
+  rw [innov, h1, Pi.sub_apply, h2, h3, sub_self, Pi.zero_apply]
+
+/-- Cochrane (2023), eq. (2.13), p. 30: news is uncorrelated with anything known before it,
+`E_t (w ΔE_{t+1} x) = 0` for bounded `w` known at `t` and bounded `x`. -/
+theorem E_mul_innov {t : ℕ} {w : Ω → ℝ} (hw : StronglyMeasurable[S.𝓕 t] w) {C : ℝ}
+    (hwC : ∀ᵐ ω ∂S.μ, |w ω| ≤ C) (x : Ω → ℝ) :
+    S.E t (w * S.innov t x) =ᵐ[S.μ] 0 := by
+  have hi : Integrable (S.innov t x) S.μ := (S.integrable_E _ x).sub (S.integrable_E _ x)
+  filter_upwards [S.E_pullOut hw hwC hi, S.E_innov le_rfl x] with ω h1 h2
+  rw [h1, Pi.mul_apply, h2]
+  simp
+
+/-- Cochrane (2023), eq. (2.13), p. 30: forecast revisions telescope into news,
+`E_{t+n} x − E_t x = ∑_{i<n} ΔE_{t+i+1} x` (exactly). -/
+theorem E_sub_E_eq_sum_innov (t n : ℕ) (x : Ω → ℝ) :
+    S.E (t + n) x - S.E t x = ∑ i ∈ Finset.range n, S.innov (t + i) x := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [Finset.sum_range_succ, ← ih, innov, ← add_assoc]
+    abel
+
+/-- Cochrane (2023), eq. (2.17), p. 35: a variable known at `t + 1` is its forecast plus its
+news, `x = E_t x + ΔE_{t+1} x` (exactly). -/
+theorem eq_E_add_innov {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 (t + 1)] x)
+    (hi : Integrable x S.μ) : x = S.E t x + S.innov t x := by
+  rw [innov, S.E_of_stronglyMeasurable hx hi]
+  abel
+
+/-! ### `E_t` and dominated infinite sums -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (present values as infinite sums): **`E_t` passes through a
+dominated series** — if `|f_k| ≤ c_k` a.e. with `∑ c_k < ∞`, then a.e.
+`∑_k E_t f_k = E_t ∑_k f_k` (as a genuine `HasSum`). -/
+theorem E_hasSum {f : ℕ → Ω → ℝ} {c : ℕ → ℝ} (hc : Summable c)
+    (hm : ∀ k, AEStronglyMeasurable (f k) S.μ) (hf : ∀ k, ∀ᵐ ω ∂S.μ, |f k ω| ≤ c k) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => S.E t (f k) ω) (S.E t (fun ω' => ∑' k, f k ω') ω) := by
+  set F : Ω → ℝ := fun ω' => ∑' k, f k ω' with hF
+  have hall : ∀ᵐ ω ∂S.μ, ∀ k, |f k ω| ≤ c k := ae_all_iff.2 hf
+  have hsum : ∀ᵐ ω ∂S.μ, Summable (fun k => f k ω) := hall.mono fun ω h =>
+    Summable.of_norm_bounded hc (fun k => by rw [Real.norm_eq_abs]; exact h k)
+  have hFm : AEStronglyMeasurable F S.μ := by
+    refine aestronglyMeasurable_of_tendsto_ae atTop
+      (f := fun N ω => ∑ k ∈ Finset.range N, f k ω)
+      (fun N => Finset.aestronglyMeasurable_fun_sum _ fun k _ => hm k) ?_
+    filter_upwards [hsum] with ω h
+    exact h.hasSum.tendsto_sum_nat
+  -- the tail bound
+  have htail : ∀ N, ∀ᵐ ω ∂S.μ,
+      |F ω - ∑ k ∈ Finset.range N, f k ω| ≤ ∑' k, c (k + N) := by
+    intro N
+    filter_upwards [hall, hsum] with ω h hs
+    change |∑' k, f k ω - ∑ k ∈ Finset.range N, f k ω| ≤ _
+    rw [← hs.sum_add_tsum_nat_add N, add_sub_cancel_left, ← Real.norm_eq_abs]
+    exact tsum_of_norm_bounded ((summable_nat_add_iff N).2 hc).hasSum
+      (fun k => by rw [Real.norm_eq_abs]; exact h (k + N))
+  have hbF : ∀ᵐ ω ∂S.μ, |F ω| ≤ ∑' k, c k := by
+    filter_upwards [htail 0] with ω h
+    simpa using h
+  have hint : ∀ k, Integrable (f k) S.μ := fun k => BddRV.integrable (S := S) ⟨hm k, c k, hf k⟩
+  have hFi : Integrable F S.μ := BddRV.integrable (S := S) ⟨hFm, _, hbF⟩
+  have hdiff : ∀ N, ∀ᵐ ω ∂S.μ,
+      |S.E t F ω - ∑ k ∈ Finset.range N, S.E t (f k) ω| ≤ ∑' k, c (k + N) := by
+    intro N
+    have hpi : Integrable (∑ k ∈ Finset.range N, f k) S.μ :=
+      integrable_finsetSum' _ fun k _ => hint k
+    have hEs : S.E t (∑ k ∈ Finset.range N, f k) =ᵐ[S.μ] ∑ k ∈ Finset.range N, S.E t (f k) :=
+      condExp_finsetSum (fun k _ => hint k) (S.𝓕 t)
+    filter_upwards [S.E_sub hFi hpi t, hEs,
+      S.abs_E_le (x := F - ∑ k ∈ Finset.range N, f k) (by
+        filter_upwards [htail N] with ω h
+        simpa [Finset.sum_apply] using h) t] with ω h1 h2 h3
+    rw [h1, Pi.sub_apply, h2, Finset.sum_apply] at h3
+    exact h3
+  have hEb : ∀ᵐ ω ∂S.μ, ∀ k, |S.E t (f k) ω| ≤ c k :=
+    ae_all_iff.2 fun k => S.abs_E_le (hf k) t
+  filter_upwards [ae_all_iff.2 hdiff, hEb] with ω hd hb
+  have hs : Summable fun k => ‖S.E t (f k) ω‖ :=
+    Summable.of_nonneg_of_le (fun _ => norm_nonneg _)
+      (fun k => by rw [Real.norm_eq_abs]; exact hb k) hc
+  rw [hasSum_iff_tendsto_nat_of_summable_norm hs, tendsto_iff_norm_sub_tendsto_zero]
+  refine squeeze_zero_norm (fun N => ?_) (tendsto_sum_nat_add c)
+  rw [norm_norm, Real.norm_eq_abs, abs_sub_comm]
+  exact hd N
+
+/-! ### Forward solutions: existence and uniqueness for `|a| < 1` -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (present values): the realised discounted sum
+`∑_k aᵏ u_{t+k}`. -/
+noncomputable def discSum (a : ℝ) (u : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => ∑' k, a ^ k * u (t + k) ω
+
+/-- Cochrane (2023), Ch. 2, p. 29: a geometric series with bounded terms is summable. -/
+theorem summable_geom_mul {a M : ℝ} (ha : |a| < 1) {x : ℕ → ℝ} (hx : ∀ k, |x k| ≤ M) :
+    Summable (fun k => a ^ k * x k) :=
+  Summable.of_norm_bounded ((summable_geometric_of_lt_one (abs_nonneg a) ha).mul_right M)
+    (fun k => by
+      rw [Real.norm_eq_abs, abs_mul, abs_pow]
+      exact mul_le_mul_of_nonneg_left (hx k) (pow_nonneg (abs_nonneg a) k))
+
+/-- Cochrane (2023), Ch. 2, p. 29: the bound `|∑ aᵏ x_k| ≤ M / (1 − |a|)`. -/
+theorem abs_tsum_geom_mul_le {a M : ℝ} (ha : |a| < 1) {x : ℕ → ℝ} (hx : ∀ k, |x k| ≤ M) :
+    |∑' k, a ^ k * x k| ≤ M / (1 - |a|) := by
+  rw [← Real.norm_eq_abs, div_eq_inv_mul]
+  refine tsum_of_norm_bounded ((hasSum_geometric_of_lt_one (abs_nonneg a) ha).mul_right M)
+    (fun k => ?_)
+  rw [Real.norm_eq_abs, abs_mul, abs_pow]
+  exact mul_le_mul_of_nonneg_left (hx k) (pow_nonneg (abs_nonneg a) k)
+
+omit mΩ in
+/-- Cochrane (2023), Ch. 2, p. 29: the discounted sum satisfies `U_t = u_t + a U_{t+1}` wherever
+it converges. -/
+theorem discSum_succ {a : ℝ} {u : ℕ → Ω → ℝ} {t : ℕ} {ω : Ω}
+    (hs : Summable (fun k => a ^ k * u (t + k) ω)) :
+    discSum a u t ω = u t ω + a * discSum a u (t + 1) ω := by
+  unfold discSum
+  rw [hs.tsum_eq_zero_add, pow_zero, one_mul, add_zero, ← tsum_mul_left]
+  congr 1
+  refine tsum_congr fun k => ?_
+  rw [show t + (k + 1) = t + 1 + k by omega, pow_succ]
+  ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: the discounted sum of a bounded process is bounded a.e. -/
+theorem discSum_bdd {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, |discSum a u t ω| ≤ M / (1 - |a|) := by
+  filter_upwards [ae_all_iff.2 hb] with ω h
+  exact abs_tsum_geom_mul_le ha fun k => h (t + k)
+
+/-- Cochrane (2023), Ch. 2, p. 29: `U_t = u_t + a U_{t+1}` a.e. -/
+theorem discSum_rec {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    discSum a u t =ᵐ[S.μ] u t + a • discSum a u (t + 1) := by
+  filter_upwards [ae_all_iff.2 hb] with ω h
+  rw [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+  exact discSum_succ (summable_geom_mul ha fun k => h (t + k))
+
+/-- Cochrane (2023), Ch. 2, p. 29: the discounted sum is a.e. strongly measurable. -/
+theorem aestronglyMeasurable_discSum {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hm : ∀ t, AEStronglyMeasurable (u t) S.μ) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    AEStronglyMeasurable (discSum a u t) S.μ := by
+  refine aestronglyMeasurable_of_tendsto_ae atTop
+    (f := fun N ω => ∑ k ∈ Finset.range N, a ^ k * u (t + k) ω)
+    (fun N => Finset.aestronglyMeasurable_fun_sum _ fun k _ => (hm (t + k)).const_mul _) ?_
+  filter_upwards [ae_all_iff.2 hb] with ω h
+  exact (summable_geom_mul ha fun k => h (t + k)).hasSum.tendsto_sum_nat
+
+/-- Cochrane (2023), Ch. 2, p. 29: `z` solves `z_t = a E_t z_{t+1} + u_t` (a.e. at every
+date). -/
+def Solves (a : ℝ) (u z : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, z t =ᵐ[S.μ] a • S.E t (z (t + 1)) + u t
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution `z_t = E_t ∑_k aᵏ u_{t+k}`. -/
+noncomputable def forwardSol (a : ℝ) (u : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ := S.E t (discSum a u t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution is adapted. -/
+theorem forwardSol_adapted (a : ℝ) (u : ℕ → Ω → ℝ) : StronglyAdapted S.𝓕 (S.forwardSol a u) :=
+  fun t => S.stronglyMeasurable_E t _
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution is bounded by `M / (1 − |a|)`. -/
+theorem forwardSol_bdd {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) : S.BddProc (S.forwardSol a u) :=
+  ⟨M / (1 - |a|), fun t => S.abs_E_le (S.discSum_bdd ha hb t) t⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: **existence** — for `|a| < 1` and bounded adapted `u`, the
+forward solution solves `z_t = a E_t z_{t+1} + u_t`. -/
+theorem forwardSol_solves {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) :
+    S.Solves a u (S.forwardSol a u) := by
+  intro t
+  have hm : ∀ t, AEStronglyMeasurable (u t) S.μ :=
+    fun t => ((hua t).mono (S.𝓕.le t)).aestronglyMeasurable
+  have hDi : ∀ s, Integrable (discSum a u s) S.μ := fun s =>
+    BddRV.integrable ⟨S.aestronglyMeasurable_discSum ha hm hb s, _, S.discSum_bdd ha hb s⟩
+  have hui : Integrable (u t) S.μ := BddRV.integrable ⟨hm t, M, hb t⟩
+  have hEu : S.E t (u t) = u t := S.E_of_stronglyMeasurable (hua t) hui
+  filter_upwards [S.E_congr (S.discSum_rec ha hb t) t, S.E_add hui ((hDi (t + 1)).smul a) t,
+    S.E_smul a (discSum a u (t + 1)) t, S.E_tower (Nat.le_succ t) (discSum a u (t + 1))]
+    with ω h1 h2 h3 h4
+  change S.E t (discSum a u t) ω = (a • S.E t (S.E (t + 1) (discSum a u (t + 1))) + u t) ω
+  rw [h1, h2, Pi.add_apply, hEu, h3, Pi.add_apply, Pi.smul_apply, Pi.smul_apply, h4,
+    add_comm]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution is the genuine forward sum
+`z_t = ∑_k aᵏ E_t u_{t+k}` (a.e., as a convergent series). -/
+theorem forwardSol_hasSum {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hm : ∀ t, AEStronglyMeasurable (u t) S.μ) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => a ^ k * S.E t (u (t + k)) ω) (S.forwardSol a u t ω) := by
+  have hsm : ∀ k, S.E t (fun ω => a ^ k * u (t + k) ω) =ᵐ[S.μ] a ^ k • S.E t (u (t + k)) :=
+    fun k => S.E_smul (a ^ k) (u (t + k)) t
+  filter_upwards [S.E_hasSum (f := fun k ω => a ^ k * u (t + k) ω)
+    ((summable_geometric_of_lt_one (abs_nonneg a) ha).mul_right M)
+    (fun k => (hm (t + k)).const_mul _) (fun k => by
+      filter_upwards [hb (t + k)] with ω h
+      rw [abs_mul, abs_pow]
+      exact mul_le_mul_of_nonneg_left h (pow_nonneg (abs_nonneg a) k)) t,
+    ae_all_iff.2 hsm] with ω h1 h2
+  have e : (fun k => a ^ k * S.E t (u (t + k)) ω) =
+      fun k => S.E t (fun ω => a ^ k * u (t + k) ω) ω := by
+    funext k
+    rw [h2 k, Pi.smul_apply, smul_eq_mul]
+  rw [e]
+  exact h1
+
+/-- Cochrane (2023), Ch. 2, p. 29: iterating a homogeneous forward equation,
+`d_t = a^{k+1} E_t d_{t+k+1}` a.e. -/
+theorem iterate_homog {a : ℝ} {d : ℕ → Ω → ℝ} (hd : ∀ t, d t =ᵐ[S.μ] a • S.E t (d (t + 1)))
+    (t k : ℕ) : d t =ᵐ[S.μ] a ^ (k + 1) • S.E t (d (t + (k + 1))) := by
+  induction k with
+  | zero => simpa using hd t
+  | succ k ih =>
+    have h2 := hd (t + (k + 1))
+    have e : t + (k + 1) + 1 = t + (k + 1 + 1) := rfl
+    rw [e] at h2
+    filter_upwards [ih, S.E_congr h2 t, S.E_smul a (S.E (t + (k + 1)) (d (t + (k + 1 + 1)))) t,
+      S.E_tower (Nat.le_add_right t (k + 1)) (d (t + (k + 1 + 1)))] with ω e1 e2 e3 e4
+    rw [e1, Pi.smul_apply, e2, e3, Pi.smul_apply, e4, Pi.smul_apply, smul_eq_mul, smul_eq_mul,
+      smul_eq_mul, pow_succ]
+    ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: **uniqueness** — for `|a| < 1` the equation
+`z_t = a E_t z_{t+1} + u_t` has at most one bounded (a.e. measurable) solution, up to a.e.
+equality at every date. -/
+theorem forward_unique {a : ℝ} (ha : |a| < 1) {u z₁ z₂ : ℕ → Ω → ℝ} (h₁ : S.Solves a u z₁)
+    (h₂ : S.Solves a u z₂) (hm₁ : ∀ t, AEStronglyMeasurable (z₁ t) S.μ)
+    (hm₂ : ∀ t, AEStronglyMeasurable (z₂ t) S.μ) (hb₁ : S.BddProc z₁) (hb₂ : S.BddProc z₂) :
+    ∀ t, z₁ t =ᵐ[S.μ] z₂ t := by
+  obtain ⟨M₁, hM₁⟩ := hb₁
+  obtain ⟨M₂, hM₂⟩ := hb₂
+  have hi₁ : ∀ t, Integrable (z₁ t) S.μ := fun t => BddRV.integrable ⟨hm₁ t, M₁, hM₁ t⟩
+  have hi₂ : ∀ t, Integrable (z₂ t) S.μ := fun t => BddRV.integrable ⟨hm₂ t, M₂, hM₂ t⟩
+  set d : ℕ → Ω → ℝ := fun t => z₁ t - z₂ t with hd_def
+  have hd : ∀ t, d t =ᵐ[S.μ] a • S.E t (d (t + 1)) := by
+    intro t
+    filter_upwards [h₁ t, h₂ t, S.E_sub (hi₁ (t + 1)) (hi₂ (t + 1)) t] with ω e1 e2 e3
+    simp only [hd_def, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    rw [e1, e2, e3]
+    simp only [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    ring
+  have hdb : ∀ s, ∀ᵐ ω ∂S.μ, |d s ω| ≤ M₁ + M₂ := fun s => by
+    filter_upwards [hM₁ s, hM₂ s] with ω e1 e2
+    exact (abs_sub _ _).trans (add_le_add e1 e2)
+  intro t
+  have hk : ∀ k : ℕ, ∀ᵐ ω ∂S.μ, |d t ω| ≤ |a| ^ (k + 1) * (M₁ + M₂) := by
+    intro k
+    filter_upwards [S.iterate_homog hd t k, S.abs_E_le (hdb (t + (k + 1))) t] with ω e1 e2
+    rw [e1, Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow]
+    exact mul_le_mul_of_nonneg_left e2 (pow_nonneg (abs_nonneg a) _)
+  filter_upwards [ae_all_iff.2 hk] with ω h
+  have hlim : Tendsto (fun k : ℕ => |a| ^ (k + 1) * (M₁ + M₂)) atTop (𝓝 0) := by
+    have := ((tendsto_pow_atTop_nhds_zero_of_lt_one (abs_nonneg a) ha).comp
+      (tendsto_add_atTop_nat 1)).mul_const (M₁ + M₂)
+    simpa using this
+  have h0 : d t ω = 0 := abs_nonpos_iff.mp (ge_of_tendsto' hlim h)
+  simpa [hd_def, sub_eq_zero] using h0
+
+/-- Cochrane (2023), Ch. 2, p. 29: **existence and uniqueness** of the bounded adapted solution
+of `z_t = a E_t z_{t+1} + u_t` for `|a| < 1` and bounded adapted `u`: it is the forward solution
+`∑ aᵏ E_t u_{t+k}` (`forwardSol_hasSum`), and every bounded a.e.-measurable solution equals it
+a.e. at every date. -/
+theorem existsUnique_forward {a : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u) :
+    (S.Solves a u (S.forwardSol a u) ∧ StronglyAdapted S.𝓕 (S.forwardSol a u) ∧
+      S.BddProc (S.forwardSol a u)) ∧
+    ∀ z, S.Solves a u z → (∀ t, AEStronglyMeasurable (z t) S.μ) → S.BddProc z →
+      ∀ t, z t =ᵐ[S.μ] S.forwardSol a u t := by
+  obtain ⟨M, hb⟩ := hub
+  refine ⟨⟨S.forwardSol_solves ha hua hb, S.forwardSol_adapted a u, S.forwardSol_bdd ha hb⟩,
+    fun z hz hzm hzb => S.forward_unique ha hz (S.forwardSol_solves ha hua hb) hzm
+      (fun t => ((S.forwardSol_adapted a u t).mono (S.𝓕.le t)).aestronglyMeasurable) hzb
+      (S.forwardSol_bdd ha hb)⟩
+
+/-! ### Nonuniqueness for `|a| ≥ 1`: genuinely random sunspots -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (multiple equilibria when the root is not stable): the sunspot
+started by a date-`s+1` shock `η`: `d_t = 0` for `t ≤ s` and `d_t = a^{-(t-s-1)} (η − E_s η)`
+for `t > s`. -/
+noncomputable def sunspot (a : ℝ) (s : ℕ) (η : Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  if t ≤ s then 0 else a⁻¹ ^ (t - (s + 1)) • (η - S.E s η)
+
+/-- Cochrane (2023), Ch. 2, p. 29: at date `s + 1` the sunspot is the news `η − E_s η`. -/
+theorem sunspot_succ (a : ℝ) (s : ℕ) (η : Ω → ℝ) : S.sunspot a s η (s + 1) = η - S.E s η := by
+  simp [sunspot]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the sunspot is adapted. -/
+theorem sunspot_adapted (a : ℝ) {s : ℕ} {η : Ω → ℝ} (hη : StronglyMeasurable[S.𝓕 (s + 1)] η) :
+    StronglyAdapted S.𝓕 (S.sunspot a s η) := by
+  intro t
+  unfold sunspot
+  by_cases h : t ≤ s
+  · simp only [h, ↓reduceIte]
+    exact stronglyMeasurable_zero
+  · simp only [h, ↓reduceIte]
+    have h1 : s + 1 ≤ t := by omega
+    exact ((hη.mono (S.𝓕.mono h1)).sub
+      ((S.stronglyMeasurable_E s η).mono (S.𝓕.mono (by omega)))).const_smul _
+
+/-- Cochrane (2023), Ch. 2, p. 29: for `|a| ≥ 1` the sunspot of a bounded shock is bounded. -/
+theorem sunspot_bdd {a B : ℝ} (ha : 1 ≤ |a|) {s : ℕ} {η : Ω → ℝ}
+    (hηb : ∀ᵐ ω ∂S.μ, |η ω| ≤ B) : S.BddProc (S.sunspot a s η) := by
+  obtain ⟨ω₀, hω₀⟩ := hηb.exists
+  have hB : 0 ≤ B := (abs_nonneg _).trans hω₀
+  refine ⟨B + B, fun t => ?_⟩
+  unfold sunspot
+  by_cases h : t ≤ s
+  · simp only [h, ↓reduceIte]
+    exact Eventually.of_forall fun ω => by simp; linarith
+  · simp only [h, ↓reduceIte]
+    filter_upwards [hηb, S.abs_E_le hηb s] with ω h1 h2
+    rw [Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow, Pi.sub_apply]
+    have hp : |a⁻¹| ^ (t - (s + 1)) ≤ 1 :=
+      pow_le_one₀ (abs_nonneg _) (by rw [abs_inv]; exact inv_le_one_of_one_le₀ ha)
+    have hs : |η ω - S.E s η ω| ≤ B + B := (abs_sub _ _).trans (add_le_add h1 h2)
+    calc |a⁻¹| ^ (t - (s + 1)) * |η ω - S.E s η ω| ≤ 1 * (B + B) :=
+          mul_le_mul hp hs (abs_nonneg _) zero_le_one
+      _ = B + B := one_mul _
+
+/-- Cochrane (2023), Ch. 2, p. 29: the sunspot solves the homogeneous equation
+`d_t = a E_t d_{t+1}` (a.e.) for every `a ≠ 0`. -/
+theorem sunspot_solves {a : ℝ} (ha : a ≠ 0) {s : ℕ} {η : Ω → ℝ}
+    (hη : StronglyMeasurable[S.𝓕 (s + 1)] η) (hηi : Integrable η S.μ) (t : ℕ) :
+    S.sunspot a s η t =ᵐ[S.μ] a • S.E t (S.sunspot a s η (t + 1)) := by
+  rcases lt_trichotomy t s with h | rfl | h
+  · have h1 : t ≤ s := h.le
+    have h2 : t + 1 ≤ s := h
+    unfold sunspot
+    simp only [h1, h2, ↓reduceIte, S.E_zero, smul_zero]
+    rfl
+  · rw [S.sunspot_succ]
+    unfold sunspot
+    simp only [le_refl, ↓reduceIte]
+    filter_upwards [S.E_sub hηi (S.integrable_E t η) t] with ω h1
+    rw [Pi.smul_apply, h1, Pi.sub_apply, S.E_E_self, sub_self, smul_zero, Pi.zero_apply]
+  · have h1 : ¬ t ≤ s := by omega
+    have h2 : ¬ t + 1 ≤ s := by omega
+    have hν : StronglyMeasurable[S.𝓕 t] (a⁻¹ ^ (t + 1 - (s + 1)) • (η - S.E s η)) :=
+      ((hη.mono (S.𝓕.mono h)).sub
+        ((S.stronglyMeasurable_E s η).mono (S.𝓕.mono h.le))).const_smul _
+    have hνi : Integrable (a⁻¹ ^ (t + 1 - (s + 1)) • (η - S.E s η)) S.μ :=
+      (hηi.sub (S.integrable_E s η)).smul _
+    unfold sunspot
+    simp only [h1, h2, ↓reduceIte]
+    rw [S.E_of_stronglyMeasurable hν hνi, smul_smul]
+    have e : t + 1 - (s + 1) = t - (s + 1) + 1 := by omega
+    rw [e, pow_succ, ← mul_assoc, mul_comm a, mul_assoc, mul_inv_cancel₀ ha, mul_one]
+
+/-- Cochrane (2023), Ch. 2, p. 29: adding a solution of the homogeneous equation to a solution
+gives a solution. -/
+theorem solves_add {a : ℝ} {u z d : ℕ → Ω → ℝ} (hz : S.Solves a u z)
+    (hd : ∀ t, d t =ᵐ[S.μ] a • S.E t (d (t + 1))) (hzi : ∀ t, Integrable (z t) S.μ)
+    (hdi : ∀ t, Integrable (d t) S.μ) : S.Solves a u (fun t => z t + d t) := by
+  intro t
+  filter_upwards [hz t, hd t, S.E_add (hzi (t + 1)) (hdi (t + 1)) t] with ω e1 e2 e3
+  simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e1 e2 e3 ⊢
+  rw [e1, e2, e3]
+  ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: the sunspot shock is genuinely random — `η − E_s η` is not
+a.e. equal to any variable known at date `s` — unless `η` is a.e. its own date-`s` forecast. -/
+theorem sunspot_not_predictable {s : ℕ} {η : Ω → ℝ} (hηi : Integrable η S.μ)
+    (hηr : ¬ η =ᵐ[S.μ] S.E s η) {g : Ω → ℝ} (hg : StronglyMeasurable[S.𝓕 s] g) :
+    ¬ (η - S.E s η) =ᵐ[S.μ] g := by
+  intro h
+  have hνi : Integrable (η - S.E s η) S.μ := hηi.sub (S.integrable_E s η)
+  have hgi : Integrable g S.μ := hνi.congr h
+  have h0 : S.E s (η - S.E s η) =ᵐ[S.μ] 0 := by
+    filter_upwards [S.E_sub hηi (S.integrable_E s η) s] with ω h1
+    rw [h1, Pi.sub_apply, S.E_E_self, sub_self, Pi.zero_apply]
+  have hg0 : g =ᵐ[S.μ] 0 := by
+    have := (S.E_congr h s).symm.trans h0
+    rwa [S.E_of_stronglyMeasurable hg hgi] at this
+  apply hηr
+  filter_upwards [h.trans hg0] with ω h1
+  rw [Pi.sub_apply, Pi.zero_apply, sub_eq_zero] at h1
+  exact h1
+
+/-- Cochrane (2023), Ch. 2, p. 29: **nonuniqueness for `|a| ≥ 1`** — next to every bounded
+adapted solution of `z_t = a E_t z_{t+1} + u_t` there is another one, `z + d` with the sunspot
+`d` driven by any bounded date-`s+1` shock `η` that is not a.e. its own date-`s` forecast; the
+two differ with positive probability at date `s + 1`. -/
+theorem not_unique_of_one_le {a B : ℝ} (ha : 1 ≤ |a|) {s : ℕ} {η : Ω → ℝ}
+    (hη : StronglyMeasurable[S.𝓕 (s + 1)] η) (hηb : ∀ᵐ ω ∂S.μ, |η ω| ≤ B)
+    (hηr : ¬ η =ᵐ[S.μ] S.E s η) {u z : ℕ → Ω → ℝ} (hz : S.Solves a u z)
+    (hza : StronglyAdapted S.𝓕 z) (hzb : S.BddProc z) :
+    ∃ z', S.Solves a u z' ∧ StronglyAdapted S.𝓕 z' ∧ S.BddProc z' ∧
+      ¬ z' (s + 1) =ᵐ[S.μ] z (s + 1) := by
+  have ha0 : a ≠ 0 := fun h => by rw [h, abs_zero] at ha; linarith
+  have hηi : Integrable η S.μ := BddRV.integrable (BddRV.of_stronglyMeasurable hη hηb)
+  obtain ⟨M, hM⟩ := hzb
+  obtain ⟨M', hM'⟩ := S.sunspot_bdd (s := s) ha hηb
+  have hzi : ∀ t, Integrable (z t) S.μ := fun t =>
+    BddRV.integrable (BddRV.of_stronglyMeasurable (hza t) (hM t))
+  have hdi : ∀ t, Integrable (S.sunspot a s η t) S.μ := fun t =>
+    BddRV.integrable (BddRV.of_stronglyMeasurable (S.sunspot_adapted a hη t) (hM' t))
+  refine ⟨fun t => z t + S.sunspot a s η t,
+    S.solves_add hz (S.sunspot_solves ha0 hη hηi) hzi hdi,
+    fun t => (hza t).add (S.sunspot_adapted a hη t), ⟨M + M', fun t => ?_⟩, ?_⟩
+  · filter_upwards [hM t, hM' t] with ω h1 h2
+    exact (abs_add_le _ _).trans (add_le_add h1 h2)
+  · intro h
+    apply hηr
+    filter_upwards [h] with ω h1
+    rw [S.sunspot_succ, Pi.add_apply, Pi.sub_apply, add_eq_left, sub_eq_zero] at h1
+    exact h1
+
+/-- Cochrane (2023), Ch. 2, p. 29: the zero process solves `z_t = a E_t z_{t+1}`. -/
+theorem solves_zero (a : ℝ) : S.Solves a 0 0 := fun t => by
+  rw [Pi.zero_apply, Pi.zero_apply, S.E_zero, smul_zero, add_zero]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **determinacy criterion** — on a filtration carrying some
+genuinely random bounded news (a bounded date-`s+1` variable that is not a.e. its own date-`s`
+forecast), bounded adapted solutions of `z_t = a E_t z_{t+1} + u_t` are unique (for every
+bounded adapted `u`) if and only if `|a| < 1`. -/
+theorem unique_iff (hnd : ∃ s η B, StronglyMeasurable[S.𝓕 (s + 1)] η ∧
+      (∀ᵐ ω ∂S.μ, |η ω| ≤ B) ∧ ¬ η =ᵐ[S.μ] S.E s η) (a : ℝ) :
+    (∀ u z₁ z₂ : ℕ → Ω → ℝ, S.Solves a u z₁ → S.Solves a u z₂ → StronglyAdapted S.𝓕 z₁ →
+      StronglyAdapted S.𝓕 z₂ → S.BddProc z₁ → S.BddProc z₂ → ∀ t, z₁ t =ᵐ[S.μ] z₂ t) ↔
+      |a| < 1 := by
+  constructor
+  · intro h
+    by_contra ha
+    push Not at ha
+    obtain ⟨s, η, B, hη, hηb, hηr⟩ := hnd
+    obtain ⟨z', hz', hza', hzb', hne⟩ := S.not_unique_of_one_le ha hη hηb hηr (S.solves_zero a)
+      (fun _ => stronglyMeasurable_zero) ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+    exact hne (h 0 z' 0 hz' (S.solves_zero a) hza' (fun _ => stronglyMeasurable_zero) hzb'
+      ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩ (s + 1))
+  · intro ha u z₁ z₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂
+    exact S.forward_unique ha h₁ h₂ (fun t => ((ha₁ t).mono (S.𝓕.le t)).aestronglyMeasurable)
+      (fun t => ((ha₂ t).mono (S.𝓕.le t)).aestronglyMeasurable) hb₁ hb₂
+
+/-- Cochrane (2023), Ch. 2, p. 29: **existence and uniqueness iff `|a| < 1`** — under genuinely
+random news, every bounded adapted `u` has a bounded adapted solution, unique up to a.e.
+equality, exactly when `|a| < 1`. -/
+theorem existsUnique_iff (hnd : ∃ s η B, StronglyMeasurable[S.𝓕 (s + 1)] η ∧
+      (∀ᵐ ω ∂S.μ, |η ω| ≤ B) ∧ ¬ η =ᵐ[S.μ] S.E s η) (a : ℝ) :
+    (∀ u : ℕ → Ω → ℝ, StronglyAdapted S.𝓕 u → S.BddProc u →
+      (∃ z, S.Solves a u z ∧ StronglyAdapted S.𝓕 z ∧ S.BddProc z) ∧
+      ∀ z₁ z₂ : ℕ → Ω → ℝ, S.Solves a u z₁ → S.Solves a u z₂ → StronglyAdapted S.𝓕 z₁ →
+        StronglyAdapted S.𝓕 z₂ → S.BddProc z₁ → S.BddProc z₂ → ∀ t, z₁ t =ᵐ[S.μ] z₂ t) ↔
+      |a| < 1 := by
+  constructor
+  · intro h
+    by_contra ha
+    push Not at ha
+    obtain ⟨s, η, B, hη, hηb, hηr⟩ := hnd
+    have h0 := (h 0 (fun _ => stronglyMeasurable_zero)
+      ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩).2
+    obtain ⟨z', hz', hza', hzb', hne⟩ := S.not_unique_of_one_le ha hη hηb hηr (S.solves_zero a)
+      (fun _ => stronglyMeasurable_zero) ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+    exact hne (h0 z' 0 hz' (S.solves_zero a) hza' (fun _ => stronglyMeasurable_zero) hzb'
+      ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩ (s + 1))
+  · intro ha u hua hub
+    obtain ⟨⟨h1, h2, h3⟩, -⟩ := S.existsUnique_forward ha hua hub
+    exact ⟨⟨_, h1, h2, h3⟩, fun z₁ z₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂ =>
+      (S.unique_iff hnd a).2 ha u z₁ z₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂⟩
+
+/-! ### AR(1) processes driven by martingale-difference shocks -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the square of a bounded variable is bounded. -/
+theorem BddRV.sq {S : MeasExpectationSystem Ω} {x : Ω → ℝ} (hx : S.BddRV x) : S.BddRV (x ^ 2) := by
+  rw [pow_two]
+  exact hx.mul hx
+
+/-- Cochrane (2023), p. 42 (AR(1) surpluses `s_t = η s_{t−1} + ε_t`): for
+`u_{t+1} = ρ u_t + ε_{t+1}` with bounded adapted `u` and martingale-difference shocks
+(`E_t ε_{t+1} = 0`), `E_t u_{t+j} = ρʲ u_t` a.e. -/
+theorem ar1_E {ρ : ℝ} {u ε : ℕ → Ω → ℝ} (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0) (t j : ℕ) :
+    S.E t (u (t + j)) =ᵐ[S.μ] ρ ^ j • u t := by
+  obtain ⟨M, hM⟩ := hub
+  have hui : ∀ s, Integrable (u s) S.μ := fun s =>
+    BddRV.integrable (BddRV.of_stronglyMeasurable (hua s) (hM s))
+  have hεe : ∀ s, ε (s + 1) = u (s + 1) - ρ • u s := fun s => by
+    rw [hrec s, add_sub_cancel_left]
+  have hεi : ∀ s, Integrable (ε (s + 1)) S.μ := fun s => by
+    rw [hεe]
+    exact (hui _).sub ((hui s).smul ρ)
+  induction j with
+  | zero =>
+    rw [add_zero, pow_zero, one_smul, S.E_of_stronglyMeasurable (hua t) (hui t)]
+  | succ j ih =>
+    have e : u (t + (j + 1)) = ρ • u (t + j) + ε (t + j + 1) := hrec (t + j)
+    have hz : S.E t (ε (t + j + 1)) =ᵐ[S.μ] 0 := by
+      filter_upwards [(S.E_tower (Nat.le_add_right t j) (ε (t + j + 1))).symm,
+        S.E_congr (hmd (t + j)) t] with ω h1 h2
+      rw [h1, h2, S.E_zero]
+    rw [e]
+    filter_upwards [S.E_add ((hui _).smul ρ) (hεi (t + j)) t, S.E_smul ρ (u (t + j)) t, ih, hz]
+      with ω h1 h2 h3 h4
+    rw [h1, Pi.add_apply, h2, h4, Pi.smul_apply, h3, Pi.smul_apply, Pi.smul_apply, smul_eq_mul,
+      smul_eq_mul, smul_eq_mul, Pi.zero_apply, add_zero, pow_succ]
+    ring
+
+/-- Cochrane (2023), p. 42: with conditionally homoskedastic shocks (`E_t ε_{t+1}² = σ²`), the
+squared forecast error of an AR(1) has conditional mean `σ² ∑_{i<j} ρ^{2i}`. -/
+theorem ar1_E_sq_dev {ρ σ2 : ℝ} {u ε : ℕ → Ω → ℝ} (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) ^ 2) =ᵐ[S.μ] fun _ => σ2) (t j : ℕ) :
+    S.E t ((u (t + j) - ρ ^ j • u t) ^ 2) =ᵐ[S.μ]
+      fun _ => σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) := by
+  obtain ⟨M, hM⟩ := hub
+  have hB : ∀ s, S.BddRV (u s) := fun s => BddRV.of_stronglyMeasurable (hua s) (hM s)
+  have hεe : ∀ s, ε (s + 1) = u (s + 1) - ρ • u s := fun s => by
+    rw [hrec s, add_sub_cancel_left]
+  have hεB : ∀ s, S.BddRV (ε (s + 1)) := fun s => by
+    rw [hεe]
+    exact (hB _).sub ((hB s).smul ρ)
+  induction j with
+  | zero =>
+    have h0 : (u (t + 0) - ρ ^ 0 • u t) ^ 2 = 0 := by
+      funext ω
+      simp
+    rw [h0, S.E_zero]
+    exact Eventually.of_forall fun ω => by simp
+  | succ j ih =>
+    set w := u (t + j) - ρ ^ j • u t with hw
+    set e' := ε (t + j + 1) with he'
+    have hwB : S.BddRV w := (hB _).sub ((hB t).smul _)
+    have hwm : StronglyMeasurable[S.𝓕 (t + j)] w :=
+      (hua (t + j)).sub (((hua t).mono (S.𝓕.mono (Nat.le_add_right t j))).const_smul _)
+    have hsplit : (u (t + (j + 1)) - ρ ^ (j + 1) • u t) ^ 2 =
+        ρ ^ 2 • w ^ 2 + (2 * ρ) • (w * e') + e' ^ 2 := by
+      have e : u (t + (j + 1)) = ρ • u (t + j) + ε (t + j + 1) := hrec (t + j)
+      rw [e]
+      funext ω
+      simp only [hw, he', Pi.add_apply, Pi.smul_apply, Pi.pow_apply, Pi.sub_apply, Pi.mul_apply,
+        smul_eq_mul]
+      ring
+    have hcross : S.E t (w * e') =ᵐ[S.μ] 0 := by
+      obtain ⟨-, C, hC⟩ := hwB
+      have hz : w * S.E (t + j) e' =ᵐ[S.μ] 0 := by
+        filter_upwards [hmd (t + j)] with ω h
+        rw [Pi.mul_apply, he', h, Pi.zero_apply, mul_zero]
+      filter_upwards [(S.E_tower (Nat.le_add_right t j) (w * e')).symm,
+        S.E_congr (S.E_pullOut hwm hC (hεB (t + j)).integrable) t, S.E_congr hz t]
+        with ω h1 h2 h3
+      rw [h1, h2, h3, S.E_zero]
+    have hsq : S.E t (e' ^ 2) =ᵐ[S.μ] fun _ => σ2 := by
+      filter_upwards [(S.E_tower (Nat.le_add_right t j) (e' ^ 2)).symm,
+        S.E_congr (hvar (t + j)) t] with ω h1 h2
+      rw [h1, h2, S.E_const]
+    have I1 : Integrable (ρ ^ 2 • w ^ 2) S.μ := hwB.sq.integrable.smul _
+    have I2 : Integrable ((2 * ρ) • (w * e')) S.μ := (hwB.mul (hεB (t + j))).integrable.smul _
+    have I3 : Integrable (e' ^ 2) S.μ := (hεB (t + j)).sq.integrable
+    have hs : ∑ i ∈ Finset.range (j + 1), ρ ^ (2 * i) =
+        ρ ^ 2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) + 1 := by
+      rw [Finset.sum_range_succ', Finset.mul_sum]
+      congr 1
+      exact Finset.sum_congr rfl fun i _ => by ring
+    rw [hsplit]
+    filter_upwards [S.E_add (I1.add I2) I3 t, S.E_add I1 I2 t, S.E_smul (ρ ^ 2) (w ^ 2) t,
+      S.E_smul (2 * ρ) (w * e') t, ih, hcross, hsq] with ω h1 h2 h3 h4 h5 h6 h7
+    rw [h1, Pi.add_apply, h2, Pi.add_apply, h3, h4, Pi.smul_apply, Pi.smul_apply, h5, h6, h7, hs,
+      Pi.zero_apply, smul_eq_mul, smul_eq_mul]
+    ring
+
+/-- Cochrane (2023), p. 42: **conditional variance of an AR(1)** —
+`Var_t(u_{t+j}) = σ² ∑_{i<j} ρ^{2i}` a.e. (Mathlib's `condVar`). -/
+theorem ar1_condVar {ρ σ2 : ℝ} {u ε : ℕ → Ω → ℝ} (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) ^ 2) =ᵐ[S.μ] fun _ => σ2) (t j : ℕ) :
+    Var[u (t + j); S.μ | S.𝓕 t] =ᵐ[S.μ] fun _ => σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) := by
+  change S.E t ((u (t + j) - S.E t (u (t + j))) ^ 2) =ᵐ[S.μ] _
+  refine (S.E_congr ?_ t).trans (S.ar1_E_sq_dev hrec hua hub hmd hvar t j)
+  filter_upwards [S.ar1_E hrec hua hub hmd t j] with ω h
+  rw [Pi.pow_apply, Pi.pow_apply, Pi.sub_apply, Pi.sub_apply, h]
+
+/-- Cochrane (2023), p. 42: the closed form `Var_t(u_{t+j}) = σ² (1 − ρ^{2j}) / (1 − ρ²)` for
+`ρ² ≠ 1`. -/
+theorem ar1_condVar_closed {ρ σ2 : ℝ} (hρ : ρ ^ 2 ≠ 1) {u ε : ℕ → Ω → ℝ}
+    (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) ^ 2) =ᵐ[S.μ] fun _ => σ2) (t j : ℕ) :
+    Var[u (t + j); S.μ | S.𝓕 t] =ᵐ[S.μ] fun _ => σ2 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2) := by
+  refine (S.ar1_condVar hrec hua hub hmd hvar t j).trans (Eventually.of_forall fun _ => ?_)
+  have h1 : 1 - ρ ^ 2 ≠ 0 := sub_ne_zero.mpr (Ne.symm hρ)
+  have hs : ∑ i ∈ Finset.range j, ρ ^ (2 * i) = (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2) := by
+    simp_rw [pow_mul]
+    rw [geom_sum_eq hρ, eq_div_iff h1, div_mul_eq_mul_div, div_eq_iff (sub_ne_zero.mpr hρ)]
+    ring
+  change σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) = σ2 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2)
+  rw [hs, mul_div_assoc]
+
+/-! ### Bridge to the core `ExpectationSystem` on a finite, fully supported state space -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: when every state has positive probability, a.e. equality is
+equality. -/
+theorem eq_of_ae_eq (hfull : ∀ ω, S.μ {ω} ≠ 0) {f g : Ω → ℝ} (h : f =ᵐ[S.μ] g) : f = g := by
+  funext ω
+  by_contra hne
+  have h0 : S.μ {ω' | f ω' ≠ g ω'} = 0 := ae_iff.mp h
+  refine hfull ω (measure_mono_null (fun ω' hω' => ?_) h0)
+  rw [Set.mem_singleton_iff.mp hω']
+  exact hne
+
+/-- Cochrane (2023), Ch. 2, p. 29: when every state has positive probability, a.e. inequality is
+inequality. -/
+theorem le_of_ae_le (hfull : ∀ ω, S.μ {ω} ≠ 0) {f g : Ω → ℝ} (h : f ≤ᵐ[S.μ] g) : f ≤ g := by
+  intro ω
+  by_contra hne
+  have h0 : S.μ {ω' | ¬ f ω' ≤ g ω'} = 0 := ae_iff.mp h
+  refine hfull ω (measure_mono_null (fun ω' hω' => ?_) h0)
+  rw [Set.mem_singleton_iff.mp hω']
+  exact hne
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t` as a linear map on all of `Ω → ℝ`, for a finite discrete
+state space with full support. -/
+noncomputable def ELin [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (t : ℕ) : (Ω → ℝ) →ₗ[ℝ] (Ω → ℝ) where
+  toFun := S.E t
+  map_add' _ _ := S.eq_of_ae_eq hfull (S.E_add Integrable.of_finite Integrable.of_finite t)
+  map_smul' c x := S.eq_of_ae_eq hfull (S.E_smul c x t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: **bridge (b)** — on a finite discrete state space with full
+support, a measure-theoretic expectation system is a core `ExpectationSystem`, with the same
+`E_t` at every state, so every core theorem applies to it. -/
+noncomputable def toExpectationSystem [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) : ExpectationSystem Ω where
+  E := S.ELin hfull
+  const := S.E_const
+  mono t _ _ h := S.le_of_ae_le hfull
+    (S.E_mono Integrable.of_finite Integrable.of_finite (Eventually.of_forall h) t)
+  tower hst x := S.eq_of_ae_eq hfull (S.E_tower hst x)
+  known hst x := S.E_known hst x
+
+/-- Cochrane (2023), Ch. 2, p. 29: the core system's `E_t` is Mathlib's conditional
+expectation, exactly. -/
+theorem toExpectationSystem_E [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) (t : ℕ) (x : Ω → ℝ) :
+    (S.toExpectationSystem hfull).E t x = S.E t x := rfl
+
+/-- Cochrane (2023), Ch. 2, p. 29: the core system obtained from a measure-theoretic one has the
+pull-out property, so `PullOut`-hypothesis theorems of the core apply too. -/
+theorem toExpectationSystem_pullOut [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) : (S.toExpectationSystem hfull).PullOut := by
+  have := Fintype.ofFinite Ω
+  intro t a y ha
+  rw [toExpectationSystem_E] at ha ⊢
+  rw [toExpectationSystem_E]
+  have hm : StronglyMeasurable[S.𝓕 t] a := ha ▸ S.stronglyMeasurable_E t a
+  refine S.eq_of_ae_eq hfull (S.E_pullOut hm (C := ∑ ω, |a ω|)
+    (Eventually.of_forall fun ω => ?_) Integrable.of_finite)
+  exact Finset.single_le_sum (f := fun ω => |a ω|) (fun _ _ => abs_nonneg _)
+    (Finset.mem_univ ω)
+
+end MeasExpectationSystem
+
+/-! ### Bridge (a): every finite event tree is a measure-theoretic expectation system -/
+
+namespace TreeBridge
+
+open ExpectationsFiniteTree
+
+variable {Ω} [Fintype Ω] (T : FiniteTree Ω)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree with an uninformative date prepended (date `0`
+knows nothing, date `t + 1` knows what the original tree knows at `t`). -/
+def trivialFirst : FiniteTree Ω where
+  prob := T.prob
+  prob_pos := T.prob_pos
+  prob_sum := T.prob_sum
+  info n := match n with
+    | 0 => Setoid.ker (fun _ : Ω => ())
+    | n + 1 => T.info n
+  refines := by
+    intro s t hst a b h
+    cases s with
+    | zero => exact Setoid.ker_def.2 rfl
+    | succ s =>
+      cases t with
+      | zero => omega
+      | succ t => exact T.refines (by omega) a b h
+
+omit mΩ in
+/-- Cochrane (2023), Ch. 2, p. 29: **the law of total expectation on a finite tree**,
+`∑ p(ω) E_t x(ω) = ∑ p(ω) x(ω)`. -/
+theorem sum_prob_condE (t : ℕ) (x : Ω → ℝ) :
+    ∑ ω, T.prob ω * T.condE t x ω = ∑ ω, T.prob ω * x ω := by
+  obtain ⟨ω₀⟩ : Nonempty Ω := by
+    by_contra h
+    rw [not_nonempty_iff] at h
+    have := T.prob_sum
+    simp at this
+  have htriv : ∀ a b, (trivialFirst T).info 0 a b := fun _ _ => Setoid.ker_def.2 rfl
+  have h1 := (trivialFirst T).condE_of_trivial htriv ((trivialFirst T).condE (t + 1) x) ω₀
+  have h2 := (trivialFirst T).condE_of_trivial htriv x ω₀
+  rw [(trivialFirst T).condE_tower (Nat.zero_le (t + 1)) x] at h1
+  exact h1.symm.trans h2
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree's probabilities as a measure,
+`μ = ∑_ω p(ω) δ_ω`. -/
+noncomputable def treeMeasure : Measure Ω := ∑ ω, ENNReal.ofReal (T.prob ω) • Measure.dirac ω
+
+/-- Cochrane (2023), Ch. 2, p. 29: `μ{ω} = p(ω)`. -/
+theorem treeMeasure_singleton [DiscreteMeasurableSpace Ω] (ω : Ω) :
+    treeMeasure T {ω} = ENNReal.ofReal (T.prob ω) := by
+  classical
+  rw [treeMeasure, Measure.finsetSum_apply, Finset.sum_eq_single ω]
+  · rw [Measure.smul_apply, Measure.dirac_apply_of_mem (Set.mem_singleton ω), smul_eq_mul,
+      mul_one]
+  · intro b _ hb
+    rw [Measure.smul_apply, Measure.dirac_apply, Set.indicator_of_notMem (by simpa using hb),
+      smul_eq_mul, mul_zero]
+  · intro h
+    exact absurd (Finset.mem_univ ω) h
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree measure is a probability measure. -/
+theorem treeMeasure_univ : treeMeasure T Set.univ = 1 := by
+  rw [treeMeasure, Measure.finsetSum_apply]
+  simp only [Measure.smul_apply, measure_univ, smul_eq_mul, mul_one]
+  rw [← ENNReal.ofReal_sum_of_nonneg (fun ω _ => (T.prob_pos ω).le), T.prob_sum,
+    ENNReal.ofReal_one]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree's probability measure. -/
+noncomputable def treeProb : ProbabilityMeasure Ω := ⟨treeMeasure T, ⟨treeMeasure_univ T⟩⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: integrals against the tree measure are weighted sums. -/
+theorem integral_treeProb [DiscreteMeasurableSpace Ω] (f : Ω → ℝ) :
+    ∫ ω, f ω ∂(treeProb T : Measure Ω) = ∑ ω, T.prob ω * f ω := by
+  rw [integral_fintype Integrable.of_finite]
+  refine Finset.sum_congr rfl fun ω _ => ?_
+  have h : (treeProb T : Measure Ω) {ω} = ENNReal.ofReal (T.prob ω) := treeMeasure_singleton T ω
+  rw [measureReal_def, h, ENNReal.toReal_ofReal (T.prob_pos ω).le, smul_eq_mul]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree's information as a filtration, `𝓕_t = σ(cell_t)`. -/
+def treeFiltration [DiscreteMeasurableSpace Ω] : Filtration ℕ mΩ where
+  seq t := MeasurableSpace.comap (Quotient.mk (T.info t)) ⊤
+  mono' s t hst := by
+    intro A hA
+    obtain ⟨B, -, rfl⟩ := MeasurableSpace.measurableSet_comap.1 hA
+    exact MeasurableSpace.measurableSet_comap.2
+      ⟨Quotient.lift (Quotient.mk (T.info s)) (fun a b h => Quotient.sound (T.refines hst a b h))
+        ⁻¹' B, MeasurableSpace.measurableSet_top, rfl⟩
+  le' _ _ _ := MeasurableSet.of_discrete
+
+/-- Cochrane (2023), Ch. 2, p. 29: the cell average `E_t x` is `𝓕_t`-measurable. -/
+theorem stronglyMeasurable_condE [DiscreteMeasurableSpace Ω] (t : ℕ) (x : Ω → ℝ) :
+    StronglyMeasurable[treeFiltration T t] (T.condE t x) := by
+  have hm : Measurable[treeFiltration T t] (T.condE t x) := fun U _ =>
+    MeasurableSpace.measurableSet_comap.2
+      ⟨Quotient.lift (T.condE t x) (fun _ _ h => T.condE_congr x h) ⁻¹' U,
+        MeasurableSpace.measurableSet_top, rfl⟩
+  exact hm.stronglyMeasurable
+
+/-- Cochrane (2023), Ch. 2, p. 29: the finite tree as a measure-theoretic expectation system. -/
+noncomputable def treeSystem [DiscreteMeasurableSpace Ω] : MeasExpectationSystem Ω :=
+  ⟨treeProb T, treeFiltration T⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: every state of the tree has positive probability. -/
+theorem treeSystem_fullSupport [DiscreteMeasurableSpace Ω] (ω : Ω) :
+    (treeSystem T).μ {ω} ≠ 0 := by
+  change treeMeasure T {ω} ≠ 0
+  rw [treeMeasure_singleton, ne_eq, ENNReal.ofReal_eq_zero, not_le]
+  exact T.prob_pos ω
+
+/-- Cochrane (2023), Ch. 2, p. 29: **bridge (a)** — the tree's cell average is Mathlib's
+conditional expectation `μ[x | 𝓕_t]`, at every state and for every `x`. -/
+theorem treeSystem_E [DiscreteMeasurableSpace Ω] (t : ℕ) (x : Ω → ℝ) :
+    (treeSystem T).E t x = T.condE t x := by
+  classical
+  set S := treeSystem T
+  refine (S.eq_of_ae_eq (treeSystem_fullSupport T)
+    (ae_eq_condExp_of_forall_setIntegral_eq (S.𝓕.le t) Integrable.of_finite
+      (fun _ _ _ => Integrable.of_finite.integrableOn) (fun A hA _ => ?_)
+      (stronglyMeasurable_condE T t x).aestronglyMeasurable)).symm
+  obtain ⟨B, -, hB⟩ := MeasurableSpace.measurableSet_comap.1 hA
+  set a : Ω → ℝ := A.indicator fun _ => 1 with ha
+  have hcell : ∀ ω ω', T.info t ω' ω → (ω' ∈ A ↔ ω ∈ A) := fun ω ω' h => by
+    rw [← hB, Set.mem_preimage, Set.mem_preimage, Quotient.sound h]
+  have hacell : T.condE t a = a := by
+    funext ω
+    refine T.condE_of_const_on_cell fun ω' h => ?_
+    simp only [ha, Set.indicator, hcell ω ω' h]
+  have hind : ∀ y : Ω → ℝ, A.indicator y = a * y := fun y => by
+    funext ω
+    by_cases h : ω ∈ A <;> simp [ha, Set.indicator, h]
+  have hpo := finiteTree_pullOut T t a x hacell
+  rw [FiniteTree.toExpectationSystem_E, FiniteTree.toExpectationSystem_E] at hpo
+  rw [← integral_indicator MeasurableSet.of_discrete,
+    ← integral_indicator MeasurableSet.of_discrete]
+  change ∫ ω, A.indicator (T.condE t x) ω ∂(treeProb T : Measure Ω) =
+    ∫ ω, A.indicator x ω ∂(treeProb T : Measure Ω)
+  rw [integral_treeProb, integral_treeProb, hind, hind, ← hpo, sum_prob_condE]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the round trip — the core system obtained from the tree's
+measure-theoretic system (bridge (b)) is the tree's own core system. -/
+theorem treeSystem_toExpectationSystem_E [DiscreteMeasurableSpace Ω] (t : ℕ) (x : Ω → ℝ) :
+    ((treeSystem T).toExpectationSystem (treeSystem_fullSupport T)).E t x =
+      T.toExpectationSystem.E t x := by
+  rw [MeasExpectationSystem.toExpectationSystem_E, treeSystem_E,
+    FiniteTree.toExpectationSystem_E]
+
+end TreeBridge
+
+end Woodford.GainsFromCommitment.ExpectationsMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# A genuine infinite-horizon expectation system: i.i.d. shocks
+
+Cochrane (2023), Ch. 2, §2.4, pp. 29–30 (unexpected inflation driven by news `ΔE_{t+1}`) and
+§2.7, p. 42 (AR(1) surpluses `s_t = η s_{t−1} + ε_t`). The state space is `Ω = ℕ → ℝ` with the
+infinite product `ν^ℕ` of a law `ν` on `ℝ` (Mathlib's `Measure.infinitePi`, built by
+Ionescu-Tulcea/Carathéodory), the shocks are the coordinates `ε_t(ω) = ω_t`, and the filtration is
+the natural one, `𝓕_t = σ(ε_0, …, ε_t)` (Mathlib's `Filtration.piLE`).
+
+## How to use (API)
+
+* `iidSystem ν : MeasExpectationSystem (ℕ → ℝ)` for any `ν : ProbabilityMeasure ℝ`; `shock t`.
+* Independence: `indep_future` (future shocks ⟂ `𝓕_t`), `E_future` (`E_t g = E g` for `g`
+  measurable w.r.t. the future), `E_shock_fun` (`E_t f(ε_{t+1}) = ∫ f dν`), `integral_shock_fun`.
+* Moments (mean `0`, variance `σ² > 0`): `E_shock_zero`, `E_shock_sq_eq`, `condVar_shock`
+  (`Var_t ε_{t+1} = σ²`).
+* Nondegeneracy, not finitely supported: `shock_not_ae_E`, `singleton_lt_one`, `iid_singleton`
+  (every history is null), `iid_countable_null`, `iid_not_finitely_supported`.
+* Determinacy: `iid_news`, `iid_existsUnique_iff`, `iid_sunspot`.
+* AR(1): `ar1`, `ar1_succ`, `ar1_adapted`, `ar1_bdd`, `iid_ar1_E`, `iid_ar1_condVar`,
+  `iid_ar1_condVar_closed`.
+* The fair `±1` coin: `coin`, `coin_mean`, `coin_var`, `coin_bdd`, `coin_economy`.
+-/
+
+namespace Woodford.GainsFromCommitment.ExpectationsMeasureIID
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure
+
+variable (ν : ProbabilityMeasure ℝ)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the law of the i.i.d. shock sequence, the infinite product
+`ν^ℕ` on `Ω = ℕ → ℝ`. -/
+noncomputable def iidProb : ProbabilityMeasure (ℕ → ℝ) :=
+  ⟨Measure.infinitePi (fun _ => (ν : Measure ℝ)), inferInstance⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: the i.i.d. expectation system — `Ω = ℕ → ℝ`, `μ = ν^ℕ`, and the
+natural filtration `𝓕_t = σ(ε_0, …, ε_t)`. -/
+noncomputable def iidSystem : MeasExpectationSystem (ℕ → ℝ) := ⟨iidProb ν, Filtration.piLE⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: the shock `ε_t(ω) = ω_t`. -/
+def shock (t : ℕ) (ω : ℕ → ℝ) : ℝ := ω t
+
+/-- Cochrane (2023), Ch. 2, p. 29: the shock of date `s ≤ t` is known at `t`. -/
+theorem measurable_shock {s t : ℕ} (hst : s ≤ t) : Measurable[(iidSystem ν).𝓕 t] (shock s) := by
+  change Measurable[MeasurableSpace.comap (Preorder.restrictLe (π := fun _ : ℕ => ℝ) t)
+    MeasurableSpace.pi] (fun ω => Preorder.restrictLe (π := fun _ : ℕ => ℝ) t ω ⟨s, hst⟩)
+  exact (measurable_pi_apply (⟨s, hst⟩ : Set.Iic t)).comp (comap_measurable _)
+
+/-! ### Independence: the future is independent of the present information -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the σ-algebra generated by the date-`j` shock. -/
+abbrev coordSigma (j : ℕ) : MeasurableSpace (ℕ → ℝ) :=
+  MeasurableSpace.comap (fun ω : ℕ → ℝ => ω j) inferInstance
+
+/-- Cochrane (2023), Ch. 2, p. 29: the σ-algebra of the future shocks `ε_{t+1}, ε_{t+2}, …`. -/
+abbrev futureSigma (t : ℕ) : MeasurableSpace (ℕ → ℝ) := ⨆ j ∈ Set.Ioi t, coordSigma j
+
+/-- Cochrane (2023), Ch. 2, p. 29: each shock σ-algebra is a sub-σ-algebra. -/
+theorem coordSigma_le (j : ℕ) : coordSigma j ≤ MeasurableSpace.pi :=
+  (measurable_pi_apply j).comap_le
+
+/-- Cochrane (2023), Ch. 2, p. 29: the future σ-algebra is a sub-σ-algebra. -/
+theorem futureSigma_le (t : ℕ) : futureSigma t ≤ MeasurableSpace.pi :=
+  iSup₂_le fun j _ => coordSigma_le j
+
+/-- Cochrane (2023), Ch. 2, p. 29: the shocks are mutually independent under `ν^ℕ`. -/
+theorem iIndep_coord : iIndep coordSigma (iidSystem ν).μ :=
+  (iIndepFun_infinitePi (P := fun _ => (ν : Measure ℝ)) (X := fun _ => id)
+    (fun _ => measurable_id)).iIndep
+
+/-- Cochrane (2023), Ch. 2, p. 29: date-`t` information is generated by `ε_0, …, ε_t`. -/
+theorem filtration_le_past (t : ℕ) :
+    (iidSystem ν).𝓕 t ≤ ⨆ j ∈ Set.Iic t, coordSigma j := by
+  change MeasurableSpace.comap (Preorder.restrictLe (π := fun _ : ℕ => ℝ) t)
+    MeasurableSpace.pi ≤ _
+  simp only [MeasurableSpace.pi, MeasurableSpace.comap_iSup, MeasurableSpace.comap_comp]
+  refine iSup_le fun j => ?_
+  exact le_iSup₂ (f := fun i (_ : i ∈ Set.Iic t) => coordSigma i) j.1 j.2
+
+/-- Cochrane (2023), Ch. 2, p. 29: **the future shocks are independent of date-`t` information**.
+-/
+theorem indep_future (t : ℕ) : Indep (futureSigma t) ((iidSystem ν).𝓕 t) (iidSystem ν).μ :=
+  indep_of_indep_of_le_right (indep_iSup_of_disjoint coordSigma_le (iIndep_coord ν)
+    (Set.disjoint_left.2 fun _ h1 h2 => absurd (Set.mem_Ioi.1 h1) (not_lt.2 (Set.mem_Iic.1 h2))))
+    (filtration_le_past ν t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: **independence ⇒ the forecast of a function of the future is its
+unconditional mean**, `E_t g = E g` a.e. -/
+theorem E_future (t : ℕ) {g : (ℕ → ℝ) → ℝ} (hg : StronglyMeasurable[futureSigma t] g) :
+    (iidSystem ν).E t g =ᵐ[(iidSystem ν).μ] fun _ => ∫ ω, g ω ∂(iidSystem ν).μ :=
+  condExp_indep_eq (futureSigma_le t) ((iidSystem ν).𝓕.le t) hg (indep_future ν t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: a function of the next shock is measurable for the future. -/
+theorem measurable_future_fun (t : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    Measurable[futureSigma t] (fun ω : ℕ → ℝ => f (ω (t + 1))) :=
+  hf.comp (Measurable.of_comap_le
+    (le_iSup₂ (f := fun i (_ : i ∈ Set.Ioi t) => coordSigma i) (t + 1) (Nat.lt_succ_self t)))
+
+/-- Cochrane (2023), Ch. 2, p. 29: each shock has law `ν`, so `E f(ε_i) = ∫ f dν`. -/
+theorem integral_shock_fun (i : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    ∫ ω, f (ω i) ∂(iidSystem ν).μ = ∫ x, f x ∂(ν : Measure ℝ) := by
+  have h := integral_map (μ := Measure.infinitePi (fun _ => (ν : Measure ℝ)))
+    (φ := fun ω : ℕ → ℝ => ω i) (measurable_pi_apply i).aemeasurable
+    (f := f) hf.aestronglyMeasurable
+  rw [Measure.infinitePi_map_eval] at h
+  exact h.symm
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t f(ε_{t+1}) = ∫ f dν` a.e. -/
+theorem E_shock_fun (t : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    (iidSystem ν).E t (fun ω => f (ω (t + 1))) =ᵐ[(iidSystem ν).μ]
+      fun _ => ∫ x, f x ∂(ν : Measure ℝ) := by
+  rw [← integral_shock_fun ν (t + 1) hf]
+  exact E_future ν t (measurable_future_fun t hf).stronglyMeasurable
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t ε_{t+1} = E ε` a.e. -/
+theorem E_shock (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1)) =ᵐ[(iidSystem ν).μ] fun _ => ∫ x, x ∂(ν : Measure ℝ) :=
+  E_shock_fun ν t measurable_id
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t ε_{t+1}² = E ε²` a.e. -/
+theorem E_shock_sq (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1) ^ 2) =ᵐ[(iidSystem ν).μ]
+      fun _ => ∫ x, x ^ 2 ∂(ν : Measure ℝ) :=
+  E_shock_fun ν t (measurable_id.pow_const 2)
+
+/-- Cochrane (2023), Ch. 2, p. 29: each shock is bounded when `ν` has bounded support. -/
+theorem shock_ae_bdd {B : ℝ} (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t : ℕ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, |shock t ω| ≤ B :=
+  (measurePreserving_eval_infinitePi (fun _ => (ν : Measure ℝ)) t).quasiMeasurePreserving.ae hbdd
+
+/-! ### Mean-zero, nondegenerate shocks -/
+
+variable {ν}
+
+/-- Cochrane (2023), Ch. 2, p. 29: with mean-zero shocks, `E_t ε_{t+1} = 0` a.e. -/
+theorem E_shock_zero (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1)) =ᵐ[(iidSystem ν).μ] 0 := by
+  filter_upwards [E_shock ν t] with ω h
+  rw [h, hmean, Pi.zero_apply]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **constant conditional variance**, `E_t ε_{t+1}² = σ²` a.e. -/
+theorem E_shock_sq_eq {σ2 : ℝ} (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1) ^ 2) =ᵐ[(iidSystem ν).μ] fun _ => σ2 := by
+  filter_upwards [E_shock_sq ν t] with ω h
+  rw [h, hvar]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the conditional variance of the next shock is `σ²`. -/
+theorem condVar_shock {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (t : ℕ) :
+    Var[shock (t + 1); (iidSystem ν).μ | (iidSystem ν).𝓕 t] =ᵐ[(iidSystem ν).μ] fun _ => σ2 := by
+  change (iidSystem ν).E t ((shock (t + 1) - (iidSystem ν).E t (shock (t + 1))) ^ 2) =ᵐ[_] _
+  refine ((iidSystem ν).E_congr ?_ t).trans (E_shock_sq_eq hvar t)
+  filter_upwards [E_shock_zero hmean t] with ω h
+  rw [Pi.pow_apply, Pi.pow_apply, Pi.sub_apply, h, Pi.zero_apply, sub_zero]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **the shocks are nondegenerate at every date** — `ε_{t+1}` is
+not a.e. equal to its date-`t` forecast (a fortiori not known at `t`). -/
+theorem shock_not_ae_E {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (t : ℕ) :
+    ¬ shock (t + 1) =ᵐ[(iidSystem ν).μ] (iidSystem ν).E t (shock (t + 1)) := by
+  intro h
+  have h0 := h.trans (E_shock_zero hmean t)
+  have hi : ∫ ω, (ω (t + 1)) ^ 2 ∂(iidSystem ν).μ = 0 := by
+    refine integral_eq_zero_of_ae ?_
+    filter_upwards [h0] with ω h1
+    simp only [shock, Pi.zero_apply] at h1
+    simp [h1]
+  rw [integral_shock_fun ν (t + 1) (f := fun x => x ^ 2) (measurable_id.pow_const 2), hvar] at hi
+  linarith
+
+/-- Cochrane (2023), Ch. 2, p. 29: a nondegenerate mean-zero law has no atom of mass one. -/
+theorem singleton_lt_one {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (x : ℝ) :
+    (ν : Measure ℝ) {x} < 1 := by
+  refine lt_of_le_of_ne prob_le_one fun h1 => ?_
+  have hae : ∀ᵐ y ∂(ν : Measure ℝ), y = x := by
+    rw [ae_iff]
+    have hs : {y : ℝ | ¬ y = x} = {x}ᶜ := by
+      ext y
+      simp
+    rw [hs, prob_compl_eq_zero_iff (measurableSet_singleton x)]
+    exact h1
+  have hm : ∫ y, y ∂(ν : Measure ℝ) = x := by
+    rw [integral_congr_ae (f := fun y => y) (g := fun _ => x) hae]
+    simp
+  have hv : ∫ y, y ^ 2 ∂(ν : Measure ℝ) = x ^ 2 := by
+    rw [integral_congr_ae (f := fun y => y ^ 2) (g := fun _ => x ^ 2)
+      (hae.mono fun y h => by rw [h])]
+    simp
+  rw [hmean] at hm
+  rw [hvar, ← hm] at hv
+  linarith
+
+/-- Cochrane (2023), Ch. 2, p. 29: the atoms of a nondegenerate mean-zero law are uniformly below
+one: `ν{x} ≤ q < 1` for all `x`. -/
+theorem exists_singleton_le {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) :
+    ∃ q < 1, ∀ x, (ν : Measure ℝ) {x} ≤ q := by
+  by_cases h : ∃ x₀, 2⁻¹ < (ν : Measure ℝ) {x₀}
+  · obtain ⟨x₀, hx₀⟩ := h
+    refine ⟨max 2⁻¹ ((ν : Measure ℝ) {x₀}),
+      max_lt (ENNReal.inv_lt_one.2 ENNReal.one_lt_two) (singleton_lt_one hmean hvar hσ x₀),
+      fun x => ?_⟩
+    by_cases hx : x = x₀
+    · rw [hx]
+      exact le_max_right _ _
+    · by_contra hlt
+      push Not at hlt
+      have h1 : (ν : Measure ℝ) {x} + (ν : Measure ℝ) {x₀} ≤ 1 := by
+        rw [← measure_union (Set.disjoint_singleton.2 hx) (measurableSet_singleton _)]
+        exact prob_le_one
+      have h2 : 1 < (ν : Measure ℝ) {x} + (ν : Measure ℝ) {x₀} := by
+        calc (1 : ENNReal) = 2⁻¹ + 2⁻¹ := ENNReal.inv_two_add_inv_two.symm
+          _ < (ν : Measure ℝ) {x} + (ν : Measure ℝ) {x₀} :=
+            ENNReal.add_lt_add (lt_of_le_of_lt (le_max_left _ _) hlt) hx₀
+      exact absurd h1 (not_le.2 h2)
+  · push Not at h
+    exact ⟨2⁻¹, ENNReal.inv_lt_one.2 ENNReal.one_lt_two, h⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: **every single history has probability zero** under `ν^ℕ`. -/
+theorem iid_singleton {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (ω : ℕ → ℝ) :
+    (iidSystem ν).μ {ω} = 0 := by
+  obtain ⟨q, hq, hle⟩ := exists_singleton_le hmean hvar hσ
+  have hb : ∀ n, (iidSystem ν).μ {ω} ≤ q ^ n := by
+    intro n
+    calc (iidSystem ν).μ {ω}
+        ≤ Measure.infinitePi (fun _ => (ν : Measure ℝ))
+            (Set.pi ↑(Finset.range n) fun i => {ω i}) :=
+          measure_mono fun ω' h i _ => by rw [Set.mem_singleton_iff.mp h]; rfl
+      _ = ∏ i ∈ Finset.range n, (ν : Measure ℝ) {ω i} :=
+          Measure.infinitePi_pi (fun _ => (ν : Measure ℝ)) fun i _ => measurableSet_singleton _
+      _ ≤ q ^ n := by
+          simpa using Finset.prod_le_pow_card (Finset.range n) _ q fun i _ => hle (ω i)
+  exact le_antisymm (ge_of_tendsto' (ENNReal.tendsto_pow_atTop_nhds_zero_of_lt_one hq) hb)
+    bot_le
+
+/-- Cochrane (2023), Ch. 2, p. 29: **not finitely (or countably) supported** — every countable set
+of histories is null, in contrast with a finite event tree. -/
+theorem iid_countable_null {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) {F : Set (ℕ → ℝ)}
+    (hF : F.Countable) : (iidSystem ν).μ F = 0 := by
+  have : NullSingletonClass (iidSystem ν).μ := ⟨iid_singleton hmean hvar hσ⟩
+  exact hF.measure_zero _
+
+/-- Cochrane (2023), Ch. 2, p. 29: no finite set of histories carries the probability. -/
+theorem iid_not_finitely_supported {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (F : Finset (ℕ → ℝ)) :
+    (iidSystem ν).μ ↑F ≠ 1 := by
+  rw [iid_countable_null hmean hvar hσ F.countable_toSet]
+  exact zero_ne_one
+
+/-! ### Determinacy with i.i.d. news -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the i.i.d. filtration carries genuinely random bounded news. -/
+theorem iid_news {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) :
+    ∃ s η B, StronglyMeasurable[(iidSystem ν).𝓕 (s + 1)] η ∧
+      (∀ᵐ ω ∂(iidSystem ν).μ, |η ω| ≤ B) ∧ ¬ η =ᵐ[(iidSystem ν).μ] (iidSystem ν).E s η :=
+  ⟨0, shock 1, B, (measurable_shock ν le_rfl).stronglyMeasurable, shock_ae_bdd ν hbdd 1,
+    shock_not_ae_E hmean hvar hσ 0⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: **determinacy in the i.i.d. economy** — bounded adapted
+solutions of `z_t = a E_t z_{t+1} + u_t` exist and are unique for every bounded adapted `u` iff
+`|a| < 1`. -/
+theorem iid_existsUnique_iff {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (a : ℝ) :
+    (∀ u : ℕ → (ℕ → ℝ) → ℝ, StronglyAdapted (iidSystem ν).𝓕 u → (iidSystem ν).BddProc u →
+      (∃ z, (iidSystem ν).Solves a u z ∧ StronglyAdapted (iidSystem ν).𝓕 z ∧
+        (iidSystem ν).BddProc z) ∧
+      ∀ z₁ z₂, (iidSystem ν).Solves a u z₁ → (iidSystem ν).Solves a u z₂ →
+        StronglyAdapted (iidSystem ν).𝓕 z₁ → StronglyAdapted (iidSystem ν).𝓕 z₂ →
+        (iidSystem ν).BddProc z₁ → (iidSystem ν).BddProc z₂ →
+        ∀ t, z₁ t =ᵐ[(iidSystem ν).μ] z₂ t) ↔ |a| < 1 :=
+  (iidSystem ν).existsUnique_iff (iid_news hmean hvar hσ hbdd) a
+
+/-- Cochrane (2023), Ch. 2, p. 29: for `|a| ≥ 1` the i.i.d. economy has a bounded, genuinely random
+sunspot solution of `z_t = a E_t z_{t+1}` next to `z = 0`, driven by the date-1 shock. -/
+theorem iid_sunspot {σ2 B a : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (ha : 1 ≤ |a|) :
+    ∃ z, (iidSystem ν).Solves a 0 z ∧ StronglyAdapted (iidSystem ν).𝓕 z ∧
+      (iidSystem ν).BddProc z ∧ ¬ z 1 =ᵐ[(iidSystem ν).μ] 0 :=
+  (iidSystem ν).not_unique_of_one_le ha (measurable_shock ν le_rfl).stronglyMeasurable
+    (shock_ae_bdd ν hbdd 1) (shock_not_ae_E hmean hvar hσ 0) ((iidSystem ν).solves_zero a)
+    (fun _ => stronglyMeasurable_zero) ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+
+/-! ### AR(1) with i.i.d. innovations -/
+
+/-- Cochrane (2023), p. 42: the AR(1) `u_0 = ε_0`, `u_{t+1} = ρ u_t + ε_{t+1}`. -/
+def ar1 (ρ : ℝ) : ℕ → (ℕ → ℝ) → ℝ
+  | 0 => shock 0
+  | t + 1 => fun ω => ρ * ar1 ρ t ω + shock (t + 1) ω
+
+/-- Cochrane (2023), p. 42: the AR(1) law of motion. -/
+theorem ar1_succ (ρ : ℝ) (t : ℕ) : ar1 ρ (t + 1) = ρ • ar1 ρ t + shock (t + 1) := rfl
+
+variable (ν) in
+/-- Cochrane (2023), p. 42: the AR(1) is adapted. -/
+theorem ar1_adapted (ρ : ℝ) : StronglyAdapted (iidSystem ν).𝓕 (ar1 ρ) := by
+  intro t
+  induction t with
+  | zero => exact (measurable_shock ν le_rfl).stronglyMeasurable
+  | succ t ih =>
+    rw [ar1_succ]
+    exact ((ih.mono ((iidSystem ν).𝓕.mono (Nat.le_succ t))).const_smul ρ).add
+      (measurable_shock ν le_rfl).stronglyMeasurable
+
+/-- Cochrane (2023), p. 42: for `|ρ| < 1` and shocks bounded by `B`, `|u_t| ≤ B / (1 − |ρ|)`. -/
+theorem ar1_bdd {ρ B : ℝ} (hρ : |ρ| < 1) (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t : ℕ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, |ar1 ρ t ω| ≤ B / (1 - |ρ|) := by
+  obtain ⟨x₀, hx₀⟩ := hbdd.exists
+  have hB : 0 ≤ B := (abs_nonneg _).trans hx₀
+  have h1 : 0 < 1 - |ρ| := by linarith
+  filter_upwards [ae_all_iff.2 (shock_ae_bdd ν hbdd)] with ω h
+  induction t with
+  | zero =>
+    refine (h 0).trans ?_
+    rw [le_div_iff₀ h1]
+    nlinarith [abs_nonneg ρ]
+  | succ t ih =>
+    change |ρ * ar1 ρ t ω + shock (t + 1) ω| ≤ _
+    have key : |ρ| * (B / (1 - |ρ|)) + B = B / (1 - |ρ|) := by
+      field_simp
+      ring
+    calc |ρ * ar1 ρ t ω + shock (t + 1) ω| ≤ |ρ| * |ar1 ρ t ω| + |shock (t + 1) ω| := by
+          rw [← abs_mul]
+          exact abs_add_le _ _
+      _ ≤ |ρ| * (B / (1 - |ρ|)) + B :=
+          add_le_add (mul_le_mul_of_nonneg_left ih (abs_nonneg ρ)) (h (t + 1))
+      _ = B / (1 - |ρ|) := key
+
+/-- Cochrane (2023), p. 42: **AR(1) forecasts**, `E_t u_{t+j} = ρʲ u_t` a.e. -/
+theorem iid_ar1_E {ρ B : ℝ} (hρ : |ρ| < 1) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t j : ℕ) :
+    (iidSystem ν).E t (ar1 ρ (t + j)) =ᵐ[(iidSystem ν).μ] ρ ^ j • ar1 ρ t :=
+  (iidSystem ν).ar1_E (ar1_succ ρ) (ar1_adapted ν ρ) ⟨_, ar1_bdd hρ hbdd⟩
+    (E_shock_zero hmean) t j
+
+/-- Cochrane (2023), p. 42: **AR(1) conditional variance**,
+`Var_t(u_{t+j}) = σ² ∑_{i<j} ρ^{2i}` a.e. -/
+theorem iid_ar1_condVar {ρ B σ2 : ℝ} (hρ : |ρ| < 1) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B)
+    (t j : ℕ) :
+    Var[ar1 ρ (t + j); (iidSystem ν).μ | (iidSystem ν).𝓕 t] =ᵐ[(iidSystem ν).μ]
+      fun _ => σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) :=
+  (iidSystem ν).ar1_condVar (ar1_succ ρ) (ar1_adapted ν ρ) ⟨_, ar1_bdd hρ hbdd⟩
+    (E_shock_zero hmean) (E_shock_sq_eq hvar) t j
+
+/-- Cochrane (2023), p. 42: closed form `Var_t(u_{t+j}) = σ² (1 − ρ^{2j}) / (1 − ρ²)`. -/
+theorem iid_ar1_condVar_closed {ρ B σ2 : ℝ} (hρ : |ρ| < 1)
+    (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t j : ℕ) :
+    Var[ar1 ρ (t + j); (iidSystem ν).μ | (iidSystem ν).𝓕 t] =ᵐ[(iidSystem ν).μ]
+      fun _ => σ2 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2) := by
+  have hρ2 : ρ ^ 2 ≠ 1 := by
+    intro h
+    have : |ρ| ^ 2 = 1 := by rw [sq_abs]; exact h
+    nlinarith [abs_nonneg ρ]
+  exact (iidSystem ν).ar1_condVar_closed hρ2 (ar1_succ ρ) (ar1_adapted ν ρ)
+    ⟨_, ar1_bdd hρ hbdd⟩ (E_shock_zero hmean) (E_shock_sq_eq hvar) t j
+
+/-! ### A concrete law: the fair `±1` coin -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the fair coin `ν = ½ δ₁ + ½ δ₋₁` as a measure. -/
+noncomputable def coinMeasure : Measure ℝ :=
+  (2⁻¹ : ENNReal) • (Measure.dirac 1 + Measure.dirac (-1))
+
+/-- Cochrane (2023), Ch. 2, p. 29: the fair coin has total mass one. -/
+theorem coinMeasure_univ : coinMeasure Set.univ = 1 := by
+  simp only [coinMeasure, Measure.smul_apply, Measure.add_apply, measure_univ, smul_eq_mul]
+  rw [one_add_one_eq_two, ENNReal.inv_mul_cancel two_ne_zero ENNReal.ofNat_ne_top]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the fair coin as a probability measure. -/
+noncomputable def coin : ProbabilityMeasure ℝ := ⟨coinMeasure, ⟨coinMeasure_univ⟩⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: integrals against the coin, `∫ f dν = (f 1 + f (−1)) / 2`. -/
+theorem integral_coin (f : ℝ → ℝ) :
+    ∫ x, f x ∂(coin : Measure ℝ) = (f 1 + f (-1)) / 2 := by
+  change ∫ x, f x ∂coinMeasure = _
+  rw [coinMeasure, integral_smul_measure, integral_add_measure (integrable_dirac enorm_lt_top)
+    (integrable_dirac enorm_lt_top), integral_dirac, integral_dirac, ENNReal.toReal_inv,
+    ENNReal.toReal_ofNat, smul_eq_mul]
+  ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: the coin has mean zero. -/
+theorem coin_mean : ∫ x, x ∂(coin : Measure ℝ) = 0 := by
+  rw [integral_coin]
+  norm_num
+
+/-- Cochrane (2023), Ch. 2, p. 29: the coin has variance one. -/
+theorem coin_var : ∫ x, x ^ 2 ∂(coin : Measure ℝ) = 1 := by
+  rw [integral_coin]
+  norm_num
+
+/-- Cochrane (2023), Ch. 2, p. 29: the coin is bounded by one. -/
+theorem coin_bdd : ∀ᵐ x ∂(coin : Measure ℝ), |x| ≤ 1 := by
+  change ∀ᵐ x ∂coinMeasure, |x| ≤ 1
+  rw [ae_iff]
+  have hs : MeasurableSet {x : ℝ | ¬ |x| ≤ 1} :=
+    (measurableSet_le continuous_abs.measurable measurable_const).compl
+  simp only [coinMeasure, Measure.smul_apply, Measure.add_apply, Measure.dirac_apply' _ hs,
+    Set.indicator, Set.mem_ofPred_eq]
+  norm_num
+
+/-- Cochrane (2023), Ch. 2, p. 29 and p. 42: **the coin economy** — `ε_t = ±1` i.i.d. fair coins —
+satisfies everything: `E_t ε_{t+1} = 0`, `Var_t ε_{t+1} = 1`, every history is null, the shock is
+never predictable, determinacy holds iff `|a| < 1`, and the AR(1) has
+`Var_t(u_{t+j}) = (1 − ρ^{2j}) / (1 − ρ²)`. -/
+theorem coin_economy (ρ a : ℝ) (hρ : |ρ| < 1) :
+    (∀ t, (iidSystem coin).E t (shock (t + 1)) =ᵐ[(iidSystem coin).μ] 0) ∧
+    (∀ t, Var[shock (t + 1); (iidSystem coin).μ | (iidSystem coin).𝓕 t]
+      =ᵐ[(iidSystem coin).μ] fun _ => 1) ∧
+    (∀ ω, (iidSystem coin).μ {ω} = 0) ∧
+    (∀ t, ¬ shock (t + 1) =ᵐ[(iidSystem coin).μ] (iidSystem coin).E t (shock (t + 1))) ∧
+    ((∀ u : ℕ → (ℕ → ℝ) → ℝ, StronglyAdapted (iidSystem coin).𝓕 u →
+      (iidSystem coin).BddProc u →
+      (∃ z, (iidSystem coin).Solves a u z ∧ StronglyAdapted (iidSystem coin).𝓕 z ∧
+        (iidSystem coin).BddProc z) ∧
+      ∀ z₁ z₂, (iidSystem coin).Solves a u z₁ → (iidSystem coin).Solves a u z₂ →
+        StronglyAdapted (iidSystem coin).𝓕 z₁ → StronglyAdapted (iidSystem coin).𝓕 z₂ →
+        (iidSystem coin).BddProc z₁ → (iidSystem coin).BddProc z₂ →
+        ∀ t, z₁ t =ᵐ[(iidSystem coin).μ] z₂ t) ↔ |a| < 1) ∧
+    (∀ t j, (iidSystem coin).E t (ar1 ρ (t + j)) =ᵐ[(iidSystem coin).μ] ρ ^ j • ar1 ρ t) ∧
+    (∀ t j, Var[ar1 ρ (t + j); (iidSystem coin).μ | (iidSystem coin).𝓕 t]
+      =ᵐ[(iidSystem coin).μ] fun _ => 1 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2)) :=
+  ⟨E_shock_zero coin_mean, condVar_shock coin_mean coin_var,
+    iid_singleton coin_mean coin_var one_pos, shock_not_ae_E coin_mean coin_var one_pos,
+    iid_existsUnique_iff coin_mean coin_var one_pos coin_bdd a,
+    iid_ar1_E hρ coin_mean coin_bdd, iid_ar1_condVar_closed hρ coin_mean coin_var coin_bdd⟩
+
+end Woodford.GainsFromCommitment.ExpectationsMeasureIID
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Stabilization losses with genuine conditional expectations
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §3, pp. 507–513 (the stabilization loss
+`L^stab = ∑_{t ≥ t₀} β^{t−t₀} [var_{t₀}(π_t) + λ var_{t₀}(x_t)]` of p. 509, eqs. (3.2)–(3.8),
+Proposition 7.11) and Appendix F.4, pp. 713–714.
+
+The variance results of `VarianceFrontier` and `Noninertial` are stated for the core
+`ExpectationSystem` and assume AR(1) disturbances whose innovations have constant conditional
+variance, together with the pull-out property. On a finite state space such disturbances are
+degenerate (`finite_innov_degenerate`, `tree_innov_degenerate`: the conditional variance must be
+`0`), so those statements only have content for genuine probability models. Here they are proved
+again for a `MeasExpectationSystem` (Mathlib's `condExp` on a filtered probability space): the
+conditional variances are Mathlib's `Var[X; μ | 𝓕 t]` (genuine conditional expectations of
+squared deviations), every identity holds almost everywhere, and the pull-out property is a
+theorem, not a hypothesis. The genuine i.i.d. instance is in `NoninertialMeasureIID`.
+
+## Main results
+
+* `MeasAR1Innov` ((2.18), (2.27)): bounded adapted AR(1) disturbances with martingale-difference
+  innovations of constant conditional variance.
+* `E_cross_dev`, `condVar_plan2`, `condVar_plan1` (p. 509, p. 512): conditional (co)variances of
+  AR(1) disturbances and of the plans (2.19), (3.6).
+* `lstab12_hasSum`, `lstab12_eq` ((3.4)) and `lstab_hasSum`, `lstab_eq` ((3.7)–(3.8)): the
+  stabilization loss as a genuine discounted sum of conditional variances, almost surely.
+* `affine_zero1`, `affine_zero2`, `plan_AS_iff` ((3.2)–(3.3)), `plan2_iff` ((3.6) and the six
+  restrictions): non-degeneracy is now a consequence of a positive innovation variance.
+* `prop_7_11_lstab` (**Proposition 7.11**, stabilization form) and `f4_lstab` (**Appendix F.4**,
+  stabilization optimality).
+* Links to the core statements: on a finite fully supported space `toCore_AR1Innov`,
+  `toCore_VF_AR1Innov`, `toCore_nondeg1`, `toCore_nondeg2`, `mAS_iff_core`, `mIS_iff_core`,
+  `condVar_eq_condCov`, `lstab12_agree`, `lstab_agree`, and the core theorems applied through the
+  bridge (`lstab12_link`, `lstab_link`, `prop_7_11_link`, `f4_link`, `Lstab_ar1_link`,
+  `Lstab_two_shocks_link`); `finite_innov_degenerate`, `tree_innov_degenerate` show why the
+  bridge cannot carry a nondegenerate disturbance.
+-/
+
+namespace Woodford.GainsFromCommitment.NoninertialMeasure
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure
+open VarianceFrontier (plan2 plan2_apply)
+open Noninertial (plan1 fpiOni fxOni uncondVar)
+
+variable {Ω : Type*} [mΩ : MeasurableSpace Ω] (S : MeasExpectationSystem Ω)
+
+/-! ### AR(1) disturbances with innovations of constant conditional variance -/
+
+/-- Woodford (2003), eqs. (2.18) and (2.27), pp. 496 and 504, with genuine conditional
+expectations: `u` is a bounded adapted AR(1) process `u_{t+1} = ρ u_t + ε_{t+1}` whose innovation
+is unforecastable, `E_t ε_{t+1} = 0`, with constant conditional variance `E_t ε_{t+1}² = s`
+(both almost surely). -/
+def MeasAR1Innov (ρ s : ℝ) (u ε : ℕ → Ω → ℝ) : Prop :=
+  StronglyAdapted S.𝓕 u ∧ S.BddProc u ∧ (∀ t, u (t + 1) = ρ • u t + ε (t + 1)) ∧
+    (∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0) ∧
+    ∀ t, S.E t (ε (t + 1) * ε (t + 1)) =ᵐ[S.μ] fun _ => s
+
+namespace MeasAR1Innov
+
+variable {S} {ρ s : ℝ} {u ε : ℕ → Ω → ℝ}
+
+/-- Woodford (2003), eq. (2.18), p. 496: each `u_t` is a bounded random variable. -/
+theorem bddRV (h : MeasAR1Innov S ρ s u ε) (t : ℕ) : S.BddRV (u t) := by
+  obtain ⟨M, hM⟩ := h.2.1
+  exact MeasExpectationSystem.BddRV.of_stronglyMeasurable (h.1 t) (hM t)
+
+/-- Woodford (2003), eq. (2.18), p. 496: the innovation is `ε_{t+1} = u_{t+1} − ρ u_t`. -/
+theorem innov_eq (h : MeasAR1Innov S ρ s u ε) (t : ℕ) : ε (t + 1) = u (t + 1) - ρ • u t := by
+  rw [h.2.2.1 t, add_sub_cancel_left]
+
+/-- Woodford (2003), eq. (2.18), p. 496: the innovation is a bounded random variable. -/
+theorem innov_bddRV (h : MeasAR1Innov S ρ s u ε) (t : ℕ) : S.BddRV (ε (t + 1)) := by
+  rw [h.innov_eq t]
+  exact (h.bddRV _).sub ((h.bddRV t).smul ρ)
+
+/-- Woodford (2003), eq. (2.18), p. 496: the innovation `ε_{t+1}` is known at `t + 1`. -/
+theorem innov_meas (h : MeasAR1Innov S ρ s u ε) (t : ℕ) :
+    StronglyMeasurable[S.𝓕 (t + 1)] (ε (t + 1)) := by
+  rw [h.innov_eq t]
+  exact (h.1 (t + 1)).sub (((h.1 t).mono (S.𝓕.mono (Nat.le_succ t))).const_smul ρ)
+
+/-- Woodford (2003), eq. (2.18), p. 496: `E_t u_{t+j} = ρʲ u_t` almost surely. -/
+theorem E_u (h : MeasAR1Innov S ρ s u ε) (t j : ℕ) :
+    S.E t (u (t + j)) =ᵐ[S.μ] ρ ^ j • u t :=
+  S.ar1_E h.2.2.1 h.1 h.2.1 h.2.2.2.1 t j
+
+end MeasAR1Innov
+
+/-- Woodford (2003), p. 509 (tool): on a probability space two constants that agree almost
+surely are equal. -/
+theorem const_eq_of_ae {c d : ℝ} (h : (fun _ : Ω => c) =ᵐ[S.μ] fun _ => d) : c = d := by
+  obtain ⟨ω, hω⟩ := h.exists
+  exact hω
+
+/-- Woodford (2003), p. 509 (tool): if `W` is known at `t + k` and the bounded `e` has
+`E_{t+k} e = 0`, then `E_t (W e) = 0` almost surely (pull-out, then iterated expectations). -/
+theorem E_known_mul_zero {t k : ℕ} {W e : Ω → ℝ} (hWm : StronglyMeasurable[S.𝓕 (t + k)] W)
+    (hWB : S.BddRV W) (heB : S.BddRV e) (he0 : S.E (t + k) e =ᵐ[S.μ] 0) :
+    S.E t (W * e) =ᵐ[S.μ] 0 := by
+  obtain ⟨-, C, hC⟩ := hWB
+  have hz : W * S.E (t + k) e =ᵐ[S.μ] 0 := by
+    filter_upwards [he0] with ω h
+    rw [Pi.mul_apply, h, Pi.zero_apply, mul_zero]
+  filter_upwards [(S.E_tower (Nat.le_add_right t k) (W * e)).symm,
+    S.E_congr (S.E_pullOut hWm hC heB.integrable) t, S.E_congr hz t] with ω h1 h2 h3
+  rw [h1, h2, h3, S.E_zero]
+
+/-- Woodford (2003), pp. 509, 512 (the conditional covariance of two AR(1) disturbances): if the
+innovations have constant conditional covariance `E_t(εᵘ_{t+1} εʳ_{t+1}) = c`, then the
+`k`-step forecast errors satisfy
+`E_t[(u_{t+k} − ρ_uᵏ u_t)(r_{t+k} − ρ_rᵏ r_t)] = c ∑_{j<k} (ρ_u ρ_r)ʲ` almost surely. -/
+theorem E_cross_dev {ρu ρr su sr c : ℝ} {u εu r εr : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr)
+    (hc : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => c) (t k : ℕ) :
+    S.E t ((u (t + k) - ρu ^ k • u t) * (r (t + k) - ρr ^ k • r t)) =ᵐ[S.μ]
+      fun _ => c * ∑ j ∈ Finset.range k, (ρu * ρr) ^ j := by
+  induction k with
+  | zero =>
+    have h0 : (u (t + 0) - ρu ^ 0 • u t) * (r (t + 0) - ρr ^ 0 • r t) = 0 := by
+      funext ω
+      simp
+    rw [h0, S.E_zero]
+    exact Eventually.of_forall fun ω => by simp
+  | succ k ih =>
+    set U := u (t + k) - ρu ^ k • u t with hU
+    set R := r (t + k) - ρr ^ k • r t with hR
+    set eu := εu (t + k + 1) with heu
+    set er := εr (t + k + 1) with her
+    have hUB : S.BddRV U := (hu.bddRV _).sub ((hu.bddRV t).smul _)
+    have hRB : S.BddRV R := (hr.bddRV _).sub ((hr.bddRV t).smul _)
+    have hUm : StronglyMeasurable[S.𝓕 (t + k)] U :=
+      (hu.1 (t + k)).sub (((hu.1 t).mono (S.𝓕.mono (Nat.le_add_right t k))).const_smul _)
+    have hRm : StronglyMeasurable[S.𝓕 (t + k)] R :=
+      (hr.1 (t + k)).sub (((hr.1 t).mono (S.𝓕.mono (Nat.le_add_right t k))).const_smul _)
+    have heuB : S.BddRV eu := hu.innov_bddRV (t + k)
+    have herB : S.BddRV er := hr.innov_bddRV (t + k)
+    have hsplit : (u (t + (k + 1)) - ρu ^ (k + 1) • u t) * (r (t + (k + 1)) - ρr ^ (k + 1) • r t)
+        = (ρu * ρr) • (U * R) + ρu • (U * er) + ρr • (R * eu) + eu * er := by
+      have e1 : u (t + (k + 1)) = ρu • u (t + k) + εu (t + k + 1) := hu.2.2.1 (t + k)
+      have e2 : r (t + (k + 1)) = ρr • r (t + k) + εr (t + k + 1) := hr.2.2.1 (t + k)
+      rw [e1, e2]
+      funext ω
+      simp only [hU, hR, heu, her, Pi.add_apply, Pi.smul_apply, Pi.sub_apply, Pi.mul_apply,
+        smul_eq_mul]
+      ring
+    have hc1 : S.E t (U * er) =ᵐ[S.μ] 0 :=
+      E_known_mul_zero S hUm hUB herB (hr.2.2.2.1 (t + k))
+    have hc2 : S.E t (R * eu) =ᵐ[S.μ] 0 :=
+      E_known_mul_zero S hRm hRB heuB (hu.2.2.2.1 (t + k))
+    have hee : S.E t (eu * er) =ᵐ[S.μ] fun _ => c := by
+      filter_upwards [(S.E_tower (Nat.le_add_right t k) (eu * er)).symm,
+        S.E_congr (hc (t + k)) t] with ω h1 h2
+      rw [h1, h2, S.E_const]
+    have I1 : Integrable ((ρu * ρr) • (U * R)) S.μ := (hUB.mul hRB).integrable.smul _
+    have I2 : Integrable (ρu • (U * er)) S.μ := (hUB.mul herB).integrable.smul _
+    have I3 : Integrable (ρr • (R * eu)) S.μ := (hRB.mul heuB).integrable.smul _
+    have I4 : Integrable (eu * er) S.μ := (heuB.mul herB).integrable
+    have hs : ∑ j ∈ Finset.range (k + 1), (ρu * ρr) ^ j =
+        (ρu * ρr) * ∑ j ∈ Finset.range k, (ρu * ρr) ^ j + 1 := by
+      rw [Finset.sum_range_succ', Finset.mul_sum]
+      congr 1
+      exact Finset.sum_congr rfl fun j _ => by ring
+    rw [hsplit]
+    filter_upwards [S.E_add ((I1.add I2).add I3) I4 t, S.E_add (I1.add I2) I3 t,
+      S.E_add I1 I2 t, S.E_smul (ρu * ρr) (U * R) t, S.E_smul ρu (U * er) t,
+      S.E_smul ρr (R * eu) t, ih, hc1, hc2, hee] with ω h1 h2 h3 h4 h5 h6 h7 h8 h9 h10
+    rw [h1, Pi.add_apply, h2, Pi.add_apply, h3, Pi.add_apply, h4, h5, h6]
+    simp only [Pi.smul_apply, smul_eq_mul]
+    rw [h7, h8, h9, h10, hs]
+    simp only [Pi.zero_apply]
+    ring
+
+/-! ### Conditional variances of the plans (2.19) and (3.6) -/
+
+/-- Woodford (2003), p. 509 and p. 512: for a plan (3.6) `y_t = ȳ + f u_t + g r_t` with AR(1)
+disturbances whose innovations have conditional covariance `c`, the conditional variance at `t` of
+`y_{t+k}` is `f² s_u ∑_{j<k} ρ_u^{2j} + 2 f g c ∑_{j<k} (ρ_u ρ_r)ʲ + g² s_r ∑_{j<k} ρ_r^{2j}`
+almost surely (Mathlib's `Var[· ; μ | 𝓕 t]`). -/
+theorem condVar_plan2 {ρu ρr su sr c : ℝ} {u εu r εr : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr)
+    (hc : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => c) (ybar f g : ℝ) (t k : ℕ) :
+    Var[plan2 ybar f g u r (t + k); S.μ | S.𝓕 t] =ᵐ[S.μ] fun _ =>
+      f ^ 2 * (su * ∑ j ∈ Finset.range k, (ρu * ρu) ^ j) +
+        2 * f * g * (c * ∑ j ∈ Finset.range k, (ρu * ρr) ^ j) +
+        g ^ 2 * (sr * ∑ j ∈ Finset.range k, (ρr * ρr) ^ j) := by
+  set U := u (t + k) - ρu ^ k • u t with hU
+  set R := r (t + k) - ρr ^ k • r t with hR
+  have hUB : S.BddRV U := (hu.bddRV _).sub ((hu.bddRV t).smul _)
+  have hRB : S.BddRV R := (hr.bddRV _).sub ((hr.bddRV t).smul _)
+  have Iu := (hu.bddRV (t + k)).integrable
+  have Ir := (hr.bddRV (t + k)).integrable
+  have hp : plan2 ybar f g u r (t + k) = (fun _ => ybar) + f • u (t + k) + g • r (t + k) := rfl
+  have hdev : plan2 ybar f g u r (t + k) - S.E t (plan2 ybar f g u r (t + k)) =ᵐ[S.μ]
+      f • U + g • R := by
+    rw [hp]
+    filter_upwards [S.E_add ((integrable_const ybar).add (Iu.smul f)) (Ir.smul g) t,
+      S.E_add (integrable_const ybar) (Iu.smul f) t, S.E_smul f (u (t + k)) t,
+      S.E_smul g (r (t + k)) t, hu.E_u t k, hr.E_u t k] with ω h1 h2 h3 h4 h5 h6
+    rw [Pi.sub_apply, h1]
+    simp only [Pi.add_apply]
+    rw [h2]
+    simp only [Pi.add_apply]
+    rw [h3, h4]
+    simp only [Pi.smul_apply, smul_eq_mul]
+    rw [h5, h6, S.E_const]
+    simp only [hU, hR, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hsq : (plan2 ybar f g u r (t + k) - S.E t (plan2 ybar f g u r (t + k))) ^ 2 =ᵐ[S.μ]
+      f ^ 2 • (U * U) + (2 * f * g) • (U * R) + g ^ 2 • (R * R) := by
+    filter_upwards [hdev] with ω h
+    rw [Pi.pow_apply, h]
+    simp only [Pi.add_apply, Pi.smul_apply, Pi.mul_apply, smul_eq_mul]
+    ring
+  have J1 : Integrable (f ^ 2 • (U * U)) S.μ := (hUB.mul hUB).integrable.smul _
+  have J2 : Integrable ((2 * f * g) • (U * R)) S.μ := (hUB.mul hRB).integrable.smul _
+  have J3 : Integrable (g ^ 2 • (R * R)) S.μ := (hRB.mul hRB).integrable.smul _
+  change S.E t ((plan2 ybar f g u r (t + k) - S.E t (plan2 ybar f g u r (t + k))) ^ 2) =ᵐ[S.μ] _
+  filter_upwards [S.E_congr hsq t, S.E_add (J1.add J2) J3 t, S.E_add J1 J2 t,
+    S.E_smul (f ^ 2) (U * U) t, S.E_smul (2 * f * g) (U * R) t, S.E_smul (g ^ 2) (R * R) t,
+    E_cross_dev S hu hu hu.2.2.2.2 t k, E_cross_dev S hu hr hc t k,
+    E_cross_dev S hr hr hr.2.2.2.2 t k] with ω h1 h2 h3 h4 h5 h6 h7 h8 h9
+  rw [h1, h2, Pi.add_apply, h3, Pi.add_apply, h4, h5, h6]
+  simp only [Pi.smul_apply, smul_eq_mul]
+  rw [h7, h8, h9]
+
+omit mΩ in
+/-- Woodford (2003), eq. (2.19), p. 497: the plan (2.19) is the plan (3.6) with `g = 0`. -/
+theorem plan1_eq_plan2 (ybar f : ℝ) (u : ℕ → Ω → ℝ) : plan1 ybar f u = plan2 ybar f 0 u u := by
+  funext t ω
+  simp [plan1, plan2_apply]
+
+/-- Woodford (2003), p. 511: for a plan (2.19) `y_t = ȳ + f u_t`, the conditional variance at
+`t` of `y_{t+k}` is `f² s ∑_{j<k} ρ^{2j}` almost surely. -/
+theorem condVar_plan1 {ρ s : ℝ} {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (ybar f : ℝ)
+    (t k : ℕ) :
+    Var[plan1 ybar f u (t + k); S.μ | S.𝓕 t] =ᵐ[S.μ] fun _ =>
+      f ^ 2 * (s * ∑ j ∈ Finset.range k, (ρ * ρ) ^ j) := by
+  rw [plan1_eq_plan2]
+  filter_upwards [condVar_plan2 S hu hu hu.2.2.2.2 ybar f 0 t k] with ω h
+  rw [h]
+  ring
+
+/-! ### The stabilization loss (3.4), (3.7), (3.8) -/
+
+/-- Woodford (2003), p. 509 (definition of `L^stab` for the loss (1.2)), with genuine conditional
+variances: `∑_k βᵏ [var_{t₀}(π_{t₀+k}) + λ var_{t₀}(x_{t₀+k})]` in state `ω` at date `t₀`. -/
+noncomputable def mLstab12 (β lam : ℝ) (t₀ : ℕ) (π x : ℕ → Ω → ℝ) (ω : Ω) : ℝ :=
+  ∑' k, β ^ k * (Var[π (t₀ + k); S.μ | S.𝓕 t₀] ω + lam * Var[x (t₀ + k); S.μ | S.𝓕 t₀] ω)
+
+/-- Woodford (2003), p. 512 (definition of `L^stab` for the loss (2.24)), with genuine conditional
+variances: `∑_k βᵏ [var_{t₀}(π) + λₓ var_{t₀}(x) + λᵢ var_{t₀}(i)]` in state `ω` at date `t₀`. -/
+noncomputable def mLstab (β lx li : ℝ) (t₀ : ℕ) (π x i : ℕ → Ω → ℝ) (ω : Ω) : ℝ :=
+  ∑' k, β ^ k * (Var[π (t₀ + k); S.μ | S.𝓕 t₀] ω + lx * Var[x (t₀ + k); S.μ | S.𝓕 t₀] ω +
+    li * Var[i (t₀ + k); S.μ | S.𝓕 t₀] ω)
+
+/-- Woodford (2003), p. 511 (tool): `|ρ| < 1` gives `0 ≤ ρ² < 1`. -/
+theorem sq_lt_one_of_abs {ρ : ℝ} (hρ : |ρ| < 1) : 0 ≤ ρ ^ 2 ∧ ρ ^ 2 < 1 :=
+  ⟨sq_nonneg ρ, sq_abs ρ ▸ (pow_lt_one₀ (abs_nonneg ρ) hρ two_ne_zero)⟩
+
+/-- **Equation (3.4)** (Woodford (2003), p. 511), with genuine conditional variances: for a plan
+(2.19) and an AR(1) disturbance with innovation variance `s` (`|ρ| < 1`), almost surely the
+stabilization loss is the genuine discounted sum
+`β/(1 − β) · (1 − ρ²)/(1 − βρ²) · (f_π² + λ f_x²) σ_u²`, `σ_u² = s/(1 − ρ²)`. -/
+theorem lstab12_hasSum {β lam ρ s : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρ : |ρ| < 1)
+    {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (πbar xbar fπ fx : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => β ^ k * (Var[plan1 πbar fπ u (t₀ + k); S.μ | S.𝓕 t₀] ω +
+      lam * Var[plan1 xbar fx u (t₀ + k); S.μ | S.𝓕 t₀] ω))
+      (β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * (fπ ^ 2 + lam * fx ^ 2) *
+        uncondVar ρ s) := by
+  obtain ⟨hq0, hq1⟩ := sq_lt_one_of_abs hρ
+  have hG := (Noninertial.hasSum_disc_geomSum hβ0 hβ1 hq0 hq1).mul_left
+    (s * (fπ ^ 2 + lam * fx ^ 2))
+  filter_upwards [ae_all_iff.2 fun k => condVar_plan1 S hu πbar fπ t₀ k,
+    ae_all_iff.2 fun k => condVar_plan1 S hu xbar fx t₀ k] with ω h1 h2
+  convert hG using 1
+  · funext k
+    rw [h1 k, h2 k]
+    simp only [← pow_two]
+    ring
+  · unfold uncondVar
+    have : 1 - ρ ^ 2 ≠ 0 := by linarith
+    have : 1 - β ≠ 0 := by linarith
+    have : 1 - β * ρ ^ 2 ≠ 0 := by nlinarith
+    field_simp
+
+/-- Woodford (2003), eq. (3.4), p. 511: almost surely `L^stab` of a plan (2.19) equals
+`β/(1 − β) · (1 − ρ²)/(1 − βρ²) · (f_π² + λ f_x²) σ_u²`. -/
+theorem lstab12_eq {β lam ρ s : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρ : |ρ| < 1)
+    {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (πbar xbar fπ fx : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, mLstab12 S β lam t₀ (plan1 πbar fπ u) (plan1 xbar fx u) ω =
+      β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * (fπ ^ 2 + lam * fx ^ 2) *
+        uncondVar ρ s := by
+  filter_upwards [lstab12_hasSum S hβ0 hβ1 hρ hu πbar xbar fπ fx t₀ (lam := lam)] with ω h
+  exact h.tsum_eq
+
+/-- **Equations (3.7)–(3.8)** (Woodford (2003), p. 513), with genuine conditional variances: for a
+plan (3.6) and AR(1) disturbances with uncorrelated innovations (`E_t(εᵘ_{t+1} εʳ_{t+1}) = 0`)
+of variances `s_u`, `s_r`, almost surely `L^stab = L^{stab,r} + L^{stab,u}` with
+`L^{stab,j} = β/(1 − β) · (1 − ρ_j²)/(1 − βρ_j²) · (π_j² + λₓ x_j² + λᵢ i_j²) σ_j²`. -/
+theorem lstab_hasSum {β lx li ρu ρr su sr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρu : |ρu| < 1)
+    (hρr : |ρr| < 1) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0)
+    (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => β ^ k *
+      (Var[plan2 πbar fπ gπ u r (t₀ + k); S.μ | S.𝓕 t₀] ω +
+      lx * Var[plan2 xbar fx gx u r (t₀ + k); S.μ | S.𝓕 t₀] ω +
+      li * Var[plan2 ibar fi gi u r (t₀ + k); S.μ | S.𝓕 t₀] ω))
+      (β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr sr +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu su) := by
+  obtain ⟨hu0, hu1⟩ := sq_lt_one_of_abs hρu
+  obtain ⟨hr0, hr1⟩ := sq_lt_one_of_abs hρr
+  have hGu := (Noninertial.hasSum_disc_geomSum hβ0 hβ1 hu0 hu1).mul_left
+    (su * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2))
+  have hGr := (Noninertial.hasSum_disc_geomSum hβ0 hβ1 hr0 hr1).mul_left
+    (sr * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2))
+  filter_upwards [ae_all_iff.2 fun k => condVar_plan2 S hu hr hind πbar fπ gπ t₀ k,
+    ae_all_iff.2 fun k => condVar_plan2 S hu hr hind xbar fx gx t₀ k,
+    ae_all_iff.2 fun k => condVar_plan2 S hu hr hind ibar fi gi t₀ k] with ω h1 h2 h3
+  convert hGr.add hGu using 1
+  · funext k
+    rw [h1 k, h2 k, h3 k]
+    simp only [← pow_two]
+    ring
+  · unfold uncondVar
+    have : 1 - ρu ^ 2 ≠ 0 := by linarith
+    have : 1 - ρr ^ 2 ≠ 0 := by linarith
+    have : 1 - β ≠ 0 := by linarith
+    have : 1 - β * ρu ^ 2 ≠ 0 := by nlinarith
+    have : 1 - β * ρr ^ 2 ≠ 0 := by nlinarith
+    field_simp
+
+/-- Woodford (2003), eqs. (3.7)–(3.8), p. 513: almost surely `L^stab` of a plan (3.6) equals
+`L^{stab,r} + L^{stab,u}`. -/
+theorem lstab_eq {β lx li ρu ρr su sr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρu : |ρu| < 1)
+    (hρr : |ρr| < 1) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0)
+    (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r)
+      (plan2 ibar fi gi u r) ω =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr sr +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu su := by
+  filter_upwards [lstab_hasSum S hβ0 hβ1 hρu hρr hu hr hind πbar xbar ibar fπ fx fi gπ gx gi t₀
+    (lx := lx) (li := li)] with ω h
+  exact h.tsum_eq
+
+
+/-! ### The model equations and purely forward-looking plans -/
+
+/-- Woodford (2003), eq. (2.1), p. 486, with genuine conditional expectations: the
+aggregate-supply relation `π_t = κ x_t + β E_t π_{t+1} + u_t`, almost surely at every date. -/
+def MAS (β κ : ℝ) (π x u : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, π t =ᵐ[S.μ] κ • x t + β • S.E t (π (t + 1)) + u t
+
+/-- Woodford (2003), eq. (2.23), p. 502, with genuine conditional expectations: the IS relation
+`x_t = E_t x_{t+1} − σ (i_t − E_t π_{t+1} − r^n_t)`, almost surely at every date. -/
+def MIS (σ : ℝ) (π x i rn : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, x t =ᵐ[S.μ] S.E t (x (t + 1)) - σ • (i t - S.E t (π (t + 1)) - rn t)
+
+/-- Woodford (2003), eqs. (2.18) and (2.27), pp. 496 and 504: under AR(1) disturbances,
+`E_t (ȳ + f u_{t+1} + g r_{t+1}) = ȳ + f ρ_u u_t + g ρ_r r_t` almost surely. -/
+theorem E_plan2 {ρu ρr su sr : ℝ} {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr) (ybar f g : ℝ) (t : ℕ) :
+    S.E t (plan2 ybar f g u r (t + 1)) =ᵐ[S.μ] plan2 ybar (f * ρu) (g * ρr) u r t := by
+  have Iu := (hu.bddRV (t + 1)).integrable
+  have Ir := (hr.bddRV (t + 1)).integrable
+  have hp : plan2 ybar f g u r (t + 1) = (fun _ => ybar) + f • u (t + 1) + g • r (t + 1) := rfl
+  rw [hp]
+  filter_upwards [S.E_add ((integrable_const ybar).add (Iu.smul f)) (Ir.smul g) t,
+    S.E_add (integrable_const ybar) (Iu.smul f) t, S.E_smul f (u (t + 1)) t,
+    S.E_smul g (r (t + 1)) t, hu.E_u t 1, hr.E_u t 1] with ω h1 h2 h3 h4 h5 h6
+  rw [h1]
+  simp only [Pi.add_apply]
+  rw [h2]
+  simp only [Pi.add_apply]
+  rw [h3, h4]
+  simp only [Pi.smul_apply, smul_eq_mul]
+  rw [h5, h6, S.E_const]
+  simp only [plan2_apply, Pi.smul_apply, smul_eq_mul, pow_one]
+  ring
+
+/-- Woodford (2003), eq. (2.18), p. 496: under an AR(1) disturbance,
+`E_t (ȳ + f u_{t+1}) = ȳ + f ρ u_t` almost surely. -/
+theorem E_plan1 {ρ s : ℝ} {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (ybar f : ℝ)
+    (t : ℕ) : S.E t (plan1 ybar f u (t + 1)) =ᵐ[S.μ] plan1 ybar (f * ρ) u t := by
+  have h := E_plan2 S hu hu ybar f 0 t
+  rw [zero_mul, ← plan1_eq_plan2, ← plan1_eq_plan2] at h
+  exact h
+
+/-- Woodford (2003), p. 511 (non-degeneracy from a positive innovation variance): if
+`a + b u_t = 0` almost surely at every date, and the innovation variance is `s ≠ 0`, then
+`a = b = 0`. (The core statement needs the separate hypothesis `Noninertial.Nondeg1`.) -/
+theorem affine_zero1 {ρ s : ℝ} {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (hs : s ≠ 0)
+    {a b : ℝ} (h : ∀ t, (fun ω => a + b * u t ω) =ᵐ[S.μ] 0) : a = 0 ∧ b = 0 := by
+  set K : Ω → ℝ := (fun _ => a) + (b * ρ) • u 0 with hK
+  set D : Ω → ℝ := b • ε (0 + 1) with hD
+  have hWKD : (fun ω => a + b * u (0 + 1) ω) = K + D := by
+    funext ω
+    rw [hu.2.2.1 0]
+    simp only [hK, hD, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hKB : S.BddRV K := (MeasExpectationSystem.BddRV.const a).add ((hu.bddRV 0).smul _)
+  have hKm : StronglyMeasurable[S.𝓕 0] K :=
+    stronglyMeasurable_const.add ((hu.1 0).const_smul _)
+  have hDB : S.BddRV D := (hu.innov_bddRV 0).smul b
+  have hEK : S.E 0 K = K := S.E_of_stronglyMeasurable hKm hKB.integrable
+  have hED : S.E 0 D =ᵐ[S.μ] 0 := by
+    filter_upwards [S.E_smul b (ε (0 + 1)) 0, hu.2.2.2.1 0] with ω h1 h2
+    rw [h1, Pi.smul_apply, h2]
+    simp
+  have hW := h (0 + 1)
+  rw [hWKD] at hW
+  have hEW : S.E 0 (K + D) =ᵐ[S.μ] 0 := by
+    have := S.E_congr hW 0
+    rwa [S.E_zero] at this
+  have hK0 : K =ᵐ[S.μ] 0 := by
+    filter_upwards [hEW, S.E_add hKB.integrable hDB.integrable 0, hED] with ω h1 h2 h3
+    rw [h2, Pi.add_apply, hEK, h3] at h1
+    simpa using h1
+  have hD0 : D =ᵐ[S.μ] 0 := by
+    filter_upwards [hW, hK0] with ω h1 h2
+    rw [Pi.add_apply, h2] at h1
+    simpa using h1
+  have hz : S.E 0 (ε (0 + 1) * D) =ᵐ[S.μ] 0 := by
+    have hz : ε (0 + 1) * D =ᵐ[S.μ] 0 := by
+      filter_upwards [hD0] with ω h
+      simp [h]
+    have := S.E_congr hz 0
+    rwa [S.E_zero] at this
+  have hεD : ε (0 + 1) * D = b • (ε (0 + 1) * ε (0 + 1)) := by
+    funext ω
+    simp only [hD, Pi.mul_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hb : b * s = 0 := by
+    apply const_eq_of_ae S
+    filter_upwards [hz, S.E_smul b (ε (0 + 1) * ε (0 + 1)) 0, hu.2.2.2.2 0] with ω h1 h2 h3
+    rw [hεD, h2, Pi.smul_apply, h3] at h1
+    simpa using h1
+  have hb0 : b = 0 := (mul_eq_zero.mp hb).resolve_right hs
+  refine ⟨?_, hb0⟩
+  apply const_eq_of_ae S
+  filter_upwards [h 0] with ω h1
+  rw [hb0] at h1
+  simpa using h1
+
+/-- Woodford (2003), p. 512 (non-degeneracy from positive, uncorrelated innovations): if
+`a + b u_t + c r_t = 0` almost surely at every date, the innovation variances are nonzero and the
+innovations are uncorrelated, then `a = b = c = 0`. (The core statement needs the separate
+hypothesis `Noninertial.Nondeg2`.) -/
+theorem affine_zero2 {ρu ρr su sr : ℝ} {u εu r εr : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr) (hsu : su ≠ 0)
+    (hsr : sr ≠ 0) (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) {a b c : ℝ}
+    (h : ∀ t, (fun ω => a + b * u t ω + c * r t ω) =ᵐ[S.μ] 0) : a = 0 ∧ b = 0 ∧ c = 0 := by
+  set K : Ω → ℝ := (fun _ => a) + (b * ρu) • u 0 + (c * ρr) • r 0 with hK
+  set D : Ω → ℝ := b • εu (0 + 1) + c • εr (0 + 1) with hD
+  have hWKD : (fun ω => a + b * u (0 + 1) ω + c * r (0 + 1) ω) = K + D := by
+    funext ω
+    rw [hu.2.2.1 0, hr.2.2.1 0]
+    simp only [hK, hD, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hKB : S.BddRV K :=
+    ((MeasExpectationSystem.BddRV.const a).add ((hu.bddRV 0).smul _)).add ((hr.bddRV 0).smul _)
+  have hKm : StronglyMeasurable[S.𝓕 0] K :=
+    (stronglyMeasurable_const.add ((hu.1 0).const_smul _)).add ((hr.1 0).const_smul _)
+  have Iu := (hu.innov_bddRV 0).integrable
+  have Ir := (hr.innov_bddRV 0).integrable
+  have hDB : S.BddRV D := ((hu.innov_bddRV 0).smul b).add ((hr.innov_bddRV 0).smul c)
+  have hEK : S.E 0 K = K := S.E_of_stronglyMeasurable hKm hKB.integrable
+  have hED : S.E 0 D =ᵐ[S.μ] 0 := by
+    filter_upwards [S.E_add (Iu.smul b) (Ir.smul c) 0, S.E_smul b (εu (0 + 1)) 0,
+      S.E_smul c (εr (0 + 1)) 0, hu.2.2.2.1 0, hr.2.2.2.1 0] with ω h1 h2 h3 h4 h5
+    rw [h1, Pi.add_apply, h2, h3]
+    simp only [Pi.smul_apply]
+    rw [h4, h5]
+    simp
+  have hW := h (0 + 1)
+  rw [hWKD] at hW
+  have hEW : S.E 0 (K + D) =ᵐ[S.μ] 0 := by
+    have := S.E_congr hW 0
+    rwa [S.E_zero] at this
+  have hK0 : K =ᵐ[S.μ] 0 := by
+    filter_upwards [hEW, S.E_add hKB.integrable hDB.integrable 0, hED] with ω h1 h2 h3
+    rw [h2, Pi.add_apply, hEK, h3] at h1
+    simpa using h1
+  have hD0 : D =ᵐ[S.μ] 0 := by
+    filter_upwards [hW, hK0] with ω h1 h2
+    rw [Pi.add_apply, h2] at h1
+    simpa using h1
+  have hzero : ∀ e : Ω → ℝ, S.E 0 (e * D) =ᵐ[S.μ] 0 := by
+    intro e
+    have hz : e * D =ᵐ[S.μ] 0 := by
+      filter_upwards [hD0] with ω h
+      simp [h]
+    have := S.E_congr hz 0
+    rwa [S.E_zero] at this
+  have Iuu := ((hu.innov_bddRV 0).mul (hu.innov_bddRV 0)).integrable
+  have Iur := ((hu.innov_bddRV 0).mul (hr.innov_bddRV 0)).integrable
+  have Irr := ((hr.innov_bddRV 0).mul (hr.innov_bddRV 0)).integrable
+  have hb : b * su = 0 := by
+    have hsplit : εu (0 + 1) * D =
+        b • (εu (0 + 1) * εu (0 + 1)) + c • (εu (0 + 1) * εr (0 + 1)) := by
+      funext ω
+      simp only [hD, Pi.add_apply, Pi.mul_apply, Pi.smul_apply, smul_eq_mul]
+      ring
+    apply const_eq_of_ae S
+    filter_upwards [hzero (εu (0 + 1)), S.E_add (Iuu.smul b) (Iur.smul c) 0,
+      S.E_smul b (εu (0 + 1) * εu (0 + 1)) 0, S.E_smul c (εu (0 + 1) * εr (0 + 1)) 0,
+      hu.2.2.2.2 0, hind 0] with ω h1 h2 h3 h4 h5 h6
+    rw [hsplit, h2, Pi.add_apply, h3, h4] at h1
+    simp only [Pi.smul_apply] at h1
+    rw [h5, h6] at h1
+    simpa using h1
+  have hc : c * sr = 0 := by
+    have hsplit : εr (0 + 1) * D =
+        b • (εu (0 + 1) * εr (0 + 1)) + c • (εr (0 + 1) * εr (0 + 1)) := by
+      funext ω
+      simp only [hD, Pi.add_apply, Pi.mul_apply, Pi.smul_apply, smul_eq_mul]
+      ring
+    apply const_eq_of_ae S
+    filter_upwards [hzero (εr (0 + 1)), S.E_add (Iur.smul b) (Irr.smul c) 0,
+      S.E_smul b (εu (0 + 1) * εr (0 + 1)) 0, S.E_smul c (εr (0 + 1) * εr (0 + 1)) 0,
+      hind 0, hr.2.2.2.2 0] with ω h1 h2 h3 h4 h5 h6
+    rw [hsplit, h2, Pi.add_apply, h3, h4] at h1
+    simp only [Pi.smul_apply] at h1
+    rw [h5, h6] at h1
+    simpa using h1
+  have hb0 : b = 0 := (mul_eq_zero.mp hb).resolve_right hsu
+  have hc0 : c = 0 := (mul_eq_zero.mp hc).resolve_right hsr
+  refine ⟨?_, hb0, hc0⟩
+  apply const_eq_of_ae S
+  filter_upwards [h 0] with ω h1
+  rw [hb0, hc0] at h1
+  simpa using h1
+
+/-- Woodford (2003), eqs. (3.2)–(3.3), p. 511, with genuine conditional expectations: with an
+AR(1) cost-push disturbance of innovation variance `s ≠ 0`, a plan `π = π̄ + f_π u`,
+`x = x̄ + f_x u` satisfies (2.1) almost surely at every date iff `(1 − β) π̄ = κ x̄` and
+`(1 − βρ) f_π = κ f_x + 1`. -/
+theorem plan_AS_iff {β κ ρ s : ℝ} {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (hs : s ≠ 0)
+    (πbar xbar fπ fx : ℝ) :
+    MAS S β κ (plan1 πbar fπ u) (plan1 xbar fx u) u ↔
+      (1 - β) * πbar = κ * xbar ∧ (1 - β * ρ) * fπ = κ * fx + 1 := by
+  constructor
+  · intro h
+    have key : ∀ t, (fun ω => ((1 - β) * πbar - κ * xbar) +
+        ((1 - β * ρ) * fπ - κ * fx - 1) * u t ω) =ᵐ[S.μ] 0 := by
+      intro t
+      filter_upwards [h t, E_plan1 S hu πbar fπ t] with ω h1 h2
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at h1
+      rw [h2] at h1
+      simp only [plan1, Pi.zero_apply] at h1 ⊢
+      linear_combination h1
+    obtain ⟨a1, a2⟩ := affine_zero1 S hu hs key
+    constructor <;> linarith
+  · rintro ⟨h1, h2⟩ t
+    filter_upwards [E_plan1 S hu πbar fπ t] with ω h
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    rw [h]
+    simp only [plan1]
+    linear_combination h1 + u t ω * h2
+
+/-- Woodford (2003), eq. (3.6), p. 512 and App. F.4, with genuine conditional expectations: with
+AR(1) disturbances `u`, `r̂ⁿ` of nonzero innovation variances and uncorrelated innovations,
+`r^n_t = r̄ + r̂ⁿ_t`, a plan (3.6) for `(π, x, i)` satisfies (2.1) and (2.23) almost surely at
+every date iff `(1 − β) π̄ = κ x̄`, `ī = r̄ + π̄`, `(1 − β ρ_u) f_π = κ f_x + 1`,
+`(1 − ρ_u) f_x = −σ (f_i − ρ_u f_π)`, `(1 − β ρ_r) g_π = κ g_x` and
+`(1 − ρ_r) g_x = −σ (g_i − ρ_r g_π − 1)`. -/
+theorem plan2_iff {β κ σ ρu ρr su sr rbar : ℝ} (hσ : σ ≠ 0) {u εu r εr : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr) (hsu : su ≠ 0)
+    (hsr : sr ≠ 0) (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0)
+    (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) :
+    (MAS S β κ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) u ∧
+      MIS S σ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r)
+        (fun t ω => rbar + r t ω)) ↔
+      ((1 - β) * πbar = κ * xbar ∧ ibar = rbar + πbar) ∧
+      ((1 - β * ρu) * fπ = κ * fx + 1 ∧ (1 - ρu) * fx = -σ * (fi - ρu * fπ)) ∧
+      ((1 - β * ρr) * gπ = κ * gx ∧ (1 - ρr) * gx = -σ * (gi - ρr * gπ - 1)) := by
+  constructor
+  · rintro ⟨hA, hI⟩
+    have kAS : ∀ t, (fun ω => ((1 - β) * πbar - κ * xbar) +
+        ((1 - β * ρu) * fπ - κ * fx - 1) * u t ω + ((1 - β * ρr) * gπ - κ * gx) * r t ω)
+        =ᵐ[S.μ] 0 := by
+      intro t
+      filter_upwards [hA t, E_plan2 S hu hr πbar fπ gπ t] with ω h1 h2
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at h1
+      rw [h2] at h1
+      simp only [plan2_apply, Pi.zero_apply] at h1 ⊢
+      linear_combination h1
+    have kIS : ∀ t, (fun ω => σ * (ibar - πbar - rbar) +
+        ((1 - ρu) * fx + σ * (fi - ρu * fπ)) * u t ω +
+        ((1 - ρr) * gx + σ * (gi - ρr * gπ - 1)) * r t ω) =ᵐ[S.μ] 0 := by
+      intro t
+      filter_upwards [hI t, E_plan2 S hu hr xbar fx gx t, E_plan2 S hu hr πbar fπ gπ t]
+        with ω h1 h2 h3
+      simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at h1
+      rw [h2, h3] at h1
+      simp only [plan2_apply, Pi.zero_apply] at h1 ⊢
+      linear_combination h1
+    obtain ⟨a1, a2, a3⟩ := affine_zero2 S hu hr hsu hsr hind kAS
+    obtain ⟨i1, i2, i3⟩ := affine_zero2 S hu hr hsu hsr hind kIS
+    have hi : ibar - πbar - rbar = 0 := (mul_eq_zero.mp i1).resolve_left hσ
+    exact ⟨⟨by linarith, by linarith⟩, ⟨by linarith, by linarith⟩, ⟨by linarith, by linarith⟩⟩
+  · rintro ⟨⟨h1, h2⟩, ⟨h3, h4⟩, ⟨h5, h6⟩⟩
+    refine ⟨fun t => ?_, fun t => ?_⟩
+    · filter_upwards [E_plan2 S hu hr πbar fπ gπ t] with ω h
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      rw [h]
+      simp only [plan2_apply]
+      linear_combination h1 + u t ω * h3 + r t ω * h5
+    · filter_upwards [E_plan2 S hu hr xbar fx gx t, E_plan2 S hu hr πbar fπ gπ t] with ω h h'
+      simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      rw [h, h']
+      simp only [plan2_apply]
+      linear_combination σ * h2 + u t ω * h4 + r t ω * h6
+
+/-! ### Proposition 7.11 and Appendix F.4: stabilization optimality -/
+
+/-- **Proposition 7.11, stabilization form** (Woodford (2003), pp. 509–511), with genuine
+conditional expectations: let the cost-push disturbance be AR(1) with innovations of conditional
+variance `s > 0` (`|ρ| < 1`). The plan `π = f_π^oni u`, `x = f_x^oni u` satisfies (2.1), and for
+every plan (2.19) that satisfies (2.1), almost surely its stabilization loss `L^stab` (a genuine
+discounted sum of conditional variances) is at least that of the optimal noninertial plan; the
+two losses agree almost surely iff the plan has the responses (3.5). No pull-out or
+non-degeneracy hypothesis is needed. -/
+theorem prop_7_11_lstab {β κ lam ρ s : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ)
+    (hlam : 0 < lam) (hρ : |ρ| < 1) (hs : 0 < s) {u ε : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρ s u ε) (t₀ : ℕ) :
+    MAS S β κ (plan1 0 (fpiOni β κ lam ρ) u) (plan1 0 (fxOni β κ lam ρ) u) u ∧
+    ∀ πbar xbar gπ gx, MAS S β κ (plan1 πbar gπ u) (plan1 xbar gx u) u →
+      (∀ᵐ ω ∂S.μ,
+        mLstab12 S β lam t₀ (plan1 0 (fpiOni β κ lam ρ) u) (plan1 0 (fxOni β κ lam ρ) u) ω ≤
+          mLstab12 S β lam t₀ (plan1 πbar gπ u) (plan1 xbar gx u) ω) ∧
+      (mLstab12 S β lam t₀ (plan1 πbar gπ u) (plan1 xbar gx u) =ᵐ[S.μ]
+          mLstab12 S β lam t₀ (plan1 0 (fpiOni β κ lam ρ) u) (plan1 0 (fxOni β κ lam ρ) u) ↔
+        gπ = fpiOni β κ lam ρ ∧ gx = fxOni β κ lam ρ) := by
+  have hq1 : ρ ^ 2 < 1 := (sq_lt_one_of_abs hρ).2
+  have hK : 0 < β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * uncondVar ρ s := by
+    have : 0 < 1 - β := by linarith
+    have : 0 < 1 - ρ ^ 2 := by linarith
+    have : 0 < 1 - β * ρ ^ 2 := by nlinarith [sq_nonneg ρ]
+    unfold uncondVar
+    positivity
+  set K := β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * uncondVar ρ s
+  have hL : ∀ πbar xbar fπ fx, ∀ᵐ ω ∂S.μ,
+      mLstab12 S β lam t₀ (plan1 πbar fπ u) (plan1 xbar fx u) ω = K * (fπ ^ 2 + lam * fx ^ 2) := by
+    intro πbar xbar fπ fx
+    filter_upwards [lstab12_eq S hβ0.le hβ1 hρ hu πbar xbar fπ fx t₀ (lam := lam)] with ω h
+    rw [h]
+    ring
+  refine ⟨(plan_AS_iff S hu hs.ne' 0 0 _ _).mpr ⟨by ring, Noninertial.oni_constraint hκ hlam⟩, ?_⟩
+  intro πbar xbar gπ gx hAS
+  have hg := ((plan_AS_iff S hu hs.ne' πbar xbar gπ gx).mp hAS).2
+  have e := Noninertial.oni_objective_eq hκ hlam hg
+  have hd : 0 ≤ (gπ - fpiOni β κ lam ρ) ^ 2 + lam * (gx - fxOni β κ lam ρ) ^ 2 := by positivity
+  refine ⟨?_, ⟨fun heq => ?_, fun ⟨h1, h2⟩ => ?_⟩⟩
+  · filter_upwards [hL 0 0 (fpiOni β κ lam ρ) (fxOni β κ lam ρ), hL πbar xbar gπ gx]
+      with ω h1 h2
+    rw [h1, h2, e]
+    nlinarith
+  · obtain ⟨ω, h1, h2, h3⟩ :=
+      ((hL πbar xbar gπ gx).and ((hL 0 0 (fpiOni β κ lam ρ) (fxOni β κ lam ρ)).and heq)).exists
+    rw [h1, h2, e] at h3
+    have hz : (gπ - fpiOni β κ lam ρ) ^ 2 + lam * (gx - fxOni β κ lam ρ) ^ 2 = 0 := by
+      have : K * ((gπ - fpiOni β κ lam ρ) ^ 2 + lam * (gx - fxOni β κ lam ρ) ^ 2) = 0 := by
+        linarith
+      exact (mul_eq_zero.mp this).resolve_left hK.ne'
+    have a2 : 0 ≤ lam * (gx - fxOni β κ lam ρ) ^ 2 := by positivity
+    have e1 : (gπ - fpiOni β κ lam ρ) ^ 2 = 0 := by
+      nlinarith [sq_nonneg (gπ - fpiOni β κ lam ρ)]
+    have e2 : (gx - fxOni β κ lam ρ) ^ 2 = 0 := by
+      have : lam * (gx - fxOni β κ lam ρ) ^ 2 = 0 := by
+        nlinarith [sq_nonneg (gπ - fpiOni β κ lam ρ)]
+      exact (mul_eq_zero.mp this).resolve_left hlam.ne'
+    exact ⟨by linarith [pow_eq_zero_iff two_ne_zero |>.mp e1],
+      by linarith [pow_eq_zero_iff two_ne_zero |>.mp e2]⟩
+  · filter_upwards [hL πbar xbar gπ gx, hL 0 0 (fpiOni β κ lam ρ) (fxOni β κ lam ρ)]
+      with ω a1 a2
+    rw [a1, a2, h1, h2]
+
+/-- **Appendix F.4, stabilization optimality** (Woodford (2003), pp. 512–513 and 713–714), with
+genuine conditional expectations: with AR(1) disturbances `u`, `r̂ⁿ` (innovation variances
+`s_u, s_r > 0`, uncorrelated innovations, `|ρ_j| < 1`), the corrected optimal noninertial plan
+(long-run values (3.11), F.4 responses) satisfies (2.1) and (2.23), and every plan (3.6) satisfying
+(2.1) and (2.23) has almost surely a stabilization loss at least as large; the two losses agree
+almost surely iff the plan has the F.4 response coefficients. No pull-out or non-degeneracy
+hypothesis is needed. -/
+theorem f4_lstab {β κ σ rbar lx li istar ρu ρr su sr : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li) (hρu : |ρu| < 1) (hρr : |ρr| < 1)
+    (hsu : 0 < su) (hsr : 0 < sr) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) (t₀ : ℕ) {xs is : ℝ}
+    (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (MAS S β κ (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+        (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) u ∧
+      MIS S σ (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+        (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+        (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r)
+        (fun t ω => rbar + r t ω)) ∧
+    ∀ πbar xbar ibar fπ fx fi gπ gx gi,
+      MAS S β κ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) u →
+      MIS S σ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r)
+        (fun t ω => rbar + r t ω) →
+      (∀ᵐ ω ∂S.μ, mLstab S β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ω ≤
+        mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r)
+          (plan2 ibar fi gi u r) ω) ∧
+      (mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r)
+          (plan2 ibar fi gi u r) =ᵐ[S.μ]
+        mLstab S β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ↔
+        (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) := by
+  have hρu1 : ρu < 1 := (abs_lt.mp hρu).2
+  have hρr1 : ρr < 1 := (abs_lt.mp hρr).2
+  have hK : ∀ ρ s : ℝ, |ρ| < 1 → 0 < s →
+      0 < β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * uncondVar ρ s := by
+    intro ρ s hρ hs
+    have hq1 : ρ ^ 2 < 1 := (sq_lt_one_of_abs hρ).2
+    have : 0 < 1 - β := by linarith
+    have : 0 < 1 - ρ ^ 2 := by linarith
+    have : 0 < 1 - β * ρ ^ 2 := by nlinarith [sq_nonneg ρ]
+    unfold uncondVar
+    positivity
+  have hKu := hK ρu su hρu hsu
+  have hKr := hK ρr sr hρr hsr
+  set Ku := β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * uncondVar ρu su
+  set Kr := β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * uncondVar ρr sr
+  have hL : ∀ πbar xbar ibar fπ fx fi gπ gx gi, ∀ᵐ ω ∂S.μ, mLstab S β lx li t₀
+      (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r) ω =
+      Kr * Noninertial.objF4 lx li gπ gx gi + Ku * Noninertial.objF4 lx li fπ fx fi := by
+    intro πbar xbar ibar fπ fx fi gπ gx gi
+    filter_upwards [lstab_eq S hβ0.le hβ1 hρu hρr hu hr hind πbar xbar ibar fπ fx fi gπ gx gi t₀
+      (lx := lx) (li := li)] with ω h
+    rw [h]
+    unfold Noninertial.objF4
+    ring
+  obtain ⟨cu1, cu2⟩ := Noninertial.f4_u_feasible (β := β) (ρ := ρu) hκ hσ hlx.le hli
+  obtain ⟨cr1, cr2⟩ := Noninertial.f4_r_feasible (β := β) (ρ := ρr) hκ hσ hlx.le hli
+  have hx2 : (1 - β) * Noninertial.piBar119 β li rbar istar = κ * xs := by
+    rw [hxs]
+    field_simp
+  have hiff := plan2_iff S hσ.ne' hu hr hsu.ne' hsr.ne' hind (rbar := rbar) (β := β) (κ := κ)
+  refine ⟨(hiff (Noninertial.piBar119 β li rbar istar) xs is _ _ _ _ _ _).mpr
+    ⟨⟨hx2, his⟩, ⟨cu1, cu2⟩, ⟨cr1, cr2⟩⟩, ?_⟩
+  intro πbar xbar ibar fπ fx fi gπ gx gi hA hI
+  obtain ⟨-, ⟨f1, f2⟩, ⟨g1, g2⟩⟩ := (hiff πbar xbar ibar fπ fx fi gπ gx gi).mp ⟨hA, hI⟩
+  have hfu := (Noninertial.f4_u_optimal hβ0 hβ1 hρu1 hκ hσ hlx hli
+    (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.xUF4 β κ σ lx li ρu)
+    (Noninertial.iUF4 β κ σ lx li ρu)).mpr ⟨rfl, rfl, rfl⟩
+  have hgr := (Noninertial.f4_r_optimal hβ0 hβ1 hρr1 hκ hσ hlx hli
+    (Noninertial.piRF4 β κ σ lx li ρr) (Noninertial.xRF4 β κ σ lx li ρr)
+    (Noninertial.iRF4 β κ σ lx li ρr)).mpr ⟨rfl, rfl, rfl⟩
+  have e1 := hfu.2 fπ fx fi ⟨f1, f2⟩
+  have e2 := hgr.2 gπ gx gi ⟨g1, g2⟩
+  set Pu := Noninertial.objF4 lx li (Noninertial.piUF4 β κ σ lx li ρu)
+    (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.iUF4 β κ σ lx li ρu)
+  set Pr := Noninertial.objF4 lx li (Noninertial.piRF4 β κ σ lx li ρr)
+    (Noninertial.xRF4 β κ σ lx li ρr) (Noninertial.iRF4 β κ σ lx li ρr)
+  set Fu := Noninertial.objF4 lx li fπ fx fi
+  set Fr := Noninertial.objF4 lx li gπ gx gi
+  have m1 : 0 ≤ Ku * (Fu - Pu) := mul_nonneg hKu.le (by linarith)
+  have m2 : 0 ≤ Kr * (Fr - Pr) := mul_nonneg hKr.le (by linarith)
+  have hLo := hL (Noninertial.piBar119 β li rbar istar) xs is (Noninertial.piUF4 β κ σ lx li ρu)
+    (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.iUF4 β κ σ lx li ρu)
+    (Noninertial.piRF4 β κ σ lx li ρr) (Noninertial.xRF4 β κ σ lx li ρr)
+    (Noninertial.iRF4 β κ σ lx li ρr)
+  have hLp := hL πbar xbar ibar fπ fx fi gπ gx gi
+  refine ⟨?_, ⟨fun heq => ?_, fun ⟨⟨a1, a2, a3⟩, ⟨b1, b2, b3⟩⟩ => ?_⟩⟩
+  · filter_upwards [hLo, hLp] with ω h1 h2
+    rw [h1, h2]
+    linarith
+  · obtain ⟨ω, h1, h2, h3⟩ := (hLp.and (hLo.and heq)).exists
+    rw [h1, h2] at h3
+    have z1 : Ku * (Fu - Pu) = 0 := by linarith
+    have z2 : Kr * (Fr - Pr) = 0 := by linarith
+    have hu0 : Fu = Pu := by linarith [(mul_eq_zero.mp z1).resolve_left hKu.ne']
+    have hr0 : Fr = Pr := by linarith [(mul_eq_zero.mp z2).resolve_left hKr.ne']
+    refine ⟨(Noninertial.f4_u_optimal hβ0 hβ1 hρu1 hκ hσ hlx hli fπ fx fi).mp
+      ⟨⟨f1, f2⟩, fun a b c h => ?_⟩,
+      (Noninertial.f4_r_optimal hβ0 hβ1 hρr1 hκ hσ hlx hli gπ gx gi).mp
+      ⟨⟨g1, g2⟩, fun a b c h => ?_⟩⟩
+    · change Fu ≤ _
+      rw [hu0]
+      exact hfu.2 a b c h
+    · change Fr ≤ _
+      rw [hr0]
+      exact hgr.2 a b c h
+  · filter_upwards [hLo, hLp] with ω h1 h2
+    rw [h1, h2, a1, a2, a3, b1, b2, b3]
+
+
+/-! ### Finite state spaces cannot carry a nondegenerate disturbance -/
+
+/-- Woodford (2003), p. 509 (tool; the information structure behind `E_t`): on a finite state
+space the filtration is eventually constant. -/
+theorem filtration_stabilizes [Finite Ω] : ∃ T, ∀ t, T ≤ t → S.𝓕 T = S.𝓕 t := by
+  have hinj : Function.Injective
+      (fun m : MeasurableSpace Ω => {A : Set Ω | MeasurableSet[m] A}) := by
+    intro m₁ m₂ h
+    ext A
+    exact Set.ext_iff.mp h A
+  have : Finite (MeasurableSpace Ω) := Finite.of_injective _ hinj
+  exact WellFoundedGT.monotone_chain_condition ⟨fun t => S.𝓕 t, fun _ _ h => S.𝓕.mono h⟩
+
+/-- Woodford (2003), pp. 509–511 (why the variance results need a genuine probability model): on
+a finite state space, innovations `ε_{t+1}` known at `t + 1` with `E_t ε_{t+1} = 0` and constant
+conditional variance `E_t ε²_{t+1} = s` must have `s = 0` (once information stops arriving,
+the innovation is known one period early). -/
+theorem finite_innov_degenerate [Finite Ω] [MeasurableSingletonClass Ω] {s : ℝ}
+    {ε : ℕ → Ω → ℝ} (hε : ∀ t, StronglyMeasurable[S.𝓕 (t + 1)] (ε (t + 1)))
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) * ε (t + 1)) =ᵐ[S.μ] fun _ => s) : s = 0 := by
+  obtain ⟨T, hT⟩ := filtration_stabilizes S
+  have hm : StronglyMeasurable[S.𝓕 T] (ε (T + 1)) := by
+    rw [hT (T + 1) (Nat.le_succ T)]
+    exact hε T
+  have h1 : S.E T (ε (T + 1)) = ε (T + 1) := S.E_of_stronglyMeasurable hm Integrable.of_finite
+  have h2 : S.E T (ε (T + 1) * ε (T + 1)) = ε (T + 1) * ε (T + 1) :=
+    S.E_of_stronglyMeasurable (hm.mul hm) Integrable.of_finite
+  obtain ⟨ω, a, b⟩ := ((hmd T).and (hvar T)).exists
+  rw [h1] at a
+  rw [h2] at b
+  simp only [Pi.zero_apply, Pi.mul_apply] at a b
+  rw [a] at b
+  linarith
+
+/-- Woodford (2003), pp. 509–511: on a finite state space every `MeasAR1Innov` disturbance has
+innovation variance `0`. -/
+theorem finite_ar1Innov_degenerate [Finite Ω] [MeasurableSingletonClass Ω] {ρ s : ℝ}
+    {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) : s = 0 :=
+  finite_innov_degenerate S hu.innov_meas hu.2.2.2.1 hu.2.2.2.2
+
+omit mΩ in
+/-- Woodford (2003), pp. 509–511 (the core statements on event trees): no finite event tree
+carries an AR(1) disturbance `Noninertial.AR1Innov` with innovation variance `s ≠ 0`, so the core
+`lstab12_hasSum`, `prop_7_11_lstab`, `f4_lstab` have content on trees only at `s = 0`. -/
+theorem tree_innov_degenerate {Ω' : Type*} [Fintype Ω'] (T : ExpectationsFiniteTree.FiniteTree Ω')
+    {ρ s : ℝ} {u ε : ℕ → Ω' → ℝ} (h : Noninertial.AR1Innov T.toExpectationSystem ρ s u ε) :
+    s = 0 := by
+  let _ : MeasurableSpace Ω' := ⊤
+  have : DiscreteMeasurableSpace Ω' := ⟨fun _ => MeasurableSpace.measurableSet_top⟩
+  have hE : ∀ t x, (TreeBridge.treeSystem T).E t x = T.condE t x := TreeBridge.treeSystem_E T
+  refine finite_innov_degenerate (TreeBridge.treeSystem T) (ε := ε) (fun t => ?_)
+    (fun t => ?_) (fun t => ?_)
+  · have hεe : ε (t + 1) = u (t + 1) - ρ • u t := by rw [h.2.1 t, add_sub_cancel_left]
+    have hk : T.toExpectationSystem.E (t + 1) (ε (t + 1)) = ε (t + 1) := by
+      rw [hεe, map_sub, map_smul, h.1 (t + 1), ← h.1 t,
+        T.toExpectationSystem.known (Nat.le_succ t)]
+    rw [← hk]
+    exact TreeBridge.stronglyMeasurable_condE T (t + 1) _
+  · rw [hE]
+    exact Eventually.of_forall (congrFun (h.2.2.1 t))
+  · rw [hE]
+    exact Eventually.of_forall (congrFun (h.2.2.2 t))
+
+/-! ### Links to the core statements on finite, fully supported state spaces -/
+
+/-- Woodford (2003), eqs. (2.18) and (2.27): on a finite fully supported space a `MeasAR1Innov`
+disturbance is a core `Noninertial.AR1Innov` disturbance of the bridged core system. -/
+theorem toCore_AR1Innov [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {ρ s : ℝ} {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) :
+    Noninertial.AR1Innov (S.toExpectationSystem hfull) ρ s u ε :=
+  ⟨fun t => S.E_of_stronglyMeasurable (hu.1 t) Integrable.of_finite, hu.2.2.1,
+    fun t => S.eq_of_ae_eq hfull (hu.2.2.2.1 t), fun t => S.eq_of_ae_eq hfull (hu.2.2.2.2 t)⟩
+
+/-- Woodford (2003), eq. (2.18): on a finite fully supported space a `MeasAR1Innov` disturbance
+whose date-0 innovation is known at 0 is a core `VarianceFrontier.AR1Innov` disturbance with
+constant innovation variances. -/
+theorem toCore_VF_AR1Innov [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {ρ s : ℝ} {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε)
+    (hε0 : StronglyMeasurable[S.𝓕 0] (ε 0)) :
+    VarianceFrontier.AR1Innov (S.toExpectationSystem hfull) ρ (fun _ => s) u ε := by
+  refine ⟨fun t => S.E_of_stronglyMeasurable (hu.1 t) Integrable.of_finite, fun t => ?_,
+    hu.2.2.1, fun t => S.eq_of_ae_eq hfull (hu.2.2.2.1 t),
+    fun t => S.eq_of_ae_eq hfull (hu.2.2.2.2 t)⟩
+  cases t with
+  | zero => exact S.E_of_stronglyMeasurable hε0 Integrable.of_finite
+  | succ t => exact S.E_of_stronglyMeasurable (hu.innov_meas t) Integrable.of_finite
+
+/-- Woodford (2003), p. 511: on a finite fully supported space a disturbance with innovation
+variance `s ≠ 0` is non-degenerate in the core sense `Noninertial.Nondeg1`. -/
+theorem toCore_nondeg1 [Finite Ω] [DiscreteMeasurableSpace Ω] {ρ s : ℝ} {u ε : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρ s u ε) (hs : s ≠ 0) : Noninertial.Nondeg1 u := by
+  by_contra hcon
+  simp only [Noninertial.Nondeg1, not_exists, ne_eq, not_not] at hcon
+  obtain ⟨ω₀, -⟩ := (Eventually.of_forall (f := ae S.μ) fun _ : Ω => True.intro).exists
+  have key := affine_zero1 S hu hs (a := -u 0 ω₀) (b := 1) fun t =>
+    Eventually.of_forall fun ω => by
+      change -u 0 ω₀ + 1 * u t ω = 0
+      rw [hcon t ω 0 ω₀]
+      ring
+  exact one_ne_zero key.2
+
+/-- Woodford (2003), p. 512: on a finite fully supported space two disturbances with nonzero,
+uncorrelated innovation variances are non-degenerate as a pair in the core sense
+`Noninertial.Nondeg2`. -/
+theorem toCore_nondeg2 [Finite Ω] [DiscreteMeasurableSpace Ω] {ρu ρr su sr : ℝ}
+    {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr)
+    (hsu : su ≠ 0) (hsr : sr ≠ 0)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) :
+    Noninertial.Nondeg2 u r := by
+  by_contra hcon
+  simp only [Noninertial.Nondeg2, not_exists, ne_eq, not_not] at hcon
+  obtain ⟨ω₀, -⟩ := (Eventually.of_forall (f := ae S.μ) fun _ : Ω => True.intro).exists
+  by_cases hex : ∃ t₂ ω₂, u t₂ ω₂ ≠ u 0 ω₀ ∨ r t₂ ω₂ ≠ r 0 ω₀
+  · obtain ⟨t₂, ω₂, hne⟩ := hex
+    have key := affine_zero2 S hu hr hsu hsr hind
+      (a := -((r t₂ ω₂ - r 0 ω₀) * u 0 ω₀ - (u t₂ ω₂ - u 0 ω₀) * r 0 ω₀))
+      (b := r t₂ ω₂ - r 0 ω₀) (c := -(u t₂ ω₂ - u 0 ω₀)) fun t =>
+        Eventually.of_forall fun ω => by
+          change -((r t₂ ω₂ - r 0 ω₀) * u 0 ω₀ - (u t₂ ω₂ - u 0 ω₀) * r 0 ω₀) +
+            (r t₂ ω₂ - r 0 ω₀) * u t ω + -(u t₂ ω₂ - u 0 ω₀) * r t ω = 0
+          linear_combination -hcon 0 ω₀ t₂ ω₂ t ω
+    rcases hne with h | h
+    · exact h (by linarith [key.2.2])
+    · exact h (by linarith [key.2.1])
+  · simp only [not_exists, not_or, ne_eq, not_not] at hex
+    have key := affine_zero2 S hu hr hsu hsr hind (a := -u 0 ω₀) (b := 1) (c := 0) fun t =>
+      Eventually.of_forall fun ω => by
+        change -u 0 ω₀ + 1 * u t ω + 0 * r t ω = 0
+        rw [(hex t ω).1]
+        ring
+    exact one_ne_zero key.2.1
+
+/-- Woodford (2003), eq. (2.1), p. 486: on a finite fully supported space the almost-sure
+aggregate-supply relation is the core relation `Noninertial.AS` of the bridged core system. -/
+theorem mAS_iff_core [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (β κ : ℝ) (π x u : ℕ → Ω → ℝ) :
+    MAS S β κ π x u ↔ Noninertial.AS (S.toExpectationSystem hfull) β κ π x u :=
+  ⟨fun h t => S.eq_of_ae_eq hfull (h t), fun h t => Eventually.of_forall (congrFun (h t))⟩
+
+/-- Woodford (2003), eq. (2.23), p. 502: on a finite fully supported space the almost-sure IS
+relation is the core relation `Noninertial.IS` of the bridged core system. -/
+theorem mIS_iff_core [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (σ : ℝ) (π x i rn : ℕ → Ω → ℝ) :
+    MIS S σ π x i rn ↔ Noninertial.IS (S.toExpectationSystem hfull) σ π x i rn :=
+  ⟨fun h t => S.eq_of_ae_eq hfull (h t), fun h t => Eventually.of_forall (congrFun (h t))⟩
+
+/-- Woodford (2003), p. 509: on a finite fully supported space Mathlib's conditional variance
+`Var[X; μ | 𝓕 t]` is, at every state, the core conditional variance
+`E_t X² − (E_t X)²` (`VarianceFrontier.condCov`) of the bridged core system. -/
+theorem condVar_eq_condCov [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (t : ℕ) (X : Ω → ℝ) :
+    Var[X; S.μ | S.𝓕 t] = VarianceFrontier.condCov (S.toExpectationSystem hfull) t X X := by
+  refine S.eq_of_ae_eq hfull ?_
+  filter_upwards [condVar_ae_eq_condExp_sq_sub_sq_condExp (S.𝓕.le t)
+    (MemLp.of_discrete (f := X) (p := 2) (μ := S.μ))] with ω h
+  rw [h]
+  simp only [VarianceFrontier.condCov, MeasExpectationSystem.toExpectationSystem_E, Pi.sub_apply,
+    Pi.mul_apply, sq]
+
+/-- Woodford (2003), p. 509: on a finite fully supported space the stabilization loss with
+genuine conditional variances is, at every state, the core loss `Noninertial.Lstab12`. -/
+theorem lstab12_agree [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (β lam : ℝ) (t₀ : ℕ) (π x : ℕ → Ω → ℝ) (ω : Ω) :
+    mLstab12 S β lam t₀ π x ω = Noninertial.Lstab12 (S.toExpectationSystem hfull) β lam t₀ π x ω
+    := by
+  unfold mLstab12 Noninertial.Lstab12
+  simp only [condVar_eq_condCov S hfull]
+
+/-- Woodford (2003), p. 512: on a finite fully supported space the three-variable stabilization
+loss with genuine conditional variances is, at every state, the core loss `Noninertial.Lstab`. -/
+theorem lstab_agree [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (β lx li : ℝ) (t₀ : ℕ) (π x i : ℕ → Ω → ℝ) (ω : Ω) :
+    mLstab S β lx li t₀ π x i ω =
+      Noninertial.Lstab (S.toExpectationSystem hfull) β lx li t₀ π x i ω := by
+  unfold mLstab Noninertial.Lstab
+  simp only [condVar_eq_condCov S hfull]
+
+/-- Woodford (2003), eq. (3.4), p. 511, through the bridge: on a finite fully supported space the
+core theorem `Noninertial.lstab12_hasSum` applies to a `MeasAR1Innov` disturbance and gives
+`L^stab` at every state (agreeing with the almost-sure `lstab12_eq`). -/
+theorem lstab12_link [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {β lam ρ s : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρ : |ρ| < 1) {u ε : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρ s u ε) (πbar xbar fπ fx : ℝ) (t₀ : ℕ) (ω : Ω) :
+    mLstab12 S β lam t₀ (plan1 πbar fπ u) (plan1 xbar fx u) ω =
+      β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * (fπ ^ 2 + lam * fx ^ 2) *
+        uncondVar ρ s := by
+  rw [lstab12_agree S hfull]
+  exact (Noninertial.lstab12_hasSum _ (S.toExpectationSystem_pullOut hfull) hβ0 hβ1 hρ
+    (toCore_AR1Innov S hfull hu) πbar xbar fπ fx t₀ ω).tsum_eq
+
+/-- Woodford (2003), eqs. (3.7)–(3.8), p. 513, through the bridge: on a finite fully supported
+space the core theorem `Noninertial.lstab_hasSum` applies and gives `L^stab` at every state. -/
+theorem lstab_link [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {β lx li ρu ρr su sr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρu : |ρu| < 1) (hρr : |ρr| < 1)
+    {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0)
+    (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) (t₀ : ℕ) (ω : Ω) :
+    mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r) ω =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr sr +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu su := by
+  rw [lstab_agree S hfull]
+  exact (Noninertial.lstab_hasSum _ (S.toExpectationSystem_pullOut hfull) hβ0 hβ1 hρu hρr
+    (toCore_AR1Innov S hfull hu) (toCore_AR1Innov S hfull hr)
+    (fun t => S.eq_of_ae_eq hfull (hind t)) πbar xbar ibar fπ fx fi gπ gx gi t₀ ω).tsum_eq
+
+/-- Woodford (2003), eq. (3.4), p. 511, through the bridge to `VarianceFrontier.Lstab_ar1`: on a
+finite fully supported space the stabilization loss of a plan (2.19) is, at every state, the
+closed form (3.4). -/
+theorem Lstab_ar1_link [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {β ρ s lam pibar xbar fπ fx : ℝ} {u ε : ℕ → Ω → ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    (hρ : ρ ^ 2 < 1) (hu : MeasAR1Innov S ρ s u ε) (hε0 : StronglyMeasurable[S.𝓕 0] (ε 0))
+    (t₀ : ℕ) (ω : Ω) :
+    mLstab12 S β lam t₀ (VarianceFrontier.fwdPlan pibar fπ u) (VarianceFrontier.fwdPlan xbar fx u)
+      ω = β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * (fπ ^ 2 + lam * fx ^ 2) *
+        (s / (1 - ρ ^ 2)) := by
+  unfold mLstab12
+  simp only [condVar_eq_condCov S hfull]
+  exact VarianceFrontier.Lstab_ar1 _ (S.toExpectationSystem_pullOut hfull) hβ0 hβ1 hρ
+    (toCore_VF_AR1Innov S hfull hu hε0) (fun _ => rfl) t₀ ω
+
+/-- Woodford (2003), eqs. (3.7)–(3.8), pp. 512–513, through the bridge to
+`VarianceFrontier.Lstab_two_shocks`: on a finite fully supported space the stabilization loss of a
+plan (3.6) splits, at every state, as `L^{stab,r} + L^{stab,u}`. -/
+theorem Lstab_two_shocks_link [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {β ρu ρr su sr lamx lami : ℝ} {u εu r εr : ℕ → Ω → ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    (hρu : ρu ^ 2 < 1) (hρr : ρr ^ 2 < 1) (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr) (hεu0 : StronglyMeasurable[S.𝓕 0] (εu 0))
+    (hεr0 : StronglyMeasurable[S.𝓕 0] (εr 0))
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0)
+    (pibar xbar ibar fπ fx fi gπ gx gi : ℝ) (t₀ : ℕ) (ω : Ω) :
+    mLstab S β lamx lami t₀ (plan2 pibar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r)
+      ω =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lamx * gx ^ 2 + lami * gi ^ 2) *
+          (sr / (1 - ρr ^ 2)) +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) *
+          (fπ ^ 2 + lamx * fx ^ 2 + lami * fi ^ 2) * (su / (1 - ρu ^ 2)) := by
+  unfold mLstab
+  simp only [condVar_eq_condCov S hfull]
+  exact VarianceFrontier.Lstab_two_shocks _ (S.toExpectationSystem_pullOut hfull) hβ0 hβ1 hρu hρr
+    (toCore_VF_AR1Innov S hfull hu hεu0) (toCore_VF_AR1Innov S hfull hr hεr0) (fun _ => rfl)
+    (fun _ => rfl) (fun t => S.eq_of_ae_eq hfull (hind t)) pibar xbar ibar fπ fx fi gπ gx gi t₀ ω
+
+/-- **Proposition 7.11**, stabilization form, through the bridge (Woodford (2003), pp. 509–511):
+on a finite fully supported space the measure-theoretic hypotheses (with `s > 0`) give every
+hypothesis of the core `Noninertial.prop_7_11_lstab` (pull-out, `AR1Innov`, `Nondeg1`), so its
+conclusion holds for the bridged core system. By `finite_ar1Innov_degenerate` these hypotheses
+are never met on a finite space; the genuine content is `prop_7_11_lstab`. -/
+theorem prop_7_11_link [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {β κ lam ρ s : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hlam : 0 < lam) (hρ : |ρ| < 1)
+    (hs : 0 < s) {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (t₀ : ℕ) (ω : Ω) :
+    Noninertial.AS (S.toExpectationSystem hfull) β κ (plan1 0 (fpiOni β κ lam ρ) u)
+      (plan1 0 (fxOni β κ lam ρ) u) u ∧
+    ∀ πbar xbar gπ gx, Noninertial.AS (S.toExpectationSystem hfull) β κ (plan1 πbar gπ u)
+        (plan1 xbar gx u) u →
+      Noninertial.Lstab12 (S.toExpectationSystem hfull) β lam t₀ (plan1 0 (fpiOni β κ lam ρ) u)
+          (plan1 0 (fxOni β κ lam ρ) u) ω ≤
+        Noninertial.Lstab12 (S.toExpectationSystem hfull) β lam t₀ (plan1 πbar gπ u)
+          (plan1 xbar gx u) ω ∧
+      (Noninertial.Lstab12 (S.toExpectationSystem hfull) β lam t₀ (plan1 πbar gπ u)
+          (plan1 xbar gx u) ω =
+        Noninertial.Lstab12 (S.toExpectationSystem hfull) β lam t₀ (plan1 0 (fpiOni β κ lam ρ) u)
+          (plan1 0 (fxOni β κ lam ρ) u) ω ↔
+        gπ = fpiOni β κ lam ρ ∧ gx = fxOni β κ lam ρ) :=
+  Noninertial.prop_7_11_lstab _ (S.toExpectationSystem_pullOut hfull) hβ0 hβ1 hκ hlam hρ hs
+    (toCore_AR1Innov S hfull hu) (toCore_nondeg1 S hu hs.ne') t₀ ω
+
+/-- **Appendix F.4**, stabilization optimality, through the bridge (Woodford (2003),
+pp. 512–513, 713–714): on a finite fully supported space the measure-theoretic hypotheses give
+every hypothesis of the core `Noninertial.f4_lstab` (pull-out, two `AR1Innov`, uncorrelated
+innovations, `Nondeg2`), so its conclusion holds for the bridged core system. By
+`finite_ar1Innov_degenerate` these hypotheses are never met on a finite space; the genuine content
+is `f4_lstab`. -/
+theorem f4_link [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {β κ σ rbar lx li istar ρu ρr su sr : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ)
+    (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li) (hρu : |ρu| < 1) (hρr : |ρr| < 1) (hsu : 0 < su)
+    (hsr : 0 < sr) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) (t₀ : ℕ) (ω : Ω)
+    {xs is : ℝ} (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (Noninertial.AS (S.toExpectationSystem hfull) β κ
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) u ∧
+      Noninertial.IS (S.toExpectationSystem hfull) σ
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+        (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r)
+        (fun t ω => rbar + r t ω)) ∧
+    ∀ πbar xbar ibar fπ fx fi gπ gx gi,
+      Noninertial.AS (S.toExpectationSystem hfull) β κ (plan2 πbar fπ gπ u r)
+        (plan2 xbar fx gx u r) u →
+      Noninertial.IS (S.toExpectationSystem hfull) σ (plan2 πbar fπ gπ u r)
+        (plan2 xbar fx gx u r) (plan2 ibar fi gi u r) (fun t ω => rbar + r t ω) →
+      Noninertial.Lstab (S.toExpectationSystem hfull) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ω ≤
+        Noninertial.Lstab (S.toExpectationSystem hfull) β lx li t₀ (plan2 πbar fπ gπ u r)
+          (plan2 xbar fx gx u r) (plan2 ibar fi gi u r) ω ∧
+      (Noninertial.Lstab (S.toExpectationSystem hfull) β lx li t₀ (plan2 πbar fπ gπ u r)
+          (plan2 xbar fx gx u r) (plan2 ibar fi gi u r) ω =
+        Noninertial.Lstab (S.toExpectationSystem hfull) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ω ↔
+        (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) :=
+  Noninertial.f4_lstab _ (S.toExpectationSystem_pullOut hfull) hβ0 hβ1 hκ hσ hlx hli hρu hρr
+    hsu hsr (toCore_AR1Innov S hfull hu) (toCore_AR1Innov S hfull hr)
+    (fun t => S.eq_of_ae_eq hfull (hind t)) (toCore_nondeg2 S hu hr hsu.ne' hsr.ne' hind) t₀ ω
+    hxs his
+
+end Woodford.GainsFromCommitment.NoninertialMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The variance results on a genuine i.i.d. probability model
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §3, pp. 507–513 ((3.4), (3.7)–(3.8),
+Proposition 7.11) and Appendix F.4, pp. 713–714, instantiated on the i.i.d. infinite-product
+economy of `ExpectationsMeasureIID` (`Ω = ℕ → ℝ`, `μ = ν^ℕ`, natural filtration), which is not
+finitely supported (every history is null). This shows that the hypotheses of
+`NoninertialMeasure` (AR(1) disturbances with innovations of constant, positive conditional
+variance, uncorrelated across the two disturbances) are satisfied by a genuine probability model
+with infinitely many nondegenerate innovations.
+
+## Main results
+
+* One disturbance: `iid_measAR1Innov` (the AR(1) of the coordinate shocks), `iid_lstab12`
+  ((3.4)), `iid_prop_7_11` (Proposition 7.11), and for fair `±1` coins `coin_prop_7_11`.
+* Two disturbances driven by functions `f(ε_t)`, `g(ε_t)` of the shock: `ar1fn`,
+  `iid_measAR1Innov_fn`, `E_fnShock_mul`, `iid2_lstab` ((3.7)–(3.8)), `iid2_f4_lstab`
+  (Appendix F.4).
+* A concrete law: `quad` (uniform on `{±1, ±3}`) with the two independent fair coins
+  `coinA`, `coinB` it encodes; `twoCoin_economy` (all moment conditions, every history null) and
+  `twoCoin_f4_lstab`.
+-/
+
+namespace Woodford.GainsFromCommitment.NoninertialMeasureIID
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure ExpectationsMeasureIID NoninertialMeasure
+open VarianceFrontier (plan2)
+open Noninertial (plan1 fpiOni fxOni uncondVar)
+
+/-! ### One disturbance: the AR(1) of the coordinate shocks -/
+
+/-- Woodford (2003), eq. (2.18), p. 496, on the i.i.d. economy: the AR(1) `u_{t+1} = ρu_t + ε_{t+1}`
+of mean-zero shocks with variance `σ²` and bounded support (`|ρ| < 1`) satisfies `MeasAR1Innov`
+with innovation variance `σ²`. -/
+theorem iid_measAR1Innov {ν : ProbabilityMeasure ℝ} {ρ B σ2 : ℝ} (hρ : |ρ| < 1)
+    (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) :
+    MeasAR1Innov (iidSystem ν) ρ σ2 (ar1 ρ) shock := by
+  refine ⟨ar1_adapted ν ρ, ⟨_, ar1_bdd hρ hbdd⟩, ar1_succ ρ, E_shock_zero hmean, fun t => ?_⟩
+  have h : shock (t + 1) * shock (t + 1) = shock (t + 1) ^ 2 := (sq _).symm
+  rw [h]
+  exact E_shock_sq_eq hvar t
+
+/-- **Equation (3.4)** (Woodford (2003), p. 511) on the i.i.d. economy: almost surely the
+stabilization loss of a plan (2.19) is `β/(1 − β) · (1 − ρ²)/(1 − βρ²) · (f_π² + λ f_x²) σ_u²`
+with `σ_u² = σ²/(1 − ρ²)`. -/
+theorem iid_lstab12 {ν : ProbabilityMeasure ℝ} {β lam ρ B σ2 : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    (hρ : |ρ| < 1) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B)
+    (πbar xbar fπ fx : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ,
+      mLstab12 (iidSystem ν) β lam t₀ (plan1 πbar fπ (ar1 ρ)) (plan1 xbar fx (ar1 ρ)) ω =
+        β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * (fπ ^ 2 + lam * fx ^ 2) *
+          uncondVar ρ σ2 :=
+  lstab12_eq _ hβ0 hβ1 hρ (iid_measAR1Innov hρ hmean hvar hbdd) πbar xbar fπ fx t₀
+
+/-- **Proposition 7.11, stabilization form** (Woodford (2003), pp. 509–511) on the i.i.d.
+economy with shock variance `σ² > 0`: the optimal noninertial plan satisfies (2.1), and every
+plan (2.19) satisfying (2.1) has almost surely at least its stabilization loss, with almost-sure
+equality iff it has the responses (3.5). -/
+theorem iid_prop_7_11 {ν : ProbabilityMeasure ℝ} {β κ lam ρ B σ2 : ℝ} (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hκ : 0 < κ) (hlam : 0 < lam) (hρ : |ρ| < 1) (hσ : 0 < σ2)
+    (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t₀ : ℕ) :
+    MAS (iidSystem ν) β κ (plan1 0 (fpiOni β κ lam ρ) (ar1 ρ)) (plan1 0 (fxOni β κ lam ρ) (ar1 ρ))
+      (ar1 ρ) ∧
+    ∀ πbar xbar gπ gx, MAS (iidSystem ν) β κ (plan1 πbar gπ (ar1 ρ)) (plan1 xbar gx (ar1 ρ))
+        (ar1 ρ) →
+      (∀ᵐ ω ∂(iidSystem ν).μ,
+        mLstab12 (iidSystem ν) β lam t₀ (plan1 0 (fpiOni β κ lam ρ) (ar1 ρ))
+            (plan1 0 (fxOni β κ lam ρ) (ar1 ρ)) ω ≤
+          mLstab12 (iidSystem ν) β lam t₀ (plan1 πbar gπ (ar1 ρ)) (plan1 xbar gx (ar1 ρ)) ω) ∧
+      (mLstab12 (iidSystem ν) β lam t₀ (plan1 πbar gπ (ar1 ρ)) (plan1 xbar gx (ar1 ρ))
+          =ᵐ[(iidSystem ν).μ]
+          mLstab12 (iidSystem ν) β lam t₀ (plan1 0 (fpiOni β κ lam ρ) (ar1 ρ))
+            (plan1 0 (fxOni β κ lam ρ) (ar1 ρ)) ↔
+        gπ = fpiOni β κ lam ρ ∧ gx = fxOni β κ lam ρ) :=
+  prop_7_11_lstab _ hβ0 hβ1 hκ hlam hρ hσ (iid_measAR1Innov hρ hmean hvar hbdd) t₀
+
+/-- **Proposition 7.11** (Woodford (2003), pp. 509–511) on the fair-coin economy (`ε_t = ±1`
+i.i.d., innovation variance `1`): every history is null (the model is not finitely supported),
+and the optimal noninertial plan minimises the stabilization loss almost surely among all plans
+(2.19) satisfying (2.1), uniquely up to almost-sure equality of losses. -/
+theorem coin_prop_7_11 {β κ lam ρ : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ)
+    (hlam : 0 < lam) (hρ : |ρ| < 1) (t₀ : ℕ) :
+    (∀ ω, (iidSystem coin).μ {ω} = 0) ∧
+    MAS (iidSystem coin) β κ (plan1 0 (fpiOni β κ lam ρ) (ar1 ρ))
+      (plan1 0 (fxOni β κ lam ρ) (ar1 ρ)) (ar1 ρ) ∧
+    ∀ πbar xbar gπ gx, MAS (iidSystem coin) β κ (plan1 πbar gπ (ar1 ρ)) (plan1 xbar gx (ar1 ρ))
+        (ar1 ρ) →
+      (∀ᵐ ω ∂(iidSystem coin).μ,
+        mLstab12 (iidSystem coin) β lam t₀ (plan1 0 (fpiOni β κ lam ρ) (ar1 ρ))
+            (plan1 0 (fxOni β κ lam ρ) (ar1 ρ)) ω ≤
+          mLstab12 (iidSystem coin) β lam t₀ (plan1 πbar gπ (ar1 ρ)) (plan1 xbar gx (ar1 ρ)) ω) ∧
+      (mLstab12 (iidSystem coin) β lam t₀ (plan1 πbar gπ (ar1 ρ)) (plan1 xbar gx (ar1 ρ))
+          =ᵐ[(iidSystem coin).μ]
+          mLstab12 (iidSystem coin) β lam t₀ (plan1 0 (fpiOni β κ lam ρ) (ar1 ρ))
+            (plan1 0 (fxOni β κ lam ρ) (ar1 ρ)) ↔
+        gπ = fpiOni β κ lam ρ ∧ gx = fxOni β κ lam ρ) :=
+  ⟨iid_singleton coin_mean coin_var one_pos,
+    iid_prop_7_11 hβ0 hβ1 hκ hlam hρ one_pos coin_mean coin_var coin_bdd t₀⟩
+
+/-! ### Two disturbances driven by functions of the shock -/
+
+/-- Woodford (2003), eq. (2.27), p. 504 (tool): the innovation `f(ε_t)`, a function of the date-`t`
+shock. -/
+def fnShock (f : ℝ → ℝ) (t : ℕ) (ω : ℕ → ℝ) : ℝ := f (ω t)
+
+/-- Woodford (2003), eqs. (2.18) and (2.27): the AR(1) `u_0 = f(ε_0)`,
+`u_{t+1} = ρ u_t + f(ε_{t+1})`. -/
+def ar1fn (ρ : ℝ) (f : ℝ → ℝ) : ℕ → (ℕ → ℝ) → ℝ
+  | 0 => fnShock f 0
+  | t + 1 => fun ω => ρ * ar1fn ρ f t ω + fnShock f (t + 1) ω
+
+/-- Woodford (2003), eq. (2.18): the AR(1) law of motion of `ar1fn`. -/
+theorem ar1fn_succ (ρ : ℝ) (f : ℝ → ℝ) (t : ℕ) :
+    ar1fn ρ f (t + 1) = ρ • ar1fn ρ f t + fnShock f (t + 1) := rfl
+
+/-- Woodford (2003), eq. (2.18): a measurable function of the date-`s` shock is known at every
+`t ≥ s`. -/
+theorem measurable_fnShock (ν : ProbabilityMeasure ℝ) {f : ℝ → ℝ} (hf : Measurable f) {s t : ℕ}
+    (hst : s ≤ t) : Measurable[(iidSystem ν).𝓕 t] (fnShock f s) :=
+  hf.comp (measurable_shock ν hst)
+
+/-- Woodford (2003), eq. (2.18): `ar1fn` is adapted. -/
+theorem ar1fn_adapted (ν : ProbabilityMeasure ℝ) (ρ : ℝ) {f : ℝ → ℝ} (hf : Measurable f) :
+    StronglyAdapted (iidSystem ν).𝓕 (ar1fn ρ f) := by
+  intro t
+  induction t with
+  | zero => exact (measurable_fnShock ν hf le_rfl).stronglyMeasurable
+  | succ t ih =>
+    rw [ar1fn_succ]
+    exact ((ih.mono ((iidSystem ν).𝓕.mono (Nat.le_succ t))).const_smul ρ).add
+      (measurable_fnShock ν hf le_rfl).stronglyMeasurable
+
+/-- Woodford (2003), eq. (2.18): for `|ρ| < 1` and `|f| ≤ B`, `|u_t| ≤ B/(1 − |ρ|)` everywhere. -/
+theorem ar1fn_bdd {ρ B : ℝ} (hρ : |ρ| < 1) {f : ℝ → ℝ} (hB : ∀ x, |f x| ≤ B) (t : ℕ)
+    (ω : ℕ → ℝ) : |ar1fn ρ f t ω| ≤ B / (1 - |ρ|) := by
+  have hB0 : 0 ≤ B := (abs_nonneg _).trans (hB 0)
+  have h1 : 0 < 1 - |ρ| := by linarith
+  induction t with
+  | zero =>
+    refine (hB (ω 0)).trans ?_
+    rw [le_div_iff₀ h1]
+    nlinarith [abs_nonneg ρ]
+  | succ t ih =>
+    change |ρ * ar1fn ρ f t ω + f (ω (t + 1))| ≤ _
+    have key : |ρ| * (B / (1 - |ρ|)) + B = B / (1 - |ρ|) := by
+      field_simp
+      ring
+    calc |ρ * ar1fn ρ f t ω + f (ω (t + 1))| ≤ |ρ| * |ar1fn ρ f t ω| + |f (ω (t + 1))| := by
+          rw [← abs_mul]
+          exact abs_add_le _ _
+      _ ≤ |ρ| * (B / (1 - |ρ|)) + B :=
+          add_le_add (mul_le_mul_of_nonneg_left ih (abs_nonneg ρ)) (hB _)
+      _ = B / (1 - |ρ|) := key
+
+/-- Woodford (2003), p. 512 (the conditional moments of the innovations): on the i.i.d. economy
+`E_t[f(ε_{t+1}) g(ε_{t+1})] = ∫ f g dν` almost surely. -/
+theorem E_fnShock_mul {ν : ProbabilityMeasure ℝ} {f g : ℝ → ℝ} (hf : Measurable f)
+    (hg : Measurable g) (t : ℕ) :
+    (iidSystem ν).E t (fnShock f (t + 1) * fnShock g (t + 1)) =ᵐ[(iidSystem ν).μ]
+      fun _ => ∫ x, f x * g x ∂(ν : Measure ℝ) :=
+  E_shock_fun ν t (hf.mul hg)
+
+/-- Woodford (2003), eqs. (2.18) and (2.27) on the i.i.d. economy: the AR(1) driven by `f(ε_t)`,
+with `f` measurable, bounded, `∫ f dν = 0` and `∫ f² dν = s`, satisfies `MeasAR1Innov` with
+innovation variance `s`. -/
+theorem iid_measAR1Innov_fn {ν : ProbabilityMeasure ℝ} {ρ B s : ℝ} (hρ : |ρ| < 1) {f : ℝ → ℝ}
+    (hf : Measurable f) (hB : ∀ x, |f x| ≤ B) (hmean : ∫ x, f x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, f x * f x ∂(ν : Measure ℝ) = s) :
+    MeasAR1Innov (iidSystem ν) ρ s (ar1fn ρ f) (fnShock f) := by
+  refine ⟨ar1fn_adapted ν ρ hf, ⟨_, fun t => Eventually.of_forall (ar1fn_bdd hρ hB t)⟩,
+    ar1fn_succ ρ f, fun t => ?_, fun t => ?_⟩
+  · filter_upwards [E_shock_fun ν t hf] with ω h
+    change (iidSystem ν).E t (fun ω => f (ω (t + 1))) ω = 0
+    rw [h, hmean]
+  · filter_upwards [E_fnShock_mul (ν := ν) hf hf t] with ω h
+    rw [h, hvar]
+
+/-- **Equations (3.7)–(3.8)** (Woodford (2003), p. 513) on the i.i.d. economy: with disturbances
+`u`, `r̂ⁿ` driven by `f(ε_t)`, `g(ε_t)` (measurable, bounded, mean zero, `∫ f² = s_u`,
+`∫ g² = s_r`, `∫ f g = 0`), almost surely `L^stab = L^{stab,r} + L^{stab,u}` for every plan
+(3.6). -/
+theorem iid2_lstab {ν : ProbabilityMeasure ℝ} {β lx li ρu ρr Bu Br su sr : ℝ} (hβ0 : 0 ≤ β)
+    (hβ1 : β < 1) (hρu : |ρu| < 1) (hρr : |ρr| < 1) {f g : ℝ → ℝ} (hf : Measurable f)
+    (hg : Measurable g) (hBf : ∀ x, |f x| ≤ Bu) (hBg : ∀ x, |g x| ≤ Br)
+    (hfm : ∫ x, f x ∂(ν : Measure ℝ) = 0) (hgm : ∫ x, g x ∂(ν : Measure ℝ) = 0)
+    (hfv : ∫ x, f x * f x ∂(ν : Measure ℝ) = su) (hgv : ∫ x, g x * g x ∂(ν : Measure ℝ) = sr)
+    (hfg : ∫ x, f x * g x ∂(ν : Measure ℝ) = 0) (πbar xbar ibar fπ fx fi gπ gx gi : ℝ)
+    (t₀ : ℕ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, mLstab (iidSystem ν) β lx li t₀
+      (plan2 πbar fπ gπ (ar1fn ρu f) (ar1fn ρr g)) (plan2 xbar fx gx (ar1fn ρu f) (ar1fn ρr g))
+      (plan2 ibar fi gi (ar1fn ρu f) (ar1fn ρr g)) ω =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr sr +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu su :=
+  lstab_eq _ hβ0 hβ1 hρu hρr (iid_measAR1Innov_fn hρu hf hBf hfm hfv)
+    (iid_measAR1Innov_fn hρr hg hBg hgm hgv)
+    (fun t => (E_fnShock_mul hf hg t).trans (by rw [hfg])) πbar xbar ibar fπ fx fi gπ gx gi t₀
+
+/-- **Appendix F.4, stabilization optimality** (Woodford (2003), pp. 512–513, 713–714) on the
+i.i.d. economy with disturbances driven by `f(ε_t)`, `g(ε_t)` (measurable, bounded, mean zero,
+`∫ f² = s_u > 0`, `∫ g² = s_r > 0`, `∫ f g = 0`): the conclusion of `NoninertialMeasure.f4_lstab`
+holds. -/
+theorem iid2_f4_lstab {ν : ProbabilityMeasure ℝ} {β κ σ rbar lx li istar ρu ρr Bu Br su sr : ℝ}
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li)
+    (hρu : |ρu| < 1) (hρr : |ρr| < 1) (hsu : 0 < su) (hsr : 0 < sr) {f g : ℝ → ℝ}
+    (hf : Measurable f) (hg : Measurable g) (hBf : ∀ x, |f x| ≤ Bu) (hBg : ∀ x, |g x| ≤ Br)
+    (hfm : ∫ x, f x ∂(ν : Measure ℝ) = 0) (hgm : ∫ x, g x ∂(ν : Measure ℝ) = 0)
+    (hfv : ∫ x, f x * f x ∂(ν : Measure ℝ) = su) (hgv : ∫ x, g x * g x ∂(ν : Measure ℝ) = sr)
+    (hfg : ∫ x, f x * g x ∂(ν : Measure ℝ) = 0) (t₀ : ℕ) {xs is : ℝ}
+    (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (MAS (iidSystem ν) β κ
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu f) (ar1fn ρr g))
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+          (ar1fn ρu f) (ar1fn ρr g)) (ar1fn ρu f) ∧
+      MIS (iidSystem ν) σ
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu f) (ar1fn ρr g))
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+          (ar1fn ρu f) (ar1fn ρr g))
+        (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+          (ar1fn ρu f) (ar1fn ρr g))
+        (fun t ω => rbar + ar1fn ρr g t ω)) ∧
+    ∀ πbar xbar ibar fπ fx fi gπ gx gi,
+      MAS (iidSystem ν) β κ (plan2 πbar fπ gπ (ar1fn ρu f) (ar1fn ρr g))
+        (plan2 xbar fx gx (ar1fn ρu f) (ar1fn ρr g)) (ar1fn ρu f) →
+      MIS (iidSystem ν) σ (plan2 πbar fπ gπ (ar1fn ρu f) (ar1fn ρr g))
+        (plan2 xbar fx gx (ar1fn ρu f) (ar1fn ρr g)) (plan2 ibar fi gi (ar1fn ρu f) (ar1fn ρr g))
+        (fun t ω => rbar + ar1fn ρr g t ω) →
+      (∀ᵐ ω ∂(iidSystem ν).μ, mLstab (iidSystem ν) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+            (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+            (ar1fn ρu f) (ar1fn ρr g)) ω ≤
+        mLstab (iidSystem ν) β lx li t₀ (plan2 πbar fπ gπ (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 xbar fx gx (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 ibar fi gi (ar1fn ρu f) (ar1fn ρr g)) ω) ∧
+      (mLstab (iidSystem ν) β lx li t₀ (plan2 πbar fπ gπ (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 xbar fx gx (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 ibar fi gi (ar1fn ρu f) (ar1fn ρr g)) =ᵐ[(iidSystem ν).μ]
+        mLstab (iidSystem ν) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+            (ar1fn ρu f) (ar1fn ρr g))
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+            (ar1fn ρu f) (ar1fn ρr g)) ↔
+        (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) :=
+  f4_lstab _ hβ0 hβ1 hκ hσ hlx hli hρu hρr hsu hsr (iid_measAR1Innov_fn hρu hf hBf hfm hfv)
+    (iid_measAR1Innov_fn hρr hg hBg hgm hgv)
+    (fun t => (E_fnShock_mul hf hg t).trans (by rw [hfg])) t₀ hxs his
+
+/-! ### A concrete law: two independent fair coins encoded in one shock -/
+
+/-- Woodford (2003), p. 512 (two independent disturbances; concrete law): the uniform law on
+`{3, 1, −1, −3}`, which encodes two independent fair coins, as a measure. -/
+noncomputable def quadMeasure : Measure ℝ :=
+  (4⁻¹ : ENNReal) • (Measure.dirac 3 + Measure.dirac 1 + Measure.dirac (-1) + Measure.dirac (-3))
+
+/-- Woodford (2003), p. 512 (concrete law): the uniform law on `{±1, ±3}` has total mass one. -/
+theorem quadMeasure_univ : quadMeasure Set.univ = 1 := by
+  simp only [quadMeasure, Measure.smul_apply, Measure.add_apply, measure_univ, smul_eq_mul]
+  have h4 : (1 + 1 + 1 + 1 : ENNReal) = 4 := by norm_num
+  rw [h4, ENNReal.inv_mul_cancel (by norm_num) ENNReal.ofNat_ne_top]
+
+/-- Woodford (2003), p. 512 (concrete law): the uniform law on `{±1, ±3}`. -/
+noncomputable def quad : ProbabilityMeasure ℝ := ⟨quadMeasure, ⟨quadMeasure_univ⟩⟩
+
+/-- Woodford (2003), p. 512 (concrete law): `∫ f d quad = (f 3 + f 1 + f(−1) + f(−3))/4`. -/
+theorem integral_quad (f : ℝ → ℝ) :
+    ∫ x, f x ∂(quad : Measure ℝ) = (f 3 + f 1 + f (-1) + f (-3)) / 4 := by
+  change ∫ x, f x ∂quadMeasure = _
+  have i : ∀ a : ℝ, Integrable f (Measure.dirac a) := fun _ => integrable_dirac enorm_lt_top
+  rw [quadMeasure, integral_smul_measure,
+    integral_add_measure (((i 3).add_measure (i 1)).add_measure (i (-1))) (i (-3)),
+    integral_add_measure ((i 3).add_measure (i 1)) (i (-1)), integral_add_measure (i 3) (i 1),
+    integral_dirac, integral_dirac, integral_dirac, integral_dirac, ENNReal.toReal_inv,
+    ENNReal.toReal_ofNat, smul_eq_mul]
+  ring
+
+/-- Woodford (2003), p. 512 (concrete law): the first coin, `+1` on `{3, 1}`, `−1` on
+`{−1, −3}`. -/
+noncomputable def coinA (x : ℝ) : ℝ := if 0 < x then 1 else -1
+
+/-- Woodford (2003), p. 512 (concrete law): the second coin, `+1` on `{3, −1}`, `−1` on
+`{1, −3}`. -/
+noncomputable def coinB (x : ℝ) : ℝ := if 2 < x ∨ (-2 < x ∧ x < 0) then 1 else -1
+
+/-- Woodford (2003), p. 512 (concrete law): the first coin is measurable. -/
+theorem measurable_coinA : Measurable coinA :=
+  Measurable.ite measurableSet_Ioi measurable_const measurable_const
+
+/-- Woodford (2003), p. 512 (concrete law): the second coin is measurable. -/
+theorem measurable_coinB : Measurable coinB :=
+  Measurable.ite (measurableSet_Ioi.union (measurableSet_Ioi.inter measurableSet_Iio))
+    measurable_const measurable_const
+
+/-- Woodford (2003), p. 512 (concrete law): the first coin is bounded by one. -/
+theorem coinA_bdd (x : ℝ) : |coinA x| ≤ 1 := by
+  unfold coinA
+  split_ifs <;> norm_num
+
+/-- Woodford (2003), p. 512 (concrete law): the second coin is bounded by one. -/
+theorem coinB_bdd (x : ℝ) : |coinB x| ≤ 1 := by
+  unfold coinB
+  split_ifs <;> norm_num
+
+/-- Woodford (2003), p. 512 (concrete law): the moments of the two coins under `quad`: both
+have mean `0` and variance `1`, they are uncorrelated, and the underlying shock has mean `0` and
+variance `5`. -/
+theorem quad_moments :
+    ∫ x, coinA x ∂(quad : Measure ℝ) = 0 ∧ ∫ x, coinB x ∂(quad : Measure ℝ) = 0 ∧
+    ∫ x, coinA x * coinA x ∂(quad : Measure ℝ) = 1 ∧
+    ∫ x, coinB x * coinB x ∂(quad : Measure ℝ) = 1 ∧
+    ∫ x, coinA x * coinB x ∂(quad : Measure ℝ) = 0 ∧ ∫ x, x ∂(quad : Measure ℝ) = 0 ∧
+    ∫ x, x ^ 2 ∂(quad : Measure ℝ) = 5 := by
+  simp only [integral_quad]
+  norm_num [coinA, coinB]
+
+/-- Woodford (2003), pp. 512–513 (the two-disturbance economy is a genuine probability model):
+with `ε_t` i.i.d. uniform on `{±1, ±3}`, `εᵘ_t = coinA(ε_t)`, `εʳ_t = coinB(ε_t)`, every history
+is null, and the innovations are unforecastable with unit conditional variances and zero
+conditional covariance. -/
+theorem twoCoin_economy :
+    (∀ ω, (iidSystem quad).μ {ω} = 0) ∧
+    (∀ t, (iidSystem quad).E t (fnShock coinA (t + 1)) =ᵐ[(iidSystem quad).μ] 0) ∧
+    (∀ t, (iidSystem quad).E t (fnShock coinB (t + 1)) =ᵐ[(iidSystem quad).μ] 0) ∧
+    (∀ t, (iidSystem quad).E t (fnShock coinA (t + 1) * fnShock coinA (t + 1))
+      =ᵐ[(iidSystem quad).μ] fun _ => 1) ∧
+    (∀ t, (iidSystem quad).E t (fnShock coinB (t + 1) * fnShock coinB (t + 1))
+      =ᵐ[(iidSystem quad).μ] fun _ => 1) ∧
+    (∀ t, (iidSystem quad).E t (fnShock coinA (t + 1) * fnShock coinB (t + 1))
+      =ᵐ[(iidSystem quad).μ] fun _ => 0) := by
+  obtain ⟨hA, hB, hAA, hBB, hAB, hm, hv⟩ := quad_moments
+  have uA := iid_measAR1Innov_fn (ν := quad) (ρ := 0) (by norm_num) measurable_coinA coinA_bdd
+    hA hAA
+  have uB := iid_measAR1Innov_fn (ν := quad) (ρ := 0) (by norm_num) measurable_coinB coinB_bdd
+    hB hBB
+  exact ⟨iid_singleton hm hv (by norm_num), uA.2.2.2.1, uB.2.2.2.1, uA.2.2.2.2, uB.2.2.2.2,
+    fun t => (E_fnShock_mul measurable_coinA measurable_coinB t).trans (by rw [hAB])⟩
+
+/-- **Appendix F.4, stabilization optimality** (Woodford (2003), pp. 512–513, 713–714) on the
+two-coin economy (`twoCoin_economy`): with `u` and `r̂ⁿ` AR(1) disturbances driven by the two
+independent fair coins (`|ρ_u|, |ρ_r| < 1`), the corrected optimal noninertial plan satisfies
+(2.1) and (2.23), and every plan (3.6) satisfying them has almost surely at least its
+stabilization loss, with almost-sure equality iff it has the F.4 responses. -/
+theorem twoCoin_f4_lstab {β κ σ rbar lx li istar ρu ρr : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li) (hρu : |ρu| < 1) (hρr : |ρr| < 1)
+    (t₀ : ℕ) {xs is : ℝ} (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (MAS (iidSystem quad) β κ
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+          (ar1fn ρu coinA) (ar1fn ρr coinB)) (ar1fn ρu coinA) ∧
+      MIS (iidSystem quad) σ
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+          (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+          (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (fun t ω => rbar + ar1fn ρr coinB t ω)) ∧
+    ∀ πbar xbar ibar fπ fx fi gπ gx gi,
+      MAS (iidSystem quad) β κ (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB)) (ar1fn ρu coinA) →
+      MIS (iidSystem quad) σ (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 ibar fi gi (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (fun t ω => rbar + ar1fn ρr coinB t ω) →
+      (∀ᵐ ω ∂(iidSystem quad).μ, mLstab (iidSystem quad) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+            (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+            (ar1fn ρu coinA) (ar1fn ρr coinB)) ω ≤
+        mLstab (iidSystem quad) β lx li t₀ (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 ibar fi gi (ar1fn ρu coinA) (ar1fn ρr coinB)) ω) ∧
+      (mLstab (iidSystem quad) β lx li t₀ (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 ibar fi gi (ar1fn ρu coinA) (ar1fn ρr coinB)) =ᵐ[(iidSystem quad).μ]
+        mLstab (iidSystem quad) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+            (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+            (ar1fn ρu coinA) (ar1fn ρr coinB)) ↔
+        (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) := by
+  obtain ⟨hA, hB, hAA, hBB, hAB, -, -⟩ := quad_moments
+  exact iid2_f4_lstab hβ0 hβ1 hκ hσ hlx hli hρu hρr one_pos one_pos measurable_coinA
+    measurable_coinB coinA_bdd coinB_bdd hA hB hAA hBB hAB t₀ hxs his
+
+/-- **Equations (3.7)–(3.8)** (Woodford (2003), p. 513) on the two-coin economy: almost surely
+`L^stab = L^{stab,r} + L^{stab,u}` with unit innovation variances. -/
+theorem twoCoin_lstab {β lx li ρu ρr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρu : |ρu| < 1)
+    (hρr : |ρr| < 1) (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂(iidSystem quad).μ, mLstab (iidSystem quad) β lx li t₀
+      (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+      (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB))
+      (plan2 ibar fi gi (ar1fn ρu coinA) (ar1fn ρr coinB)) ω =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr 1 +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu 1 := by
+  obtain ⟨hA, hB, hAA, hBB, hAB, -, -⟩ := quad_moments
+  exact iid2_lstab hβ0 hβ1 hρu hρr measurable_coinA measurable_coinB coinA_bdd coinB_bdd hA hB
+    hAA hBB hAB πbar xbar ibar fπ fx fi gπ gx gi t₀
+
+end Woodford.GainsFromCommitment.NoninertialMeasureIID
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Taylor rules with coefficients of any sign
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §3.2 (pp. 513–515), footnote 33, and the
+"almost all parameter values" remark of p. 515.
+
+Footnote 33 notes that the Taylor principle (3.9) is necessary and sufficient for determinacy
+only when `φ_π, φ_x ≥ 0`, and that rules with negative feedback coefficients could be allowed "as
+long as they imply a determinate equilibrium". This module removes the sign restriction.
+
+## Main results
+
+* **The exact determinacy region for all real `(φ_π, φ_x)`** (`taylor_determinate_iff_region`):
+  with `Δ = 1 + σφ_x/4 + σκφ_π`, `A = κ(φ_π − 1) + (1 − β)φ_x/4` and
+  `C = 2(1 + β) + σκ(1 + φ_π) + (1 + β)σφ_x/4`, equilibrium is determinate iff
+  `(β < Δ ∧ A > 0 ∧ C > 0) ∨ (Δ < −β ∧ A < 0 ∧ C < 0)`. When `Δ = 0` there is always a second
+  bounded equilibrium (`not_modelDet_of_delta_zero`). For `φ_π, φ_x ≥ 0` the region is (3.9)
+  (`region_iff_taylorLHS`), so this extends Prop. 4.3 / (3.9).
+* Every determinate Taylor rule has an equilibrium of the form (3.6) (`taylor_eqm_plan2_region`)
+  and **no determinate Taylor rule, of any sign, beats the optimal noninertial plan**
+  (`prop_7_12_optimal_region`).
+* **Proposition 7.12 for all real coefficients, exactly** (`oni_implementable_iff`): when the
+  consistency system is nonsingular, the optimal noninertial plan is the equilibrium of some
+  determinate Taylor rule iff the unique consistent coefficients `(φ_π, φ_x)(ρ_r, ρ_u)` lie in
+  the region; then it is the unique equilibrium (`prop_7_12_region`).
+* (3.10) is sufficient but not necessary once negative coefficients are allowed: at the fn. 32
+  calibration and `ρ = .7` (outside (3.10)) the plan is implemented by a determinate rule with
+  `φ_π < 0`, `φ_x < 0` (`negative_rule_implements`), while at `ρ = .9` no determinate Taylor rule
+  implements it (`no_rule_implements`).
+* **"Almost all parameter values"** (p. 515): for `λᵢ > 0` the set of `(ρ_r, ρ_u)` at which the
+  consistency system is singular is a closed Lebesgue-null subset of `ℝ²` with empty interior,
+  contained in the zero set of a polynomial that is not identically zero (`detG_zero_null`,
+  `detG_zero_interior_empty`, `detG_zero_subset`); for `λᵢ = 0` the system is singular
+  everywhere (`detG_li_zero`).
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR5TaylorRegion
+
+open Filter Topology MeasureTheory
+open OptimalTaylor (taylorDelta taylorB taylorW TaylorEqm ModelDet taylorLHS detT pbarT xbarT
+  fpiT fxT gpiT gxT taylorEqm_iff_solves modelDet_iff_of_reduction plan2_bdd_adapted plan2_of
+  taylorRule_plan2 detG phiPiG phiXG rule_matches_general cramer_unique Drho phiPiStar phiXStar
+  Cond310 rule_matches_f4_u rule_matches_f4_r detG_diag kappa_sigma_Drho)
+open Noninertial (AS IS taylorRule Nondeg2)
+open VarianceFrontier (plan2 plan2_apply)
+
+/-! ### The determinacy region -/
+
+/-- Woodford (2003), (3.9), p. 514 (rescaled): `A = κ(φ_π − 1) + (1 − β)φ_x/4`; (3.9) is
+`A > 0` when `κ > 0`. -/
+noncomputable def regA (β κ φπ φx : ℝ) : ℝ := κ * (φπ - 1) + (1 - β) * φx / 4
+
+/-- Woodford (2003), App. C.2, p. 677 (the second Schur–Cohn inequality under (3.1)):
+`C = 2(1 + β) + σκ(1 + φ_π) + (1 + β)σφ_x/4`. -/
+noncomputable def regC (β σ κ φπ φx : ℝ) : ℝ :=
+  2 * (1 + β) + σ * κ * (1 + φπ) + (1 + β) * σ * φx / 4
+
+/-- Woodford (2003), fn. 33, p. 515: the determinacy region of the Taylor rule (3.1) for
+coefficients of any sign, `(β < Δ ∧ A > 0 ∧ C > 0) ∨ (Δ < −β ∧ A < 0 ∧ C < 0)`. -/
+def TaylorRegion (β σ κ φπ φx : ℝ) : Prop :=
+  (β < taylorDelta σ κ φπ φx ∧ 0 < regA β κ φπ φx ∧ 0 < regC β σ κ φπ φx) ∨
+    (taylorDelta σ κ φπ φx < -β ∧ regA β κ φπ φx < 0 ∧ regC β σ κ φπ φx < 0)
+
+/-- Woodford (2003), eq. (2.18), p. 263: `tr B = (1 + β + σκ + βσφ_x/4)/Δ`. -/
+theorem taylorB_tr (β σ κ φπ φx : ℝ) :
+    tr2 (taylorB β σ κ φπ φx) = (1 + β + σ * κ + β * σ * φx / 4) / taylorDelta σ κ φπ φx := by
+  simp only [taylorB, tr2, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
+    Matrix.cons_val_one, Matrix.empty_val', Matrix.cons_val_fin_one]
+  ring
+
+/-- Woodford (2003), eq. (2.18), p. 263: `det B = β/Δ` when `Δ ≠ 0`. -/
+theorem taylorB_det {β σ κ φπ φx : ℝ} (hΔ : taylorDelta σ κ φπ φx ≠ 0) :
+    det2 (taylorB β σ κ φπ φx) = β / taylorDelta σ κ φπ φx := by
+  simp only [taylorB, det2, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
+    Matrix.cons_val_one, Matrix.empty_val', Matrix.cons_val_fin_one]
+  field_simp
+  unfold taylorDelta
+  ring
+
+/-- Woodford (2003), App. C.2, p. 677, for coefficients of any sign: when `Δ ≠ 0`, `B` satisfies
+the Schur–Cohn condition iff `(φ_π, φ_x)` lies in `TaylorRegion`. -/
+theorem schurStable_iff_region {β σ κ φπ φx : ℝ} (hβ0 : 0 < β) (hσ : 0 < σ)
+    (hΔ : taylorDelta σ κ φπ φx ≠ 0) :
+    SchurStable (tr2 (taylorB β σ κ φπ φx)) (det2 (taylorB β σ κ φπ φx)) ↔
+      TaylorRegion β σ κ φπ φx := by
+  rw [taylorB_tr, taylorB_det hΔ]
+  set Δ := taylorDelta σ κ φπ φx with hΔd
+  set a := 1 + β + σ * κ + β * σ * φx / 4 with ha
+  have e1 : Δ + β - a = σ * regA β κ φπ φx := by
+    rw [hΔd, ha]; unfold taylorDelta regA; ring
+  have e2 : Δ + β + a = regC β σ κ φπ φx := by
+    rw [hΔd, ha]; unfold taylorDelta regC; ring
+  unfold SchurStable TaylorRegion
+  rw [← hΔd]
+  rcases lt_or_gt_of_ne hΔ with hneg | hpos
+  · have hD : |β / Δ| = β / -Δ := by
+      rw [abs_div, abs_of_pos hβ0, abs_of_neg hneg]
+    have hT : |a / Δ| = |a| / -Δ := by rw [abs_div, abs_of_neg hneg]
+    have hn : 0 < -Δ := by linarith
+    rw [hD, hT, div_lt_one hn,
+      show 1 + β / Δ = (-Δ - β) / -Δ by field_simp; ring, div_lt_div_iff_of_pos_right hn,
+      abs_lt]
+    constructor
+    · rintro ⟨h1, h2, h3⟩
+      refine Or.inr ⟨by linarith, ?_, by linarith⟩
+      have : σ * regA β κ φπ φx < 0 := by linarith
+      exact neg_of_mul_neg_right this hσ.le
+    · rintro (⟨h1, -, -⟩ | ⟨h1, h2, h3⟩)
+      · exact absurd h1 (by linarith)
+      · have : σ * regA β κ φπ φx < 0 := mul_neg_of_pos_of_neg hσ h2
+        exact ⟨by linarith, by linarith, by linarith⟩
+  · have hD : |β / Δ| = β / Δ := by rw [abs_of_pos (div_pos hβ0 hpos)]
+    have hT : |a / Δ| = |a| / Δ := by rw [abs_div, abs_of_pos hpos]
+    rw [hD, hT, div_lt_one hpos,
+      show 1 + β / Δ = (Δ + β) / Δ by field_simp, div_lt_div_iff_of_pos_right hpos, abs_lt]
+    constructor
+    · rintro ⟨h1, h2, h3⟩
+      refine Or.inl ⟨h1, ?_, by linarith⟩
+      have : 0 < σ * regA β κ φπ φx := by linarith
+      exact (pos_iff_pos_of_mul_pos this).mp hσ
+    · rintro (⟨h1, h2, h3⟩ | ⟨h1, -, -⟩)
+      · have : 0 < σ * regA β κ φπ φx := mul_pos hσ h2
+        exact ⟨h1, by linarith, by linarith⟩
+      · exact absurd h1 (by linarith)
+
+/-- Woodford (2003), fn. 33, p. 515: the region excludes `Δ = 0`. -/
+theorem delta_ne_zero_of_region {β σ κ φπ φx : ℝ} (hβ0 : 0 < β)
+    (h : TaylorRegion β σ κ φπ φx) : taylorDelta σ κ φπ φx ≠ 0 := by
+  rcases h with ⟨h1, -, -⟩ | ⟨h1, -, -⟩ <;> intro h0 <;> rw [h0] at h1 <;> linarith
+
+/-- Woodford (2003), (3.9), p. 514 and fn. 33: for `φ_π, φ_x ≥ 0` the region is exactly the
+Taylor principle (3.9) (so `taylor_determinate_iff_region` extends Prop. 4.3). -/
+theorem region_iff_taylorLHS {β σ κ φπ φx : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 0 < σ)
+    (hκ : 0 < κ) (hφπ : 0 ≤ φπ) (hφx : 0 ≤ φx) :
+    TaylorRegion β σ κ φπ φx ↔ 1 < taylorLHS β κ φπ φx := by
+  have hΔ := OptimalTaylor.one_le_taylorDelta hσ hκ hφπ hφx
+  have hA : regA β κ φπ φx = κ * (taylorLHS β κ φπ φx - 1) := by
+    unfold regA taylorLHS; field_simp; ring
+  have hC : 0 < regC β σ κ φπ φx := by
+    unfold regC
+    have : 0 ≤ σ * κ * (1 + φπ) := by positivity
+    have : 0 ≤ (1 + β) * σ * φx / 4 := by positivity
+    linarith
+  unfold TaylorRegion
+  rw [hA]
+  constructor
+  · rintro (⟨-, h, -⟩ | ⟨h, -, -⟩)
+    · have := (pos_iff_pos_of_mul_pos h).mp hκ; linarith
+    · linarith
+  · intro h
+    exact Or.inl ⟨by linarith, mul_pos hκ (by linarith), hC⟩
+
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Woodford (2003), fn. 33, p. 515 (the boundary `Δ = 0`): when `1 + σφ_x/4 + σκφ_π = 0` the
+Taylor rule never implies determinacy. With `u = 0` and `rⁿ = ī − π̄` both the steady state and
+the steady state perturbed by `x_0 = x̄ + 1`, `π_0 = π̄ + κ` (zero afterwards) are equilibria. -/
+theorem not_modelDet_of_delta_zero [Nonempty Ω] {β σ κ φπ φx πbar xbar ibar : ℝ}
+    (hxb : κ * xbar = (1 - β) * πbar) (hΔ : taylorDelta σ κ φπ φx = 0) :
+    ¬ ModelDet 𝔼 (TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar) := by
+  intro hdet
+  have hE : ∀ t (c : ℝ) ω, 𝔼.E t (fun _ => c) ω = c := fun t c ω => by rw [𝔼.const]
+  have hu : BoundedProc (fun (_ : ℕ) (_ : Ω) => (0 : ℝ)) := ⟨0, fun _ _ => by simp⟩
+  have hr : BoundedProc (fun (_ : ℕ) (_ : Ω) => ibar - πbar) :=
+    ⟨|ibar - πbar|, fun _ _ => le_rfl⟩
+  have hau : 𝔼.Adapted (fun (_ : ℕ) (_ : Ω) => (0 : ℝ)) := fun t => 𝔼.const t 0
+  have har : 𝔼.Adapted (fun (_ : ℕ) (_ : Ω) => ibar - πbar) := fun t => 𝔼.const t _
+  obtain ⟨p, -, hpu⟩ := hdet _ _ hu hr hau har
+  set π2 : ℕ → Ω → ℝ := fun t _ => πbar + if t = 0 then κ else 0 with hπ2
+  set x2 : ℕ → Ω → ℝ := fun t _ => xbar + if t = 0 then 1 else 0 with hx2
+  have hd : 1 + σ * φx / 4 + σ * κ * φπ = 0 := hΔ
+  have e1 : TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar (fun _ _ => 0) (fun _ _ => ibar - πbar)
+      (fun _ _ => πbar) (fun _ _ => xbar) := by
+    refine ⟨(OptimalTaylor.AS_iff 𝔼 _ _ _ _ _).mpr fun t ω => ?_,
+      (OptimalTaylor.IS_iff 𝔼 _ _ _ _ _).mpr fun t ω => ?_⟩
+    · rw [hE]; linear_combination -hxb
+    · simp only [hE, taylorRule]; ring
+  have e2 : TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar (fun _ _ => 0) (fun _ _ => ibar - πbar)
+      π2 x2 := by
+    refine ⟨(OptimalTaylor.AS_iff 𝔼 _ _ _ _ _).mpr fun t ω => ?_,
+      (OptimalTaylor.IS_iff 𝔼 _ _ _ _ _).mpr fun t ω => ?_⟩
+    · simp only [hπ2, hx2, hE, Nat.add_one_ne_zero, ↓reduceIte]
+      rcases Nat.eq_zero_or_pos t with rfl | ht
+      · simp only [↓reduceIte]; linear_combination -hxb
+      · simp only [ht.ne', ↓reduceIte]; linear_combination -hxb
+    · simp only [hπ2, hx2, hE, Nat.add_one_ne_zero, ↓reduceIte, taylorRule]
+      rcases Nat.eq_zero_or_pos t with rfl | ht
+      · simp only [↓reduceIte]; linear_combination hd
+      · simp only [ht.ne', ↓reduceIte]; ring
+  have b2 : BoundedProc π2 := ⟨|πbar| + |κ|, fun t _ => by
+    simp only [hπ2]
+    refine (abs_add_le _ _).trans (add_le_add le_rfl ?_)
+    split_ifs <;> simp⟩
+  have c2 : BoundedProc x2 := ⟨|xbar| + 1, fun t _ => by
+    simp only [hx2]
+    refine (abs_add_le _ _).trans (add_le_add le_rfl ?_)
+    split_ifs <;> simp⟩
+  have a2 : 𝔼.Adapted π2 := fun t => 𝔼.const t _
+  have d2 : 𝔼.Adapted x2 := fun t => 𝔼.const t _
+  have q1 := hpu (fun _ _ => πbar, fun _ _ => xbar)
+    ⟨⟨|πbar|, fun _ _ => le_rfl⟩, ⟨|xbar|, fun _ _ => le_rfl⟩, fun t => 𝔼.const t _,
+      fun t => 𝔼.const t _, e1⟩
+  have q2 := hpu (π2, x2) ⟨b2, c2, a2, d2, e2⟩
+  have := congrArg Prod.snd (q1.trans q2.symm)
+  obtain ⟨ω⟩ := ‹Nonempty Ω›
+  have h0 := congrFun (congrFun this 0) ω
+  simp [hx2] at h0
+
+/-- **(3.9) for coefficients of any sign** (Woodford (2003), fn. 33, p. 515, extending Prop. 4.3
+and App. C.2): under the Taylor rule (3.1) with arbitrary real `φ_π, φ_x` (`0 < β < 1`,
+`σ, κ > 0`, `κ x̄ = (1 − β) π̄`), equilibrium is determinate — exactly one bounded adapted
+equilibrium for every bounded adapted `(u, rⁿ)` — iff `(φ_π, φ_x) ∈ TaylorRegion`. -/
+theorem taylor_determinate_iff_region [Nonempty Ω] {β σ κ φπ φx πbar xbar ibar : ℝ}
+    (hβ0 : 0 < β) (hσ : 0 < σ) (hxb : κ * xbar = (1 - β) * πbar) :
+    ModelDet 𝔼 (TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar) ↔ TaylorRegion β σ κ φπ φx := by
+  by_cases hΔ0 : taylorDelta σ κ φπ φx = 0
+  · exact ⟨fun h => absurd h (not_modelDet_of_delta_zero 𝔼 hxb hΔ0),
+      fun h => absurd hΔ0 (delta_ne_zero_of_region hβ0 h)⟩
+  rw [← schurStable_iff_region hβ0 hσ hΔ0]
+  refine modelDet_iff_of_reduction 𝔼 (W := fun u rn => taylorW σ κ φπ φx ibar πbar u rn)
+    (fun u rn π x => taylorEqm_iff_solves 𝔼 hxb hΔ0 u rn π x) ?_ ?_
+  · intro u rn hu hrn hau harn
+    obtain ⟨M₁, hM₁⟩ := hu
+    obtain ⟨M₂, hM₂⟩ := hrn
+    set Δ := taylorDelta σ κ φπ φx
+    have hΔp : 0 < |Δ| := abs_pos.mpr hΔ0
+    refine ⟨⟨(|κ * σ| * (M₂ + |ibar| + |πbar|) + |1 + σ * φx / 4| * M₁ +
+        |σ| * (M₂ + |ibar| + |πbar|) + |σ * φπ| * M₁) / |Δ|, fun t i ω => ?_⟩, fun t i => ?_⟩
+    · have he : |rn t ω - ibar + πbar| ≤ M₂ + |ibar| + |πbar| := by
+        calc |rn t ω - ibar + πbar| ≤ |rn t ω - ibar| + |πbar| := abs_add_le _ _
+          _ ≤ |rn t ω| + |ibar| + |πbar| := by gcongr; exact abs_sub _ _
+          _ ≤ M₂ + |ibar| + |πbar| := by gcongr; exact hM₂ t ω
+      have hu' := hM₁ t ω
+      have a1 : |κ * σ * (rn t ω - ibar + πbar)| ≤ |κ * σ| * (M₂ + |ibar| + |πbar|) := by
+        rw [abs_mul]; gcongr
+      have a2 : |(1 + σ * φx / 4) * u t ω| ≤ |1 + σ * φx / 4| * M₁ := by rw [abs_mul]; gcongr
+      have a3 : |σ * (rn t ω - ibar + πbar)| ≤ |σ| * (M₂ + |ibar| + |πbar|) := by
+        rw [abs_mul]; gcongr
+      have a4 : |σ * φπ * u t ω| ≤ |σ * φπ| * M₁ := by rw [abs_mul]; gcongr
+      have p1 : 0 ≤ |κ * σ| * (M₂ + |ibar| + |πbar|) := (abs_nonneg _).trans a1
+      have p2 : 0 ≤ |(1 + σ * φx / 4)| * M₁ := (abs_nonneg _).trans a2
+      have p3 : 0 ≤ |σ| * (M₂ + |ibar| + |πbar|) := (abs_nonneg _).trans a3
+      have p4 : 0 ≤ |σ * φπ| * M₁ := (abs_nonneg _).trans a4
+      fin_cases i
+      · simp only [taylorW, Fin.zero_eta, Matrix.cons_val_zero]
+        rw [abs_div]
+        gcongr
+        exact (abs_add_le _ _).trans (by linarith)
+      · simp only [taylorW, Fin.mk_one, Matrix.cons_val_one, Matrix.cons_val_zero]
+        rw [abs_div]
+        gcongr
+        exact (abs_sub _ _).trans (by linarith)
+    · have e0 : (fun ω => (κ * σ * (rn t ω - ibar + πbar) + (1 + σ * φx / 4) * u t ω) / Δ) =
+          (κ * σ / Δ) • rn t + (fun _ => κ * σ * (πbar - ibar) / Δ) +
+            ((1 + σ * φx / 4) / Δ) • u t := by
+        funext ω; simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]; ring
+      have e1 : (fun ω => (σ * (rn t ω - ibar + πbar) - σ * φπ * u t ω) / Δ) =
+          (σ / Δ) • rn t + (fun _ => σ * (πbar - ibar) / Δ) + (-(σ * φπ) / Δ) • u t := by
+        funext ω; simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]; ring
+      fin_cases i
+      · simp only [taylorW, Fin.zero_eta, Matrix.cons_val_zero]
+        rw [e0, map_add, map_add, map_smul, map_smul, 𝔼.const, harn t, hau t]
+      · simp only [taylorW, Fin.mk_one, Matrix.cons_val_one, Matrix.cons_val_zero]
+        rw [e1, map_add, map_add, map_smul, map_smul, 𝔼.const, harn t, hau t]
+  · refine ⟨fun _ _ => 0, fun _ _ => ibar - πbar, ⟨0, fun _ _ => by simp⟩,
+      ⟨|ibar - πbar|, fun _ _ => le_rfl⟩, fun t => 𝔼.const t 0, fun t => 𝔼.const t _, ?_⟩
+    funext t i ω
+    fin_cases i <;> simp [taylorW]
+
+
+/-! ### Equilibrium of the form (3.6) under any determinate Taylor rule -/
+
+omit 𝔼 in
+/-- Woodford (2003), App. C.1, p. 670 (tool): under the Schur–Cohn condition `|D| < 1`,
+`|T| < 1 + D`, the polynomial `1 − Tρ + Dρ²` (that is, `det(I − ρK)`) is positive on `|ρ| ≤ 1`. -/
+theorem one_sub_mul_add_pos {T D ρ : ℝ} (h : SchurStable T D) (hρ : |ρ| ≤ 1) :
+    0 < 1 - T * ρ + D * ρ ^ 2 := by
+  obtain ⟨hD, hT⟩ := h
+  have hD' := abs_lt.mp hD
+  have h1 : T * ρ ≤ |T| * |ρ| := (le_abs_self _).trans (abs_mul T ρ).le
+  have hsq : ρ ^ 2 = |ρ| ^ 2 := (sq_abs ρ).symm
+  rcases eq_or_lt_of_le (abs_nonneg ρ) with h0 | hpos
+  · have : ρ = 0 := abs_eq_zero.mp h0.symm
+    subst this; norm_num
+  · have h2 : |T| * |ρ| < (1 + D) * |ρ| := mul_lt_mul_of_pos_right hT hpos
+    have h3 : 0 ≤ (1 - |ρ|) * (1 - D * |ρ|) := by
+      apply mul_nonneg (by linarith)
+      nlinarith [abs_nonneg ρ]
+    nlinarith
+
+omit 𝔼 in
+/-- Woodford (2003), p. 514: the determinant of the response system is
+`detT(ρ) = Δ · (1 − ρ tr B + ρ² det B) = Δ det(I − ρB)`. -/
+theorem detT_eq {β σ κ φπ φx : ℝ} (hΔ : taylorDelta σ κ φπ φx ≠ 0) (ρ : ℝ) :
+    detT β κ σ φπ φx ρ = taylorDelta σ κ φπ φx *
+      (1 - tr2 (taylorB β σ κ φπ φx) * ρ + det2 (taylorB β σ κ φπ φx) * ρ ^ 2) := by
+  rw [taylorB_tr, taylorB_det hΔ]
+  field_simp
+  unfold detT taylorDelta
+  ring
+
+omit 𝔼 in
+/-- Woodford (2003), p. 514, for coefficients of any sign: under a determinate Taylor rule the
+response system is nonsingular for every `|ρ| ≤ 1`. -/
+theorem detT_ne_zero_of_region {β σ κ φπ φx ρ : ℝ} (hβ0 : 0 < β) (hσ : 0 < σ)
+    (h : TaylorRegion β σ κ φπ φx) (hρ : |ρ| ≤ 1) : detT β κ σ φπ φx ρ ≠ 0 := by
+  have hΔ := delta_ne_zero_of_region hβ0 h
+  rw [detT_eq hΔ]
+  exact mul_ne_zero hΔ (one_sub_mul_add_pos ((schurStable_iff_region hβ0 hσ hΔ).mpr h) hρ).ne'
+
+omit 𝔼 in
+/-- Woodford (2003), p. 514: in the region `A ≠ 0`, so the long-run values `OptimalTaylor.pbarT`,
+`OptimalTaylor.xbarT` are well defined. -/
+theorem regA_ne_zero_of_region {β σ κ φπ φx : ℝ} (h : TaylorRegion β σ κ φπ φx) :
+    regA β κ φπ φx ≠ 0 := by
+  rcases h with ⟨-, h, -⟩ | ⟨-, h, -⟩
+  · exact h.ne'
+  · exact h.ne
+
+/-- Woodford (2003), p. 514, for coefficients of any sign: if the response systems at `ρ_u`, `ρ_r`
+are nonsingular and `A ≠ 0`, the plan (3.6) with coefficients `OptimalTaylor.pbarT`,
+`OptimalTaylor.fpiT`, `OptimalTaylor.gpiT`, … is an equilibrium under the Taylor rule. -/
+theorem taylor_eqm_plan2_of_ne {β σ κ φπ φx πbar xbar ibar rbar ρu ρr : ℝ}
+    (hxb : κ * xbar = (1 - β) * πbar) (hdu' : detT β κ σ φπ φx ρu ≠ 0)
+    (hdr' : detT β κ σ φπ φx ρr ≠ 0) (hC' : regA β κ φπ φx ≠ 0) {u r : ℕ → Ω → ℝ}
+    (hu : 𝔼.IsAR1 ρu u) (hr : 𝔼.IsAR1 ρr r) :
+    TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar u (fun t ω => rbar + r t ω)
+      (plan2 (pbarT β κ φπ φx rbar ibar πbar) (fpiT β κ σ φπ φx ρu) (gpiT β κ σ φπ φx ρr) u r)
+      (plan2 (xbarT β κ φπ φx rbar ibar πbar xbar) (fxT β κ σ φπ φx ρu) (gxT β κ σ φπ φx ρr)
+        u r) := by
+  have hC'' : κ * (φπ - 1) + (1 - β) * φx / 4 ≠ 0 := hC'
+  unfold TaylorEqm
+  rw [taylorRule_plan2]
+  refine plan2_of 𝔼 hu hr ?_ ?_ ?_ ?_ ?_ ?_
+  · unfold pbarT xbarT; linear_combination -hxb
+  · have hinv : (κ * (φπ - 1) + (1 - β) * φx / 4) * (κ * (φπ - 1) + (1 - β) * φx / 4)⁻¹ = 1 :=
+      mul_inv_cancel₀ hC''
+    unfold pbarT xbarT
+    simp only [div_eq_mul_inv]
+    linear_combination (rbar + πbar - ibar) * hinv
+  · have hinv := mul_inv_cancel₀ hdu'
+    have hdef : detT β κ σ φπ φx ρu =
+        (1 - β * ρu) * ((1 - ρu) + σ * φx / 4) + κ * σ * (φπ - ρu) := rfl
+    unfold fpiT fxT
+    simp only [div_eq_mul_inv]
+    linear_combination hinv - (detT β κ σ φπ φx ρu)⁻¹ * hdef
+  · unfold fpiT fxT
+    simp only [div_eq_mul_inv]
+    ring
+  · unfold gpiT gxT; field_simp
+  · have hinv := mul_inv_cancel₀ hdr'
+    have hdef : detT β κ σ φπ φx ρr =
+        (1 - β * ρr) * ((1 - ρr) + σ * φx / 4) + κ * σ * (φπ - ρr) := rfl
+    unfold gpiT gxT
+    simp only [div_eq_mul_inv]
+    linear_combination σ * hinv - σ * (detT β κ σ φπ φx ρr)⁻¹ * hdef
+
+/-- Woodford (2003), p. 514 ("this equilibrium is one in which the equilibrium values … depend only
+on the current disturbances"), for coefficients of any sign: under every determinate Taylor rule
+and AR(1) disturbances with `|ρ_u|, |ρ_r| ≤ 1`, the plan (3.6) with the explicit coefficients is
+an equilibrium. -/
+theorem taylor_eqm_plan2_region {β σ κ φπ φx πbar xbar ibar rbar ρu ρr : ℝ} (hβ0 : 0 < β)
+    (hσ : 0 < σ) (hreg : TaylorRegion β σ κ φπ φx) (hxb : κ * xbar = (1 - β) * πbar)
+    (hρu : |ρu| ≤ 1) (hρr : |ρr| ≤ 1) {u r : ℕ → Ω → ℝ} (hu : 𝔼.IsAR1 ρu u)
+    (hr : 𝔼.IsAR1 ρr r) :
+    TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar u (fun t ω => rbar + r t ω)
+      (plan2 (pbarT β κ φπ φx rbar ibar πbar) (fpiT β κ σ φπ φx ρu) (gpiT β κ σ φπ φx ρr) u r)
+      (plan2 (xbarT β κ φπ φx rbar ibar πbar xbar) (fxT β κ σ φπ φx ρu) (gxT β κ σ φπ φx ρr)
+        u r) :=
+  taylor_eqm_plan2_of_ne 𝔼 hxb (detT_ne_zero_of_region hβ0 hσ hreg hρu)
+    (detT_ne_zero_of_region hβ0 hσ hreg hρr) (regA_ne_zero_of_region hreg) hu hr
+
+/-- **Proposition 7.12, optimality, for coefficients of any sign** (Woodford (2003), p. 514 and
+fn. 33, p. 515): with independent AR(1) disturbances (`|ρ_u|, |ρ_r| < 1`, innovation variances
+`s_u, s_r > 0`, non-degenerate as a pair) and the pull-out property, every bounded adapted
+equilibrium under every determinate Taylor rule — `φ_π`, `φ_x` of any sign — has a stabilization
+loss at least that of the optimal noninertial plan. -/
+theorem prop_7_12_optimal_region (hpo : 𝔼.PullOut) {β κ σ rbar lx li istar ρr ρu su sr : ℝ}
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li)
+    (hρr : |ρr| < 1) (hρu : |ρu| < 1) (hsu : 0 < su) (hsr : 0 < sr)
+    {u εu r εr : ℕ → Ω → ℝ}
+    (hu : Noninertial.AR1Innov 𝔼 ρu su u εu) (hr : Noninertial.AR1Innov 𝔼 ρr sr r εr)
+    (hind : ∀ t, 𝔼.E t (εu (t + 1) * εr (t + 1)) = fun _ => 0) (hnd : Nondeg2 u r)
+    (hub : BoundedProc u) (hrb : BoundedProc r) (t₀ : ℕ) (ω : Ω) {xs is : ℝ}
+    (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar)
+    {ibar φπ φx πbar xbar : ℝ} (hdet : ModelDet 𝔼 (TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar))
+    (hxb : κ * xbar = (1 - β) * πbar) {π x : ℕ → Ω → ℝ} (hπb : BoundedProc π)
+    (hxbd : BoundedProc x) (hπa : 𝔼.Adapted π) (hxa : 𝔼.Adapted x)
+    (heq : TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar u (fun t ω => rbar + r t ω) π x) :
+    Noninertial.Lstab 𝔼 β lx li t₀
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+        (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ω ≤
+      Noninertial.Lstab 𝔼 β lx li t₀ π x (taylorRule ibar φπ φx πbar xbar π x) ω := by
+  have hrn : BoundedProc (fun t ω => rbar + r t ω) := by
+    obtain ⟨N, hN⟩ := hrb
+    exact ⟨|rbar| + N, fun t ω => (abs_add_le _ _).trans (add_le_add le_rfl (hN t ω))⟩
+  have hrna : 𝔼.Adapted (fun t ω => rbar + r t ω) := by
+    intro t
+    change 𝔼.E t (fun ω => rbar + r t ω) = fun ω => rbar + r t ω
+    have e : (fun ω => rbar + r t ω) = (fun _ => rbar) + r t := rfl
+    rw [e, map_add, 𝔼.const, hr.1 t]
+  have : Nonempty Ω := ⟨ω⟩
+  have hreg := (taylor_determinate_iff_region 𝔼 hβ0 hσ hxb).mp hdet
+  have hplan := taylor_eqm_plan2_region 𝔼 (rbar := rbar) (ibar := ibar) hβ0 hσ hreg hxb
+    hρu.le hρr.le hu.isAR1 hr.isAR1
+  obtain ⟨b1, a1⟩ := plan2_bdd_adapted 𝔼 hub hrb hu.1 hr.1 (pbarT β κ φπ φx rbar ibar πbar)
+    (fpiT β κ σ φπ φx ρu) (gpiT β κ σ φπ φx ρr)
+  obtain ⟨b2, a2⟩ := plan2_bdd_adapted 𝔼 hub hrb hu.1 hr.1
+    (xbarT β κ φπ φx rbar ibar πbar xbar) (fxT β κ σ φπ φx ρu) (gxT β κ σ φπ φx ρr)
+  obtain ⟨p, -, hpu⟩ := hdet u _ hub hrn hu.1 hrna
+  have e1 := hpu (π, x) ⟨hπb, hxbd, hπa, hxa, heq⟩
+  have e2 := hpu (plan2 (pbarT β κ φπ φx rbar ibar πbar) (fpiT β κ σ φπ φx ρu)
+    (gpiT β κ σ φπ φx ρr) u r, plan2 (xbarT β κ φπ φx rbar ibar πbar xbar) (fxT β κ σ φπ φx ρu)
+    (gxT β κ σ φπ φx ρr) u r) ⟨b1, b2, a1, a2, hplan⟩
+  have hpx := e1.trans e2.symm
+  simp only [Prod.mk.injEq] at hpx
+  obtain ⟨rfl, rfl⟩ := hpx
+  rw [taylorRule_plan2]
+  have hAI := hplan
+  unfold TaylorEqm at hAI
+  rw [taylorRule_plan2] at hAI
+  exact ((Noninertial.f4_lstab 𝔼 hpo hβ0 hβ1 hκ hσ hlx hli hρu hρr hsu hsr hu hr hind hnd t₀
+    ω hxs his).2 _ _ _ _ _ _ _ _ _ hAI.1 hAI.2).1
+
+
+/-! ### Proposition 7.12 for coefficients of any sign, exactly -/
+
+omit 𝔼 in
+/-- Woodford (2003), eq. (3.1), p. 507 (tool): only `ī − φ_π π̄ − φ_x x̄/4` matters; the rule
+is the same as the rule centred at `(0, 0)` with that intercept. -/
+theorem taylorRule_recenter {Ω' : Type*} (ibar φπ φx πbar xbar : ℝ) (π x : ℕ → Ω' → ℝ) :
+    taylorRule ibar φπ φx πbar xbar π x =
+      taylorRule (ibar - φπ * πbar - φx * xbar / 4) φπ φx 0 0 π x := by
+  funext t ω
+  simp only [taylorRule]
+  ring
+
+/-- Woodford (2003), fn. 33, p. 515: the determinacy region for a Taylor rule with arbitrary
+intercepts (no restriction linking `x̄` to `π̄`). -/
+theorem taylor_determinate_iff_region_any [Nonempty Ω] {β σ κ φπ φx πbar xbar ibar : ℝ}
+    (hβ0 : 0 < β) (hσ : 0 < σ) :
+    ModelDet 𝔼 (TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar) ↔ TaylorRegion β σ κ φπ φx := by
+  have e : TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar =
+      TaylorEqm 𝔼 β σ κ (ibar - φπ * πbar - φx * xbar / 4) φπ φx 0 0 := by
+    funext u rn π x
+    unfold TaylorEqm
+    rw [taylorRule_recenter]
+  rw [e]
+  exact taylor_determinate_iff_region 𝔼 hβ0 hσ (by ring)
+
+/-- **Proposition 7.12 for coefficients of any sign** (Woodford (2003), p. 514 and fn. 33,
+p. 515): at `(ρ_r, ρ_u)` where the consistency system is nonsingular, with bounded AR(1)
+disturbances, if `(φ_π, φ_x)(ρ_r, ρ_u)` lies in `TaylorRegion` then the Taylor rule with those
+coefficients and intercepts (3.11) reproduces the optimal noninertial plan's interest rate,
+equilibrium is determinate, and the plan is the unique bounded adapted equilibrium. -/
+theorem prop_7_12_region [Nonempty Ω] {β κ σ rbar lx li istar ρr ρu : ℝ} (hβ0 : 0 < β)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 ≤ lx) (hli : 0 ≤ li)
+    (hd : detG β κ σ lx li (ρr, ρu) ≠ 0)
+    (hreg : TaylorRegion β σ κ (phiPiG β κ σ lx li (ρr, ρu)) (phiXG β κ σ lx li (ρr, ρu)))
+    {u r : ℕ → Ω → ℝ} (hu : 𝔼.IsAR1 ρu u)
+    (hr : 𝔼.IsAR1 ρr r) (hub : BoundedProc u) (hrb : BoundedProc r) {xs is : ℝ}
+    (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r =
+      taylorRule is (phiPiG β κ σ lx li (ρr, ρu)) (phiXG β κ σ lx li (ρr, ρu))
+        (Noninertial.piBar119 β li rbar istar) xs
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) ∧
+    ModelDet 𝔼 (TaylorEqm 𝔼 β σ κ is (phiPiG β κ σ lx li (ρr, ρu))
+      (phiXG β κ σ lx li (ρr, ρu)) (Noninertial.piBar119 β li rbar istar) xs) ∧
+    ∀ π x : ℕ → Ω → ℝ, BoundedProc π → BoundedProc x → 𝔼.Adapted π → 𝔼.Adapted x →
+      (TaylorEqm 𝔼 β σ κ is (phiPiG β κ σ lx li (ρr, ρu)) (phiXG β κ σ lx li (ρr, ρu))
+        (Noninertial.piBar119 β li rbar istar) xs u (fun t ω => rbar + r t ω) π x ↔
+      π = plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+        (Noninertial.piRF4 β κ σ lx li ρr) u r ∧
+      x = plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) := by
+  obtain ⟨m1, m2⟩ := rule_matches_general hd
+  set πs := Noninertial.piBar119 β li rbar istar
+  have hxb : κ * xs = (1 - β) * πs := by rw [hxs]; field_simp
+  have hrule : plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r =
+      taylorRule is (phiPiG β κ σ lx li (ρr, ρu)) (phiXG β κ σ lx li (ρr, ρu)) πs xs
+        (plan2 πs (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) := by
+    rw [taylorRule_plan2]
+    simp only at m1 m2
+    rw [m1, m2]
+    congr 1 <;> ring
+  have heq : TaylorEqm 𝔼 β σ κ is (phiPiG β κ σ lx li (ρr, ρu)) (phiXG β κ σ lx li (ρr, ρu))
+      πs xs u (fun t ω => rbar + r t ω)
+      (plan2 πs (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.piRF4 β κ σ lx li ρr) u r)
+      (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) := by
+    obtain ⟨c1, c2⟩ := Noninertial.f4_u_feasible (β := β) (ρ := ρu) hκ hσ hlx hli
+    obtain ⟨c3, c4⟩ := Noninertial.f4_r_feasible (β := β) (ρ := ρr) hκ hσ hlx hli
+    unfold TaylorEqm
+    rw [← hrule]
+    exact plan2_of 𝔼 hu hr (by linarith [hxb]) his c1 c2 c3 c4
+  have hdet := (taylor_determinate_iff_region 𝔼 (ibar := is) hβ0 hσ hxb).mpr hreg
+  refine ⟨hrule, hdet, fun π x hπb hxb' hπa hxa => ⟨fun hπx => ?_, ?_⟩⟩
+  · have hrn : BoundedProc (fun t ω => rbar + r t ω) := by
+      obtain ⟨N, hN⟩ := hrb
+      exact ⟨|rbar| + N, fun t ω => (abs_add_le _ _).trans (add_le_add le_rfl (hN t ω))⟩
+    have hrna : 𝔼.Adapted (fun t ω => rbar + r t ω) := by
+      intro t
+      change 𝔼.E t (fun ω => rbar + r t ω) = fun ω => rbar + r t ω
+      have e : (fun ω => rbar + r t ω) = (fun _ => rbar) + r t := rfl
+      rw [e, map_add, 𝔼.const, hr.1 t]
+    obtain ⟨p, -, hpu⟩ := hdet u (fun t ω => rbar + r t ω) hub hrn hu.1 hrna
+    obtain ⟨b1, a1⟩ := plan2_bdd_adapted 𝔼 hub hrb hu.1 hr.1 πs (Noninertial.piUF4 β κ σ lx li ρu)
+      (Noninertial.piRF4 β κ σ lx li ρr)
+    obtain ⟨b2, a2⟩ := plan2_bdd_adapted 𝔼 hub hrb hu.1 hr.1 xs (Noninertial.xUF4 β κ σ lx li ρu)
+      (Noninertial.xRF4 β κ σ lx li ρr)
+    have e1 := hpu (π, x) ⟨hπb, hxb', hπa, hxa, hπx⟩
+    have e2 := hpu (_, _) ⟨b1, b2, a1, a2, heq⟩
+    have := e1.trans e2.symm
+    exact ⟨congrArg Prod.fst this, congrArg Prod.snd this⟩
+  · rintro ⟨rfl, rfl⟩
+    exact heq
+
+/-- **Proposition 7.12 for coefficients of any sign, exact form** (Woodford (2003), pp. 514–515
+and fn. 33): at `(ρ_r, ρ_u)` where the consistency system is nonsingular, with bounded AR(1)
+disturbances that are non-degenerate as a pair, the optimal noninertial plan is an equilibrium of
+some Taylor rule (3.1) (any intercepts, any real coefficients) that implies a determinate
+equilibrium **iff** the unique consistent coefficients `(φ_π, φ_x)(ρ_r, ρ_u)` lie in
+`TaylorRegion`. -/
+theorem oni_implementable_iff [Nonempty Ω] {β κ σ rbar lx li istar ρr ρu : ℝ} (hβ0 : 0 < β)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 ≤ lx) (hli : 0 ≤ li)
+    (hd : detG β κ σ lx li (ρr, ρu) ≠ 0) {u r : ℕ → Ω → ℝ} (hu : 𝔼.IsAR1 ρu u)
+    (hr : 𝔼.IsAR1 ρr r) (hub : BoundedProc u) (hrb : BoundedProc r) (hnd : Nondeg2 u r)
+    {xs is : ℝ} (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (∃ ibar φπ φx πbar xbar : ℝ, ModelDet 𝔼 (TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar) ∧
+      TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar u (fun t ω => rbar + r t ω)
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)) ↔
+      TaylorRegion β σ κ (phiPiG β κ σ lx li (ρr, ρu)) (phiXG β κ σ lx li (ρr, ρu)) := by
+  constructor
+  · rintro ⟨ibar, φπ, φx, πbar, xbar, hdet, heq⟩
+    have hreg := (taylor_determinate_iff_region_any 𝔼 hβ0 hσ).mp hdet
+    set πs := Noninertial.piBar119 β li rbar istar
+    obtain ⟨c1, c2⟩ := Noninertial.f4_u_feasible (β := β) (ρ := ρu) hκ hσ hlx hli
+    obtain ⟨c3, c4⟩ := Noninertial.f4_r_feasible (β := β) (ρ := ρr) hκ hσ hlx hli
+    have hxb : κ * xs = (1 - β) * πs := by rw [hxs]; field_simp
+    have hO := plan2_of 𝔼 (rbar := rbar) (πbar := πs) (xbar := xs) hu hr (by linarith [hxb]) his
+      c1 c2 c3 c4
+    have hI1 := (OptimalTaylor.IS_iff 𝔼 _ _ _ _ _).mp heq.2
+    have hI2 := (OptimalTaylor.IS_iff 𝔼 _ _ _ _ _).mp hO.2
+    have hi : ∀ t ω, taylorRule ibar φπ φx πbar xbar
+        (plan2 πs (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) t ω =
+        plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r t ω := by
+      intro t ω
+      have h := (hI1 t ω).symm.trans (hI2 t ω)
+      have : σ * (taylorRule ibar φπ φx πbar xbar
+          (plan2 πs (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) t ω -
+          plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r t ω)
+          = 0 := by linarith
+      exact sub_eq_zero.mp ((mul_eq_zero.mp this).resolve_left hσ.ne')
+    rw [taylorRule_plan2] at hi
+    obtain ⟨-, k1, k2⟩ := Noninertial.affine_zero2 hnd
+      (a := ibar + φπ * (πs - πbar) + φx * (xs - xbar) / 4 - is)
+      (b := φπ * Noninertial.piUF4 β κ σ lx li ρu + φx * Noninertial.xUF4 β κ σ lx li ρu / 4 -
+        Noninertial.iUF4 β κ σ lx li ρu)
+      (c := φπ * Noninertial.piRF4 β κ σ lx li ρr + φx * Noninertial.xRF4 β κ σ lx li ρr / 4 -
+        Noninertial.iRF4 β κ σ lx li ρr) (fun t ω => by
+          have h := hi t ω
+          simp only [plan2_apply] at h
+          linear_combination h)
+    have hd' : Noninertial.piUF4 β κ σ lx li ρu * Noninertial.xRF4 β κ σ lx li ρr -
+        Noninertial.xUF4 β κ σ lx li ρu * Noninertial.piRF4 β κ σ lx li ρr ≠ 0 := hd
+    obtain ⟨q1, q2⟩ := cramer_unique (x := φπ) (y := φx / 4)
+      (c1 := Noninertial.iUF4 β κ σ lx li ρu) (c2 := Noninertial.iRF4 β κ σ lx li ρr) hd'
+      (by linear_combination -k1) (by linear_combination -k2)
+    have hπ : φπ = phiPiG β κ σ lx li (ρr, ρu) := q1
+    have hx : φx = phiXG β κ σ lx li (ρr, ρu) := by
+      have e4 : φx = 4 * (φx / 4) := by ring
+      rw [e4, q2]
+      rfl
+    rw [← hπ, ← hx]
+    exact hreg
+  · intro hreg
+    obtain ⟨-, hdet, hall⟩ := prop_7_12_region 𝔼 hβ0 hκ hσ hlx hli hd hreg hu hr hub hrb hxs his
+    obtain ⟨b1, a1⟩ := plan2_bdd_adapted 𝔼 hub hrb hu.1 hr.1 (Noninertial.piBar119 β li rbar istar)
+      (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.piRF4 β κ σ lx li ρr)
+    obtain ⟨b2, a2⟩ := plan2_bdd_adapted 𝔼 hub hrb hu.1 hr.1 xs
+      (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+    exact ⟨_, _, _, _, _, hdet, (hall _ _ b1 b2 a1 a2).mpr ⟨rfl, rfl⟩⟩
+
+
+/-! ### The diagonal `ρ_r = ρ_u = ρ`: (3.10) is sufficient but not necessary -/
+
+omit 𝔼 in
+/-- Woodford (2003), (3.12), p. 514: on the diagonal, whenever `D(ρ) λᵢ ≠ 0` (of either sign) the
+consistency system is nonsingular and its solution is (3.12). -/
+theorem phiG_diag_ne {β κ σ lx li ρ : ℝ} (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 ≤ lx) (hli : 0 ≤ li)
+    (hD : Drho β κ σ ρ * li ≠ 0) :
+    detG β κ σ lx li (ρ, ρ) ≠ 0 ∧ phiPiG β κ σ lx li (ρ, ρ) = phiPiStar β κ σ li ρ ∧
+      phiXG β κ σ lx li (ρ, ρ) = phiXStar β κ σ lx li ρ := by
+  have hh := Noninertial.hF4_pos (β := β) (σ := σ) (ρ := ρ) hκ.ne' hlx hli
+  have hli' : li ≠ 0 := right_ne_zero_of_mul hD
+  have hG : Noninertial.gamF4 β ρ - ρ * κ * σ ≠ 0 := by
+    rw [← kappa_sigma_Drho hκ.ne' hσ.ne']
+    exact mul_ne_zero (mul_ne_zero hκ.ne' hσ.ne') (left_ne_zero_of_mul hD)
+  have hd : detG β κ σ lx li (ρ, ρ) ≠ 0 := by
+    rw [detG_diag hκ hσ hlx hli]
+    have : σ⁻¹ ≠ 0 := inv_ne_zero hσ.ne'
+    exact div_ne_zero (mul_ne_zero (mul_ne_zero hli' this) hG) hh.ne'
+  obtain ⟨e1, e2⟩ := cramer_unique (x := phiPiStar β κ σ li ρ) (y := phiXStar β κ σ lx li ρ / 4)
+    hd (rule_matches_f4_u hκ hσ hlx hli hD) (rule_matches_f4_r hκ hσ hlx hli hD)
+  refine ⟨hd, ?_, ?_⟩
+  · unfold phiPiG; rw [e1]; rfl
+  · have e4 : phiXStar β κ σ lx li ρ = 4 * (phiXStar β κ σ lx li ρ / 4) := by ring
+    rw [e4, e2]
+    rfl
+
+/-- **Proposition 7.12 on the diagonal, exact, any sign** (Woodford (2003), pp. 514–515, fn. 33):
+with a common `ρ` and `D(ρ) λᵢ ≠ 0`, the optimal noninertial plan is the equilibrium of some
+determinate Taylor rule iff the coefficients (3.12) lie in `TaylorRegion`. -/
+theorem oni_implementable_diag_iff [Nonempty Ω] {β κ σ rbar lx li istar ρ : ℝ} (hβ0 : 0 < β)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 ≤ lx) (hli : 0 ≤ li) (hD : Drho β κ σ ρ * li ≠ 0)
+    {u r : ℕ → Ω → ℝ} (hu : 𝔼.IsAR1 ρ u) (hr : 𝔼.IsAR1 ρ r) (hub : BoundedProc u)
+    (hrb : BoundedProc r) (hnd : Nondeg2 u r) {xs is : ℝ}
+    (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (∃ ibar φπ φx πbar xbar : ℝ, ModelDet 𝔼 (TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar) ∧
+      TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar u (fun t ω => rbar + r t ω)
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρ)
+          (Noninertial.piRF4 β κ σ lx li ρ) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρ) (Noninertial.xRF4 β κ σ lx li ρ) u r)) ↔
+      TaylorRegion β σ κ (phiPiStar β κ σ li ρ) (phiXStar β κ σ lx li ρ) := by
+  obtain ⟨hd, e1, e2⟩ := phiG_diag_ne (β := β) hκ hσ hlx hli hD
+  rw [← e1, ← e2]
+  exact oni_implementable_iff 𝔼 hβ0 hκ hσ hlx hli hd hu hr hub hrb hnd hxs his
+
+omit 𝔼 in
+/-- Woodford (2003), fn. 32–33, p. 515: at the fn. 32 calibration (`β = .99`, `κ = .024`,
+`σ = 6.25`, `λₓ = .003`, `λᵢ = .236`) and `ρ = .7` — outside the interval `(.17, .68)` where
+(3.10) holds — (3.10) fails, yet the coefficients (3.12) (`φ_π ≈ −49.3`, `φ_x ≈ −7.6`, both
+negative) lie in `TaylorRegion` (`Δ ≈ −18.2 < −β`, `A < 0`, `C < 0`). -/
+theorem negative_rule_region :
+    ¬ Cond310 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (7 / 10) ∧
+      Drho (99 / 100) (24 / 1000) (625 / 100) (7 / 10) * (236 / 1000) ≠ 0 ∧
+      phiPiStar (99 / 100) (24 / 1000) (625 / 100) (236 / 1000) (7 / 10) < 0 ∧
+      phiXStar (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (7 / 10) < 0 ∧
+      TaylorRegion (99 / 100) (625 / 100) (24 / 1000)
+        (phiPiStar (99 / 100) (24 / 1000) (625 / 100) (236 / 1000) (7 / 10))
+        (phiXStar (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (7 / 10)) := by
+  refine ⟨?_, ?_, ?_, ?_, ?_⟩
+  · unfold Cond310 Drho; norm_num
+  · unfold Drho; norm_num
+  · unfold phiPiStar Drho; norm_num
+  · unfold phiXStar phiPiStar Drho; norm_num
+  · refine Or.inr ⟨?_, ?_, ?_⟩ <;>
+    · simp only [taylorDelta, regA, regC, phiXStar, phiPiStar, Drho]; norm_num
+
+omit 𝔼 in
+/-- Woodford (2003), fn. 32–33, p. 515: at the same calibration and `ρ = .9`, `D(ρ) λᵢ ≠ 0` but
+the coefficients (3.12) are not in `TaylorRegion` (`Δ ≈ −.204`, between `−β` and `β`). -/
+theorem no_rule_region :
+    Drho (99 / 100) (24 / 1000) (625 / 100) (9 / 10) * (236 / 1000) ≠ 0 ∧
+      ¬ TaylorRegion (99 / 100) (625 / 100) (24 / 1000)
+        (phiPiStar (99 / 100) (24 / 1000) (625 / 100) (236 / 1000) (9 / 10))
+        (phiXStar (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (9 / 10)) := by
+  refine ⟨?_, ?_⟩
+  · unfold Drho; norm_num
+  · unfold TaylorRegion taylorDelta regA regC phiXStar phiPiStar Drho
+    norm_num
+
+/-- **Correction to the reading of Prop. 7.12 / (3.10)** (Woodford (2003), pp. 514–515, fn. 32–33):
+at the fn. 32 calibration and `ρ = .7`, where (3.10) fails, the optimal noninertial plan is
+nevertheless the equilibrium of a determinate Taylor rule — one with negative coefficients. -/
+theorem negative_rule_implements [Nonempty Ω] {rbar istar : ℝ} {u r : ℕ → Ω → ℝ}
+    (hu : 𝔼.IsAR1 (7 / 10) u) (hr : 𝔼.IsAR1 (7 / 10) r) (hub : BoundedProc u)
+    (hrb : BoundedProc r) {xs is : ℝ}
+    (hxs : xs = (1 - 99 / 100) / (24 / 1000) *
+      Noninertial.piBar119 (99 / 100) (236 / 1000) rbar istar)
+    (his : is = rbar + Noninertial.piBar119 (99 / 100) (236 / 1000) rbar istar) :
+    ¬ Cond310 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (7 / 10) ∧
+    ∃ ibar φπ φx πbar xbar : ℝ, φπ < 0 ∧ φx < 0 ∧
+      ModelDet 𝔼 (TaylorEqm 𝔼 (99 / 100) (625 / 100) (24 / 1000) ibar φπ φx πbar xbar) ∧
+      TaylorEqm 𝔼 (99 / 100) (625 / 100) (24 / 1000) ibar φπ φx πbar xbar u
+        (fun t ω => rbar + r t ω)
+        (plan2 (Noninertial.piBar119 (99 / 100) (236 / 1000) rbar istar)
+          (Noninertial.piUF4 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (7 / 10))
+          (Noninertial.piRF4 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (7 / 10))
+          u r)
+        (plan2 xs
+          (Noninertial.xUF4 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (7 / 10))
+          (Noninertial.xRF4 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (7 / 10))
+          u r) := by
+  obtain ⟨h310, hD, hπ, hx, hreg⟩ := negative_rule_region
+  refine ⟨h310, ?_⟩
+  have hκ : (0 : ℝ) < 24 / 1000 := by norm_num
+  have hσ : (0 : ℝ) < 625 / 100 := by norm_num
+  have hlx : (0 : ℝ) ≤ 3 / 1000 := by norm_num
+  have hli : (0 : ℝ) ≤ 236 / 1000 := by norm_num
+  obtain ⟨hd, e1, e2⟩ := phiG_diag_ne (β := 99 / 100) hκ hσ hlx hli hD
+  have hreg' := hreg
+  rw [← e1, ← e2] at hreg'
+  obtain ⟨-, hdet, hall⟩ := prop_7_12_region 𝔼 (by norm_num) hκ hσ hlx hli hd hreg' hu hr hub hrb
+    hxs his
+  obtain ⟨b1, a1⟩ := plan2_bdd_adapted 𝔼 hub hrb hu.1 hr.1
+    (Noninertial.piBar119 (99 / 100) (236 / 1000) rbar istar)
+    (Noninertial.piUF4 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (7 / 10))
+    (Noninertial.piRF4 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (7 / 10))
+  obtain ⟨b2, a2⟩ := plan2_bdd_adapted 𝔼 hub hrb hu.1 hr.1 xs
+    (Noninertial.xUF4 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (7 / 10))
+    (Noninertial.xRF4 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (7 / 10))
+  refine ⟨_, _, _, _, _, ?_, ?_, hdet, (hall _ _ b1 b2 a1 a2).mpr ⟨rfl, rfl⟩⟩
+  · rw [e1]; exact hπ
+  · rw [e2]; exact hx
+
+/-- Woodford (2003), fn. 32–33, p. 515: at the fn. 32 calibration and `ρ = .9` no Taylor rule of
+any sign both implies determinacy and has the optimal noninertial plan as an equilibrium. -/
+theorem no_rule_implements [Nonempty Ω] {rbar istar : ℝ} {u r : ℕ → Ω → ℝ}
+    (hu : 𝔼.IsAR1 (9 / 10) u) (hr : 𝔼.IsAR1 (9 / 10) r) (hub : BoundedProc u)
+    (hrb : BoundedProc r) (hnd : Nondeg2 u r) {xs is : ℝ}
+    (hxs : xs = (1 - 99 / 100) / (24 / 1000) *
+      Noninertial.piBar119 (99 / 100) (236 / 1000) rbar istar)
+    (his : is = rbar + Noninertial.piBar119 (99 / 100) (236 / 1000) rbar istar) :
+    ¬ ∃ ibar φπ φx πbar xbar : ℝ,
+      ModelDet 𝔼 (TaylorEqm 𝔼 (99 / 100) (625 / 100) (24 / 1000) ibar φπ φx πbar xbar) ∧
+      TaylorEqm 𝔼 (99 / 100) (625 / 100) (24 / 1000) ibar φπ φx πbar xbar u
+        (fun t ω => rbar + r t ω)
+        (plan2 (Noninertial.piBar119 (99 / 100) (236 / 1000) rbar istar)
+          (Noninertial.piUF4 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (9 / 10))
+          (Noninertial.piRF4 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (9 / 10))
+          u r)
+        (plan2 xs
+          (Noninertial.xUF4 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (9 / 10))
+          (Noninertial.xRF4 (99 / 100) (24 / 1000) (625 / 100) (3 / 1000) (236 / 1000) (9 / 10))
+          u r) := by
+  obtain ⟨hD, hnot⟩ := no_rule_region
+  rw [oni_implementable_diag_iff 𝔼 (by norm_num) (by norm_num) (by norm_num) (by norm_num)
+    (by norm_num) hD hu hr hub hrb hnd hxs his]
+  exact hnot
+
+/-! ### "Almost all parameter values" (p. 515) -/
+
+omit 𝔼 in
+/-- Woodford (2003), App. F.4, p. 713: `γ − ρκσ = βρ² − (1 + β + κσ)ρ + 1` as a polynomial. -/
+noncomputable def polyG (β κ σ : ℝ) : Polynomial ℝ :=
+  Polynomial.C β * Polynomial.X ^ 2 + Polynomial.C (-(1 + β + κ * σ)) * Polynomial.X + 1
+
+omit 𝔼 in
+/-- Woodford (2003), App. F.4, p. 713: the numerator of `π_u`,
+`A(ρ) = λᵢσ⁻²(γ − ρκσ)(1 − ρ) + λₓ(1 − βρ)`, as a polynomial. -/
+noncomputable def polyA (β κ σ lx li : ℝ) : Polynomial ℝ :=
+  Polynomial.C (li * σ⁻¹ ^ 2) * polyG β κ σ * (1 - Polynomial.X) +
+    Polynomial.C lx * (1 - Polynomial.C β * Polynomial.X)
+
+omit 𝔼 in
+/-- Woodford (2003), App. F.4, p. 713: `B(ρ) = κ² − κρλᵢσ⁻¹(γ − ρκσ)` (`−κ` times the numerator
+of `x_u`). -/
+noncomputable def polyB (β κ σ li : ℝ) : Polynomial ℝ :=
+  Polynomial.C (κ ^ 2) - Polynomial.C (κ * li * σ⁻¹) * Polynomial.X * polyG β κ σ
+
+omit 𝔼 in
+/-- Woodford (2003), p. 515: the polynomial function whose zero set is the singular set,
+`F(ρ_r, ρ_u) = λᵢσ⁻¹ G(ρ_r) (A(ρ_u)(1 − βρ_r) + B(ρ_u))`. -/
+noncomputable def detGpoly (β κ σ lx li : ℝ) (p : ℝ × ℝ) : ℝ :=
+  li * σ⁻¹ * (polyG β κ σ).eval p.1 *
+    ((polyA β κ σ lx li).eval p.2 * (1 - β * p.1) + (polyB β κ σ li).eval p.2)
+
+omit 𝔼 in
+/-- Woodford (2003), App. F.4, p. 713: `G(ρ) = γ − ρκσ`. -/
+theorem polyG_eval (β κ σ ρ : ℝ) :
+    (polyG β κ σ).eval ρ = Noninertial.gamF4 β ρ - ρ * κ * σ := by
+  simp only [polyG, Polynomial.eval_add, Polynomial.eval_mul, Polynomial.eval_C,
+    Polynomial.eval_X, Polynomial.eval_pow, Polynomial.eval_one]
+  unfold Noninertial.gamF4
+  ring
+
+omit 𝔼 in
+/-- Woodford (2003), p. 515: `detG = F / (h_r h_u)`, so `OptimalTaylor.detG` vanishes exactly on the
+zero set of the polynomial function `F` (`κ ≠ 0`, `λₓ, λᵢ ≥ 0`). -/
+theorem detG_eq_poly {β κ σ lx li : ℝ} (hκ : κ ≠ 0) (hlx : 0 ≤ lx) (hli : 0 ≤ li) (p : ℝ × ℝ) :
+    detG β κ σ lx li p = detGpoly β κ σ lx li p /
+      (Noninertial.hF4 β κ σ lx li p.1 * Noninertial.hF4 β κ σ lx li p.2) := by
+  have h1 := (Noninertial.hF4_pos (β := β) (σ := σ) (ρ := p.1) hκ hlx hli).ne'
+  have h2 := (Noninertial.hF4_pos (β := β) (σ := σ) (ρ := p.2) hκ hlx hli).ne'
+  rw [eq_div_iff (mul_ne_zero h1 h2)]
+  unfold detG detGpoly
+  simp only [polyA, polyB, Polynomial.eval_add, Polynomial.eval_sub, Polynomial.eval_mul,
+    Polynomial.eval_C, Polynomial.eval_X, Polynomial.eval_one, polyG_eval]
+  unfold Noninertial.piUF4 Noninertial.xRF4 Noninertial.xUF4 Noninertial.piRF4 Noninertial.xiF4
+  field_simp
+  ring
+
+omit 𝔼 in
+/-- Woodford (2003), p. 515 ("certain functions of the model parameters must be nonzero"): the
+singular set is the zero set of the polynomial function `detGpoly`. -/
+theorem detG_zero_subset {β κ σ lx li : ℝ} (hκ : κ ≠ 0) (hlx : 0 ≤ lx) (hli : 0 ≤ li) :
+    {p : ℝ × ℝ | detG β κ σ lx li p = 0} = {p | detGpoly β κ σ lx li p = 0} := by
+  ext p
+  simp only [Set.mem_ofPred_eq, detG_eq_poly hκ hlx hli p]
+  have h1 := (Noninertial.hF4_pos (β := β) (σ := σ) (ρ := p.1) hκ hlx hli).ne'
+  have h2 := (Noninertial.hF4_pos (β := β) (σ := σ) (ρ := p.2) hκ hlx hli).ne'
+  rw [div_eq_zero_iff]
+  exact ⟨fun h => h.resolve_right (mul_ne_zero h1 h2), Or.inl⟩
+
+omit 𝔼 in
+/-- Woodford (2003), p. 515 (a *proper* algebraic set): for `λᵢ > 0`, `σ > 0` the polynomial
+function is not identically zero: `F(0, 0) = λᵢσ⁻¹(λᵢσ⁻² + λₓ + κ²) > 0`. -/
+theorem detGpoly_zero_zero_pos {β κ σ lx li : ℝ} (hσ : 0 < σ) (hlx : 0 ≤ lx) (hli : 0 < li) :
+    0 < detGpoly β κ σ lx li (0, 0) := by
+  unfold detGpoly
+  simp only [polyA, polyB, polyG, Polynomial.eval_add, Polynomial.eval_sub, Polynomial.eval_mul,
+    Polynomial.eval_C, Polynomial.eval_X, Polynomial.eval_one, Polynomial.eval_pow]
+  have : 0 < σ⁻¹ := inv_pos.mpr hσ
+  norm_num
+  positivity
+
+omit 𝔼 in
+/-- Woodford (2003), p. 515: with `λᵢ = 0` the system is singular for every `(ρ_r, ρ_u)` (the
+responses to `r̂ⁿ` of inflation and the output gap vanish), so `λᵢ > 0` is needed. -/
+theorem detG_li_zero (β κ σ lx : ℝ) (p : ℝ × ℝ) : detG β κ σ lx 0 p = 0 := by
+  unfold detG Noninertial.piRF4 Noninertial.xRF4
+  simp
+
+omit 𝔼 in
+/-- Woodford (2003), p. 515 (tool): `G` is a nonzero polynomial. -/
+theorem polyG_ne_zero (β κ σ : ℝ) : polyG β κ σ ≠ 0 := by
+  intro h
+  have := congrArg (Polynomial.eval 0) h
+  simp [polyG] at this
+
+omit 𝔼 in
+/-- Woodford (2003), p. 515 (tool): `A` is a nonzero polynomial when `λᵢ > 0`. -/
+theorem polyA_ne_zero {β κ σ lx li : ℝ} (hσ : 0 < σ) (hlx : 0 ≤ lx) (hli : 0 < li) :
+    polyA β κ σ lx li ≠ 0 := by
+  intro h
+  have := congrArg (Polynomial.eval 0) h
+  simp only [polyA, polyG, Polynomial.eval_add, Polynomial.eval_sub, Polynomial.eval_mul,
+    Polynomial.eval_C, Polynomial.eval_X, Polynomial.eval_one, Polynomial.eval_pow,
+    Polynomial.eval_zero] at this
+  have : 0 < σ⁻¹ := inv_pos.mpr hσ
+  nlinarith [sq_nonneg σ⁻¹, mul_pos hli (pow_pos this 2)]
+
+omit 𝔼 in
+/-- Woodford (2003), p. 515 (tool): `OptimalTaylor.detG` is continuous on `ℝ²`. -/
+theorem detG_continuous {β κ σ lx li : ℝ} (hκ : 0 < κ) (hlx : 0 ≤ lx) (hli : 0 ≤ li) :
+    Continuous (detG β κ σ lx li) := by
+  obtain ⟨c1, c2, -, c4, c5, -⟩ := OptimalTaylor.f4_continuous (β := β) (σ := σ) hκ hlx hli
+  unfold detG
+  exact ((c1.comp continuous_snd).mul (c5.comp continuous_fst)).sub
+    ((c2.comp continuous_snd).mul (c4.comp continuous_fst))
+
+omit 𝔼 in
+/-- **"Almost all possible parameter values"** (Woodford (2003), p. 515): for `β ≠ 0`, `κ, σ > 0`,
+`λₓ ≥ 0`, `λᵢ > 0`, the set of `(ρ_r, ρ_u) ∈ ℝ²` at which the consistency system for
+`(φ_π, φ_x)` is singular has Lebesgue measure zero. -/
+theorem detG_zero_null {β κ σ lx li : ℝ} (hβ : β ≠ 0) (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 ≤ lx)
+    (hli : 0 < li) : volume {p : ℝ × ℝ | detG β κ σ lx li p = 0} = 0 := by
+  set S := {p : ℝ × ℝ | detG β κ σ lx li p = 0} with hS
+  have hmeas : MeasurableSet S :=
+    (isClosed_eq (detG_continuous hκ hlx hli.le) continuous_const).measurableSet
+  have hAfin := Polynomial.finite_setOfPred_isRoot (polyA_ne_zero (β := β) (κ := κ) hσ hlx hli)
+  have hGfin := Polynomial.finite_setOfPred_isRoot (polyG_ne_zero β κ σ)
+  have hae : ∀ᵐ y : ℝ, (polyA β κ σ lx li).eval y ≠ 0 := by
+    rw [ae_iff]
+    simpa [Polynomial.IsRoot] using hAfin.measure_zero volume
+  rw [Measure.volume_eq_prod, Measure.prod_apply_symm hmeas]
+  refine (lintegral_congr_ae (hae.mono fun y hy => ?_)).trans lintegral_zero
+  set a := (polyA β κ σ lx li).eval y
+  set b := (polyB β κ σ li).eval y
+  have hsub : (fun x => (x, y)) ⁻¹' S ⊆
+      {x | (polyG β κ σ).IsRoot x} ∪ {(a + b) / (a * β)} := by
+    intro x hx
+    simp only [Set.mem_preimage, hS, Set.mem_ofPred_eq] at hx
+    rw [detG_eq_poly hκ.ne' hlx hli.le, div_eq_zero_iff] at hx
+    have h1 := (Noninertial.hF4_pos (β := β) (σ := σ) (ρ := x) hκ.ne' hlx hli.le).ne'
+    have h2 := (Noninertial.hF4_pos (β := β) (σ := σ) (ρ := y) hκ.ne' hlx hli.le).ne'
+    have hx' := hx.resolve_right (mul_ne_zero h1 h2)
+    unfold detGpoly at hx'
+    simp only at hx'
+    rcases mul_eq_zero.mp hx' with h | h
+    · rcases mul_eq_zero.mp h with h' | h'
+      · exact absurd h' (mul_ne_zero hli.ne' (inv_ne_zero hσ.ne'))
+      · exact Or.inl h'
+    · right
+      rw [Set.mem_singleton_iff, eq_div_iff (mul_ne_zero hy hβ)]
+      linear_combination -h
+  exact measure_mono_null hsub (measure_union_null (hGfin.measure_zero volume)
+    (measure_singleton _))
+
+omit 𝔼 in
+/-- Woodford (2003), p. 515 ("this excludes only certain extremely special parameter values"):
+the singular set is closed with empty interior, so the set where `(φ_π, φ_x)(ρ_r, ρ_u)` exists is
+open and dense in `ℝ²`. -/
+theorem detG_zero_interior_empty {β κ σ lx li : ℝ} (hβ : β ≠ 0) (hκ : 0 < κ) (hσ : 0 < σ)
+    (hlx : 0 ≤ lx) (hli : 0 < li) :
+    IsClosed {p : ℝ × ℝ | detG β κ σ lx li p = 0} ∧
+      interior {p : ℝ × ℝ | detG β κ σ lx li p = 0} = ∅ ∧
+      Dense {p : ℝ × ℝ | detG β κ σ lx li p ≠ 0} := by
+  have hc : IsClosed {p : ℝ × ℝ | detG β κ σ lx li p = 0} :=
+    isClosed_eq (detG_continuous hκ hlx hli.le) continuous_const
+  have hi := Measure.interior_eq_empty_of_null (μ := volume)
+    (detG_zero_null (β := β) (lx := lx) hβ hκ hσ hlx hli)
+  refine ⟨hc, hi, ?_⟩
+  have : {p : ℝ × ℝ | detG β κ σ lx li p ≠ 0} = {p | detG β κ σ lx li p = 0}ᶜ := rfl
+  rw [this, ← interior_eq_empty_iff_dense_compl]
+  exact hi
+
+end Woodford.GainsFromCommitment.TidyR5TaylorRegion
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Forecast-based rules: the exact determinacy criterion for every horizon
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §3.2, eq. (3.13)–(3.14) and Proposition 7.13
+(p. 516), footnotes 35–37.
+
+The earlier formalisation (OptimalTaylor) proves Prop. 7.13 in the book's form (indeterminacy
+for all horizons beyond an explicit critical value) and the exact criterion only for `k = 1`.
+Here the exact criterion is proved for **every** horizon `k ≥ 1`.
+
+## Main results
+
+* A general theory of scalar expectational difference equations
+  `∑_{j ≤ n+1} c_j E_t p_{t+j} = g_t` with `c_0 = 1` (`ScalarSolves`): for every bounded adapted
+  `g` there is exactly one bounded adapted solution **iff** every complex root of
+  `P(z) = ∑ c_j z^j` lies strictly outside the unit circle (`scalarDet_iff`). Sufficiency goes
+  through the companion forward system (`companion`, `companion_eig`, Blanchard–Kahn restated
+  from the Chapter 4 project); necessity through the bounded homogeneous solutions `Re λᵗ`.
+* Under the forecast-based rule (3.13) with horizon `k ≥ 1`, an equilibrium is exactly a bounded
+  adapted solution of the scalar equation with characteristic polynomial `OptimalTaylor.chiC` of
+  Prop. 7.13 (`forecastEqm_iff_scalar`).
+* **Prop. 7.13, exact for every horizon** (`forecast_determinate_iff`): under (3.13) with any
+  `k ≥ 1` and any real `φ_π, φ_x`, equilibrium is determinate iff every root of
+  `χ(λ) = (1 − λ)(1 − βλ) − κσλ + κσφ_π λᵏ + σφ_x λᵏ(1 − βλ)/4` has `|λ| > 1`; for the rule
+  (3.14) consistent with the optimal noninertial plan this is `oni_forecast_determinate_iff`.
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR5ForecastHorizon
+
+open Filter Topology
+open OptimalTaylor (rvMul rvMul_apply FSolves VAdapted VBounded fsolves_exists fsolves_unique
+  pow_entry_bound chiC forecastRule ForecastEqm ModelDet indeterminate_of_root)
+open Noninertial (AS IS)
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-! ### Scalar expectational difference equations -/
+
+/-- Woodford (2003), Prop. 7.13, p. 516 (the reduced form of (3.13)): `p` solves the scalar
+expectational equation `∑_{j ≤ n+1} c_j E_t p_{t+j} = g_t`, date by date and state by state. -/
+def ScalarSolves (c : ℕ → ℝ) (n : ℕ) (g p : ℕ → Ω → ℝ) : Prop :=
+  ∀ t ω, ∑ j ∈ Finset.range (n + 2), c j * 𝔼.E t (p (t + j)) ω = g t ω
+
+/-- Woodford (2003), Prop. 7.13, p. 516 (determinacy of the reduced form): for every bounded
+adapted `g` the scalar equation has exactly one bounded adapted solution. -/
+def ScalarDet (c : ℕ → ℝ) (n : ℕ) : Prop :=
+  ∀ g : ℕ → Ω → ℝ, BoundedProc g → 𝔼.Adapted g →
+    ∃! p : ℕ → Ω → ℝ, BoundedProc p ∧ 𝔼.Adapted p ∧ ScalarSolves 𝔼 c n g p
+
+/-- Woodford (2003), Prop. 7.13, p. 516 (the companion matrix of the reduced form): the state is
+`(E_t p_t, E_t p_{t+1}, …, E_t p_{t+n})`; row `0` is `−(c_1, …, c_{n+1})`, row `m + 1` picks
+coordinate `m`. -/
+noncomputable def companion (c : ℕ → ℝ) (n : ℕ) : Matrix (Fin (n + 1)) (Fin (n + 1)) ℝ :=
+  fun i j => if (i : ℕ) = 0 then -c ((j : ℕ) + 1) else if (j : ℕ) + 1 = i then 1 else 0
+
+omit 𝔼 in
+/-- Woodford (2003), Prop. 7.13 (tool): row `0` of the companion system. -/
+theorem companion_row_zero (c : ℕ → ℝ) (n : ℕ) (a : Fin (n + 1) → Ω → ℝ) (ω : Ω) :
+    rvMul (companion c n) a 0 ω = -∑ j : Fin (n + 1), c ((j : ℕ) + 1) * a j ω := by
+  rw [rvMul_apply, ← Finset.sum_neg_distrib]
+  refine Finset.sum_congr rfl fun j _ => ?_
+  simp [companion]
+
+omit 𝔼 in
+/-- Woodford (2003), Prop. 7.13 (tool): row `m + 1` of the companion system is coordinate `m`. -/
+theorem companion_row_succ (c : ℕ → ℝ) (n : ℕ) (a : Fin (n + 1) → Ω → ℝ) (m : Fin n) (ω : Ω) :
+    rvMul (companion c n) a m.succ ω = a m.castSucc ω := by
+  rw [rvMul_apply, Finset.sum_eq_single m.castSucc]
+  · simp [companion]
+  · intro j _ hj
+    have : (j : ℕ) ≠ (m : ℕ) := fun h => hj (Fin.ext (by simpa using h))
+    simp [companion, this]
+  · simp
+
+/-- Woodford (2003), Prop. 7.13 (tool): the forcing of the companion system, `(g_t, 0, …, 0)`. -/
+noncomputable def compForcing (n : ℕ) (g : ℕ → Ω → ℝ) : ℕ → Fin (n + 1) → Ω → ℝ :=
+  fun t i => if (i : ℕ) = 0 then g t else 0
+
+/-- Woodford (2003), Prop. 7.13 (tool): the stacked forecasts `(E_t p_{t+i})_{i ≤ n}`. -/
+def stackP (n : ℕ) (p : ℕ → Ω → ℝ) : ℕ → Fin (n + 1) → Ω → ℝ :=
+  fun t i => 𝔼.E t (p (t + i))
+
+/-- Woodford (2003), Prop. 7.13 (tool): a scalar solution gives a solution of the companion
+forward system. -/
+theorem stackP_fsolves {c : ℕ → ℝ} (hc : c 0 = 1) {n : ℕ} {g p : ℕ → Ω → ℝ}
+    (hp : 𝔼.Adapted p) (hs : ScalarSolves 𝔼 c n g p) :
+    FSolves 𝔼 (companion c n) (compForcing n g) (stackP 𝔼 n p) := by
+  intro t
+  funext i ω
+  have hT : ∀ x : Ω → ℝ, 𝔼.E t (𝔼.E (t + 1) x) = 𝔼.E t x := fun x => 𝔼.tower (Nat.le_succ t) x
+  refine Fin.cases ?_ (fun m => ?_) i
+  · simp only [Pi.add_apply, companion_row_zero, compForcing, Fin.val_zero, ↓reduceIte, stackP,
+      hT, add_zero, hp t]
+    have h := hs t ω
+    rw [Finset.sum_range_succ', hc, add_zero, one_mul, hp t] at h
+    have e : ∑ j : Fin (n + 1), c ((j : ℕ) + 1) * 𝔼.E t (p (t + 1 + (j : ℕ))) ω =
+        ∑ j ∈ Finset.range (n + 1), c (j + 1) * 𝔼.E t (p (t + (j + 1))) ω := by
+      rw [← Fin.sum_univ_eq_sum_range (fun j => c (j + 1) * 𝔼.E t (p (t + (j + 1))) ω)]
+      refine Finset.sum_congr rfl fun j _ => ?_
+      rw [Nat.add_right_comm t 1, add_assoc]
+    rw [e]
+    linarith
+  · simp only [Pi.add_apply, companion_row_succ, compForcing, Fin.val_succ,
+      Nat.add_one_ne_zero, ↓reduceIte, Fin.val_castSucc, stackP, hT, Pi.zero_apply]
+    rw [add_zero, show t + 1 + (m : ℕ) = t + ((m : ℕ) + 1) by omega]
+
+/-- Woodford (2003), Prop. 7.13 (tool): every adapted solution of the companion system is the
+stack of the forecasts of its first coordinate. -/
+theorem fsolves_stack {c : ℕ → ℝ} {n : ℕ} {g : ℕ → Ω → ℝ} {s : ℕ → Fin (n + 1) → Ω → ℝ}
+    (hs : FSolves 𝔼 (companion c n) (compForcing n g) s) (has : VAdapted 𝔼 s) :
+    ∀ (m : ℕ) (hm : m < n + 1) t, s t ⟨m, hm⟩ = 𝔼.E t (s (t + m) 0) := by
+  intro m
+  induction m with
+  | zero => intro hm t; exact (has t _).symm
+  | succ m ih =>
+    intro hm t
+    have hm' : m < n := by omega
+    have h := congrFun (hs t) (Fin.succ ⟨m, hm'⟩)
+    simp only [Pi.add_apply, compForcing, Fin.val_succ, Nat.add_one_ne_zero, ↓reduceIte,
+      add_zero] at h
+    have h' : s t ⟨m + 1, hm⟩ = 𝔼.E t (s (t + 1) ⟨m, by omega⟩) := by
+      have e : (⟨m + 1, hm⟩ : Fin (n + 1)) = Fin.succ ⟨m, hm'⟩ := rfl
+      rw [e, h]
+      funext ω
+      rw [companion_row_succ]
+      rfl
+    rw [h', ih (by omega) (t + 1), 𝔼.tower (Nat.le_succ t), Nat.add_right_comm t 1, add_assoc]
+
+/-- Woodford (2003), Prop. 7.13 (tool): the first coordinate of an adapted solution of the
+companion system solves the scalar equation. -/
+theorem scalar_of_fsolves {c : ℕ → ℝ} (hc : c 0 = 1) {n : ℕ} {g : ℕ → Ω → ℝ}
+    {s : ℕ → Fin (n + 1) → Ω → ℝ} (hs : FSolves 𝔼 (companion c n) (compForcing n g) s)
+    (has : VAdapted 𝔼 s) : ScalarSolves 𝔼 c n g (fun t => s t 0) := by
+  intro t ω
+  have hst := fsolves_stack 𝔼 hs has
+  have h0 := congrFun (congrFun (hs t) 0) ω
+  simp only [Pi.add_apply, companion_row_zero, compForcing, Fin.val_zero, ↓reduceIte] at h0
+  rw [Finset.sum_range_succ', hc, one_mul, add_zero, has t 0]
+  have e : ∑ j : Fin (n + 1), c ((j : ℕ) + 1) * 𝔼.E t (s (t + 1) j) ω =
+      ∑ j ∈ Finset.range (n + 1), c (j + 1) * 𝔼.E t (s (t + (j + 1)) 0) ω := by
+    rw [← Fin.sum_univ_eq_sum_range (fun j => c (j + 1) * 𝔼.E t (s (t + (j + 1)) 0) ω)]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    have := hst j j.isLt (t + 1)
+    simp only [Fin.eta] at this
+    rw [this, 𝔼.tower (Nat.le_succ t), Nat.add_right_comm t 1, add_assoc]
+  rw [e] at h0
+  linarith
+
+omit 𝔼 in
+/-- Woodford (2003), Prop. 7.13 (tool): if every root of `P(z) = ∑ c_j z^j` (`c_0 = 1`) lies
+outside the closed unit disc, every complex eigenvalue of the companion matrix lies inside the
+open unit disc (an eigenvalue `w ≠ 0` has `P(1/w) = 0`). -/
+theorem companion_eig {c : ℕ → ℝ} (hc : c 0 = 1) {n : ℕ}
+    (hroot : ∀ z : ℂ, ∑ j ∈ Finset.range (n + 2), (c j : ℂ) * z ^ j = 0 → 1 < ‖z‖) (w : ℂ)
+    (hw : (Matrix.scalar (Fin (n + 1)) w - (companion c n).map Complex.ofReal).det = 0) :
+    ‖w‖ < 1 := by
+  obtain ⟨v, hv0, hv⟩ := Matrix.exists_mulVec_eq_zero_iff.mpr hw
+  have hrow : ∀ i, w * v i = ∑ j, ((companion c n i j : ℝ) : ℂ) * v j := by
+    intro i
+    have := congrFun hv i
+    simp only [Matrix.sub_mulVec, Pi.sub_apply, Matrix.scalar_apply, Matrix.mulVec_diagonal,
+      Pi.zero_apply] at this
+    rw [sub_eq_zero] at this
+    rw [this]
+    simp [Matrix.mulVec, dotProduct]
+  by_cases hw0 : w = 0
+  · rw [hw0, norm_zero]; exact one_pos
+  have hsucc : ∀ m : Fin n, v m.castSucc = w * v m.succ := by
+    intro m
+    rw [hrow m.succ, Finset.sum_eq_single m.castSucc]
+    · simp [companion]
+    · intro j _ hj
+      have : (j : ℕ) ≠ (m : ℕ) := fun h => hj (Fin.ext (by simpa using h))
+      simp [companion, this]
+    · simp
+  have hpow : ∀ (m : ℕ) (hm : m < n + 1), v ⟨m, hm⟩ = w⁻¹ ^ m * v 0 := by
+    intro m
+    induction m with
+    | zero => intro _; simp
+    | succ m ih =>
+      intro hm
+      have h := hsucc ⟨m, by omega⟩
+      have e1 : (Fin.castSucc ⟨m, by omega⟩ : Fin (n + 1)) = ⟨m, by omega⟩ := rfl
+      have e2 : (Fin.succ ⟨m, by omega⟩ : Fin (n + 1)) = ⟨m + 1, hm⟩ := rfl
+      rw [e1, e2, ih (by omega)] at h
+      rw [pow_succ]
+      field_simp
+      linear_combination -h
+  have hv00 : v 0 ≠ 0 := by
+    intro h0
+    apply hv0
+    funext i
+    have := hpow i i.isLt
+    simp only [Fin.eta, h0, mul_zero] at this
+    simpa using this
+  have h0 := hrow 0
+  have e : ∑ j, ((companion c n 0 j : ℝ) : ℂ) * v j =
+      -(∑ j ∈ Finset.range (n + 1), (c (j + 1) : ℂ) * w⁻¹ ^ j) * v 0 := by
+    rw [← Fin.sum_univ_eq_sum_range (fun j => (c (j + 1) : ℂ) * w⁻¹ ^ j), neg_mul,
+      Finset.sum_mul, ← Finset.sum_neg_distrib]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    rw [show v j = v ⟨j, j.isLt⟩ from rfl, hpow j j.isLt]
+    simp [companion]
+    ring
+  rw [e] at h0
+  have hP : ∑ j ∈ Finset.range (n + 2), (c j : ℂ) * w⁻¹ ^ j = 0 := by
+    rw [Finset.sum_range_succ', hc]
+    have h1 : w + ∑ j ∈ Finset.range (n + 1), (c (j + 1) : ℂ) * w⁻¹ ^ j = 0 := by
+      have := mul_right_cancel₀ hv00 (show w * v 0 = (-(∑ j ∈ Finset.range (n + 1),
+        (c (j + 1) : ℂ) * w⁻¹ ^ j)) * v 0 from h0)
+      linear_combination this
+    have h2 : ∑ j ∈ Finset.range (n + 1), (c (j + 1) : ℂ) * w⁻¹ ^ (j + 1) =
+        w⁻¹ * ∑ j ∈ Finset.range (n + 1), (c (j + 1) : ℂ) * w⁻¹ ^ j := by
+      rw [Finset.mul_sum]
+      refine Finset.sum_congr rfl fun j _ => ?_
+      ring
+    rw [h2]
+    have h3 : w⁻¹ * w = 1 := inv_mul_cancel₀ hw0
+    push_cast
+    linear_combination w⁻¹ * h1 - h3
+  have := hroot _ hP
+  rw [norm_inv] at this
+  have hn : 0 < ‖w‖ := norm_pos_iff.mpr hw0
+  rw [lt_inv_comm₀ one_pos hn, inv_one] at this
+  exact this
+
+
+/-- Woodford (2003), Prop. 7.13 (tool): the stacked forecasts of a bounded process are bounded. -/
+theorem stackP_bounded {n : ℕ} {p : ℕ → Ω → ℝ} (hp : BoundedProc p) : VBounded (stackP 𝔼 n p) := by
+  obtain ⟨M, hM⟩ := hp
+  exact ⟨M, fun t i ω => 𝔼.abs_E_le (hM (t + i)) t ω⟩
+
+/-- Woodford (2003), Prop. 7.13 (tool): the stacked forecasts are adapted. -/
+theorem stackP_adapted (n : ℕ) (p : ℕ → Ω → ℝ) : VAdapted 𝔼 (stackP 𝔼 n p) :=
+  fun t _ => 𝔼.E_E_self t _
+
+/-- Woodford (2003), Prop. 7.13 (sufficiency): if every complex root of `P(z) = ∑ c_j z^j`
+(`c_0 = 1`) has modulus `> 1`, the scalar equation has exactly one bounded adapted solution for
+every bounded adapted forcing. -/
+theorem scalarDet_of_roots {c : ℕ → ℝ} (hc : c 0 = 1) {n : ℕ}
+    (hroot : ∀ z : ℂ, ∑ j ∈ Finset.range (n + 2), (c j : ℂ) * z ^ j = 0 → 1 < ‖z‖) :
+    ScalarDet 𝔼 c n := by
+  obtain ⟨Cb, ρ, -, hρ0, hρ1, hK⟩ := pow_entry_bound (companion c n) (companion_eig hc hroot)
+  intro g hg hag
+  obtain ⟨Mg, hMg⟩ := hg
+  have hw : ∀ t i ω, |compForcing n g t i ω| ≤ |Mg| := by
+    intro t i ω
+    by_cases h : (i : ℕ) = 0
+    · simp only [compForcing, h, ↓reduceIte]; exact (hMg t ω).trans (le_abs_self _)
+    · simp [compForcing, h]
+  have haw : VAdapted 𝔼 (compForcing n g) := by
+    intro t i
+    by_cases h : (i : ℕ) = 0
+    · simp only [compForcing, h, ↓reduceIte]; exact hag t
+    · simp only [compForcing, h, ↓reduceIte, map_zero]
+  obtain ⟨s, hs, has, hbs⟩ := fsolves_exists 𝔼 hρ0.le hρ1 hK hw haw
+  obtain ⟨Ms, hMs⟩ := hbs
+  refine ⟨fun t => s t 0, ⟨⟨Ms, fun t ω => hMs t 0 ω⟩, fun t => has t 0,
+    scalar_of_fsolves 𝔼 hc hs has⟩, fun q ⟨hqb, hqa, hqs⟩ => ?_⟩
+  have h1 := stackP_fsolves 𝔼 hc hqa hqs
+  have := fsolves_unique 𝔼 hρ0.le hρ1 hK h1 hs (stackP_adapted 𝔼 n q) has
+    (stackP_bounded 𝔼 hqb) ⟨Ms, hMs⟩
+  funext t ω
+  have h2 := congrFun (congrFun (congrFun this t) 0) ω
+  simpa [stackP, hqa t] using h2
+
+/-- Woodford (2003), Prop. 7.13 (necessity): if `P` has a root `λ` with `|λ| ≤ 1`, then
+`p_t = Re λᵗ` is a bounded adapted nonzero solution of the homogeneous equation, so the scalar
+equation is not determinate. -/
+theorem roots_of_scalarDet [Nonempty Ω] {c : ℕ → ℝ} {n : ℕ} (h : ScalarDet 𝔼 c n) :
+    ∀ z : ℂ, ∑ j ∈ Finset.range (n + 2), (c j : ℂ) * z ^ j = 0 → 1 < ‖z‖ := by
+  intro z hz
+  by_contra hle
+  push Not at hle
+  have hE : ∀ t (a : ℝ) ω, 𝔼.E t (fun _ => a) ω = a := fun t a ω => by rw [𝔼.const]
+  set p : ℕ → Ω → ℝ := fun t _ => (z ^ t).re with hp
+  have hps : ScalarSolves 𝔼 c n 0 p := by
+    intro t ω
+    simp only [hp, hE, Pi.zero_apply]
+    have e : ∑ j ∈ Finset.range (n + 2), c j * (z ^ (t + j)).re =
+        (z ^ t * ∑ j ∈ Finset.range (n + 2), (c j : ℂ) * z ^ j).re := by
+      rw [Finset.mul_sum, Complex.re_sum]
+      refine Finset.sum_congr rfl fun j _ => ?_
+      rw [pow_add, show z ^ t * ((c j : ℂ) * z ^ j) = (c j : ℂ) * (z ^ t * z ^ j) by ring,
+        Complex.re_ofReal_mul]
+    rw [e, hz, mul_zero, Complex.zero_re]
+  have hzs : ScalarSolves 𝔼 c n 0 0 := by
+    intro t ω
+    simp
+  obtain ⟨q, -, hq⟩ := h 0 ⟨0, fun _ _ => by simp⟩ (fun t => map_zero _)
+  have hpb : BoundedProc p := ⟨1, fun t _ => (Complex.abs_re_le_norm _).trans
+    (by rw [norm_pow]; exact pow_le_one₀ (norm_nonneg _) hle)⟩
+  have e1 := hq p ⟨hpb, fun t => 𝔼.const t _, hps⟩
+  have e2 := hq 0 ⟨⟨0, fun _ _ => by simp⟩, fun t => map_zero _, hzs⟩
+  obtain ⟨ω⟩ := ‹Nonempty Ω›
+  have := congrFun (congrFun (e1.trans e2.symm) 0) ω
+  simp [hp] at this
+
+/-- **The exact determinacy criterion for scalar expectational equations** (Woodford (2003),
+Prop. 7.13, p. 516, and App. C restated for one equation of any order): with `c_0 = 1`, the
+equation `∑_{j ≤ n+1} c_j E_t p_{t+j} = g_t` has exactly one bounded adapted solution for every
+bounded adapted `g` iff every complex root of `∑ c_j z^j` lies strictly outside the unit circle. -/
+theorem scalarDet_iff [Nonempty Ω] {c : ℕ → ℝ} (hc : c 0 = 1) (n : ℕ) :
+    ScalarDet 𝔼 c n ↔
+      ∀ z : ℂ, ∑ j ∈ Finset.range (n + 2), (c j : ℂ) * z ^ j = 0 → 1 < ‖z‖ :=
+  ⟨roots_of_scalarDet 𝔼, scalarDet_of_roots 𝔼 hc⟩
+
+/-! ### The model under the forecast-based rule (3.13) -/
+
+omit 𝔼 in
+/-- Woodford (2003), Prop. 7.13, p. 516: the coefficients `c_j` of `χ(λ) = ∑ c_j λʲ`,
+`χ(λ) = 1 − (1 + β + κσ)λ + βλ² + (κσφ_π + σφ_x/4)λᵏ − (σβφ_x/4)λ^{k+1}`. -/
+noncomputable def fcCoef (β κ σ φπ φx : ℝ) (k j : ℕ) : ℝ :=
+  (if j = 0 then 1 else 0) + (if j = 1 then -(1 + β + κ * σ) else 0) + (if j = 2 then β else 0) +
+    (if j = k then κ * σ * φπ + σ * φx / 4 else 0) + (if j = k + 1 then -(σ * β * φx / 4) else 0)
+
+omit 𝔼 in
+/-- Woodford (2003), Prop. 7.13 (tool): `c_0 = 1` for every horizon `k ≥ 1`. -/
+theorem fcCoef_zero {β κ σ φπ φx : ℝ} {k : ℕ} (hk : 1 ≤ k) : fcCoef β κ σ φπ φx k 0 = 1 := by
+  have h1 : (0 : ℕ) ≠ k := by omega
+  simp [fcCoef, h1]
+
+omit 𝔼 in
+/-- Woodford (2003), Prop. 7.13 (tool): the coefficient sum, for a real sequence `a`. -/
+theorem fcCoef_sum {β κ σ φπ φx : ℝ} {k : ℕ} (hk : 1 ≤ k) (a : ℕ → ℝ) :
+    ∑ j ∈ Finset.range (k + 2), fcCoef β κ σ φπ φx k j * a j =
+      a 0 - (1 + β + κ * σ) * a 1 + β * a 2 + (κ * σ * φπ + σ * φx / 4) * a k -
+        σ * β * φx / 4 * a (k + 1) := by
+  have h0 : 0 < k + 2 := by omega
+  have h1 : 1 < k + 2 := by omega
+  have h2 : 2 < k + 2 := by omega
+  have h3 : k < k + 2 := by omega
+  have h4 : k + 1 < k + 2 := by omega
+  simp only [fcCoef, add_mul, ite_mul, zero_mul, one_mul, Finset.sum_add_distrib,
+    Finset.sum_ite_eq', Finset.mem_range, h0, h1, h2, h3, h4, ↓reduceIte]
+  ring
+
+omit 𝔼 in
+/-- Woodford (2003), Prop. 7.13 (tool): `∑ c_j zʲ = χ(z)` over `ℂ`. -/
+theorem fcCoef_chiC {β κ σ φπ φx : ℝ} {k : ℕ} (hk : 1 ≤ k) (z : ℂ) :
+    ∑ j ∈ Finset.range (k + 2), (fcCoef β κ σ φπ φx k j : ℂ) * z ^ j =
+      chiC β κ σ φπ φx k z := by
+  have h0 : 0 < k + 2 := by omega
+  have h1 : 1 < k + 2 := by omega
+  have h2 : 2 < k + 2 := by omega
+  have h3 : k < k + 2 := by omega
+  have h4 : k + 1 < k + 2 := by omega
+  simp only [fcCoef, Complex.ofReal_add, apply_ite Complex.ofReal, Complex.ofReal_zero,
+    Complex.ofReal_one, add_mul, ite_mul, zero_mul, one_mul, Finset.sum_add_distrib,
+    Finset.sum_ite_eq', Finset.mem_range, h0, h1, h2, h3, h4, ↓reduceIte]
+  unfold chiC
+  push_cast
+  ring
+
+omit 𝔼 in
+/-- Woodford (2003), Prop. 7.13 (the forcing of the reduced form):
+`g_t = u_t − E_t u_{t+1} + (σφ_x/4) E_t u_{t+k} + κσ(rⁿ_t − ī + π̄)`. -/
+noncomputable def fcG {Ω' : Type*} (𝔼' : ExpectationSystem Ω') (σ κ φx ibar πbar : ℝ) (k : ℕ)
+    (u rn : ℕ → Ω' → ℝ) : ℕ → Ω' → ℝ :=
+  fun t ω => u t ω - 𝔼'.E t (u (t + 1)) ω + σ * φx / 4 * 𝔼'.E t (u (t + k)) ω +
+    κ * σ * (rn t ω - ibar + πbar)
+
+/-- Woodford (2003), (2.1) (tool): applying `E_t` to the aggregate-supply relation at `t + j`. -/
+theorem AS_forecast {β κ : ℝ} {π x u : ℕ → Ω → ℝ} (hA : AS 𝔼 β κ π x u) (t j : ℕ) (ω : Ω) :
+    𝔼.E t (π (t + j)) ω = κ * 𝔼.E t (x (t + j)) ω + β * 𝔼.E t (π (t + j + 1)) ω +
+      𝔼.E t (u (t + j)) ω := by
+  have h := congrArg (fun y => 𝔼.E t y ω) (hA (t + j))
+  simp only [map_add, map_smul, Pi.add_apply, Pi.smul_apply, smul_eq_mul,
+    𝔼.tower (Nat.le_add_right t j)] at h
+  exact h
+
+/-- **The reduced form of (3.13)** (Woodford (2003), p. 516, and Ch. 4, §2.2): with `κ ≠ 0`,
+`k ≥ 1` and `κ x̄ = (1 − β) π̄`, adapted `(π, x)` is an equilibrium under the forecast-based rule
+iff it satisfies (2.1) and `π − π̄` solves the scalar equation with characteristic polynomial
+`χ` of Prop. 7.13 and forcing `fcG`. -/
+theorem forecastEqm_iff_scalar {β σ κ ibar φπ φx πbar xbar : ℝ} (hκ : κ ≠ 0) {k : ℕ}
+    (hk : 1 ≤ k) (hxb : κ * xbar = (1 - β) * πbar) {u rn π x : ℕ → Ω → ℝ}
+    (hπa : 𝔼.Adapted π) (hxa : 𝔼.Adapted x) (hua : 𝔼.Adapted u) :
+    ForecastEqm 𝔼 β σ κ ibar φπ φx πbar xbar k u rn π x ↔
+      AS 𝔼 β κ π x u ∧ ScalarSolves 𝔼 (fcCoef β κ σ φπ φx k) k
+        (fcG 𝔼 σ κ φx ibar πbar k u rn) (fun t ω => π t ω - πbar) := by
+  have hE : ∀ t j ω, 𝔼.E t (fun ω' => π (t + j) ω' - πbar) ω = 𝔼.E t (π (t + j)) ω - πbar := by
+    intro t j ω
+    have e : (fun ω' => π (t + j) ω' - πbar) = π (t + j) - fun _ => πbar := rfl
+    rw [e, map_sub, 𝔼.const]
+    rfl
+  unfold ForecastEqm ScalarSolves
+  refine and_congr_right fun hA => ?_
+  rw [OptimalTaylor.IS_iff]
+  refine forall_congr' fun t => forall_congr' fun ω => ?_
+  rw [fcCoef_sum hk (fun j => 𝔼.E t (fun ω' => π (t + j) ω' - πbar) ω)]
+  have hE0 : 𝔼.E t (fun ω' => π (t + 0) ω' - πbar) ω = π t ω - πbar := by
+    rw [hE, add_zero, hπa t]
+  rw [hE0, hE, hE, hE, hE]
+  have a0 := AS_forecast 𝔼 hA t 0 ω
+  have a1 := AS_forecast 𝔼 hA t 1 ω
+  have ak := AS_forecast 𝔼 hA t k ω
+  simp only [add_zero] at a0
+  rw [hπa t, hxa t, hua t] at a0
+  simp only [forecastRule, fcG]
+  constructor
+  · intro hI
+    linear_combination κ * hI + a0 - a1 + σ * φx / 4 * ak + σ * φx / 4 * hxb
+  · intro hS
+    have : κ * (x t ω - (𝔼.E t (x (t + 1)) ω - σ * (ibar + φπ * (𝔼.E t (π (t + k)) ω - πbar) +
+        φx * (𝔼.E t (x (t + k)) ω - xbar) / 4 - 𝔼.E t (π (t + 1)) ω - rn t ω))) = 0 := by
+      linear_combination hS - a0 + a1 - σ * φx / 4 * ak - σ * φx / 4 * hxb
+    linarith [(mul_eq_zero.mp this).resolve_left hκ]
+
+
+/-! ### Proposition 7.13: the exact criterion for every horizon -/
+
+/-- Woodford (2003), (3.13) (tool): the forcing `fcG` of bounded adapted disturbances is bounded
+and adapted. -/
+theorem fcG_bdd_adapted {σ κ φx ibar πbar : ℝ} {k : ℕ} {u rn : ℕ → Ω → ℝ} (hu : BoundedProc u)
+    (hrn : BoundedProc rn) (hau : 𝔼.Adapted u) (harn : 𝔼.Adapted rn) :
+    BoundedProc (fcG 𝔼 σ κ φx ibar πbar k u rn) ∧ 𝔼.Adapted (fcG 𝔼 σ κ φx ibar πbar k u rn) := by
+  obtain ⟨M, hM⟩ := hu
+  obtain ⟨N, hN⟩ := hrn
+  refine ⟨⟨M + M + |σ * φx / 4| * M + |κ * σ| * (N + |ibar| + |πbar|), fun t ω => ?_⟩,
+    fun t => ?_⟩
+  · simp only [fcG]
+    have h1 := hM t ω
+    have h2 := 𝔼.abs_E_le (hM (t + 1)) t ω
+    have h3 : |σ * φx / 4 * 𝔼.E t (u (t + k)) ω| ≤ |σ * φx / 4| * M := by
+      rw [abs_mul]; gcongr; exact 𝔼.abs_E_le (hM (t + k)) t ω
+    have h4 : |κ * σ * (rn t ω - ibar + πbar)| ≤ |κ * σ| * (N + |ibar| + |πbar|) := by
+      rw [abs_mul]
+      gcongr
+      calc |rn t ω - ibar + πbar| ≤ |rn t ω - ibar| + |πbar| := abs_add_le _ _
+        _ ≤ |rn t ω| + |ibar| + |πbar| := by gcongr; exact abs_sub _ _
+        _ ≤ N + |ibar| + |πbar| := by gcongr; exact hN t ω
+    calc _ ≤ |u t ω - 𝔼.E t (u (t + 1)) ω + σ * φx / 4 * 𝔼.E t (u (t + k)) ω| +
+          |κ * σ * (rn t ω - ibar + πbar)| := abs_add_le _ _
+      _ ≤ |u t ω - 𝔼.E t (u (t + 1)) ω| + |σ * φx / 4 * 𝔼.E t (u (t + k)) ω| +
+          |κ * σ * (rn t ω - ibar + πbar)| := by gcongr; exact abs_add_le _ _
+      _ ≤ |u t ω| + |𝔼.E t (u (t + 1)) ω| + |σ * φx / 4 * 𝔼.E t (u (t + k)) ω| +
+          |κ * σ * (rn t ω - ibar + πbar)| := by gcongr; exact abs_sub _ _
+      _ ≤ _ := by linarith
+  · have e : fcG 𝔼 σ κ φx ibar πbar k u rn t = u t - 𝔼.E t (u (t + 1)) +
+        (σ * φx / 4) • 𝔼.E t (u (t + k)) + (κ * σ) • rn t +
+          (fun _ => κ * σ * (πbar - ibar)) := by
+      funext ω
+      simp only [fcG, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      ring
+    rw [e, map_add, map_add, map_add, map_sub, map_smul, map_smul, 𝔼.E_E_self, 𝔼.E_E_self,
+      hau t, harn t, 𝔼.const]
+
+/-- **Proposition 7.13, exact for every horizon** (Woodford (2003), p. 516; proof in Giannoni and
+Woodford, only cited in the book): under the forecast-based rule (3.13) with any horizon `k ≥ 1`
+and any real `φ_π, φ_x` (`κ ≠ 0`, `κ x̄ = (1 − β) π̄`), equilibrium is determinate — exactly one
+bounded adapted equilibrium for every bounded adapted `(u, rⁿ)` — iff every complex root of
+`χ(λ) = (1 − λ)(1 − βλ) − κσλ + κσφ_π λᵏ + σφ_x λᵏ(1 − βλ)/4` has `|λ| > 1`. -/
+theorem forecast_determinate_iff [Nonempty Ω] {β σ κ ibar φπ φx πbar xbar : ℝ} (hκ : κ ≠ 0)
+    {k : ℕ} (hk : 1 ≤ k) (hxb : κ * xbar = (1 - β) * πbar) :
+    ModelDet 𝔼 (ForecastEqm 𝔼 β σ κ ibar φπ φx πbar xbar k) ↔
+      ∀ z : ℂ, chiC β κ σ φπ φx k z = 0 → 1 < ‖z‖ := by
+  constructor
+  · intro hdet z hz
+    by_contra hle
+    push Not at hle
+    have hE : ∀ t (a : ℝ) ω, 𝔼.E t (fun _ => a) ω = a := fun t a ω => by rw [𝔼.const]
+    have heq : ForecastEqm 𝔼 β σ κ ibar φπ φx πbar xbar k (fun _ _ => 0)
+        (fun _ _ => ibar - πbar) (fun _ _ => πbar) (fun _ _ => xbar) := by
+      refine ⟨(OptimalTaylor.AS_iff 𝔼 _ _ _ _ _).mpr fun t ω => ?_,
+        (OptimalTaylor.IS_iff 𝔼 _ _ _ _ _).mpr fun t ω => ?_⟩
+      · rw [hE]; linear_combination -hxb
+      · simp only [hE, forecastRule]; ring
+    obtain ⟨π', x', h1, h2, h3, h4, h5, hne⟩ := indeterminate_of_root 𝔼 hκ hz hle heq
+      ⟨|πbar|, fun _ _ => le_rfl⟩ ⟨|xbar|, fun _ _ => le_rfl⟩ (fun t => 𝔼.const t _)
+      (fun t => 𝔼.const t _)
+    obtain ⟨p, -, hpu⟩ := hdet (fun _ _ => 0) (fun _ _ => ibar - πbar) ⟨0, fun _ _ => by simp⟩
+      ⟨|ibar - πbar|, fun _ _ => le_rfl⟩ (fun t => 𝔼.const t 0) (fun t => 𝔼.const t _)
+    have e1 := hpu (π', x') ⟨h2, h3, h4, h5, h1⟩
+    have e2 := hpu (fun _ _ => πbar, fun _ _ => xbar) ⟨⟨|πbar|, fun _ _ => le_rfl⟩,
+      ⟨|xbar|, fun _ _ => le_rfl⟩, fun t => 𝔼.const t _, fun t => 𝔼.const t _, heq⟩
+    exact hne (congrArg Prod.fst (e1.trans e2.symm))
+  · intro hroot u rn hu hrn hau harn
+    have hdet := scalarDet_of_roots 𝔼 (fcCoef_zero (β := β) (κ := κ) (σ := σ) (φπ := φπ)
+      (φx := φx) hk) (n := k) (fun z hz => hroot z (by rwa [fcCoef_chiC hk] at hz))
+    obtain ⟨hgb, hga⟩ := fcG_bdd_adapted 𝔼 (σ := σ) (κ := κ) (φx := φx) (ibar := ibar)
+      (πbar := πbar) (k := k) hu hrn hau harn
+    obtain ⟨p, ⟨hpb, hpa, hps⟩, hpu⟩ := hdet _ hgb hga
+    set π : ℕ → Ω → ℝ := fun t ω => πbar + p t ω with hπ
+    set x : ℕ → Ω → ℝ := fun t ω => (π t ω - β * 𝔼.E t (π (t + 1)) ω - u t ω) / κ with hx
+    have hπa : 𝔼.Adapted π := by
+      intro t
+      have e : π t = (fun _ => πbar) + p t := rfl
+      rw [e, map_add, 𝔼.const, hpa t]
+    have hxa : 𝔼.Adapted x := by
+      intro t
+      have e : x t = κ⁻¹ • π t - (κ⁻¹ * β) • 𝔼.E t (π (t + 1)) - κ⁻¹ • u t := by
+        funext ω
+        simp only [hx, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+        field_simp
+      rw [e, map_sub, map_sub, map_smul, map_smul, map_smul, hπa t, 𝔼.E_E_self, hau t]
+    have hA : AS 𝔼 β κ π x u := by
+      refine (OptimalTaylor.AS_iff 𝔼 _ _ _ _ _).mpr fun t ω => ?_
+      simp only [hx]
+      field_simp
+      ring
+    have hpπ : (fun t ω => π t ω - πbar) = p := by
+      funext t ω; simp [hπ]
+    have heq : ForecastEqm 𝔼 β σ κ ibar φπ φx πbar xbar k u rn π x := by
+      rw [forecastEqm_iff_scalar 𝔼 hκ hk hxb hπa hxa hau, hpπ]
+      exact ⟨hA, hps⟩
+    have hπb : BoundedProc π := by
+      obtain ⟨M, hM⟩ := hpb
+      exact ⟨|πbar| + M, fun t ω => (abs_add_le _ _).trans (add_le_add le_rfl (hM t ω))⟩
+    have hxbd : BoundedProc x := by
+      obtain ⟨M, hM⟩ := hπb
+      obtain ⟨N, hN⟩ := hu
+      refine ⟨(M + |β| * M + N) / |κ|, fun t ω => ?_⟩
+      simp only [hx]
+      rw [abs_div]
+      gcongr
+      calc _ ≤ |π t ω - β * 𝔼.E t (π (t + 1)) ω| + |u t ω| := abs_sub _ _
+        _ ≤ |π t ω| + |β * 𝔼.E t (π (t + 1)) ω| + |u t ω| := by gcongr; exact abs_sub _ _
+        _ ≤ M + |β| * M + N := by
+          rw [abs_mul]
+          gcongr
+          · exact hM t ω
+          · exact 𝔼.abs_E_le (hM (t + 1)) t ω
+          · exact hN t ω
+    refine ⟨(π, x), ⟨hπb, hxbd, hπa, hxa, heq⟩, fun q ⟨hq1, hq2, hq3, hq4, hq5⟩ => ?_⟩
+    obtain ⟨hqA, hqS⟩ := (forecastEqm_iff_scalar 𝔼 hκ hk hxb hq3 hq4 hau).mp hq5
+    have hqb : BoundedProc (fun t ω => q.1 t ω - πbar) := by
+      obtain ⟨M, hM⟩ := hq1
+      exact ⟨M + |πbar|, fun t ω => (abs_sub _ _).trans (add_le_add (hM t ω) le_rfl)⟩
+    have hqa : 𝔼.Adapted (fun t ω => q.1 t ω - πbar) := by
+      intro t
+      have e : (fun ω => q.1 t ω - πbar) = q.1 t - fun _ => πbar := rfl
+      change 𝔼.E t (fun ω => q.1 t ω - πbar) = fun ω => q.1 t ω - πbar
+      rw [e, map_sub, 𝔼.const, hq3 t]
+    have hp' := hpu _ ⟨hqb, hqa, hqS⟩
+    have h1 : q.1 = π := by
+      funext t ω
+      have := congrFun (congrFun hp' t) ω
+      simp only [hπ]
+      linarith
+    have h2 : q.2 = x := by
+      funext t ω
+      have := (OptimalTaylor.AS_iff 𝔼 _ _ _ _ _).mp hqA t ω
+      rw [h1] at this
+      simp only [hx]
+      field_simp
+      linarith
+    exact Prod.ext h1 h2
+
+/-- **Proposition 7.13, exact, for the rule (3.14)** (Woodford (2003), p. 516): the forecast-based
+rule with horizon `k ≥ 1` and coefficients `φ_y = ρ^{−k} φ̄_y`, `φ̄_y` from (3.12) — the rule
+consistent with the optimal noninertial plan (`OptimalTaylor.forecast_rule_consistent`) — implies
+determinacy iff every root of its characteristic function has modulus `> 1`. -/
+theorem oni_forecast_determinate_iff [Nonempty Ω] {β κ σ lx li ρ ibar πbar xbar : ℝ}
+    (hκ : κ ≠ 0) {k : ℕ} (hk : 1 ≤ k) (hxb : κ * xbar = (1 - β) * πbar) :
+    ModelDet 𝔼 (ForecastEqm 𝔼 β σ κ ibar ((ρ ^ k)⁻¹ * OptimalTaylor.phiPiStar β κ σ li ρ)
+      ((ρ ^ k)⁻¹ * OptimalTaylor.phiXStar β κ σ lx li ρ) πbar xbar k) ↔
+      ∀ z : ℂ, chiC β κ σ ((ρ ^ k)⁻¹ * OptimalTaylor.phiPiStar β κ σ li ρ)
+        ((ρ ^ k)⁻¹ * OptimalTaylor.phiXStar β κ σ lx li ρ) k z = 0 → 1 < ‖z‖ :=
+  forecast_determinate_iff 𝔼 hκ hk hxb
+
+end Woodford.GainsFromCommitment.TidyR5ForecastHorizon
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# One null set for all competing plans
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §3 (pp. 509–513: the stabilization loss
+`L^stab`, (3.4), (3.7)–(3.8), Proposition 7.11) and Appendix F.4 (pp. 713–714).
+
+NoninertialMeasure proves the variance results with Mathlib's conditional variance
+`Var[· ; μ | 𝓕 t]`: for **each** competing plan the ranking holds off a null set that may depend on
+the plan ("`∀ plan, ∀ᵐ ω`"). Whether one null set can serve all (uncountably many) plans at once
+("`∀ᵐ ω, ∀ plan`") is decided here.
+
+## The answer
+
+* **Not as a property of `L^stab` itself.** A conditional variance is only defined up to a null
+  set, so `L^stab` of a plan is an equivalence class of functions. On the fair-coin economy (every
+  history null) there is a choice of versions — each one a.e. equal to the plan's `L^stab` — for
+  which **no** null set works: at **every** state some feasible plan beats the optimal
+  noninertial plan (`versions_no_uniform_null`). (The versions are built from an injection of the
+  state space into `ℝ`, `stateToReal_injective`.)
+* **Yes for the regular version.** Build every plan's conditional variance bilinearly from the
+  three basis conditional covariances `E_{t₀}[(u_{t₀+k} − ρ_uᵏu_{t₀})(r_{t₀+k} − ρ_rᵏr_{t₀})]`
+  (`bCov`, `regVar`, `regLstab`, `regLstab12`). These are versions (`regLstab_version`,
+  `regLstab12_version`), and **one** null set — a countable union fixed before any plan is
+  chosen — serves every plan: (3.4) (`regLstab12_uniform`), (3.7)–(3.8)
+  (`regLstab_uniform`), Proposition 7.11 (`prop_7_11_uniform`) and F.4 (`f4_uniform`) hold for
+  all plans simultaneously, including the equality case, pointwise off that set.
+* **No null set at all for the expected loss.** As numbers,
+  `∫ L^stab dμ` equals the closed forms (3.4), (3.7)–(3.8) for every plan (`lstab12_integral`,
+  `lstab_integral`), and the rankings and equality cases of Prop. 7.11 and F.4 hold as
+  inequalities between real numbers for all plans (`prop_7_11_integral`, `f4_integral`).
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR5UniformNull
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure ExpectationsMeasureIID NoninertialMeasure
+open VarianceFrontier (plan2 plan2_apply)
+open Noninertial (plan1 fpiOni fxOni uncondVar objF4)
+
+variable {Ω : Type*} [mΩ : MeasurableSpace Ω] (S : MeasExpectationSystem Ω)
+
+/-! ### The regular version -/
+
+/-- Woodford (2003), pp. 509, 512 (the basis conditional covariances): the conditional
+covariance at `t₀` of the `k`-step forecast errors of two AR(1) disturbances,
+`E_{t₀}[(X_{t₀+k} − ρ_Xᵏ X_{t₀})(Y_{t₀+k} − ρ_Yᵏ Y_{t₀})]`, one fixed function per `k`. -/
+noncomputable def bCov (ρx ρy : ℝ) (X Y : ℕ → Ω → ℝ) (t₀ k : ℕ) : Ω → ℝ :=
+  S.E t₀ ((X (t₀ + k) - ρx ^ k • X t₀) * (Y (t₀ + k) - ρy ^ k • Y t₀))
+
+/-- Woodford (2003), p. 512 (the regular conditional variance of a plan (3.6)): for
+`y = ȳ + f u + g r̂ⁿ`, `f² cov(u, u) + 2 f g cov(u, r) + g² cov(r, r)` built from `bCov`. -/
+noncomputable def regVar (ρu ρr : ℝ) (u r : ℕ → Ω → ℝ) (t₀ k : ℕ) (f g : ℝ) (ω : Ω) : ℝ :=
+  f ^ 2 * bCov S ρu ρu u u t₀ k ω + 2 * f * g * bCov S ρu ρr u r t₀ k ω +
+    g ^ 2 * bCov S ρr ρr r r t₀ k ω
+
+/-- Woodford (2003), p. 512 (the regular version of `L^stab` for the loss (2.24)) for the plan
+(3.6) with responses `(f_π, f_x, f_i)` to `u` and `(g_π, g_x, g_i)` to `r̂ⁿ`. -/
+noncomputable def regLstab (β lx li ρu ρr : ℝ) (u r : ℕ → Ω → ℝ) (t₀ : ℕ)
+    (fπ fx fi gπ gx gi : ℝ) (ω : Ω) : ℝ :=
+  ∑' k, β ^ k * (regVar S ρu ρr u r t₀ k fπ gπ ω + lx * regVar S ρu ρr u r t₀ k fx gx ω +
+    li * regVar S ρu ρr u r t₀ k fi gi ω)
+
+/-- Woodford (2003), p. 509 (the regular version of `L^stab` for the loss (1.2)) for the plan
+(2.19) with responses `(f_π, f_x)` to `u`. -/
+noncomputable def regLstab12 (β lam ρ : ℝ) (u : ℕ → Ω → ℝ) (t₀ : ℕ) (fπ fx : ℝ) (ω : Ω) : ℝ :=
+  ∑' k, β ^ k * (fπ ^ 2 * bCov S ρ ρ u u t₀ k ω + lam * (fx ^ 2 * bCov S ρ ρ u u t₀ k ω))
+
+/-- Woodford (2003), pp. 509, 512: **one** null set, fixed before any plan is chosen (a countable
+union over `k`), off which all three basis covariances take their closed forms at every
+horizon. -/
+theorem bCov_good {ρu ρr su sr c : ℝ} {u εu r εr : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr)
+    (hc : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => c) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, ∀ k,
+      bCov S ρu ρu u u t₀ k ω = su * ∑ j ∈ Finset.range k, (ρu * ρu) ^ j ∧
+      bCov S ρu ρr u r t₀ k ω = c * ∑ j ∈ Finset.range k, (ρu * ρr) ^ j ∧
+      bCov S ρr ρr r r t₀ k ω = sr * ∑ j ∈ Finset.range k, (ρr * ρr) ^ j := by
+  rw [ae_all_iff]
+  intro k
+  filter_upwards [E_cross_dev S hu hu hu.2.2.2.2 t₀ k, E_cross_dev S hu hr hc t₀ k,
+    E_cross_dev S hr hr hr.2.2.2.2 t₀ k] with ω h1 h2 h3
+  exact ⟨h1, h2, h3⟩
+
+/-- **Equations (3.7)–(3.8), uniformly** (Woodford (2003), p. 513): with uncorrelated innovations,
+off one null set, for **every** plan (3.6) simultaneously, the regular `L^stab` is the discounted
+sum with value `L^{stab,r} + L^{stab,u}`. -/
+theorem regLstab_uniform {β lx li ρu ρr su sr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    (hρu : |ρu| < 1) (hρr : |ρr| < 1) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, ∀ fπ fx fi gπ gx gi : ℝ,
+      HasSum (fun k => β ^ k * (regVar S ρu ρr u r t₀ k fπ gπ ω +
+        lx * regVar S ρu ρr u r t₀ k fx gx ω + li * regVar S ρu ρr u r t₀ k fi gi ω))
+      (β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr sr +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu su) := by
+  obtain ⟨hu0, hu1⟩ := sq_lt_one_of_abs hρu
+  obtain ⟨hr0, hr1⟩ := sq_lt_one_of_abs hρr
+  filter_upwards [bCov_good S hu hr hind t₀] with ω hω
+  intro fπ fx fi gπ gx gi
+  have hGu := (Noninertial.hasSum_disc_geomSum hβ0 hβ1 hu0 hu1).mul_left
+    (su * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2))
+  have hGr := (Noninertial.hasSum_disc_geomSum hβ0 hβ1 hr0 hr1).mul_left
+    (sr * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2))
+  convert hGr.add hGu using 1
+  · funext k
+    obtain ⟨h1, h2, h3⟩ := hω k
+    simp only [regVar, h1, h2, h3, ← pow_two]
+    ring
+  · unfold uncondVar
+    have : 1 - ρu ^ 2 ≠ 0 := by linarith
+    have : 1 - ρr ^ 2 ≠ 0 := by linarith
+    have : 1 - β ≠ 0 := by linarith
+    have : 1 - β * ρu ^ 2 ≠ 0 := by nlinarith
+    have : 1 - β * ρr ^ 2 ≠ 0 := by nlinarith
+    field_simp
+
+/-- Woodford (2003), (3.7)–(3.8), p. 513 (the uniform identity as a value). -/
+theorem regLstab_eq_uniform {β lx li ρu ρr su sr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    (hρu : |ρu| < 1) (hρr : |ρr| < 1) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, ∀ fπ fx fi gπ gx gi : ℝ, regLstab S β lx li ρu ρr u r t₀ fπ fx fi gπ gx gi ω =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr sr +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu su := by
+  filter_upwards [regLstab_uniform S hβ0 hβ1 hρu hρr hu hr hind t₀ (lx := lx) (li := li)]
+    with ω h fπ fx fi gπ gx gi
+  exact (h fπ fx fi gπ gx gi).tsum_eq
+
+/-- Woodford (2003), p. 512: the regular `L^stab` is a version of Mathlib's `L^stab` of every plan
+(3.6): the two agree almost surely, plan by plan. -/
+theorem regLstab_version {β lx li ρu ρr su sr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    (hρu : |ρu| < 1) (hρr : |ρr| < 1) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) (t₀ : ℕ)
+    (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) :
+    regLstab S β lx li ρu ρr u r t₀ fπ fx fi gπ gx gi =ᵐ[S.μ]
+      mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r) := by
+  filter_upwards [regLstab_eq_uniform S hβ0 hβ1 hρu hρr hu hr hind t₀ (lx := lx) (li := li),
+    lstab_eq S hβ0 hβ1 hρu hρr hu hr hind πbar xbar ibar fπ fx fi gπ gx gi t₀ (lx := lx)
+      (li := li)] with ω h1 h2
+  rw [h1, h2]
+
+/-- **Equation (3.4), uniformly** (Woodford (2003), p. 511): off one null set, for every plan
+(2.19) simultaneously, the regular `L^stab` equals
+`β/(1 − β) · (1 − ρ²)/(1 − βρ²) · (f_π² + λ f_x²) σ_u²`. -/
+theorem regLstab12_uniform {β lam ρ s : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρ : |ρ| < 1)
+    {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, ∀ fπ fx : ℝ, regLstab12 S β lam ρ u t₀ fπ fx ω =
+      β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * (fπ ^ 2 + lam * fx ^ 2) *
+        uncondVar ρ s := by
+  obtain ⟨hq0, hq1⟩ := sq_lt_one_of_abs hρ
+  filter_upwards [bCov_good S hu hu hu.2.2.2.2 t₀] with ω hω fπ fx
+  have hG := (Noninertial.hasSum_disc_geomSum hβ0 hβ1 hq0 hq1).mul_left
+    (s * (fπ ^ 2 + lam * fx ^ 2))
+  refine HasSum.tsum_eq ?_
+  convert hG using 1
+  · funext k
+    rw [(hω k).1, ← pow_two]
+    ring
+  · unfold uncondVar
+    have : 1 - ρ ^ 2 ≠ 0 := by linarith
+    have : 1 - β ≠ 0 := by linarith
+    have : 1 - β * ρ ^ 2 ≠ 0 := by nlinarith
+    field_simp
+
+/-- Woodford (2003), p. 509: the regular `L^stab` is a version of Mathlib's `L^stab` of every plan
+(2.19). -/
+theorem regLstab12_version {β lam ρ s : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρ : |ρ| < 1)
+    {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (t₀ : ℕ) (πbar xbar fπ fx : ℝ) :
+    regLstab12 S β lam ρ u t₀ fπ fx =ᵐ[S.μ]
+      mLstab12 S β lam t₀ (plan1 πbar fπ u) (plan1 xbar fx u) := by
+  filter_upwards [regLstab12_uniform S hβ0 hβ1 hρ hu t₀ (lam := lam),
+    lstab12_eq S hβ0 hβ1 hρ hu πbar xbar fπ fx t₀ (lam := lam)] with ω h1 h2
+  rw [h1 fπ fx, h2]
+
+/-! ### The rankings off one null set -/
+
+omit [MeasurableSpace Ω] in
+/-- Woodford (2003), (3.5), p. 511 (the numerical core of Prop. 7.11): with `K > 0`, among
+`(g_π, g_x)` satisfying (3.3), `K(g_π² + λ g_x²)` is minimised exactly at (3.5). -/
+theorem oni_numeric {β κ lam ρ K : ℝ} (hκ : 0 < κ) (hlam : 0 < lam) (hK : 0 < K) {gπ gx : ℝ}
+    (hg : (1 - β * ρ) * gπ = κ * gx + 1) :
+    K * (fpiOni β κ lam ρ ^ 2 + lam * fxOni β κ lam ρ ^ 2) ≤ K * (gπ ^ 2 + lam * gx ^ 2) ∧
+      (K * (gπ ^ 2 + lam * gx ^ 2) = K * (fpiOni β κ lam ρ ^ 2 + lam * fxOni β κ lam ρ ^ 2) ↔
+        gπ = fpiOni β κ lam ρ ∧ gx = fxOni β κ lam ρ) := by
+  have e := Noninertial.oni_objective_eq hκ hlam hg
+  have hd : 0 ≤ (gπ - fpiOni β κ lam ρ) ^ 2 + lam * (gx - fxOni β κ lam ρ) ^ 2 := by positivity
+  refine ⟨by rw [e]; nlinarith, ⟨fun h => ?_, fun ⟨h1, h2⟩ => by rw [h1, h2]⟩⟩
+  rw [e] at h
+  have hz : (gπ - fpiOni β κ lam ρ) ^ 2 + lam * (gx - fxOni β κ lam ρ) ^ 2 = 0 := by
+    have : K * ((gπ - fpiOni β κ lam ρ) ^ 2 + lam * (gx - fxOni β κ lam ρ) ^ 2) = 0 := by
+      linarith
+    exact (mul_eq_zero.mp this).resolve_left hK.ne'
+  have a2 : 0 ≤ lam * (gx - fxOni β κ lam ρ) ^ 2 := by positivity
+  have e1 : (gπ - fpiOni β κ lam ρ) ^ 2 = 0 := by nlinarith [sq_nonneg (gπ - fpiOni β κ lam ρ)]
+  have e2 : (gx - fxOni β κ lam ρ) ^ 2 = 0 := by
+    have : lam * (gx - fxOni β κ lam ρ) ^ 2 = 0 := by
+      nlinarith [sq_nonneg (gπ - fpiOni β κ lam ρ)]
+    exact (mul_eq_zero.mp this).resolve_left hlam.ne'
+  exact ⟨by linarith [pow_eq_zero_iff two_ne_zero |>.mp e1],
+    by linarith [pow_eq_zero_iff two_ne_zero |>.mp e2]⟩
+
+omit [MeasurableSpace Ω] in
+/-- Woodford (2003), App. F.4 (the numerical core): with `K_u, K_r > 0`, among responses
+satisfying the four restrictions, `K_r obj(g) + K_u obj(f)` is minimised exactly at the F.4
+responses. -/
+theorem f4_numeric {β κ σ lx li ρu ρr Ku Kr : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hρu1 : ρu < 1)
+    (hρr1 : ρr < 1) (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li) (hKu : 0 < Ku)
+    (hKr : 0 < Kr) {fπ fx fi gπ gx gi : ℝ} (hf : Noninertial.ConsU β κ σ ρu fπ fx fi)
+    (hg : Noninertial.ConsR β κ σ ρr gπ gx gi) :
+    Kr * objF4 lx li (Noninertial.piRF4 β κ σ lx li ρr) (Noninertial.xRF4 β κ σ lx li ρr)
+        (Noninertial.iRF4 β κ σ lx li ρr) + Ku * objF4 lx li (Noninertial.piUF4 β κ σ lx li ρu)
+        (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.iUF4 β κ σ lx li ρu) ≤
+      Kr * objF4 lx li gπ gx gi + Ku * objF4 lx li fπ fx fi ∧
+    (Kr * objF4 lx li gπ gx gi + Ku * objF4 lx li fπ fx fi =
+        Kr * objF4 lx li (Noninertial.piRF4 β κ σ lx li ρr) (Noninertial.xRF4 β κ σ lx li ρr)
+          (Noninertial.iRF4 β κ σ lx li ρr) + Ku * objF4 lx li
+          (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.xUF4 β κ σ lx li ρu)
+          (Noninertial.iUF4 β κ σ lx li ρu) ↔
+      (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) := by
+  have hfu := (Noninertial.f4_u_optimal hβ0 hβ1 hρu1 hκ hσ hlx hli
+    (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.xUF4 β κ σ lx li ρu)
+    (Noninertial.iUF4 β κ σ lx li ρu)).mpr ⟨rfl, rfl, rfl⟩
+  have hgr := (Noninertial.f4_r_optimal hβ0 hβ1 hρr1 hκ hσ hlx hli
+    (Noninertial.piRF4 β κ σ lx li ρr) (Noninertial.xRF4 β κ σ lx li ρr)
+    (Noninertial.iRF4 β κ σ lx li ρr)).mpr ⟨rfl, rfl, rfl⟩
+  have e1 := hfu.2 fπ fx fi hf
+  have e2 := hgr.2 gπ gx gi hg
+  refine ⟨?_, ⟨fun h => ?_, fun ⟨⟨a1, a2, a3⟩, ⟨b1, b2, b3⟩⟩ => by rw [a1, a2, a3, b1, b2, b3]⟩⟩
+  · have m1 := mul_le_mul_of_nonneg_left e1 hKu.le
+    have m2 := mul_le_mul_of_nonneg_left e2 hKr.le
+    linarith
+  set Pu := objF4 lx li (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.xUF4 β κ σ lx li ρu)
+    (Noninertial.iUF4 β κ σ lx li ρu)
+  set Pr := objF4 lx li (Noninertial.piRF4 β κ σ lx li ρr) (Noninertial.xRF4 β κ σ lx li ρr)
+    (Noninertial.iRF4 β κ σ lx li ρr)
+  set Fu := objF4 lx li fπ fx fi
+  set Fr := objF4 lx li gπ gx gi
+  have m1 : 0 ≤ Ku * (Fu - Pu) := mul_nonneg hKu.le (by linarith)
+  have m2 : 0 ≤ Kr * (Fr - Pr) := mul_nonneg hKr.le (by linarith)
+  have z1 : Ku * (Fu - Pu) = 0 := by linarith
+  have z2 : Kr * (Fr - Pr) = 0 := by linarith
+  have hu0 : Fu = Pu := by linarith [(mul_eq_zero.mp z1).resolve_left hKu.ne']
+  have hr0 : Fr = Pr := by linarith [(mul_eq_zero.mp z2).resolve_left hKr.ne']
+  refine ⟨(Noninertial.f4_u_optimal hβ0 hβ1 hρu1 hκ hσ hlx hli fπ fx fi).mp
+    ⟨hf, fun a b c h => ?_⟩,
+    (Noninertial.f4_r_optimal hβ0 hβ1 hρr1 hκ hσ hlx hli gπ gx gi).mp
+    ⟨hg, fun a b c h => ?_⟩⟩
+  · change Fu ≤ _
+    rw [hu0]
+    exact hfu.2 a b c h
+  · change Fr ≤ _
+    rw [hr0]
+    exact hgr.2 a b c h
+
+omit [MeasurableSpace Ω] in
+/-- Woodford (2003), (3.4) and (3.7)–(3.8) (tool): the weight
+`β/(1 − β) · (1 − ρ²)/(1 − βρ²) · σ_u²` is positive. -/
+theorem weight_pos {β ρ s : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hρ : |ρ| < 1) (hs : 0 < s) :
+    0 < β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * uncondVar ρ s := by
+  have hq1 : ρ ^ 2 < 1 := (sq_lt_one_of_abs hρ).2
+  have : 0 < 1 - β := by linarith
+  have : 0 < 1 - ρ ^ 2 := by linarith
+  have : 0 < 1 - β * ρ ^ 2 := by nlinarith [sq_nonneg ρ]
+  unfold uncondVar
+  positivity
+
+/-- **Proposition 7.11, off one null set** (Woodford (2003), pp. 509–511): with an AR(1)
+cost-push disturbance of innovation variance `s > 0`, there is one null set off which, for
+**every** plan (2.19) satisfying (2.1) simultaneously, the regular `L^stab` of the optimal
+noninertial plan is at most that of the plan, with equality iff the plan has the responses
+(3.5). -/
+theorem prop_7_11_uniform {β κ lam ρ s : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ)
+    (hlam : 0 < lam) (hρ : |ρ| < 1) (hs : 0 < s) {u ε : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρ s u ε) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, ∀ πbar xbar gπ gx : ℝ, MAS S β κ (plan1 πbar gπ u) (plan1 xbar gx u) u →
+      regLstab12 S β lam ρ u t₀ (fpiOni β κ lam ρ) (fxOni β κ lam ρ) ω ≤
+        regLstab12 S β lam ρ u t₀ gπ gx ω ∧
+      (regLstab12 S β lam ρ u t₀ gπ gx ω =
+          regLstab12 S β lam ρ u t₀ (fpiOni β κ lam ρ) (fxOni β κ lam ρ) ω ↔
+        gπ = fpiOni β κ lam ρ ∧ gx = fxOni β κ lam ρ) := by
+  filter_upwards [regLstab12_uniform S hβ0.le hβ1 hρ hu t₀ (lam := lam)] with ω hω
+  intro πbar xbar gπ gx hAS
+  have hg := ((plan_AS_iff S hu hs.ne' πbar xbar gπ gx).mp hAS).2
+  rw [hω, hω]
+  have key := oni_numeric hκ hlam (weight_pos hβ0 hβ1 hρ hs) hg
+  simp only [show ∀ X, β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * X * uncondVar ρ s =
+    β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * uncondVar ρ s * X from fun X => by ring]
+  exact key
+
+/-- **Appendix F.4, off one null set** (Woodford (2003), pp. 512–513, 713–714): with AR(1)
+disturbances of positive innovation variances and uncorrelated innovations, there is one null set
+off which, for **every** plan (3.6) satisfying (2.1) and (2.23) simultaneously, the regular
+`L^stab` of the corrected optimal noninertial plan is at most that of the plan, with equality iff
+the plan has the F.4 responses. -/
+theorem f4_uniform {β κ σ rbar lx li ρu ρr su sr : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li) (hρu : |ρu| < 1) (hρr : |ρr| < 1)
+    (hsu : 0 < su) (hsr : 0 < sr) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, ∀ πbar xbar ibar fπ fx fi gπ gx gi : ℝ,
+      MAS S β κ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) u →
+      MIS S σ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r)
+        (fun t ω => rbar + r t ω) →
+      regLstab S β lx li ρu ρr u r t₀ (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.iUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) (Noninertial.xRF4 β κ σ lx li ρr)
+          (Noninertial.iRF4 β κ σ lx li ρr) ω ≤
+        regLstab S β lx li ρu ρr u r t₀ fπ fx fi gπ gx gi ω ∧
+      (regLstab S β lx li ρu ρr u r t₀ fπ fx fi gπ gx gi ω =
+          regLstab S β lx li ρu ρr u r t₀ (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.iUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) (Noninertial.xRF4 β κ σ lx li ρr)
+            (Noninertial.iRF4 β κ σ lx li ρr) ω ↔
+        (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) := by
+  have hρu1 : ρu < 1 := (abs_lt.mp hρu).2
+  have hρr1 : ρr < 1 := (abs_lt.mp hρr).2
+  filter_upwards [regLstab_eq_uniform S hβ0.le hβ1 hρu hρr hu hr hind t₀ (lx := lx) (li := li)]
+    with ω hω
+  intro πbar xbar ibar fπ fx fi gπ gx gi hA hI
+  obtain ⟨-, ⟨f1, f2⟩, ⟨g1, g2⟩⟩ :=
+    (plan2_iff S hσ.ne' hu hr hsu.ne' hsr.ne' hind (rbar := rbar) (β := β) (κ := κ)
+      πbar xbar ibar fπ fx fi gπ gx gi).mp ⟨hA, hI⟩
+  have key := f4_numeric hβ0 hβ1 hρu1 hρr1 hκ hσ hlx hli (weight_pos hβ0 hβ1 hρu hsu)
+    (weight_pos hβ0 hβ1 hρr hsr) ⟨f1, f2⟩ ⟨g1, g2⟩
+  rw [hω, hω]
+  unfold objF4 at key
+  convert key using 3 <;> ring
+
+/-! ### The expected loss: equalities of numbers, no null set -/
+
+/-- Woodford (2003), eq. (3.4), p. 511, as an equality of numbers: for every plan (2.19), the
+expected stabilization loss `∫ L^stab dμ` equals the closed form. -/
+theorem lstab12_integral {β lam ρ s : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρ : |ρ| < 1)
+    {u ε : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρ s u ε) (t₀ : ℕ) (πbar xbar fπ fx : ℝ) :
+    ∫ ω, mLstab12 S β lam t₀ (plan1 πbar fπ u) (plan1 xbar fx u) ω ∂S.μ =
+      β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * (fπ ^ 2 + lam * fx ^ 2) *
+        uncondVar ρ s := by
+  rw [integral_congr_ae (lstab12_eq S hβ0 hβ1 hρ hu πbar xbar fπ fx t₀ (lam := lam)),
+    integral_const]
+  simp
+
+/-- Woodford (2003), eqs. (3.7)–(3.8), p. 513, as an equality of numbers: for every plan (3.6),
+`∫ L^stab dμ = L^{stab,r} + L^{stab,u}`. -/
+theorem lstab_integral {β lx li ρu ρr su sr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρu : |ρu| < 1)
+    (hρr : |ρr| < 1) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0)
+    (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) (t₀ : ℕ) :
+    ∫ ω, mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r)
+      (plan2 ibar fi gi u r) ω ∂S.μ =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr sr +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu su := by
+  rw [integral_congr_ae (lstab_eq S hβ0 hβ1 hρu hρr hu hr hind πbar xbar ibar fπ fx fi gπ gx gi
+    t₀ (lx := lx) (li := li)), integral_const]
+  simp
+
+/-- **Proposition 7.11 for the expected loss** (Woodford (2003), pp. 509–511): for every plan
+(2.19) satisfying (2.1), `∫ L^stab dμ` of the optimal noninertial plan is at most the plan's, with
+equality iff the plan has the responses (3.5) — inequalities between numbers. -/
+theorem prop_7_11_integral {β κ lam ρ s : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ)
+    (hlam : 0 < lam) (hρ : |ρ| < 1) (hs : 0 < s) {u ε : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρ s u ε) (t₀ : ℕ) (πbar xbar gπ gx : ℝ)
+    (hAS : MAS S β κ (plan1 πbar gπ u) (plan1 xbar gx u) u) :
+    ∫ ω, mLstab12 S β lam t₀ (plan1 0 (fpiOni β κ lam ρ) u) (plan1 0 (fxOni β κ lam ρ) u) ω ∂S.μ ≤
+      ∫ ω, mLstab12 S β lam t₀ (plan1 πbar gπ u) (plan1 xbar gx u) ω ∂S.μ ∧
+    (∫ ω, mLstab12 S β lam t₀ (plan1 πbar gπ u) (plan1 xbar gx u) ω ∂S.μ =
+        ∫ ω, mLstab12 S β lam t₀ (plan1 0 (fpiOni β κ lam ρ) u)
+          (plan1 0 (fxOni β κ lam ρ) u) ω ∂S.μ ↔
+      gπ = fpiOni β κ lam ρ ∧ gx = fxOni β κ lam ρ) := by
+  have hg := ((plan_AS_iff S hu hs.ne' πbar xbar gπ gx).mp hAS).2
+  rw [lstab12_integral S hβ0.le hβ1 hρ hu, lstab12_integral S hβ0.le hβ1 hρ hu]
+  have key := oni_numeric hκ hlam (weight_pos hβ0 hβ1 hρ hs) hg
+  simp only [show ∀ X, β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * X * uncondVar ρ s =
+    β / (1 - β) * ((1 - ρ ^ 2) / (1 - β * ρ ^ 2)) * uncondVar ρ s * X from fun X => by ring]
+  exact key
+
+/-- **Appendix F.4 for the expected loss** (Woodford (2003), pp. 512–513, 713–714): for every plan
+(3.6) satisfying (2.1) and (2.23), `∫ L^stab dμ` of the corrected optimal noninertial plan is at
+most the plan's, with equality iff the plan has the F.4 responses — inequalities between
+numbers. -/
+theorem f4_integral {β κ σ rbar lx li istar ρu ρr su sr : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li) (hρu : |ρu| < 1) (hρr : |ρr| < 1)
+    (hsu : 0 < su) (hsr : 0 < sr) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : ∀ t, S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0) (t₀ : ℕ) {xs is : ℝ}
+    (πbar xbar ibar fπ fx fi gπ gx gi : ℝ)
+    (hA : MAS S β κ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) u)
+    (hI : MIS S σ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r)
+      (fun t ω => rbar + r t ω)) :
+    ∫ ω, mLstab S β lx li t₀
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+        (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ω
+        ∂S.μ ≤
+      ∫ ω, mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r)
+        (plan2 ibar fi gi u r) ω ∂S.μ ∧
+    (∫ ω, mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r)
+        (plan2 ibar fi gi u r) ω ∂S.μ =
+      ∫ ω, mLstab S β lx li t₀
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+        (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ω
+        ∂S.μ ↔
+      (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) := by
+  have hρu1 : ρu < 1 := (abs_lt.mp hρu).2
+  have hρr1 : ρr < 1 := (abs_lt.mp hρr).2
+  obtain ⟨-, ⟨f1, f2⟩, ⟨g1, g2⟩⟩ :=
+    (plan2_iff S hσ.ne' hu hr hsu.ne' hsr.ne' hind (rbar := rbar) (β := β) (κ := κ)
+      πbar xbar ibar fπ fx fi gπ gx gi).mp ⟨hA, hI⟩
+  rw [lstab_integral S hβ0.le hβ1 hρu hρr hu hr hind, lstab_integral S hβ0.le hβ1 hρu hρr hu hr
+    hind]
+  have key := f4_numeric hβ0 hβ1 hρu1 hρr1 hκ hσ hlx hli (weight_pos hβ0 hβ1 hρu hsu)
+    (weight_pos hβ0 hβ1 hρr hsr) ⟨f1, f2⟩ ⟨g1, g2⟩
+  unfold objF4 at key
+  convert key using 3 <;> ring
+
+
+/-! ### No uniform null set for arbitrary versions -/
+
+/-- Woodford (2003), p. 509 (tool): the state space `ℕ → ℝ` of the i.i.d. economy has the
+cardinality of the continuum, so it injects into `ℝ`. -/
+theorem exists_stateToReal_injective : ∃ e : (ℕ → ℝ) → ℝ, Function.Injective e := by
+  have h : Cardinal.mk (ℕ → ℝ) ≤ Cardinal.mk ℝ := by
+    rw [← Cardinal.power_def, Cardinal.mk_real, Cardinal.mk_nat, Cardinal.continuum_power_aleph0]
+  obtain ⟨f⟩ := (Cardinal.le_def _ _).mp h
+  exact ⟨f, f.injective⟩
+
+/-- Woodford (2003), p. 509 (tool): a fixed injection of the states into `ℝ`. -/
+noncomputable def stateToReal : (ℕ → ℝ) → ℝ := Classical.choose exists_stateToReal_injective
+
+/-- Woodford (2003), p. 509 (tool): `stateToReal` is injective. -/
+theorem stateToReal_injective : Function.Injective stateToReal :=
+  Classical.choose_spec exists_stateToReal_injective
+
+/-- Woodford (2003), (3.3) and (3.5), p. 511: the competing plan attached to the state `ω`: the
+plan (2.19) with `π̄ = x̄ = 0`, `f_π = f_π^oni + exp(e(ω))` and `f_x` from (3.3). -/
+noncomputable def badPlan (β κ lam ρ : ℝ) (ω : ℕ → ℝ) : ℝ × ℝ × ℝ × ℝ :=
+  (0, 0, fpiOni β κ lam ρ + Real.exp (stateToReal ω),
+    ((1 - β * ρ) * (fpiOni β κ lam ρ + Real.exp (stateToReal ω)) - 1) / κ)
+
+/-- Woodford (2003), p. 509: Mathlib's `L^stab` of the plan (2.19) with coefficients
+`q = (π̄, x̄, f_π, f_x)` on the fair-coin economy. -/
+noncomputable def coinL (β lam ρ : ℝ) (t₀ : ℕ) (q : ℝ × ℝ × ℝ × ℝ) (ω : ℕ → ℝ) : ℝ :=
+  mLstab12 (iidSystem coin) β lam t₀ (plan1 q.1 q.2.2.1 (ar1 ρ)) (plan1 q.2.1 q.2.2.2 (ar1 ρ)) ω
+
+/-- Woodford (2003), p. 509: a choice of versions of `L^stab` on the fair-coin economy: `L^stab`
+itself, except that at the single state `ω` attached to a plan (`badPlan`) its value is set one
+below that of the optimal noninertial plan. -/
+noncomputable def badVersion (β κ lam ρ : ℝ) (t₀ : ℕ) (q : ℝ × ℝ × ℝ × ℝ) (ω : ℕ → ℝ) : ℝ :=
+  if q = badPlan β κ lam ρ ω then
+    coinL β lam ρ t₀ (0, 0, fpiOni β κ lam ρ, fxOni β κ lam ρ) ω - 1
+  else coinL β lam ρ t₀ q ω
+
+/-- **No uniform null set for `L^stab` as an a.s.-defined object** (Woodford (2003), pp. 509–511,
+Proposition 7.11): on the fair-coin economy, `badVersion` is, plan by plan, a version of
+`L^stab` (a.e. equal to it), yet at **every** state some plan satisfying (2.1) has a strictly
+smaller value than the optimal noninertial plan; hence no null set `N` exists off which the
+ranking of Prop. 7.11 holds for all plans at once. Uniformity is a property of the chosen versions,
+not of `L^stab` (contrast `prop_7_11_uniform`). -/
+theorem versions_no_uniform_null {β κ lam ρ : ℝ} (hκ : 0 < κ) (hρ : |ρ| < 1) (t₀ : ℕ) :
+    (∀ q, badVersion β κ lam ρ t₀ q =ᵐ[(iidSystem coin).μ] coinL β lam ρ t₀ q) ∧
+    (∀ ω, MAS (iidSystem coin) β κ (plan1 0 (badPlan β κ lam ρ ω).2.2.1 (ar1 ρ))
+        (plan1 0 (badPlan β κ lam ρ ω).2.2.2 (ar1 ρ)) (ar1 ρ) ∧
+      badVersion β κ lam ρ t₀ (badPlan β κ lam ρ ω) ω <
+        badVersion β κ lam ρ t₀ (0, 0, fpiOni β κ lam ρ, fxOni β κ lam ρ) ω) ∧
+    ¬ ∃ N : Set (ℕ → ℝ), (iidSystem coin).μ N = 0 ∧ ∀ ω ∉ N, ∀ q : ℝ × ℝ × ℝ × ℝ,
+      MAS (iidSystem coin) β κ (plan1 q.1 q.2.2.1 (ar1 ρ)) (plan1 q.2.1 q.2.2.2 (ar1 ρ)) (ar1 ρ) →
+      badVersion β κ lam ρ t₀ (0, 0, fpiOni β κ lam ρ, fxOni β κ lam ρ) ω ≤
+        badVersion β κ lam ρ t₀ q ω := by
+  have hu := NoninertialMeasureIID.iid_measAR1Innov (ρ := ρ) hρ coin_mean coin_var coin_bdd
+  have hne : ∀ ω, (0, 0, fpiOni β κ lam ρ, fxOni β κ lam ρ) ≠ badPlan β κ lam ρ ω := by
+    intro ω h
+    have := congrArg (fun q : ℝ × ℝ × ℝ × ℝ => q.2.2.1) h
+    simp only [badPlan] at this
+    linarith [Real.exp_pos (stateToReal ω)]
+  have honi : ∀ ω, badVersion β κ lam ρ t₀ (0, 0, fpiOni β κ lam ρ, fxOni β κ lam ρ) ω =
+      coinL β lam ρ t₀ (0, 0, fpiOni β κ lam ρ, fxOni β κ lam ρ) ω := by
+    intro ω
+    simp only [badVersion, hne ω, ↓reduceIte]
+  have hbad : ∀ ω, badVersion β κ lam ρ t₀ (badPlan β κ lam ρ ω) ω <
+      badVersion β κ lam ρ t₀ (0, 0, fpiOni β κ lam ρ, fxOni β κ lam ρ) ω := by
+    intro ω
+    rw [honi]
+    simp only [badVersion, ↓reduceIte]
+    linarith
+  have hfeas : ∀ ω, MAS (iidSystem coin) β κ (plan1 0 (badPlan β κ lam ρ ω).2.2.1 (ar1 ρ))
+      (plan1 0 (badPlan β κ lam ρ ω).2.2.2 (ar1 ρ)) (ar1 ρ) := by
+    intro ω
+    refine (plan_AS_iff _ hu one_ne_zero 0 0 _ _).mpr ⟨by ring, ?_⟩
+    simp only [badPlan]
+    field_simp
+    ring
+  refine ⟨fun q => ?_, fun ω => ⟨hfeas ω, hbad ω⟩, ?_⟩
+  · have hsub : {ω | q = badPlan β κ lam ρ ω}.Subsingleton := by
+      intro ω₁ h₁ ω₂ h₂
+      have e := congrArg (fun q : ℝ × ℝ × ℝ × ℝ => q.2.2.1) ((Set.mem_ofPred_eq ▸ h₁).symm.trans
+        (Set.mem_ofPred_eq ▸ h₂))
+      simp only [badPlan, add_right_inj, Real.exp_eq_exp] at e
+      exact stateToReal_injective e
+    have hnull : (iidSystem coin).μ {ω | q = badPlan β κ lam ρ ω} = 0 := by
+      rcases hsub.eq_empty_or_singleton with h | ⟨ω₀, h⟩
+      · rw [h, measure_empty]
+      · rw [h]
+        exact iid_singleton coin_mean coin_var one_pos ω₀
+    filter_upwards [measure_eq_zero_iff_ae_notMem.mp hnull] with ω hω
+    have hω' : ¬ q = badPlan β κ lam ρ ω := hω
+    simp only [badVersion, hω', ↓reduceIte]
+  · rintro ⟨N, hN, hall⟩
+    have hNu : N ≠ Set.univ := by
+      intro h
+      rw [h, measure_univ] at hN
+      exact one_ne_zero hN
+    obtain ⟨ω, hω⟩ := (Set.ne_univ_iff_exists_notMem N).mp hNu
+    have := hall ω hω (badPlan β κ lam ρ ω) (hfeas ω)
+    linarith [hbad ω]
+
+end Woodford.GainsFromCommitment.TidyR5UniformNull
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Genuinely independent disturbances
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §3.1, p. 512 ("other (independent)
+disturbances"), eqs. (3.7)–(3.8), and Appendix F.4 (pp. 713–714).
+
+NoninertialMeasure formalises the two disturbances of p. 512 through uncorrelated innovations,
+`E_t(εᵘ_{t+1} εʳ_{t+1}) = 0`. Here independence itself is used.
+
+## Main results
+
+* `IndepInnov`: each date's innovation pair is independent of the information `𝓕_t`, and the two
+  innovations are independent of each other (genuine independence, not a moment condition);
+  `IndepDisturbances`: the processes `u` and `r̂ⁿ` are independent random elements of `ℝ^ℕ`.
+* Independence implies the moment condition used in (3.7)–(3.8) (`condCov_zero_of_indep`,
+  `indepInnov_uncorrelated`), so (3.7)–(3.8) and F.4 hold for independent disturbances
+  (`lstab_eq_indep`, `f4_lstab_indep`, `f4_uniform_indep`).
+* The two-coin economy of NoninertialMeasureIID (`ε_t` i.i.d. uniform on `{±1, ±3}`,
+  `εᵘ_t = coinA(ε_t)`, `εʳ_t = coinB(ε_t)`) has genuinely independent disturbances: the
+  coins are mutually independent over all dates and both coin families (`twoCoin_iIndepFun`),
+  the innovations satisfy `IndepInnov` (`twoCoin_indepInnov`), and the disturbance processes are
+  independent (`twoCoin_indepDisturbances`); F.4 follows from independence alone
+  (`twoCoin_f4_indep`).
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR5Independence
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure ExpectationsMeasureIID NoninertialMeasure NoninertialMeasureIID
+open VarianceFrontier (plan2)
+open Noninertial (uncondVar)
+
+variable {Ω : Type*} [mΩ : MeasurableSpace Ω] (S : MeasExpectationSystem Ω)
+
+/-! ### Independence implies the moment condition -/
+
+/-- Woodford (2003), p. 512 ("independent disturbances"), with genuine independence: at every
+date the innovation pair `(εᵘ_{t+1}, εʳ_{t+1})` is independent of the date-`t` information, and
+`εᵘ_{t+1}` and `εʳ_{t+1}` are independent of each other. -/
+def IndepInnov (εu εr : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, Indep (MeasurableSpace.comap (fun ω => (εu (t + 1) ω, εr (t + 1) ω)) inferInstance)
+    (S.𝓕 t) S.μ ∧ IndepFun (εu (t + 1)) (εr (t + 1)) S.μ
+
+/-- Woodford (2003), p. 512 ("independent disturbances"): the disturbance processes `u` and
+`r̂ⁿ`, as random elements of `ℝ^ℕ`, are independent. -/
+def IndepDisturbances (u r : ℕ → Ω → ℝ) : Prop :=
+  IndepFun (fun ω t => u t ω) (fun ω t => r t ω) S.μ
+
+/-- Woodford (2003), p. 512 (independence gives the conditional moment): if the pair `(X, Y)` is
+independent of `𝓕_t`, `X` and `Y` are independent, `X` has mean zero and both are bounded and
+measurable, then `E_t(X Y) = 0` almost surely. -/
+theorem condCov_zero_of_indep (t : ℕ) {X Y : Ω → ℝ} (hX : Measurable X) (hY : Measurable Y)
+    (hXb : S.BddRV X) (hYb : S.BddRV Y)
+    (hpast : Indep (MeasurableSpace.comap (fun ω => (X ω, Y ω)) inferInstance) (S.𝓕 t) S.μ)
+    (hXY : IndepFun X Y S.μ) (hmean : ∫ ω, X ω ∂S.μ = 0) :
+    S.E t (X * Y) =ᵐ[S.μ] fun _ => 0 := by
+  have hle₁ : MeasurableSpace.comap (fun ω => (X ω, Y ω)) inferInstance ≤ mΩ :=
+    (hX.prodMk hY).comap_le
+  have hm : StronglyMeasurable[MeasurableSpace.comap (fun ω => (X ω, Y ω)) inferInstance]
+      (X * Y) := by
+    have : Measurable[MeasurableSpace.comap (fun ω => (X ω, Y ω)) inferInstance]
+        ((fun p : ℝ × ℝ => p.1 * p.2) ∘ fun ω => (X ω, Y ω)) :=
+      (measurable_fst.mul measurable_snd).comp (comap_measurable _)
+    exact this.stronglyMeasurable
+  have h := condExp_indep_eq hle₁ (S.𝓕.le t) hm hpast
+  have hint : ∫ ω, (X * Y) ω ∂S.μ = 0 := by
+    have := hXY.integral_mul_eq_mul_integral hXb.1 hYb.1
+    simp only [Pi.mul_apply] at this ⊢
+    rw [this, hmean, zero_mul]
+  filter_upwards [h] with ω hω
+  change S.μ[X * Y | S.𝓕 t] ω = 0
+  rw [hω, hint]
+
+/-- Woodford (2003), p. 512: for AR(1) disturbances with independent innovations (`IndepInnov`),
+the innovations are conditionally uncorrelated, `E_t(εᵘ_{t+1} εʳ_{t+1}) = 0` — the hypothesis of
+(3.7)–(3.8) and F.4 in NoninertialMeasure. -/
+theorem indepInnov_uncorrelated {ρu ρr su sr : ℝ} {u εu r εr : ℕ → Ω → ℝ}
+    (hu : MeasAR1Innov S ρu su u εu) (hr : MeasAR1Innov S ρr sr r εr)
+    (hind : IndepInnov S εu εr) (t : ℕ) :
+    S.E t (εu (t + 1) * εr (t + 1)) =ᵐ[S.μ] fun _ => 0 := by
+  have mu : Measurable (εu (t + 1)) :=
+    ((hu.innov_meas t).mono (S.𝓕.le (t + 1))).measurable
+  have mr : Measurable (εr (t + 1)) :=
+    ((hr.innov_meas t).mono (S.𝓕.le (t + 1))).measurable
+  have hmean : ∫ ω, εu (t + 1) ω ∂S.μ = 0 := by
+    rw [← S.integral_E t, integral_congr_ae (hu.2.2.2.1 t)]
+    simp
+  exact condCov_zero_of_indep S t mu mr (hu.innov_bddRV t) (hr.innov_bddRV t) (hind t).1
+    (hind t).2 hmean
+
+/-- **Equations (3.7)–(3.8) for independent disturbances** (Woodford (2003), p. 513): with
+genuinely independent innovations, almost surely `L^stab = L^{stab,r} + L^{stab,u}`. -/
+theorem lstab_eq_indep {β lx li ρu ρr su sr : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hρu : |ρu| < 1)
+    (hρr : |ρr| < 1) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr) (hind : IndepInnov S εu εr)
+    (πbar xbar ibar fπ fx fi gπ gx gi : ℝ) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r)
+      (plan2 ibar fi gi u r) ω =
+      β / (1 - β) * ((1 - ρr ^ 2) / (1 - β * ρr ^ 2)) * (gπ ^ 2 + lx * gx ^ 2 + li * gi ^ 2) *
+          uncondVar ρr sr +
+        β / (1 - β) * ((1 - ρu ^ 2) / (1 - β * ρu ^ 2)) * (fπ ^ 2 + lx * fx ^ 2 + li * fi ^ 2) *
+          uncondVar ρu su :=
+  lstab_eq S hβ0 hβ1 hρu hρr hu hr (indepInnov_uncorrelated S hu hr hind) πbar xbar ibar fπ fx
+    fi gπ gx gi t₀
+
+/-- **Appendix F.4 for independent disturbances** (Woodford (2003), pp. 512–513, 713–714): with
+genuinely independent innovations (`IndepInnov`), the corrected optimal noninertial plan satisfies
+(2.1) and (2.23), and every plan (3.6) satisfying them has almost surely a stabilization loss at
+least as large, with almost-sure equality iff it has the F.4 responses. -/
+theorem f4_lstab_indep {β κ σ rbar lx li istar ρu ρr su sr : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li) (hρu : |ρu| < 1) (hρr : |ρr| < 1)
+    (hsu : 0 < su) (hsr : 0 < sr) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr) (hind : IndepInnov S εu εr) (t₀ : ℕ) {xs is : ℝ}
+    (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (MAS S β κ (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+        (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) u ∧
+      MIS S σ (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+        (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+        (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r)
+        (fun t ω => rbar + r t ω)) ∧
+    ∀ πbar xbar ibar fπ fx fi gπ gx gi,
+      MAS S β κ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) u →
+      MIS S σ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r)
+        (fun t ω => rbar + r t ω) →
+      (∀ᵐ ω ∂S.μ, mLstab S β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ω ≤
+        mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r)
+          (plan2 ibar fi gi u r) ω) ∧
+      (mLstab S β lx li t₀ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r)
+          (plan2 ibar fi gi u r) =ᵐ[S.μ]
+        mLstab S β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r) ↔
+        (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) :=
+  f4_lstab S hβ0 hβ1 hκ hσ hlx hli hρu hρr hsu hsr hu hr
+    (indepInnov_uncorrelated S hu hr hind) t₀ hxs his
+
+/-- **Appendix F.4 for independent disturbances, off one null set** (Woodford (2003),
+pp. 512–513, 713–714; `TidyR5UniformNull.f4_uniform`): with genuinely independent innovations,
+one null set serves every plan (3.6) satisfying (2.1) and (2.23). -/
+theorem f4_uniform_indep {β κ σ rbar lx li ρu ρr su sr : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li) (hρu : |ρu| < 1) (hρr : |ρr| < 1)
+    (hsu : 0 < su) (hsr : 0 < sr) {u εu r εr : ℕ → Ω → ℝ} (hu : MeasAR1Innov S ρu su u εu)
+    (hr : MeasAR1Innov S ρr sr r εr) (hind : IndepInnov S εu εr) (t₀ : ℕ) :
+    ∀ᵐ ω ∂S.μ, ∀ πbar xbar ibar fπ fx fi gπ gx gi : ℝ,
+      MAS S β κ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) u →
+      MIS S σ (plan2 πbar fπ gπ u r) (plan2 xbar fx gx u r) (plan2 ibar fi gi u r)
+        (fun t ω => rbar + r t ω) →
+      TidyR5UniformNull.regLstab S β lx li ρu ρr u r t₀ (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.iUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) (Noninertial.xRF4 β κ σ lx li ρr)
+          (Noninertial.iRF4 β κ σ lx li ρr) ω ≤
+        TidyR5UniformNull.regLstab S β lx li ρu ρr u r t₀ fπ fx fi gπ gx gi ω ∧
+      (TidyR5UniformNull.regLstab S β lx li ρu ρr u r t₀ fπ fx fi gπ gx gi ω =
+          TidyR5UniformNull.regLstab S β lx li ρu ρr u r t₀ (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.iUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) (Noninertial.xRF4 β κ σ lx li ρr)
+            (Noninertial.iRF4 β κ σ lx li ρr) ω ↔
+        (fπ = Noninertial.piUF4 β κ σ lx li ρu ∧ fx = Noninertial.xUF4 β κ σ lx li ρu ∧
+          fi = Noninertial.iUF4 β κ σ lx li ρu) ∧
+        (gπ = Noninertial.piRF4 β κ σ lx li ρr ∧ gx = Noninertial.xRF4 β κ σ lx li ρr ∧
+          gi = Noninertial.iRF4 β κ σ lx li ρr)) :=
+  TidyR5UniformNull.f4_uniform S hβ0 hβ1 hκ hσ hlx hli hρu hρr hsu hsr hu hr
+    (indepInnov_uncorrelated S hu hr hind) t₀
+
+
+/-! ### The two-coin economy has genuinely independent disturbances -/
+
+/-- Woodford (2003), p. 512 (concrete law): the coins indexed by date and type,
+`coinFam (t, true) = coinA(ε_t)` (the cost-push innovation) and `coinFam (t, false) =
+coinB(ε_t)` (the natural-rate innovation). -/
+noncomputable def coinFam (p : ℕ × Bool) (ω : ℕ → ℝ) : ℝ :=
+  cond p.2 (coinA (ω p.1)) (coinB (ω p.1))
+
+/-- Woodford (2003), p. 512 (concrete law): each coin is measurable. -/
+theorem measurable_coinFam (p : ℕ × Bool) : Measurable (coinFam p) := by
+  obtain ⟨t, b⟩ := p
+  cases b
+  · exact measurable_coinB.comp (measurable_pi_apply t)
+  · exact measurable_coinA.comp (measurable_pi_apply t)
+
+/-- Woodford (2003), p. 512 (concrete law): the date-`t` shock has law `NoninertialMeasureIID.quad`.
+-/
+theorem twoCoin_eval (t : ℕ) {A : Set ℝ} (hA : MeasurableSet A) :
+    (iidSystem quad).μ ((fun ω : ℕ → ℝ => ω t) ⁻¹' A) = (quad : Measure ℝ) A := by
+  change (Measure.infinitePi (fun _ => (quad : Measure ℝ))) _ = _
+  rw [← Measure.map_apply (by fun_prop) hA, Measure.infinitePi_map_eval]
+
+/-- Woodford (2003), p. 512 (concrete law): `quad(A) = (1_A(3) + 1_A(1) + 1_A(−1) + 1_A(−3))/4`. -/
+theorem quad_apply {A : Set ℝ} (hA : MeasurableSet A) :
+    (quad : Measure ℝ) A =
+      4⁻¹ * (A.indicator 1 3 + A.indicator 1 1 + A.indicator 1 (-1) + A.indicator 1 (-3)) := by
+  change quadMeasure A = _
+  simp only [quadMeasure, Measure.smul_apply, Measure.add_apply, Measure.dirac_apply' _ hA,
+    smul_eq_mul]
+
+/-- Woodford (2003), p. 512 (concrete law): under `NoninertialMeasureIID.quad` the two coins are
+independent: `quad(coinA ∈ s, coinB ∈ s') = quad(coinA ∈ s) quad(coinB ∈ s')`. -/
+theorem quad_coins_indep {s s' : Set ℝ} (hs : MeasurableSet s) (hs' : MeasurableSet s') :
+    (quad : Measure ℝ) (coinA ⁻¹' s ∩ coinB ⁻¹' s') =
+      (quad : Measure ℝ) (coinA ⁻¹' s) * (quad : Measure ℝ) (coinB ⁻¹' s') := by
+  rw [quad_apply ((measurable_coinA hs).inter (measurable_coinB hs')),
+    quad_apply (measurable_coinA hs), quad_apply (measurable_coinB hs')]
+  have a3 : coinA 3 = 1 := by norm_num [coinA]
+  have a1 : coinA 1 = 1 := by norm_num [coinA]
+  have am1 : coinA (-1) = -1 := by norm_num [coinA]
+  have am3 : coinA (-3) = -1 := by norm_num [coinA]
+  have b3 : coinB 3 = 1 := by norm_num [coinB]
+  have b1 : coinB 1 = -1 := by norm_num [coinB]
+  have bm1 : coinB (-1) = 1 := by norm_num [coinB]
+  have bm3 : coinB (-3) = -1 := by norm_num [coinB]
+  classical
+  simp only [Set.indicator, Set.mem_inter_iff, Set.mem_preimage, a3, a1, am1, am3, b3, b1, bm1,
+    bm3, Pi.one_apply]
+  by_cases h1 : (1 : ℝ) ∈ s <;> by_cases h2 : (-1 : ℝ) ∈ s <;> by_cases h3 : (1 : ℝ) ∈ s' <;>
+    by_cases h4 : (-1 : ℝ) ∈ s' <;>
+    simp only [h1, h2, h3, h4, and_self, and_true, and_false, ite_true, ite_false] <;>
+    rw [← ENNReal.toReal_eq_toReal_iff' (by finiteness) (by finiteness)] <;>
+    simp only [ENNReal.toReal_mul, ENNReal.toReal_inv, ENNReal.toReal_ofNat] <;>
+    norm_num
+
+/-- Woodford (2003), p. 512 (concrete law): finsets of `Bool` (tool). -/
+theorem finset_bool_cases (T : Finset Bool) :
+    T = ∅ ∨ T = {true} ∨ T = {false} ∨ T = {true, false} := by
+  by_cases ht : true ∈ T <;> by_cases hf : false ∈ T
+  · right; right; right; ext b; cases b <;> simp [ht, hf]
+  · right; left; ext b; cases b <;> simp [ht, hf]
+  · right; right; left; ext b; cases b <;> simp [ht, hf]
+  · left; ext b; cases b <;> simp [ht, hf]
+
+/-- **The two coins are genuinely independent** (Woodford (2003), p. 512): on the two-coin economy
+the whole family `coinFam` — both coins at every date — is mutually independent. -/
+theorem twoCoin_iIndepFun : iIndepFun coinFam (iidSystem quad).μ := by
+  have h1 : iIndepFun (fun t (ω : ℕ → ℝ) => fun j : Bool => cond j (coinA (ω t)) (coinB (ω t)))
+      (iidSystem quad).μ :=
+    iIndepFun_infinitePi (P := fun _ => (quad : Measure ℝ))
+      (X := fun _ (x : ℝ) (j : Bool) => cond j (coinA x) (coinB x))
+      (fun _ => measurable_pi_iff.mpr fun j => by
+        cases j
+        · exact measurable_coinB
+        · exact measurable_coinA)
+  have h2 : ∀ t, iIndepFun (fun (j : Bool) (ω : ℕ → ℝ) => cond j (coinA (ω t)) (coinB (ω t)))
+      (iidSystem quad).μ := by
+    intro t
+    rw [iIndepFun_iff_measure_inter_preimage_eq_mul]
+    intro T sets H
+    rcases finset_bool_cases T with rfl | rfl | rfl | rfl
+    · simp
+    · simp
+    · simp
+    · have ht := H true (by simp)
+      have hf := H false (by simp)
+      simp only [Finset.mem_insert, Finset.mem_singleton, Set.iInter_iInter_eq_or_left,
+        Set.iInter_iInter_eq_left, Finset.prod_insert (by decide : true ∉ ({false} : Finset Bool)),
+        Finset.prod_singleton, Bool.cond_true, Bool.cond_false]
+      have e1 : (fun ω : ℕ → ℝ => coinA (ω t)) ⁻¹' sets true ∩
+          (fun ω : ℕ → ℝ => coinB (ω t)) ⁻¹' sets false =
+          (fun ω : ℕ → ℝ => ω t) ⁻¹' (coinA ⁻¹' sets true ∩ coinB ⁻¹' sets false) := rfl
+      have e2 : (fun ω : ℕ → ℝ => coinA (ω t)) ⁻¹' sets true =
+          (fun ω : ℕ → ℝ => ω t) ⁻¹' (coinA ⁻¹' sets true) := rfl
+      have e3 : (fun ω : ℕ → ℝ => coinB (ω t)) ⁻¹' sets false =
+          (fun ω : ℕ → ℝ => ω t) ⁻¹' (coinB ⁻¹' sets false) := rfl
+      rw [e1, e2, e3, twoCoin_eval t ((measurable_coinA ht).inter (measurable_coinB hf)),
+        twoCoin_eval t (measurable_coinA ht), twoCoin_eval t (measurable_coinB hf)]
+      exact quad_coins_indep ht hf
+  exact iIndepFun_uncurry' (X := fun t j (ω : ℕ → ℝ) => cond j (coinA (ω t)) (coinB (ω t)))
+    (fun t j => measurable_coinFam (t, j)) h1 h2
+
+/-- Woodford (2003), p. 512: the innovations of the two-coin economy satisfy `IndepInnov`: each
+date's pair of coins is independent of the past, and the two coins are independent. -/
+theorem twoCoin_indepInnov : IndepInnov (iidSystem quad) (fnShock coinA) (fnShock coinB) := by
+  intro t
+  refine ⟨indep_of_indep_of_le_left (indep_future quad t) ?_, ?_⟩
+  · have hm : Measurable[coordSigma (t + 1)]
+        (fun ω : ℕ → ℝ => (fnShock coinA (t + 1) ω, fnShock coinB (t + 1) ω)) :=
+      (measurable_coinA.prodMk measurable_coinB).comp
+        (comap_measurable (fun ω : ℕ → ℝ => ω (t + 1)))
+    exact hm.comap_le.trans (le_iSup₂ (f := fun j (_ : j ∈ Set.Ioi t) => coordSigma j) (t + 1)
+      (Set.mem_Ioi.mpr (Nat.lt_succ_self t)))
+  · exact twoCoin_iIndepFun.indepFun (i := (t + 1, true)) (j := (t + 1, false)) (by simp)
+
+/-- Woodford (2003), p. 512 (concrete law): the σ-algebra generated by all the coins of one type
+(`true`: the cost-push coins `coinA(ε_t)`; `false`: the natural-rate coins `coinB(ε_t)`). -/
+noncomputable abbrev coinSigma (b : Bool) : MeasurableSpace (ℕ → ℝ) :=
+  ⨆ p ∈ {p : ℕ × Bool | p.2 = b}, MeasurableSpace.comap (coinFam p) inferInstance
+
+/-- **Genuinely independent disturbances** (Woodford (2003), p. 512): on the two-coin economy the
+cost-push process `u = ar1fn ρ_u coinA` and the natural-rate process `r̂ⁿ = ar1fn ρ_r coinB` are
+independent random elements of `ℝ^ℕ` (for all persistences). -/
+theorem twoCoin_indepDisturbances (ρu ρr : ℝ) :
+    IndepDisturbances (iidSystem quad) (ar1fn ρu coinA) (ar1fn ρr coinB) := by
+  have hle : ∀ p, MeasurableSpace.comap (coinFam p) inferInstance ≤ MeasurableSpace.pi :=
+    fun p => (measurable_coinFam p).comap_le
+  have hD := indep_iSup_of_disjoint hle twoCoin_iIndepFun.iIndep
+    (S := {p : ℕ × Bool | p.2 = true}) (T := {p : ℕ × Bool | p.2 = false})
+    (Set.disjoint_left.2 fun p h1 h2 => by simp_all)
+  have cA : ∀ t, Measurable[coinSigma true] (fnShock coinA t) := fun t =>
+    (comap_measurable (coinFam (t, true))).mono
+      (le_iSup₂ (f := fun p (_ : p ∈ {p : ℕ × Bool | p.2 = true}) =>
+        MeasurableSpace.comap (coinFam p) (inferInstance : MeasurableSpace ℝ)) (t, true) rfl)
+      le_rfl
+  have cB : ∀ t, Measurable[coinSigma false] (fnShock coinB t) := fun t =>
+    (comap_measurable (coinFam (t, false))).mono
+      (le_iSup₂ (f := fun p (_ : p ∈ {p : ℕ × Bool | p.2 = false}) =>
+        MeasurableSpace.comap (coinFam p) (inferInstance : MeasurableSpace ℝ)) (t, false) rfl)
+      le_rfl
+  have hA : ∀ t, Measurable[coinSigma true] (ar1fn ρu coinA t) := by
+    intro t
+    induction t with
+    | zero => exact cA 0
+    | succ t ih => rw [ar1fn_succ]; exact (ih.const_smul ρu).add (cA (t + 1))
+  have hB : ∀ t, Measurable[coinSigma false] (ar1fn ρr coinB t) := by
+    intro t
+    induction t with
+    | zero => exact cB 0
+    | succ t ih => rw [ar1fn_succ]; exact (ih.const_smul ρr).add (cB (t + 1))
+  have pA : MeasurableSpace.comap (fun ω t => ar1fn ρu coinA t ω) MeasurableSpace.pi ≤
+      coinSigma true := by
+    simp only [MeasurableSpace.pi, MeasurableSpace.comap_iSup, MeasurableSpace.comap_comp]
+    exact iSup_le fun t => (hA t).comap_le
+  have pB : MeasurableSpace.comap (fun ω t => ar1fn ρr coinB t ω) MeasurableSpace.pi ≤
+      coinSigma false := by
+    simp only [MeasurableSpace.pi, MeasurableSpace.comap_iSup, MeasurableSpace.comap_comp]
+    exact iSup_le fun t => (hB t).comap_le
+  unfold IndepDisturbances
+  rw [IndepFun_iff_Indep]
+  exact indep_of_indep_of_le_right (indep_of_indep_of_le_left hD pA) pB
+
+/-- **Appendix F.4 with genuinely independent disturbances** (Woodford (2003), pp. 512–513,
+713–714) on the two-coin economy: derived from independence (`twoCoin_indepInnov`) rather than
+from moments; the disturbances are independent processes (`twoCoin_indepDisturbances`). Every plan
+(3.6) satisfying (2.1) and (2.23) has almost surely a stabilization loss at least that of the
+corrected optimal noninertial plan, with almost-sure equality iff it has the F.4 responses. -/
+theorem twoCoin_f4_indep {β κ σ rbar lx li istar ρu ρr : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lx) (hli : 0 ≤ li) (hρu : |ρu| < 1) (hρr : |ρr| < 1)
+    (t₀ : ℕ) {xs is : ℝ} (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    IndepDisturbances (iidSystem quad) (ar1fn ρu coinA) (ar1fn ρr coinB) ∧
+    ∀ πbar xbar ibar fπ fx fi gπ gx gi,
+      MAS (iidSystem quad) β κ (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB)) (ar1fn ρu coinA) →
+      MIS (iidSystem quad) σ (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (plan2 ibar fi gi (ar1fn ρu coinA) (ar1fn ρr coinB))
+        (fun t ω => rbar + ar1fn ρr coinB t ω) →
+      ∀ᵐ ω ∂(iidSystem quad).μ, mLstab (iidSystem quad) β lx li t₀
+          (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+            (Noninertial.piRF4 β κ σ lx li ρr) (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr)
+            (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr)
+            (ar1fn ρu coinA) (ar1fn ρr coinB)) ω ≤
+        mLstab (iidSystem quad) β lx li t₀ (plan2 πbar fπ gπ (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 xbar fx gx (ar1fn ρu coinA) (ar1fn ρr coinB))
+          (plan2 ibar fi gi (ar1fn ρu coinA) (ar1fn ρr coinB)) ω := by
+  obtain ⟨hA, hB, hAA, hBB, -, -, -⟩ := quad_moments
+  have hu := iid_measAR1Innov_fn (ν := quad) hρu measurable_coinA coinA_bdd hA hAA
+  have hr := iid_measAR1Innov_fn (ν := quad) hρr measurable_coinB coinB_bdd hB hBB
+  refine ⟨twoCoin_indepDisturbances ρu ρr, fun πbar xbar ibar fπ fx fi gπ gx gi hM hI => ?_⟩
+  exact ((f4_lstab_indep (iidSystem quad) hβ0 hβ1 hκ hσ hlx hli hρu hρr one_pos one_pos hu hr
+    twoCoin_indepInnov t₀ hxs his).2 πbar xbar ibar fπ fx fi gπ gx gi hM hI).1
+
+end Woodford.GainsFromCommitment.TidyR5Independence
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Integer-dated plans as `ℕ`-dated plans, and a common `L^stab` ranking
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §2.1 (Propositions 7.6–7.8, pp. 488–492,
+App. F.1–F.3), §3 (the stabilization loss `L^stab`, p. 509, Prop. 7.11) and §5.1
+(Proposition 7.15, pp. 523–524, App. F.5).
+
+Propositions 7.6–7.8 are formalised with integer dates (`CostPushCommitment.ExpSysZ`), because
+(2.9) needs forecasts made before the planning date; §5 and the variance results of §3 use
+`ℕ`-dated processes. Previously only the aggregate-supply relation was linked across the two
+(`Links.costPush_AS_iff`). Here whole plans are translated.
+
+## Main results
+
+* Restriction `restrictZ t₀` (date `t₀ + n` becomes date `n`) and extension `extendN t₀` of
+  processes; for the re-indexed system `𝔽.toNat t₀`: feasibility (`feasible_iff`), the expected
+  discounted loss (`loss_eq`), constrained optimality (`isOptimal_iff`: Props. 7.6–7.8's
+  `CostPushCommitment.IsOptimal` is §5's `TargetingRule.IsConstrainedOpt`) and `t₀`-optimality
+  (`isOptimal_free_iff`: `TargetingRule.IsT0Opt`) agree exactly.
+* Every plan generated by (2.7) from a bounded initial multiplier known at `t₀` is, from `t₀`
+  on, the §5 equilibrium `(π*, x*)` of the target criterion (5.1) with pre-sample gap
+  `x_{t₀−1} = x* + (κ/λ)φ_{t₀−1}` (`rec27_plan_eq_star`); in particular the plans of
+  **Proposition 7.6** (`prop_7_6_eq_star`), **Proposition 7.7** (`prop_7_7_eq_star`, pre-sample
+  gap `x_{t₀−1}`) and **Proposition 7.8** (`prop_7_8_eq_star`).
+* **A common `L^stab` ranking** (pp. 509–511): with the pull-out property, the stabilization
+  loss of a plan equals the loss of its innovation component (`lstab12_eq_loss_dev`); the
+  innovation component of the inertial commitment plan solves the commitment problem for the
+  innovations, so every bounded adapted plan satisfying (2.1) has
+  `L^stab = L^stab(inertial) + E ∑ βᵗ[(Δπ̃)² + λ(Δx̃)²]` (`inertial_lstab_gap`) and in particular
+  `L^stab(inertial) ≤ L^stab(plan)` (`inertial_lstab_le`). The optimal noninertial plan is one
+  such plan (`inertial_lstab_le_oni`), and through the translation the same holds for the
+  integer-dated plan of Proposition 7.7 (`prop_7_7_lstab_le_oni`).
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR5PlanTranslation
+
+open Filter Topology
+open CostPushCommitment (ExpSysZ planInfl planGap Rec27 multPath init211 init213 infl210 phiF4)
+open Sequences (lagged lagged_zero lagged_succ)
+open Noninertial (plan1 fpiOni fxOni Lstab12)
+open VarianceFrontier (condCov)
+
+variable {Ω : Type*}
+
+/-! ### Restriction and extension of processes -/
+
+/-- Woodford (2003), p. 488 (re-indexing a plan from the planning date): the `ℕ`-dated process
+`n ↦ y_{t₀+n}`. -/
+def restrictZ (t0 : ℤ) (y : ℤ → Ω → ℝ) : ℕ → Ω → ℝ := fun n => y (t0 + n)
+
+/-- Woodford (2003), p. 488: an `ℕ`-dated plan placed at dates `t ≥ t₀` (pre-sample values `0`,
+which no result uses). -/
+noncomputable def extendN (t0 : ℤ) (y : ℕ → Ω → ℝ) : ℤ → Ω → ℝ :=
+  fun t => if t0 ≤ t then y (t - t0).toNat else 0
+
+/-- Woodford (2003), p. 488: restricting an extension gives back the plan. -/
+theorem restrict_extend (t0 : ℤ) (y : ℕ → Ω → ℝ) : restrictZ t0 (extendN t0 y) = y := by
+  funext n
+  simp only [restrictZ, extendN, le_add_iff_nonneg_right, Nat.cast_nonneg, ↓reduceIte,
+    add_sub_cancel_left, Int.toNat_natCast]
+
+/-- Woodford (2003), p. 489: the extension takes the plan's initial value at `t₀`. -/
+theorem extendN_t0 (t0 : ℤ) (y : ℕ → Ω → ℝ) : extendN t0 y t0 = y 0 := by
+  simp [extendN]
+
+variable (𝔽 : ExpSysZ Ω)
+
+/-- Woodford (2003), App. F.1 (tool): every date `t ≥ t₀` is `t₀ + n`. -/
+theorem exists_nat_of_le {t0 t : ℤ} (h : t0 ≤ t) : ∃ n : ℕ, t = t0 + n :=
+  ⟨(t - t0).toNat, by omega⟩
+
+/-- Woodford (2003), p. 488 (feasibility, translated): an integer-dated plan is feasible from
+`t₀` (`CostPushCommitment.Feasible`) iff its restriction is a bounded adapted solution of (2.1)
+for the re-indexed system (`TargetingRule.FeasibleFree`). -/
+theorem feasible_iff (β κ : ℝ) (t0 : ℤ) (u π x : ℤ → Ω → ℝ) :
+    CostPushCommitment.Feasible 𝔽 β κ u t0 π x ↔
+      TargetingRule.FeasibleFree (𝔽.toNat t0) β κ (restrictZ t0 u) (restrictZ t0 π)
+        (restrictZ t0 x) := by
+  have hc : ∀ n : ℕ, t0 + ((n + 1 : ℕ) : ℤ) = t0 + n + 1 := fun n => by push_cast; ring
+  constructor
+  · rintro ⟨hAS, had, M, hM⟩
+    refine ⟨⟨M, fun n ω => (hM _ (by omega) ω).1⟩, ⟨M, fun n ω => (hM _ (by omega) ω).2⟩,
+      fun n => (had _ (by omega)).1, fun n => (had _ (by omega)).2, fun n => ?_⟩
+    have h := hAS (t0 + n) (by omega)
+    simp only [CostPushCommitment.AS] at h
+    simp only [restrictZ, ExpSysZ.toNat_E, hc]
+    exact h
+  · rintro ⟨⟨A, hA⟩, ⟨B, hB⟩, hπa, hxa, hAS⟩
+    refine ⟨fun t ht => ?_, fun t ht => ?_, ⟨max A B, fun t ht ω => ?_⟩⟩
+    · obtain ⟨n, rfl⟩ := exists_nat_of_le ht
+      have h := hAS n
+      simp only [restrictZ, ExpSysZ.toNat_E, hc] at h
+      exact h
+    · obtain ⟨n, rfl⟩ := exists_nat_of_le ht
+      exact ⟨hπa n, hxa n⟩
+    · obtain ⟨n, rfl⟩ := exists_nat_of_le ht
+      exact ⟨(hA n ω).trans (le_max_left _ _), (hB n ω).trans (le_max_right _ _)⟩
+
+/-- Woodford (2003), eq. (1.2), p. 469, and p. 488 (the loss, translated): for a plan bounded
+from `t₀` on, the integer-dated expected discounted loss from `t₀` equals the §5 loss of the
+restricted plan for the re-indexed system. -/
+theorem loss_eq {β lam xs : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {t0 : ℤ} {π x : ℤ → Ω → ℝ}
+    {M : ℝ} (hM : ∀ t, t0 ≤ t → ∀ ω, |π t ω| ≤ M ∧ |x t ω| ≤ M) :
+    CostPushCommitment.loss 𝔽 β lam xs t0 π x =
+      TargetingRule.loss (𝔽.toNat t0) β lam xs (restrictZ t0 π) (restrictZ t0 x) := by
+  have hb1 : BoundedProc (restrictZ t0 π) := ⟨M, fun n ω => (hM _ (by omega) ω).1⟩
+  have hb2 : BoundedProc (restrictZ t0 x) := ⟨M, fun n ω => (hM _ (by omega) ω).2⟩
+  rw [Links.targetingRule_loss_eq (𝔽.toNat t0) hβ0 hβ1 hb1 hb2]
+  unfold CostPushCommitment.loss DateZeroCommitment.loss
+  rw [ExpSysZ.toNat_E]
+  simp only [Nat.cast_zero, add_zero, restrictZ]
+
+/-- **Propositions 7.6–7.8 and §5 are the same problem** (Woodford (2003), pp. 489–491 and
+p. 523): for any constraint value `π̄_{t₀}` known or not, an integer-dated plan is optimal from
+`t₀` subject to `π_{t₀} = π̄_{t₀}` (`CostPushCommitment.IsOptimal`) iff its restriction solves
+the constrained problem of §5 for the re-indexed system (`TargetingRule.IsConstrainedOpt`). -/
+theorem isOptimal_iff {β κ lam xs : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {t0 : ℤ}
+    {u π x : ℤ → Ω → ℝ} (c : Ω → ℝ) :
+    CostPushCommitment.IsOptimal 𝔽 β κ lam xs u t0 (fun π' => π' t0 = c) π x ↔
+      TargetingRule.IsConstrainedOpt (𝔽.toNat t0) β κ lam xs (restrictZ t0 u) c
+        (restrictZ t0 π) (restrictZ t0 x) := by
+  constructor
+  · rintro ⟨hF, hc, hopt⟩
+    refine ⟨⟨(feasible_iff 𝔽 β κ t0 u π x).mp hF, by simpa [restrictZ] using hc⟩,
+      fun p y ⟨hFp, hp0⟩ ω => ?_⟩
+    have hFz : CostPushCommitment.Feasible 𝔽 β κ u t0 (extendN t0 p) (extendN t0 y) := by
+      rw [feasible_iff, restrict_extend, restrict_extend]
+      exact hFp
+    have h := hopt _ _ hFz (by change extendN t0 p t0 = c; rw [extendN_t0]; exact hp0) ω
+    obtain ⟨M, hM⟩ := hF.2.2
+    obtain ⟨M', hM'⟩ := hFz.2.2
+    rw [loss_eq 𝔽 hβ0 hβ1 hM, loss_eq 𝔽 hβ0 hβ1 hM', restrict_extend, restrict_extend] at h
+    exact h
+  · rintro ⟨⟨hF, hc⟩, hopt⟩
+    have hFz := (feasible_iff 𝔽 β κ t0 u π x).mpr hF
+    refine ⟨hFz, by simpa [restrictZ] using hc, fun π' x' hF' hc' ω => ?_⟩
+    obtain ⟨M, hM⟩ := hFz.2.2
+    obtain ⟨M', hM'⟩ := hF'.2.2
+    rw [loss_eq 𝔽 hβ0 hβ1 hM, loss_eq 𝔽 hβ0 hβ1 hM']
+    exact hopt _ _ ⟨(feasible_iff 𝔽 β κ t0 u π' x').mp hF', by simpa [restrictZ] using hc'⟩ ω
+
+/-- Woodford (2003), eq. (2.5), p. 488, and §5 (the `t₀`-optimal problem, translated): an
+integer-dated plan is optimal from `t₀` without initial constraint iff its restriction is the
+`t₀`-optimal commitment of §5 (`TargetingRule.IsT0Opt`). -/
+theorem isOptimal_free_iff {β κ lam xs : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {t0 : ℤ}
+    {u π x : ℤ → Ω → ℝ} :
+    CostPushCommitment.IsOptimal 𝔽 β κ lam xs u t0 (fun _ => True) π x ↔
+      TargetingRule.IsT0Opt (𝔽.toNat t0) β κ lam xs (restrictZ t0 u) (restrictZ t0 π)
+        (restrictZ t0 x) := by
+  constructor
+  · rintro ⟨hF, -, hopt⟩
+    refine ⟨(feasible_iff 𝔽 β κ t0 u π x).mp hF, fun p y hFp ω => ?_⟩
+    have hFz : CostPushCommitment.Feasible 𝔽 β κ u t0 (extendN t0 p) (extendN t0 y) := by
+      rw [feasible_iff, restrict_extend, restrict_extend]
+      exact hFp
+    have h := hopt _ _ hFz trivial ω
+    obtain ⟨M, hM⟩ := hF.2.2
+    obtain ⟨M', hM'⟩ := hFz.2.2
+    rw [loss_eq 𝔽 hβ0 hβ1 hM, loss_eq 𝔽 hβ0 hβ1 hM', restrict_extend, restrict_extend] at h
+    exact h
+  · rintro ⟨hF, hopt⟩
+    have hFz := (feasible_iff 𝔽 β κ t0 u π x).mpr hF
+    refine ⟨hFz, trivial, fun π' x' hF' _ ω => ?_⟩
+    obtain ⟨M, hM⟩ := hFz.2.2
+    obtain ⟨M', hM'⟩ := hF'.2.2
+    rw [loss_eq 𝔽 hβ0 hβ1 hM, loss_eq 𝔽 hβ0 hβ1 hM']
+    exact hopt _ _ ((feasible_iff 𝔽 β κ t0 u π' x').mp hF') ω
+
+
+/-! ### Props. 7.6–7.8 plans are the §5 equilibrium -/
+
+/-- **Integer-dated optimal plans are the §5 equilibrium** (Woodford (2003), (2.7), p. 489,
+Prop. 7.15, p. 523, App. F.5): a plan generated by (2.7) from `t₀` with a bounded initial
+multiplier `φ_{t₀−1}` known at `t₀` is, re-indexed from `t₀`, exactly the equilibrium `(π*, x*)`
+of (2.1) and the target criterion (5.1) for the re-indexed system, with pre-sample gap
+`x_{t₀−1} = x* + (κ/λ)φ_{t₀−1}`. -/
+theorem rec27_plan_eq_star {β κ lam xs M Mφ : ℝ} (hβ : 0 < β) (hκ : 0 < κ) (hlam : 0 < lam)
+    {u φ : ℤ → Ω → ℝ} {t0 : ℤ} (hu : ∀ t ω, |u t ω| ≤ M) (hua : ∀ t, 𝔽.E t (u t) = u t)
+    (hrec : ∀ t, t0 ≤ t → Rec27 𝔽 β κ lam xs u φ t) (hφ0 : 𝔽.E t0 (φ (t0 - 1)) = φ (t0 - 1))
+    (hφb : ∀ t, t0 - 1 ≤ t → ∀ ω, |φ t ω| ≤ Mφ) :
+    restrictZ t0 (planInfl φ) = TargetingRule.piStar (𝔽.toNat t0) β κ lam
+        (planGap κ lam xs φ (t0 - 1)) (restrictZ t0 u) ∧
+      restrictZ t0 (planGap κ lam xs φ) = TargetingRule.xStar (𝔽.toNat t0) β κ lam
+        (planGap κ lam xs φ (t0 - 1)) (restrictZ t0 u) := by
+  have hF := CostPushCommitment.plan_feasible 𝔽 hβ hκ hlam hu hua hrec hφ0 hφb
+  obtain ⟨-, hxb, -, hxa, hAS⟩ := (feasible_iff 𝔽 β κ t0 u _ _).mp hF
+  have hκ0 := hκ.ne'
+  have hl0 := hlam.ne'
+  have hC : TargetingRule.Crit lam κ (planGap κ lam xs φ (t0 - 1)) (restrictZ t0 (planInfl φ))
+      (restrictZ t0 (planGap κ lam xs φ)) := by
+    intro n
+    funext ω
+    cases n with
+    | zero =>
+      simp only [restrictZ, planInfl, planGap, lagged_zero, Nat.cast_zero, add_zero,
+        Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul, Pi.zero_apply]
+      field_simp
+      ring
+    | succ m =>
+      have e : t0 + ((m + 1 : ℕ) : ℤ) - 1 = t0 + m := by push_cast; ring
+      simp only [restrictZ, planInfl, planGap, lagged_succ, e, Pi.add_apply, Pi.smul_apply,
+        Pi.sub_apply, smul_eq_mul, Pi.zero_apply]
+      field_simp
+      ring
+  have hub : BoundedProc (restrictZ t0 u) := ⟨M, fun n ω => hu _ ω⟩
+  have hua' : (𝔽.toNat t0).Adapted (restrictZ t0 u) := fun n => hua (t0 + n)
+  have hK : ∀ ω, |planGap κ lam xs φ (t0 - 1) ω| ≤ |xs| + |κ / lam| * Mφ := fun ω => by
+    simp only [planGap]
+    refine (abs_add_le _ _).trans (add_le_add le_rfl ?_)
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hφb _ le_rfl ω) (abs_nonneg _)
+  have hm0 : (𝔽.toNat t0).E 0 (planGap κ lam xs φ (t0 - 1)) = planGap κ lam xs φ (t0 - 1) := by
+    have e : planGap κ lam xs φ (t0 - 1) = (fun _ => xs) + (κ / lam) • φ (t0 - 1) := by
+      funext ω; simp [planGap, smul_eq_mul]
+    rw [ExpSysZ.toNat_E, Nat.cast_zero, add_zero, e, map_add, map_smul, 𝔽.const, hφ0]
+  exact (TargetingRule.prop_7_15 (𝔽.toNat t0) hβ hκ hlam hub hua' hK hm0).2 _ _ hAS hC hxb hxa
+
+/-- **Proposition 7.6 as a §5 equilibrium** (Woodford (2003), p. 490, (2.10) and (F.4)): the
+constrained-optimal plan (2.10) of Prop. 7.6, re-indexed from `t₀`, is the equilibrium of the
+target criterion (5.1) with pre-sample gap `x* + (κ/λ)φ_{t₀−1}` along (F.4). -/
+theorem prop_7_6_eq_star {β κ lam xs M : ℝ} (hβ : 0 < β) (hκ : 0 < κ) (hlam : 0 < lam)
+    {u : ℤ → Ω → ℝ} (hu : ∀ t ω, |u t ω| ≤ M) (hua : ∀ t, 𝔽.E t (u t) = u t) (t0 : ℤ) :
+    restrictZ t0 (infl210 𝔽 β κ lam u) = TargetingRule.piStar (𝔽.toNat t0) β κ lam
+        (planGap κ lam xs (phiF4 𝔽 β κ lam xs u) (t0 - 1)) (restrictZ t0 u) ∧
+      restrictZ t0 (planGap κ lam xs (phiF4 𝔽 β κ lam xs u)) = TargetingRule.xStar
+        (𝔽.toNat t0) β κ lam (planGap κ lam xs (phiF4 𝔽 β κ lam xs u) (t0 - 1))
+        (restrictZ t0 u) := by
+  rw [CostPushCommitment.infl210_eq_planInfl 𝔽 hβ hκ hlam hu (xs := xs)]
+  exact rec27_plan_eq_star 𝔽 hβ hκ hlam hu hua
+    (fun t _ => CostPushCommitment.phiF4_rec27 𝔽 hβ hκ hlam hu t)
+    (𝔽.E_of_known (by omega) (CostPushCommitment.phiF4_adapted 𝔽 hβ hκ hlam hu (t0 - 1)))
+    (fun t _ ω => CostPushCommitment.phiF4_bounded 𝔽 hβ hκ hlam hu t ω)
+
+/-- **Proposition 7.7 as a §5 equilibrium** (Woodford (2003), p. 491, (2.11)–(2.12), and
+Prop. 7.15, p. 523): the constrained-optimal plan of Prop. 7.7 with predetermined `x_{t₀−1}`,
+re-indexed from `t₀`, is the equilibrium of the target criterion (5.1) with pre-sample gap
+`x_{t₀−1}`. -/
+theorem prop_7_7_eq_star {β κ lam xs M A : ℝ} (hβ : 0 < β) (hκ : 0 < κ) (hlam : 0 < lam)
+    {u : ℤ → Ω → ℝ} (hu : ∀ t ω, |u t ω| ≤ M) (hua : ∀ t, 𝔽.E t (u t) = u t)
+    {xprev : Ω → ℝ} {t0 : ℤ} (hx : 𝔽.E t0 xprev = xprev) (hxb : ∀ ω, |xprev ω| ≤ A) :
+    restrictZ t0 (planInfl (multPath 𝔽 β κ lam xs u (init211 κ lam xs xprev) t0)) =
+        TargetingRule.piStar (𝔽.toNat t0) β κ lam xprev (restrictZ t0 u) ∧
+      restrictZ t0 (planGap κ lam xs (multPath 𝔽 β κ lam xs u (init211 κ lam xs xprev) t0)) =
+        TargetingRule.xStar (𝔽.toNat t0) β κ lam xprev (restrictZ t0 u) := by
+  have h := rec27_plan_eq_star 𝔽 hβ hκ hlam hu hua
+    (fun t ht => CostPushCommitment.multPath_rec27 𝔽 β κ lam xs u (init211 κ lam xs xprev) ht)
+    (by rw [CostPushCommitment.multPath_init]; exact CostPushCommitment.init211_known 𝔽 hx)
+    (fun t _ ω => CostPushCommitment.multPath_bounded 𝔽 hβ hκ hlam hu
+      (CostPushCommitment.init211_bounded hxb) t0 t ω)
+  rwa [CostPushCommitment.prop_7_7_gap_init 𝔽 hκ hlam] at h
+
+/-- **Proposition 7.8 as a §5 equilibrium** (Woodford (2003), p. 491, (2.13)–(2.15), and
+Prop. 7.16, p. 524): the constrained-optimal plan of Prop. 7.8 (price-level constraint with
+`p_{t₀−1}` and target `p̄`), re-indexed from `t₀`, is the equilibrium of (5.1) with the fictitious
+pre-sample gap `(κ/λ)(p̄ − p_{t₀−1})` of Prop. 7.16. -/
+theorem prop_7_8_eq_star {β κ lam xs M A B : ℝ} (hβ : 0 < β) (hκ : 0 < κ) (hlam : 0 < lam)
+    {u : ℤ → Ω → ℝ} (hu : ∀ t ω, |u t ω| ≤ M) (hua : ∀ t, 𝔽.E t (u t) = u t)
+    {pprev pbar : Ω → ℝ} {t0 : ℤ} (hp : 𝔽.E t0 pprev = pprev) (hb : 𝔽.E t0 pbar = pbar)
+    (hpb : ∀ ω, |pprev ω| ≤ A) (hbb : ∀ ω, |pbar ω| ≤ B) :
+    restrictZ t0 (planInfl (multPath 𝔽 β κ lam xs u (init213 κ lam xs pprev pbar) t0)) =
+        TargetingRule.piStar (𝔽.toNat t0) β κ lam (TargetingRule.fictX lam κ pprev pbar)
+          (restrictZ t0 u) ∧
+      restrictZ t0 (planGap κ lam xs (multPath 𝔽 β κ lam xs u (init213 κ lam xs pprev pbar) t0))
+        = TargetingRule.xStar (𝔽.toNat t0) β κ lam (TargetingRule.fictX lam κ pprev pbar)
+          (restrictZ t0 u) := by
+  have h := rec27_plan_eq_star 𝔽 hβ hκ hlam hu hua
+    (fun t ht => CostPushCommitment.multPath_rec27 𝔽 β κ lam xs u
+      (init213 κ lam xs pprev pbar) ht)
+    (by rw [CostPushCommitment.multPath_init]; exact CostPushCommitment.init213_known 𝔽 hp hb)
+    (fun t _ ω => CostPushCommitment.multPath_bounded 𝔽 hβ hκ hlam hu
+      (CostPushCommitment.init213_bounded hpb hbb) t0 t ω)
+  have e : planGap κ lam xs (multPath 𝔽 β κ lam xs u (init213 κ lam xs pprev pbar) t0)
+      (t0 - 1) = TargetingRule.fictX lam κ pprev pbar := by
+    funext ω
+    simp only [planGap, CostPushCommitment.multPath_init, init213, TargetingRule.fictX,
+      Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    field_simp
+    ring
+  rwa [e] at h
+
+
+/-! ### A common `L^stab` ranking: the inertial plan against every plan -/
+
+/-- Woodford (2003), p. 509 (the innovation component of a plan): `ỹ_t = y_t − E_{t₀} y_t`. -/
+def dev (𝔼 : ExpectationSystem Ω) (y : ℕ → Ω → ℝ) : ℕ → Ω → ℝ := fun t => y t - 𝔼.E 0 (y t)
+
+/-- Woodford (2003), p. 509: the innovation components satisfy (2.1) with the cost-push
+innovation `ũ` (law of iterated expectations). -/
+theorem as_dev (𝔼 : ExpectationSystem Ω) {β κ : ℝ} {u π x : ℕ → Ω → ℝ}
+    (hAS : VarianceFrontier.AS 𝔼 β κ u π x) :
+    VarianceFrontier.AS 𝔼 β κ (dev 𝔼 u) (dev 𝔼 π) (dev 𝔼 x) := by
+  intro t
+  have h := hAS t
+  have h0 := congrArg (𝔼.E 0) h
+  rw [map_add, map_add, map_smul, map_smul, 𝔼.tower (Nat.zero_le t)] at h0
+  simp only [dev]
+  rw [map_sub, 𝔼.known (Nat.zero_le t), h0]
+  nth_rewrite 1 [h]
+  simp only [smul_sub]
+  abel
+
+/-- Woodford (2003), (1.7)–(1.8), p. 472, for the innovation components: if `(π, x, φ)` satisfy
+the first-order conditions with an initial multiplier known at `t₀`, the innovation components
+satisfy them with target `0` and initial multiplier `0`. -/
+theorem foc_dev (𝔼 : ExpectationSystem Ω) {lam κ xs : ℝ} {φm1 : Ω → ℝ} {π x φ : ℕ → Ω → ℝ}
+    (hfoc : TargetingRule.FOC lam κ xs φm1 π x φ) (hφm1 : 𝔼.E 0 φm1 = φm1) :
+    TargetingRule.FOC lam κ 0 0 (dev 𝔼 π) (dev 𝔼 x) (dev 𝔼 φ) := by
+  intro t
+  have h1 := (hfoc t).1
+  have h2 : lam • x t - κ • φ t = fun _ => lam * xs := by
+    funext ω
+    have := (hfoc t).2 ω
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    linarith
+  refine ⟨?_, fun ω => ?_⟩
+  · have hE := congrArg (𝔼.E 0) h1
+    rw [map_sub, map_add, map_zero] at hE
+    cases t with
+    | zero =>
+      simp only [lagged_zero] at hE h1 ⊢
+      rw [hφm1] at hE
+      simp only [dev]
+      calc π 0 - 𝔼.E 0 (π 0) + (φ 0 - 𝔼.E 0 (φ 0)) - 0 =
+          (π 0 + φ 0 - φm1) - (𝔼.E 0 (π 0) + 𝔼.E 0 (φ 0) - φm1) := by abel
+        _ = 0 := by rw [h1, hE, sub_zero]
+    | succ t =>
+      simp only [lagged_succ] at hE h1 ⊢
+      simp only [dev]
+      calc π (t + 1) - 𝔼.E 0 (π (t + 1)) + (φ (t + 1) - 𝔼.E 0 (φ (t + 1))) -
+            (φ t - 𝔼.E 0 (φ t)) =
+          (π (t + 1) + φ (t + 1) - φ t) -
+            (𝔼.E 0 (π (t + 1)) + 𝔼.E 0 (φ (t + 1)) - 𝔼.E 0 (φ t)) := by abel
+        _ = 0 := by rw [h1, hE, sub_zero]
+  · have hE := congrArg (𝔼.E 0) h2
+    rw [map_sub, map_smul, map_smul, 𝔼.const] at hE
+    have a := congrFun h2 ω
+    have b := congrFun hE ω
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at a b
+    simp only [dev, Pi.sub_apply]
+    linarith
+
+/-- Woodford (2003), p. 509 (`L^stab` is the loss of the innovation component): with the
+pull-out property, `L^stab` at `t₀` of `(π, x)` equals the expected discounted loss
+`∑ βᵗ E_{t₀}[π̃_t² + λ x̃_t²]` of its innovation component, target `0`. -/
+theorem lstab12_eq_loss_dev (𝔼 : ExpectationSystem Ω) (hpo : 𝔼.PullOut) (β lam : ℝ)
+    (π x : ℕ → Ω → ℝ) (ω : Ω) :
+    Lstab12 𝔼 β lam 0 π x ω = TargetingRule.loss 𝔼 β lam 0 (dev 𝔼 π) (dev 𝔼 x) ω := by
+  unfold Lstab12 TargetingRule.loss
+  refine tsum_congr fun k => ?_
+  congr 1
+  have e1 : condCov 𝔼 0 (π (0 + k)) (π (0 + k)) = VarianceFrontier.condVar 𝔼 0 (π k) := by
+    rw [zero_add]; rfl
+  have e2 : condCov 𝔼 0 (x (0 + k)) (x (0 + k)) = VarianceFrontier.condVar 𝔼 0 (x k) := by
+    rw [zero_add]; rfl
+  rw [e1, e2, VarianceFrontier.condVar_eq_E_dev 𝔼 hpo, VarianceFrontier.condVar_eq_E_dev 𝔼 hpo]
+  have e : TargetingRule.periodLoss lam 0 (dev 𝔼 π) (dev 𝔼 x) k =
+      (π k - 𝔼.E 0 (π k)) * (π k - 𝔼.E 0 (π k)) +
+        lam • ((x k - 𝔼.E 0 (x k)) * (x k - 𝔼.E 0 (x k))) := by
+    funext ω'
+    simp only [TargetingRule.periodLoss, dev, Pi.add_apply, Pi.mul_apply, Pi.smul_apply,
+      Pi.sub_apply, smul_eq_mul, sub_zero]
+    ring
+  rw [e, map_add, map_smul]
+  rfl
+
+/-- **The common `L^stab` ranking, exact gap** (Woodford (2003), pp. 509–511): let the inertial
+commitment plan `(π°, x°)` satisfy (2.1) and the first-order conditions (1.7)–(1.8) with bounded
+adapted multipliers and an initial multiplier known at `t₀` (e.g. Prop. 7.15's `(π*, x*)`, or a
+plan of Props. 7.6–7.8 translated by `rec27_plan_eq_star`). With the pull-out property, every
+bounded plan satisfying (2.1) has
+`L^stab = L^stab(π°, x°) + ∑ βᵗ E_{t₀}[(π̃ − π̃°)² + λ(x̃ − x̃°)²]`. -/
+theorem inertial_lstab_gap (𝔼 : ExpectationSystem Ω) (hpo : 𝔼.PullOut) {β κ lam xs : ℝ}
+    (hβ0 : 0 ≤ β) (hβ1 : β < 1) {u π x πo xo φ : ℕ → Ω → ℝ} {φm1 : Ω → ℝ}
+    (hAS : VarianceFrontier.AS 𝔼 β κ u π x) (hASo : VarianceFrontier.AS 𝔼 β κ u πo xo)
+    (hfoc : TargetingRule.FOC lam κ xs φm1 πo xo φ) (hφa : 𝔼.Adapted φ) (hφb : BoundedProc φ)
+    (hφm1 : 𝔼.E 0 φm1 = φm1) (hπb : BoundedProc π) (hxb : BoundedProc x)
+    (hπob : BoundedProc πo) (hxob : BoundedProc xo) (ω : Ω) :
+    Lstab12 𝔼 β lam 0 π x ω = Lstab12 𝔼 β lam 0 πo xo ω +
+      TargetingRule.loss 𝔼 β lam 0 (dev 𝔼 π - dev 𝔼 πo) (dev 𝔼 x - dev 𝔼 xo) ω := by
+  have hdb : ∀ {y : ℕ → Ω → ℝ}, BoundedProc y → BoundedProc (dev 𝔼 y) := by
+    intro y hy
+    obtain ⟨M, hM⟩ := hy
+    exact ⟨M + M, fun t ω => (abs_sub _ _).trans (add_le_add (hM t ω)
+      (𝔼.abs_E_le (hM t) 0 ω))⟩
+  have hda : 𝔼.Adapted (dev 𝔼 φ) := fun t => by
+    simp only [dev]
+    rw [map_sub, hφa t, 𝔼.known (Nat.zero_le t)]
+  rw [lstab12_eq_loss_dev 𝔼 hpo, lstab12_eq_loss_dev 𝔼 hpo]
+  exact TargetingRule.loss_eq_add 𝔼 hβ0 hβ1 hpo (as_dev 𝔼 hAS) (as_dev 𝔼 hASo)
+    (foc_dev 𝔼 hfoc hφm1) hda (hdb hφb) (zero_mul _) (hdb hπb) (hdb hxb) (hdb hπob) (hdb hxob) ω
+
+/-- **The common `L^stab` ranking** (Woodford (2003), pp. 509–511): under the hypotheses of
+`inertial_lstab_gap` (and `λ ≥ 0`), the inertial commitment plan has a stabilization loss no
+larger than that of **any** bounded plan satisfying (2.1). -/
+theorem inertial_lstab_le (𝔼 : ExpectationSystem Ω) (hpo : 𝔼.PullOut) {β κ lam xs : ℝ}
+    (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hlam : 0 ≤ lam) {u π x πo xo φ : ℕ → Ω → ℝ} {φm1 : Ω → ℝ}
+    (hAS : VarianceFrontier.AS 𝔼 β κ u π x) (hASo : VarianceFrontier.AS 𝔼 β κ u πo xo)
+    (hfoc : TargetingRule.FOC lam κ xs φm1 πo xo φ) (hφa : 𝔼.Adapted φ) (hφb : BoundedProc φ)
+    (hφm1 : 𝔼.E 0 φm1 = φm1) (hπb : BoundedProc π) (hxb : BoundedProc x)
+    (hπob : BoundedProc πo) (hxob : BoundedProc xo) (ω : Ω) :
+    Lstab12 𝔼 β lam 0 πo xo ω ≤ Lstab12 𝔼 β lam 0 π x ω := by
+  rw [inertial_lstab_gap 𝔼 hpo hβ0 hβ1 hAS hASo hfoc hφa hφb hφm1 hπb hxb hπob hxob ω]
+  linarith [TargetingRule.loss_nonneg 𝔼 hβ0 hlam 0 (dev 𝔼 π - dev 𝔼 πo) (dev 𝔼 x - dev 𝔼 xo) ω]
+
+/-- **Inertial commitment against the optimal noninertial plan** (Woodford (2003), pp. 509–511,
+Props. 7.11 and 7.15): with an AR(1) cost-push disturbance (bounded) and the pull-out property,
+the equilibrium `(π*, x*)` of the target criterion (5.1) (any bounded pre-sample gap known at
+`t₀`) has a stabilization loss no larger than the optimal noninertial plan (3.5). -/
+theorem inertial_lstab_le_oni (𝔼 : ExpectationSystem Ω) (hpo : 𝔼.PullOut) {β κ lam ρ : ℝ}
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hlam : 0 < lam) {u : ℕ → Ω → ℝ}
+    (hu : 𝔼.IsAR1 ρ u) (hub : BoundedProc u) {xm1 : Ω → ℝ} {K : ℝ} (hK : ∀ ω, |xm1 ω| ≤ K)
+    (hm0 : 𝔼.E 0 xm1 = xm1) (ω : Ω) :
+    Lstab12 𝔼 β lam 0 (TargetingRule.piStar 𝔼 β κ lam xm1 u)
+        (TargetingRule.xStar 𝔼 β κ lam xm1 u) ω ≤
+      Lstab12 𝔼 β lam 0 (plan1 0 (fpiOni β κ lam ρ) u) (plan1 0 (fxOni β κ lam ρ) u) ω := by
+  obtain ⟨⟨hAS, hC, hpb, hxb, -, hxa⟩, -⟩ := TargetingRule.prop_7_15 𝔼 hβ0 hκ hlam hub hu.1 hK hm0
+  have hfoc := (TargetingRule.crit_iff_foc hκ.ne' 0).mp hC
+  have hASo : VarianceFrontier.AS 𝔼 β κ u (plan1 0 (fpiOni β κ lam ρ) u)
+      (plan1 0 (fxOni β κ lam ρ) u) :=
+    Noninertial.plan_AS_of 𝔼 hu (by ring) (Noninertial.oni_constraint hκ hlam)
+  have hpl : ∀ f : ℝ, BoundedProc (plan1 0 f u) := fun f => by
+    obtain ⟨M, hM⟩ := hub
+    refine ⟨|f| * M, fun t ω => ?_⟩
+    simp only [plan1, zero_add, abs_mul]
+    exact mul_le_mul_of_nonneg_left (hM t ω) (abs_nonneg _)
+  have hφm1 : 𝔼.E 0 (fun ω => lam / κ * (xm1 ω - 0)) = fun ω => lam / κ * (xm1 ω - 0) := by
+    have e : (fun ω => lam / κ * (xm1 ω - 0)) = (lam / κ) • xm1 := by
+      funext ω; simp [smul_eq_mul]
+    rw [e, map_smul, hm0]
+  exact inertial_lstab_le 𝔼 hpo hβ0.le hβ1 hlam.le hASo hAS hfoc
+    (TargetingRule.affine_adapted 𝔼 _ _ hxa) (TargetingRule.affine_bounded _ _ hxb) hφm1
+    (hpl _) (hpl _) hpb hxb ω
+
+/-- **Proposition 7.7's plan against the optimal noninertial plan, on a common footing**
+(Woodford (2003), pp. 491 and 509–511): for an integer-dated system with the pull-out property
+and an AR(1) cost-push disturbance from `t₀`, the constrained-optimal plan of Prop. 7.7,
+re-indexed from `t₀` (`prop_7_7_eq_star`), has a stabilization loss at `t₀` no larger than the
+optimal noninertial plan. -/
+theorem prop_7_7_lstab_le_oni (hPO : 𝔽.PullOut) {β κ lam xs ρ M A : ℝ} (hβ0 : 0 < β)
+    (hβ1 : β < 1) (hκ : 0 < κ) (hlam : 0 < lam) {u : ℤ → Ω → ℝ} (hu : ∀ t ω, |u t ω| ≤ M)
+    (hua : ∀ t, 𝔽.E t (u t) = u t) {xprev : Ω → ℝ} {t0 : ℤ} (hx : 𝔽.E t0 xprev = xprev)
+    (hxb : ∀ ω, |xprev ω| ≤ A) (hρ : (𝔽.toNat t0).IsAR1 ρ (restrictZ t0 u)) (ω : Ω) :
+    Lstab12 (𝔽.toNat t0) β lam 0
+        (restrictZ t0 (planInfl (multPath 𝔽 β κ lam xs u (init211 κ lam xs xprev) t0)))
+        (restrictZ t0 (planGap κ lam xs (multPath 𝔽 β κ lam xs u (init211 κ lam xs xprev) t0)))
+        ω ≤
+      Lstab12 (𝔽.toNat t0) β lam 0 (plan1 0 (fpiOni β κ lam ρ) (restrictZ t0 u))
+        (plan1 0 (fxOni β κ lam ρ) (restrictZ t0 u)) ω := by
+  obtain ⟨e1, e2⟩ := prop_7_7_eq_star 𝔽 (xs := xs) hβ0 hκ hlam hu hua hx hxb
+  rw [e1, e2]
+  have hpo : (𝔽.toNat t0).PullOut := fun n a y ha => hPO (t0 + n) a y ha
+  have hm0 : (𝔽.toNat t0).E 0 xprev = xprev := by
+    rw [ExpSysZ.toNat_E, Nat.cast_zero, add_zero, hx]
+  exact inertial_lstab_le_oni (𝔽.toNat t0) hpo hβ0 hβ1 hκ hlam hρ ⟨M, fun n ω => hu _ ω⟩ hxb
+    hm0 ω
+
+end Woodford.GainsFromCommitment.TidyR5PlanTranslation
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Optimal commitment under natural-rate disturbances with `κ > 0`: the multiplier system
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §1.2 (the first-order conditions
+(1.16)–(1.18), p. 478) and §2.2 (pp. 502–507: the loss (2.24), the IS relation (2.23), the
+initial conditions (2.25)–(2.26), Figure 7.6). The same problem is Chapter 8, §3.1, (3.1)–(3.5),
+whose determinacy analysis is Appendix G.4 (pp. 721–722).
+
+**Restated from the Woodford Chapter 8 project** (OptimalPolicyRules.IRuleBasic, which
+restated its forward-system tools from the Chapter 4 project): the namespace is renamed, the
+instrument-rule parts of Chapter 8 are omitted, and the Lagrangian identity is generalised so
+that its boundary term vanishes either by the commitments (2.26) or by zero initial multipliers
+(2.25) (`lagrangian_identity`, `plan_optimal`, `unique_optimum`). Declarations marked
+"(Ch. 8 copy)" are verbatim restatements apart from this.
+
+## Main results
+
+* The characteristic polynomial `p(µ)` of the multiplier system is `β`-palindromic and has no root
+  in the annulus `1 ≤ |µ| ≤ β⁻¹` for any admissible parameters (`pG_ne_zero_of_annulus`), so
+  exactly two roots lie inside the unit circle (`pG_insideCard_eq_two`), and its stable factor is
+  real (`exists_real_split`).
+* The real solvent `X` of `PX² − A₁X + A₂ = 0` (`solvent_eq`) and the second-order
+  Blanchard–Kahn theorem `sys2_existsUnique`: `Φ_t = XΦ_{t−1} + ψ_t` with `ψ` the forward
+  solution of `ψ_t = K E_tψ_{t+1} + B⁻¹F_t`.
+* The model (2.1), (2.23) and the first-order conditions (1.16)–(1.18) (`AS`, `IS`, `FOC3`,
+  `FOC4`, `FOC5`), the multiplier-system rows (`rows_real`), the plan built from multipliers
+  (`piOf`, `xOf`, `iOf`, `planOf_bounded`, `planOf_adapted`).
+* Lagrangian sufficiency (`lagrangian_identity`, `plan_optimal`) and uniqueness under a faithful
+  expectation system (`unique_optimum`).
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR5KappaPosCore
+
+open Filter Topology
+open scoped Matrix ComplexConjugate
+
+/-! ### Tools restated from the Woodford Chapter 4 project -/
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project), fn. 1 (Blanchard–Kahn, the tool): if
+every complex eigenvalue of a real square matrix `K` lies in the open unit disc, the entries of
+`Kᵏ` decay geometrically (Gelfand's spectral radius formula). -/
+theorem pow_entry_bound {n : ℕ} (K : Matrix (Fin n) (Fin n) ℝ)
+    (h : ∀ w : ℂ, (Matrix.scalar (Fin n) w - K.map Complex.ofReal).det = 0 → ‖w‖ < 1) :
+    ∃ Cb ρ : ℝ, 0 ≤ Cb ∧ 0 < ρ ∧ ρ < 1 ∧ ∀ k i j, |(K ^ k) i j| ≤ Cb * ρ ^ k := by
+  have hpow : ∀ k, ((K ^ k).map Complex.ofReal) = (K.map Complex.ofReal) ^ k := fun k =>
+    (Complex.ofRealHom.mapMatrix.map_pow K k)
+  let _ : NormedRing (Matrix (Fin n) (Fin n) ℂ) := Matrix.linftyOpNormedRing
+  let _ : NormedAlgebra ℂ (Matrix (Fin n) (Fin n) ℂ) := Matrix.linftyOpNormedAlgebra
+  set A : Matrix (Fin n) (Fin n) ℂ := K.map Complex.ofReal with hA
+  have hspec : ∀ w ∈ spectrum ℂ A, w ∈ A.charpoly.roots.toFinset ∧ ‖w‖ < 1 := by
+    intro w hw
+    rw [Matrix.mem_spectrum_iff_isRoot_charpoly] at hw
+    refine ⟨?_, h w ?_⟩
+    · rw [Multiset.mem_toFinset, Polynomial.mem_roots (Matrix.charpoly_monic A).ne_zero]
+      exact hw
+    · rw [← Matrix.eval_charpoly]; exact hw
+  set ρ0 : NNReal := A.charpoly.roots.toFinset.sup (fun w => ‖w‖₊) with hρ0
+  have hρ0lt : ρ0 < 1 := by
+    rw [hρ0, Finset.sup_lt_iff (by norm_num)]
+    intro w hw
+    have hw' : w ∈ spectrum ℂ A := by
+      rw [Matrix.mem_spectrum_iff_isRoot_charpoly]
+      rw [Multiset.mem_toFinset, Polynomial.mem_roots (Matrix.charpoly_monic A).ne_zero] at hw
+      exact hw
+    have := (hspec w hw').2
+    rw [← NNReal.coe_lt_coe, coe_nnnorm]
+    simpa using this
+  have hsr : spectralRadius ℂ A ≤ (ρ0 : ENNReal) := by
+    refine iSup₂_le fun w hw => ?_
+    rw [quasispectrum_eq_spectrum_union_zero] at hw
+    rcases hw with hw | hw
+    · exact ENNReal.coe_le_coe.mpr (Finset.le_sup (f := fun w => ‖w‖₊) (hspec w hw).1)
+    · rw [Set.mem_singleton_iff] at hw
+      subst hw
+      simp
+  set r : ℝ := ((ρ0 : ℝ) + 1) / 2 with hr
+  have hρ0r : (ρ0 : ℝ) < r := by
+    have : (ρ0 : ℝ) < 1 := by exact_mod_cast hρ0lt
+    rw [hr]; linarith
+  have hr1 : r < 1 := by
+    have : (ρ0 : ℝ) < 1 := by exact_mod_cast hρ0lt
+    rw [hr]; linarith
+  have hr0 : 0 < r := lt_of_le_of_lt ρ0.coe_nonneg hρ0r
+  have hlt : spectralRadius ℂ A < ENNReal.ofReal r := by
+    refine lt_of_le_of_lt hsr ?_
+    rw [← ENNReal.ofReal_coe_nnreal]
+    exact (ENNReal.ofReal_lt_ofReal_iff hr0).mpr hρ0r
+  have hev := (spectrum.pow_norm_pow_one_div_tendsto_nhds_spectralRadius A).eventually_lt_const
+    hlt
+  obtain ⟨N, hN⟩ := eventually_atTop.mp hev
+  have hbig : ∀ k ≥ N + 1, ‖A ^ k‖ ≤ r ^ k := by
+    intro k hk
+    have h1 := hN k (by omega)
+    rw [ENNReal.ofReal_lt_ofReal_iff hr0] at h1
+    have hk0 : k ≠ 0 := by omega
+    have h2 : (‖A ^ k‖ ^ (1 / k : ℝ)) ^ k = ‖A ^ k‖ := by
+      rw [one_div]; exact Real.rpow_inv_natCast_pow (norm_nonneg _) hk0
+    rw [← h2]
+    exact (pow_lt_pow_left₀ h1 (Real.rpow_nonneg (norm_nonneg _) _) hk0).le
+  set Cb : ℝ := 1 + ∑ k ∈ Finset.range (N + 1), ‖A ^ k‖ / r ^ k with hCb
+  have hCb0 : 0 ≤ Cb := by
+    have : 0 ≤ ∑ k ∈ Finset.range (N + 1), ‖A ^ k‖ / r ^ k :=
+      Finset.sum_nonneg fun k _ => div_nonneg (norm_nonneg _) (pow_nonneg hr0.le _)
+    linarith
+  have hall : ∀ k, ‖A ^ k‖ ≤ Cb * r ^ k := by
+    intro k
+    by_cases hk : k ≤ N
+    · have hmem : k ∈ Finset.range (N + 1) := Finset.mem_range.mpr (by omega)
+      have hle : ‖A ^ k‖ / r ^ k ≤ ∑ k ∈ Finset.range (N + 1), ‖A ^ k‖ / r ^ k :=
+        Finset.single_le_sum (f := fun k => ‖A ^ k‖ / r ^ k)
+          (fun k _ => div_nonneg (norm_nonneg _) (pow_nonneg hr0.le _)) hmem
+      have hrk : 0 < r ^ k := pow_pos hr0 k
+      have : ‖A ^ k‖ = ‖A ^ k‖ / r ^ k * r ^ k := by field_simp
+      rw [this]
+      exact mul_le_mul_of_nonneg_right (by linarith) hrk.le
+    · have := hbig k (by omega)
+      have hrk : 0 ≤ r ^ k := pow_nonneg hr0.le k
+      have h1 : 1 ≤ Cb := by
+        have : 0 ≤ ∑ k ∈ Finset.range (N + 1), ‖A ^ k‖ / r ^ k :=
+          Finset.sum_nonneg fun k _ => div_nonneg (norm_nonneg _) (pow_nonneg hr0.le _)
+        linarith
+      nlinarith
+  refine ⟨Cb, r, hCb0, hr0, hr1, fun k i j => ?_⟩
+  have hentry : |(K ^ k) i j| = ‖(A ^ k) i j‖ := by
+    have e : (A ^ k) i j = ((K ^ k) i j : ℂ) := by
+      have := congrFun (congrFun (hpow k) i) j
+      exact this.symm
+    rw [e, Complex.norm_real, Real.norm_eq_abs]
+  rw [hentry]
+  refine le_trans ?_ (hall k)
+  rw [Matrix.linfty_opNorm_def]
+  have h1 : ‖(A ^ k) i j‖₊ ≤ ∑ j, ‖(A ^ k) i j‖₊ :=
+    Finset.single_le_sum (f := fun j => ‖(A ^ k) i j‖₊) (fun _ _ => by positivity)
+      (Finset.mem_univ j)
+  have h2 : ∑ j, ‖(A ^ k) i j‖₊ ≤ Finset.univ.sup fun i => ∑ j, ‖(A ^ k) i j‖₊ :=
+    Finset.le_sup (f := fun i => ∑ j, ‖(A ^ k) i j‖₊) (Finset.mem_univ i)
+  have := h1.trans h2
+  rw [← coe_nnnorm]
+  exact_mod_cast this
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): a matrix acting on a vector of random
+variables, `(M a)_i = ∑_j M_{ij} a_j`. -/
+def rvMul {Ω : Type*} {n m : ℕ} (M : Matrix (Fin n) (Fin m) ℝ) (a : Fin m → Ω → ℝ) :
+    Fin n → Ω → ℝ :=
+  fun i => ∑ j, M i j • a j
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): the action is compatible with matrix
+multiplication. -/
+theorem rvMul_rvMul {Ω : Type*} {n m l : ℕ} (M : Matrix (Fin n) (Fin m) ℝ)
+    (N : Matrix (Fin m) (Fin l) ℝ) (a : Fin l → Ω → ℝ) :
+    rvMul M (rvMul N a) = rvMul (M * N) a := by
+  funext i
+  simp only [rvMul, Matrix.mul_apply, Finset.smul_sum, smul_smul, Finset.sum_smul]
+  exact Finset.sum_comm
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): additivity of the action. -/
+theorem rvMul_add {Ω : Type*} {n m : ℕ} (M : Matrix (Fin n) (Fin m) ℝ) (a b : Fin m → Ω → ℝ) :
+    rvMul M (a + b) = rvMul M a + rvMul M b := by
+  funext i
+  simp only [rvMul, Pi.add_apply, smul_add, Finset.sum_add_distrib]
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): the action respects subtraction. -/
+theorem rvMul_sub {Ω : Type*} {n m : ℕ} (M : Matrix (Fin n) (Fin m) ℝ) (a b : Fin m → Ω → ℝ) :
+    rvMul M (a - b) = rvMul M a - rvMul M b := by
+  funext i
+  simp only [rvMul, Pi.sub_apply, smul_sub, Finset.sum_sub_distrib]
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): the identity matrix acts trivially. -/
+theorem rvMul_one {Ω : Type*} {n : ℕ} (a : Fin n → Ω → ℝ) : rvMul 1 a = a := by
+  funext i
+  simp [rvMul, Matrix.one_apply]
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): the action of a sum of matrices. -/
+theorem add_rvMul {Ω : Type*} {n m : ℕ} (M N : Matrix (Fin n) (Fin m) ℝ) (a : Fin m → Ω → ℝ) :
+    rvMul (M + N) a = rvMul M a + rvMul N a := by
+  funext i
+  simp only [rvMul, Matrix.add_apply, add_smul, Finset.sum_add_distrib, Pi.add_apply]
+
+/-- Woodford, p. 670: the action of a difference of matrices. -/
+theorem sub_rvMul {Ω : Type*} {n m : ℕ} (M N : Matrix (Fin n) (Fin m) ℝ) (a : Fin m → Ω → ℝ) :
+    rvMul (M - N) a = rvMul M a - rvMul N a := by
+  funext i
+  simp only [rvMul, Matrix.sub_apply, sub_smul, Finset.sum_sub_distrib, Pi.sub_apply]
+
+/-- Woodford, p. 670: the action of a negated matrix. -/
+theorem neg_rvMul {Ω : Type*} {n m : ℕ} (M : Matrix (Fin n) (Fin m) ℝ) (a : Fin m → Ω → ℝ) :
+    rvMul (-M) a = -rvMul M a := by
+  funext i
+  simp only [rvMul, Matrix.neg_apply, neg_smul, Finset.sum_neg_distrib, Pi.neg_apply]
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): the action, pointwise. -/
+theorem rvMul_apply {Ω : Type*} {n m : ℕ} (M : Matrix (Fin n) (Fin m) ℝ) (a : Fin m → Ω → ℝ)
+    (i : Fin n) (ω : Ω) : rvMul M a i ω = ∑ j, M i j * a j ω := by
+  simp [rvMul, Finset.sum_apply]
+
+/-- Woodford, p. 670: the action of a `2 × 2` matrix, pointwise. -/
+theorem rvMul_two {Ω : Type*} (M : Matrix (Fin 2) (Fin 2) ℝ) (a : Fin 2 → Ω → ℝ)
+    (i : Fin 2) (ω : Ω) : rvMul M a i ω = M i 0 * a 0 ω + M i 1 * a 1 ω := by
+  rw [rvMul_apply, Fin.sum_univ_two]
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Woodford (2003) (Ch. 8 copy), p. 541 (uniqueness of the optimum by strict convexity): an
+expectation system is faithful when a nonnegative random variable with zero conditional
+expectation is zero (restated from the Chapter 8 project, ExpectationTools.Faithful). -/
+def Faithful : Prop := ∀ t (x : Ω → ℝ), 0 ≤ x → 𝔼.E t x = 0 → x = 0
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): `E_t` commutes with constant
+matrices. -/
+theorem E_rvMul {n m : ℕ} (t : ℕ) (M : Matrix (Fin n) (Fin m) ℝ) (a : Fin m → Ω → ℝ)
+    (i : Fin n) : 𝔼.E t (rvMul M a i) = rvMul M (fun j => 𝔼.E t (a j)) i := by
+  simp only [rvMul, map_sum, map_smul]
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): a vector process solves the forward
+system `s_t = K E_t s_{t+1} + w_t`. -/
+def FSolves {n : ℕ} (K : Matrix (Fin n) (Fin n) ℝ) (w s : ℕ → Fin n → Ω → ℝ) : Prop :=
+  ∀ t, s t = rvMul K (fun j => 𝔼.E t (s (t + 1) j)) + w t
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): a vector process is adapted. -/
+def VAdapted {n : ℕ} (s : ℕ → Fin n → Ω → ℝ) : Prop := ∀ t i, 𝔼.E t (s t i) = s t i
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): a vector process is bounded. -/
+def VBounded {n : ℕ} (s : ℕ → Fin n → Ω → ℝ) : Prop := ∃ M, ∀ t i ω, |s t i ω| ≤ M
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): iterating a homogeneous forward
+system, `d_t = Kᵏ E_t d_{t+k}`. -/
+theorem fsolves_iterate {n : ℕ} {K : Matrix (Fin n) (Fin n) ℝ} {d : ℕ → Fin n → Ω → ℝ}
+    (hd : FSolves 𝔼 K 0 d) (had : VAdapted 𝔼 d) (t k : ℕ) :
+    d t = rvMul (K ^ k) (fun j => 𝔼.E t (d (t + k) j)) := by
+  induction k with
+  | zero =>
+    funext i
+    simp only [pow_zero, add_zero, rvMul_one, had t i]
+  | succ k ih =>
+    rw [ih]
+    have h := hd (t + k)
+    simp only [Pi.zero_apply, add_zero] at h
+    have : (fun j => 𝔼.E t (d (t + k) j)) =
+        rvMul K (fun j => 𝔼.E t (d (t + (k + 1)) j)) := by
+      funext j
+      rw [h, E_rvMul 𝔼]
+      congr 1
+      funext l
+      rw [𝔼.tower (Nat.le_add_right t k), ← add_assoc]
+    rw [this, rvMul_rvMul, ← pow_succ]
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project): bound for `Kᵏ` acting on a bounded
+vector. -/
+theorem abs_rvMul_pow_le {n : ℕ} {K : Matrix (Fin n) (Fin n) ℝ} {Cb ρ : ℝ}
+    (hK : ∀ k i j, |(K ^ k) i j| ≤ Cb * ρ ^ k) (k : ℕ) {a : Fin n → Ω → ℝ} {M : ℝ}
+    (ha : ∀ j ω, |a j ω| ≤ M) (i : Fin n) (ω : Ω) :
+    |rvMul (K ^ k) a i ω| ≤ n * (Cb * ρ ^ k * M) := by
+  rw [rvMul_apply]
+  calc |∑ j, (K ^ k) i j * a j ω| ≤ ∑ j, |(K ^ k) i j * a j ω| := Finset.abs_sum_le_sum_abs _ _
+    _ ≤ ∑ _j : Fin n, Cb * ρ ^ k * M := by
+        refine Finset.sum_le_sum fun j _ => ?_
+        rw [abs_mul]
+        exact mul_le_mul (hK k i j) (ha j ω) (abs_nonneg _)
+          ((abs_nonneg _).trans (hK k i j))
+    _ = n * (Cb * ρ ^ k * M) := by simp
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project), fn. 1: if the powers of `K` decay
+geometrically, the forward system `s_t = K E_t s_{t+1} + w_t` has at most one bounded adapted
+solution. -/
+theorem fsolves_unique {n : ℕ} {K : Matrix (Fin n) (Fin n) ℝ} {Cb ρ : ℝ} (hρ0 : 0 ≤ ρ)
+    (hρ1 : ρ < 1) (hK : ∀ k i j, |(K ^ k) i j| ≤ Cb * ρ ^ k) {w x y : ℕ → Fin n → Ω → ℝ}
+    (hx : FSolves 𝔼 K w x) (hy : FSolves 𝔼 K w y) (hax : VAdapted 𝔼 x)
+    (hay : VAdapted 𝔼 y) (hbx : VBounded x) (hby : VBounded y) : x = y := by
+  obtain ⟨M₁, hM₁⟩ := hbx
+  obtain ⟨M₂, hM₂⟩ := hby
+  set d : ℕ → Fin n → Ω → ℝ := fun t => x t - y t with hd_def
+  have hd : FSolves 𝔼 K 0 d := by
+    intro t
+    simp only [hd_def, Pi.zero_apply, add_zero, Pi.sub_apply, map_sub]
+    rw [hx t, hy t]
+    funext i
+    simp only [Pi.add_apply, Pi.sub_apply, rvMul, smul_sub, Finset.sum_sub_distrib]
+    abel
+  have had : VAdapted 𝔼 d := by
+    intro t i
+    simp only [hd_def, Pi.sub_apply, map_sub, hax t i, hay t i]
+  have hdb : ∀ t i ω, |d t i ω| ≤ M₁ + M₂ := fun t i ω => by
+    simp only [hd_def, Pi.sub_apply]
+    exact (abs_sub _ _).trans (add_le_add (hM₁ t i ω) (hM₂ t i ω))
+  have hzero : d = 0 := by
+    funext t i ω
+    have hle : ∀ k, |d t i ω| ≤ n * (Cb * ρ ^ k * (M₁ + M₂)) := by
+      intro k
+      rw [fsolves_iterate 𝔼 hd had t k]
+      exact abs_rvMul_pow_le hK k (fun j ω => 𝔼.abs_E_le (hdb (t + k) j) t ω) i ω
+    have hlim : Tendsto (fun k : ℕ => (n : ℝ) * (Cb * ρ ^ k * (M₁ + M₂))) atTop (𝓝 0) := by
+      have := ((tendsto_pow_atTop_nhds_zero_of_lt_one hρ0 hρ1).const_mul Cb).mul_const
+        (M₁ + M₂)
+      simpa using this.const_mul (n : ℝ)
+    have h0 : |d t i ω| ≤ 0 := ge_of_tendsto' hlim hle
+    simpa using h0
+  funext t i ω
+  have := congrFun (congrFun (congrFun hzero t) i) ω
+  simpa [hd_def, sub_eq_zero] using this
+
+/-- Woodford, p. 670 (restated from the Chapter 4 project), fn. 1: if the powers of `K` decay
+geometrically, the forward series `s_t = ∑_{k ≥ 0} Kᵏ E_t w_{t+k}` is a bounded adapted solution
+of `s_t = K E_t s_{t+1} + w_t` for bounded adapted forcing `w`. -/
+theorem fsolves_exists {n : ℕ} {K : Matrix (Fin n) (Fin n) ℝ} {Cb ρ : ℝ}
+    (hρ0 : 0 ≤ ρ) (hρ1 : ρ < 1) (hK : ∀ k i j, |(K ^ k) i j| ≤ Cb * ρ ^ k)
+    {w : ℕ → Fin n → Ω → ℝ} {Mw : ℝ} (hw : ∀ t i ω, |w t i ω| ≤ Mw) (haw : VAdapted 𝔼 w) :
+    ∃ s, FSolves 𝔼 K w s ∧ VAdapted 𝔼 s ∧ VBounded s := by
+  set Mb : ℝ := n * Cb * Mw with hMb
+  set B : ℕ → ℕ → Fin n → Ω → ℝ := fun k t => rvMul (K ^ k) (fun j => 𝔼.E t (w (t + k) j))
+    with hB
+  have hT : ∀ k t t' i ω, |rvMul (K ^ k) (fun j => 𝔼.E t (w t' j)) i ω| ≤ ρ ^ k * Mb := by
+    intro k t t' i ω
+    have := abs_rvMul_pow_le hK k (fun j ω => 𝔼.abs_E_le (hw t' j) t ω) i ω
+    calc _ ≤ n * (Cb * ρ ^ k * Mw) := this
+      _ = ρ ^ k * Mb := by rw [hMb]; ring
+  have hTs : ∀ t t' : ℕ → ℕ, ∀ i ω,
+      Summable fun k => rvMul (K ^ k) (fun j => 𝔼.E (t k) (w (t' k) j)) i ω := fun t t' i ω =>
+    Summable.of_norm_bounded ((summable_geometric_of_lt_one hρ0 hρ1).mul_right Mb)
+      (fun k => by rw [Real.norm_eq_abs]; exact hT k (t k) (t' k) i ω)
+  have hBb : ∀ k t i ω, |B k t i ω| ≤ ρ ^ k * Mb := fun k t i ω => hT k t (t + k) i ω
+  have hsum : ∀ t i ω, Summable fun k => B k t i ω := fun t i ω =>
+    hTs (fun _ => t) (fun k => t + k) i ω
+  set s : ℕ → Fin n → Ω → ℝ := fun t i ω => ∑' k, B k t i ω with hs
+  have hEB : ∀ k t i, 𝔼.E t (B k (t + 1) i) =
+      rvMul (K ^ k) (fun j => 𝔼.E t (w (t + 1 + k) j)) i := by
+    intro k t i
+    simp only [hB, E_rvMul 𝔼, 𝔼.tower (Nat.le_succ t)]
+  have hEs : ∀ t i ω, 𝔼.E t (s (t + 1) i) ω =
+      ∑' k, rvMul (K ^ k) (fun j => 𝔼.E t (w (t + 1 + k) j)) i ω := by
+    intro t i ω
+    have := 𝔼.E_tsum hρ0 hρ1 (f := fun k => B k (t + 1) i) (fun k ω => hBb k (t + 1) i ω) t ω
+    rw [show s (t + 1) i = fun ω' => ∑' k, B k (t + 1) i ω' from rfl, this]
+    exact tsum_congr fun k => by rw [hEB]
+  refine ⟨s, ?_, ?_, ?_⟩
+  · intro t
+    funext i ω
+    have hB0 : B 0 t i ω = w t i ω := by
+      simp only [hB, pow_zero, add_zero, rvMul_one, haw t i]
+    have hshift : ∀ k, B (k + 1) t i ω =
+        ∑ l, K i l * rvMul (K ^ k) (fun j => 𝔼.E t (w (t + 1 + k) j)) l ω := by
+      intro k
+      simp only [hB]
+      rw [← rvMul_apply, rvMul_rvMul, ← pow_succ', show t + (k + 1) = t + 1 + k by omega]
+    have hR : (rvMul K (fun j => 𝔼.E t (s (t + 1) j)) + w t) i ω =
+        (∑' k, B (k + 1) t i ω) + w t i ω := by
+      rw [Pi.add_apply, Pi.add_apply, rvMul_apply]
+      congr 1
+      simp only [hEs, ← tsum_mul_left]
+      rw [← Summable.tsum_finsetSum (fun l _ => (hTs (fun _ => t) (fun k => t + 1 + k) l
+        ω).mul_left (K i l))]
+      exact tsum_congr fun k => (hshift k).symm
+    rw [hR, show s t i ω = ∑' k, B k t i ω from rfl, (hsum t i ω).tsum_eq_zero_add, hB0]
+    ring
+  · intro t i
+    funext ω
+    have := 𝔼.E_tsum hρ0 hρ1 (f := fun k => B k t i) (fun k ω => hBb k t i ω) t ω
+    rw [show s t i = fun ω' => ∑' k, B k t i ω' from rfl, this]
+    refine tsum_congr fun k => ?_
+    simp only [hB, E_rvMul 𝔼, 𝔼.E_E_self]
+  · refine ⟨Mb / (1 - ρ), fun t i ω => ?_⟩
+    have hg : HasSum (fun k : ℕ => ρ ^ k * Mb) (Mb / (1 - ρ)) := by
+      have := (hasSum_geometric_of_lt_one hρ0 hρ1).mul_right Mb
+      rwa [← div_eq_inv_mul] at this
+    have := tsum_of_norm_bounded hg (f := fun k => B k t i ω)
+      (fun k => by rw [Real.norm_eq_abs]; exact hBb k t i ω)
+    rw [Real.norm_eq_abs] at this
+    exact this
+
+/-- Woodford (2003) (Ch. 8 copy), App. C.1, p. 670 (restated from the Chapter 4 project): the
+complex eigenvalues of a real `2 × 2` matrix are the roots of `w² − (tr A) w + det A`. -/
+theorem det_scalar_sub_two (K : Matrix (Fin 2) (Fin 2) ℝ) (w : ℂ) :
+    (Matrix.scalar (Fin 2) w - K.map Complex.ofReal).det =
+      w ^ 2 - (tr2 K : ℂ) * w + (det2 K : ℂ) := by
+  rw [Matrix.det_fin_two]
+  simp [tr2, det2, Matrix.scalar_apply, Matrix.diagonal]
+  ring
+
+/-- Woodford (2003) (Ch. 8 copy), Prop. C.1, p. 670 (restated from the Chapter 4 project): under the
+Schur–Cohn condition the powers of a `2 × 2` matrix decay geometrically. -/
+theorem pow_bound_of_schurStable {K : Matrix (Fin 2) (Fin 2) ℝ}
+    (h : SchurStable (tr2 K) (det2 K)) :
+    ∃ Cb ρ : ℝ, 0 ≤ Cb ∧ 0 < ρ ∧ ρ < 1 ∧ ∀ k i j, |(K ^ k) i j| ≤ Cb * ρ ^ k := by
+  refine pow_entry_bound K (fun w hw => ?_)
+  rw [det_scalar_sub_two] at hw
+  rcases eq_root_of_eq hw with rfl | rfl
+  · exact ((schurStable_iff_roots _ _).mp h).1
+  · exact ((schurStable_iff_roots _ _).mp h).2
+
+/-- Woodford (2003) (Ch. 8 copy), App. C.1, p. 670 (restated from the Chapter 4 project): the
+inverse `A⁻¹ = (det A)⁻¹ adj A` of a `2 × 2` matrix. -/
+noncomputable def inv2 (A : Matrix (Fin 2) (Fin 2) ℝ) : Matrix (Fin 2) (Fin 2) ℝ :=
+  !![A 1 1 / det2 A, -A 0 1 / det2 A; -A 1 0 / det2 A, A 0 0 / det2 A]
+
+/-- Woodford (2003) (Ch. 8 copy), App. C.1, p. 670 (restated from the Chapter 4 project): `A⁻¹ A =
+I` when `det A ≠ 0`. -/
+theorem inv2_mul {A : Matrix (Fin 2) (Fin 2) ℝ} (h : det2 A ≠ 0) : inv2 A * A = 1 := by
+  ext i j
+  fin_cases i <;> fin_cases j <;>
+    simp [inv2, Matrix.mul_apply, Fin.sum_univ_two] <;> field_simp <;>
+    (try rw [show det2 A = A 0 0 * A 1 1 - A 0 1 * A 1 0 from rfl]) <;> ring
+
+/-- Woodford (2003) (Ch. 8 copy), App. C.1, p. 670 (restated from the Chapter 4 project): `A A⁻¹ =
+I` when `det A ≠ 0`. -/
+theorem mul_inv2 {A : Matrix (Fin 2) (Fin 2) ℝ} (h : det2 A ≠ 0) : A * inv2 A = 1 := by
+  ext i j
+  fin_cases i <;> fin_cases j <;>
+    simp [inv2, Matrix.mul_apply, Fin.sum_univ_two] <;> field_simp <;>
+    (try rw [show det2 A = A 0 0 * A 1 1 - A 0 1 * A 1 0 from rfl]) <;> ring
+
+/-- Woodford (2003) (Ch. 8 copy), (C.19), p. 677 (restated from the Chapter 4 project): a constant
+matrix maps a bounded vector process to a bounded one. -/
+theorem vBounded_rvMul {n m : ℕ} (M : Matrix (Fin n) (Fin m) ℝ) {a : ℕ → Fin m → Ω → ℝ}
+    (ha : VBounded a) : VBounded (fun t => rvMul M (a t)) := by
+  obtain ⟨B, hB⟩ := ha
+  refine ⟨(∑ i, ∑ j, |M i j|) * max B 0, fun t i ω => ?_⟩
+  change |rvMul M (a t) i ω| ≤ _
+  rw [rvMul_apply]
+  calc |∑ j, M i j * a t j ω| ≤ ∑ j, |M i j| * max B 0 := by
+        refine (Finset.abs_sum_le_sum_abs _ _).trans (Finset.sum_le_sum fun j _ => ?_)
+        rw [abs_mul]
+        exact mul_le_mul_of_nonneg_left ((hB t j ω).trans (le_max_left _ _)) (abs_nonneg _)
+    _ = (∑ j, |M i j|) * max B 0 := by rw [Finset.sum_mul]
+    _ ≤ (∑ i, ∑ j, |M i j|) * max B 0 := by
+        refine mul_le_mul_of_nonneg_right ?_ (le_max_right _ _)
+        exact Finset.single_le_sum (f := fun i => ∑ j, |M i j|)
+          (fun i _ => Finset.sum_nonneg fun j _ => abs_nonneg _) (Finset.mem_univ i)
+
+/-- Woodford (2003) (Ch. 8 copy), (C.19), p. 677 (restated from the Chapter 4 project): a constant
+matrix maps an adapted vector process to an adapted one. -/
+theorem vAdapted_rvMul {n m : ℕ} (M : Matrix (Fin n) (Fin m) ℝ) {a : ℕ → Fin m → Ω → ℝ}
+    (ha : VAdapted 𝔼 a) : VAdapted 𝔼 (fun t => rvMul M (a t)) := by
+  intro t i
+  change 𝔼.E t (rvMul M (a t) i) = rvMul M (a t) i
+  rw [E_rvMul 𝔼]
+  congr 1
+  funext j
+  exact ha t j
+
+/-- Woodford (2003) (Ch. 8 copy), Prop. C.1, p. 671 (restated from the Chapter 4 project): if
+`λ² − Tλ + D = (λ − p)(λ − q)` with `|p|, |q| < 1`, the Schur–Cohn condition holds. -/
+theorem schurStable_of_factor {T D : ℝ} {p q : ℂ}
+    (h : ∀ z : ℂ, z ^ 2 - T * z + D = (z - p) * (z - q)) (hp : ‖p‖ < 1) (hq : ‖q‖ < 1) :
+    SchurStable T D := by
+  have e : ∀ r : ℂ, r ^ 2 - T * r + D = 0 → r = p ∨ r = q := by
+    intro r hr
+    rw [h r] at hr
+    rcases mul_eq_zero.mp hr with h' | h'
+    · exact Or.inl (sub_eq_zero.mp h')
+    · exact Or.inr (sub_eq_zero.mp h')
+  rw [schurStable_iff_roots]
+  refine ⟨?_, ?_⟩
+  · rcases e _ (root_eq T D _ (Or.inl rfl)) with e | e <;> rw [e] <;> assumption
+  · rcases e _ (root_eq T D _ (Or.inr rfl)) with e | e <;> rw [e] <;> assumption
+
+/-! ### The characteristic polynomial (G.10)–(G.13) -/
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722: the coefficient `a = 2(1 + β + σκ)/β + σ²λ_x/λ_i`.
+-/
+noncomputable def aG (β σ κ lx li : ℝ) : ℝ := 2 * (1 + β + σ * κ) / β + σ ^ 2 * lx / li
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722: the coefficient
+`b = (1 + 2κβσ + 2σκ + σ²κ² + 4β + β²)/β² + σ²((1 + β)λ_x + κ²)/(βλ_i)`. -/
+noncomputable def bG (β σ κ lx li : ℝ) : ℝ :=
+  (1 + 2 * κ * β * σ + 2 * σ * κ + σ ^ 2 * κ ^ 2 + 4 * β + β ^ 2) / β ^ 2
+    + σ ^ 2 * ((1 + β) * lx + κ ^ 2) / (β * li)
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722: `p(µ) = µ⁴ − aµ³ + bµ² − aβ⁻¹µ + β⁻²` at a real
+argument. -/
+noncomputable def pR (β σ κ lx li μ : ℝ) : ℝ :=
+  μ ^ 4 - aG β σ κ lx li * μ ^ 3 + bG β σ κ lx li * μ ^ 2 - aG β σ κ lx li / β * μ + 1 / β ^ 2
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722: the general `β`-palindromic quartic
+`µ⁴ − aµ³ + bµ² − aβ⁻¹µ + β⁻²` (complex coefficients). -/
+noncomputable def palin (β : ℝ) (a b μ : ℂ) : ℂ :=
+  μ ^ 4 - a * μ ^ 3 + b * μ ^ 2 - a / β * μ + 1 / (β : ℂ) ^ 2
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722: the quartic as a polynomial. -/
+noncomputable def palinPoly (β : ℝ) (a b : ℂ) : Polynomial ℂ :=
+  Polynomial.X ^ 4 - Polynomial.C a * Polynomial.X ^ 3 + Polynomial.C b * Polynomial.X ^ 2
+    - Polynomial.C (a / β) * Polynomial.X + Polynomial.C (1 / (β : ℂ) ^ 2)
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722: evaluating the polynomial. -/
+theorem eval_palinPoly (β : ℝ) (a b μ : ℂ) : (palinPoly β a b).eval μ = palin β a b μ := by
+  simp [palinPoly, palin]
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12)–(G.13), p. 722 ("the symmetry in (G.12)"):
+`p((βµ)⁻¹) = p(µ)/(β²µ⁴)`, so `µ` is a root iff `(βµ)⁻¹` is. -/
+theorem palin_inv {β : ℝ} (hβ : β ≠ 0) (a b : ℂ) {μ : ℂ} (hμ : μ ≠ 0) :
+    palin β a b ((β * μ)⁻¹) = palin β a b μ / ((β : ℂ) ^ 2 * μ ^ 4) := by
+  have hβ' : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ
+  unfold palin
+  field_simp
+  ring
+
+/-- Woodford (2003) (Ch. 8 copy), (G.13), p. 722: the roots pair up, `µ` is a root iff `(βµ)⁻¹` is.
+-/
+theorem palin_inv_eq_zero_iff {β : ℝ} (hβ : β ≠ 0) (a b : ℂ) {μ : ℂ} (hμ : μ ≠ 0) :
+    palin β a b ((β * μ)⁻¹) = 0 ↔ palin β a b μ = 0 := by
+  have hβ' : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ
+  rw [palin_inv hβ a b hμ, div_eq_zero_iff]
+  simp [hβ', hμ]
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722: `0` is never a root (`p(0) = β⁻²`). -/
+theorem palin_zero {β : ℝ} (hβ : β ≠ 0) (a b : ℂ) : palin β a b 0 ≠ 0 := by
+  have hβ' : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ
+  simp [palin, hβ']
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722: the factorisation of a `β`-palindromic quartic
+through `ν = µ + (βµ)⁻¹`: if `ν₁ + ν₂ = a` and `ν₁ν₂ = b − 2/β` then `p(µ) = (µ² − ν₁µ + β⁻¹)(µ² −
+ν₂µ + β⁻¹)`. -/
+theorem palin_factor {β : ℝ} (hβ : β ≠ 0) {a b ν1 ν2 : ℂ} (h1 : ν1 + ν2 = a)
+    (h2 : ν1 * ν2 = b - 2 / β) (μ : ℂ) :
+    palin β a b μ = (μ ^ 2 - ν1 * μ + 1 / β) * (μ ^ 2 - ν2 * μ + 1 / β) := by
+  have hβ' : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ
+  have hb : b = ν1 * ν2 + 2 / β := by rw [h2]; ring
+  subst h1
+  rw [hb]
+  unfold palin
+  field_simp
+  ring
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722 (tool): every complex number pair `(s, c)` is the
+sum and product of two complex numbers (the roots of `z² − sz + c`). -/
+theorem exists_sum_prod (s c : ℂ) : ∃ x y : ℂ, x + y = s ∧ x * y = c := by
+  obtain ⟨r, hr⟩ := IsAlgClosed.exists_eq_mul_self (s ^ 2 - 4 * c)
+  exact ⟨(s + r) / 2, (s - r) / 2, by ring, by linear_combination (1 / 4 : ℂ) * hr⟩
+
+/-- Woodford (2003) (Ch. 8 copy), (G.13), p. 722: every `β`-palindromic quartic factors as
+`(µ − µ₁)(µ − µ₂)(µ − µ₃)(µ − µ₄)` with `µ₁µ₂ = µ₃µ₄ = β⁻¹`, i.e. `µ₁ = (βµ₂)⁻¹` and
+`µ₃ = (βµ₄)⁻¹`. -/
+theorem palin_split {β : ℝ} (hβ : β ≠ 0) (a b : ℂ) :
+    ∃ ν1 ν2 m1 m1' m2 m2' : ℂ, ν1 + ν2 = a ∧ ν1 * ν2 = b - 2 / β ∧
+      m1 + m1' = ν1 ∧ m1 * m1' = 1 / β ∧ m2 + m2' = ν2 ∧ m2 * m2' = 1 / β ∧
+      ∀ μ, palin β a b μ = (μ - m1) * (μ - m1') * ((μ - m2) * (μ - m2')) := by
+  obtain ⟨ν1, ν2, h1, h2⟩ := exists_sum_prod a (b - 2 / β)
+  obtain ⟨m1, m1', h3, h4⟩ := exists_sum_prod ν1 (1 / β)
+  obtain ⟨m2, m2', h5, h6⟩ := exists_sum_prod ν2 (1 / β)
+  refine ⟨ν1, ν2, m1, m1', m2, m2', h1, h2, h3, h4, h5, h6, fun μ => ?_⟩
+  rw [palin_factor hβ h1 h2 μ, ← h3, ← h5]
+  linear_combination (-(μ ^ 2 - (m2 + m2') * μ + m2 * m2')) * h4
+    + (-(μ ^ 2 - (m1 + m1') * μ + 1 / β)) * h6
+
+/-- Woodford (2003) (Ch. 8 copy), (G.13), p. 722: the polynomial is the product of its four linear
+factors. -/
+theorem palinPoly_eq_prod {β : ℝ} {a b m1 m1' m2 m2' : ℂ}
+    (h : ∀ μ, palin β a b μ = (μ - m1) * (μ - m1') * ((μ - m2) * (μ - m2'))) :
+    palinPoly β a b =
+      ((m1 ::ₘ m1' ::ₘ m2 ::ₘ m2' ::ₘ 0).map (fun z => Polynomial.X - Polynomial.C z)).prod := by
+  refine Polynomial.funext fun μ => ?_
+  rw [eval_palinPoly, h μ]
+  simp only [Multiset.map_cons, Multiset.map_zero, Multiset.prod_cons, Multiset.prod_zero,
+    Polynomial.eval_mul, Polynomial.eval_sub, Polynomial.eval_X, Polynomial.eval_C,
+    Polynomial.eval_one]
+  ring
+
+/-- Woodford (2003) (Ch. 8 copy), (G.13), p. 722: the roots (with multiplicity) are `µ₁, …, µ₄`. -/
+theorem palinPoly_roots {β : ℝ} {a b m1 m1' m2 m2' : ℂ}
+    (h : ∀ μ, palin β a b μ = (μ - m1) * (μ - m1') * ((μ - m2) * (μ - m2'))) :
+    (palinPoly β a b).roots = m1 ::ₘ m1' ::ₘ m2 ::ₘ m2' ::ₘ 0 := by
+  rw [palinPoly_eq_prod h, Polynomial.roots_multiset_prod_X_sub_C]
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722: the number of roots (with multiplicity) in the
+open unit disc. -/
+noncomputable def insideCard (P : Polynomial ℂ) : ℕ := (P.roots.filter (fun z => ‖z‖ < 1)).card
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722 (tool): the indicator of the open unit disc. -/
+noncomputable def ind (z : ℂ) : ℕ := if ‖z‖ < 1 then 1 else 0
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722 (tool): counting the roots of a cons. -/
+theorem card_filter_cons (z : ℂ) (s : Multiset ℂ) :
+    ((z ::ₘ s).filter (fun z => ‖z‖ < 1)).card = ind z + (s.filter (fun z => ‖z‖ < 1)).card := by
+  unfold ind
+  by_cases h : ‖z‖ < 1
+  · rw [Multiset.filter_cons_of_pos (p := fun z : ℂ => ‖z‖ < 1) (a := z) s h,
+      Multiset.card_cons]
+    simp [h, add_comm]
+  · rw [Multiset.filter_cons_of_neg (p := fun z : ℂ => ‖z‖ < 1) (a := z) s h]
+    simp [h]
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722: the closed annulus `1 ≤ |µ| ≤ β⁻¹`. -/
+def Annulus (β : ℝ) (z : ℂ) : Prop := 1 ≤ ‖z‖ ∧ ‖z‖ ≤ 1 / β
+
+/-- Woodford (2003) (Ch. 8 copy), (G.13), p. 722: `|µ| |µ'| = β⁻¹` for a pair. -/
+theorem norm_pair {β : ℝ} (hβ : 0 < β) {m m' : ℂ} (h : m * m' = 1 / β) :
+    ‖m‖ * ‖m'‖ = 1 / β := by
+  rw [← norm_mul, h, norm_div, norm_one, Complex.norm_real, Real.norm_eq_abs, abs_of_pos hβ]
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722 (the book's step): at most one root of a pair
+`µµ' = β⁻¹` lies in the open unit disc. -/
+theorem ind_pair_le {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) {m m' : ℂ} (h : m * m' = 1 / β) :
+    ind m + ind m' ≤ 1 := by
+  have hn := norm_pair hβ0 h
+  have h1 : 1 < 1 / β := by rw [lt_div_iff₀ hβ0]; linarith
+  unfold ind
+  by_cases hm : ‖m‖ < 1 <;> by_cases hm' : ‖m'‖ < 1 <;> simp only [hm, hm', ↓reduceIte] <;>
+    try omega
+  nlinarith [norm_nonneg m, norm_nonneg m']
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722 (survey E21, the precise form): exactly one root
+of a pair `µµ' = β⁻¹` lies in the open unit disc iff neither lies in the annulus `1 ≤ |µ| ≤ β⁻¹`. -/
+theorem ind_pair_eq_one_iff {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) {m m' : ℂ}
+    (h : m * m' = 1 / β) :
+    ind m + ind m' = 1 ↔ ¬ Annulus β m ∧ ¬ Annulus β m' := by
+  have hn := norm_pair hβ0 h
+  have h1 : 1 < 1 / β := by rw [lt_div_iff₀ hβ0]; linarith
+  have hpos : 0 < ‖m‖ := by
+    rcases (norm_nonneg m).lt_or_eq with h' | h'
+    · exact h'
+    · rw [← h', zero_mul] at hn; linarith
+  have hpos' : 0 < ‖m'‖ := by
+    rcases (norm_nonneg m').lt_or_eq with h' | h'
+    · exact h'
+    · rw [← h', mul_zero] at hn; linarith
+  unfold ind Annulus
+  constructor
+  · intro hc
+    by_cases hm : ‖m‖ < 1
+    · have hm' : 1 / β < ‖m'‖ := by
+        by_contra hc'
+        push Not at hc'
+        nlinarith
+      exact ⟨fun h' => by linarith [h'.1], fun h' => by linarith [h'.2]⟩
+    · simp only [hm, ↓reduceIte, zero_add] at hc
+      by_cases hm' : ‖m'‖ < 1
+      · have : 1 / β < ‖m‖ := by
+          by_contra hc'
+          push Not at hc'
+          nlinarith
+        exact ⟨fun h' => by linarith [h'.2], fun h' => by linarith [h'.1]⟩
+      · simp [hm'] at hc
+  · rintro ⟨ha, ha'⟩
+    by_cases hm : ‖m‖ < 1
+    · have hm' : ¬ ‖m'‖ < 1 := by
+        intro hm'
+        nlinarith [norm_nonneg m, norm_nonneg m']
+      simp [hm, hm']
+    · have hgt : 1 / β < ‖m‖ := by
+        push Not at hm
+        by_contra hc
+        push Not at hc
+        exact ha ⟨hm, hc⟩
+      have hm' : ‖m'‖ < 1 := by
+        by_contra hc
+        push Not at hc
+        nlinarith
+      simp [hm, hm']
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722: the partner of a root in the annulus is in the
+annulus. -/
+theorem annulus_pair {β : ℝ} (hβ0 : 0 < β) {m m' : ℂ} (h : m * m' = 1 / β)
+    (ha : Annulus β m) : Annulus β m' := by
+  have hn := norm_pair hβ0 h
+  obtain ⟨h1, h2⟩ := ha
+  have hpos : 0 < ‖m‖ := by linarith
+  have hb : 0 < 1 / β := by positivity
+  refine ⟨?_, ?_⟩
+  · by_contra hc
+    push Not at hc
+    nlinarith [norm_nonneg m']
+  · by_contra hc
+    push Not at hc
+    nlinarith [norm_nonneg m']
+
+/-- **Woodford (2003) (Ch. 8 copy), App. G.4, p. 722 — the book's pairing argument.** A
+`β`-palindromic quartic (`0 < β < 1`) has at most two roots, counted with multiplicity, in the open
+unit disc. -/
+theorem palin_insideCard_le {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (a b : ℂ) :
+    insideCard (palinPoly β a b) ≤ 2 := by
+  obtain ⟨ν1, ν2, m1, m1', m2, m2', -, -, -, h4, -, h6, hf⟩ := palin_split hβ0.ne' a b
+  unfold insideCard
+  rw [palinPoly_roots hf]
+  simp only [card_filter_cons, Multiset.filter_zero, Multiset.card_zero]
+  have := ind_pair_le hβ0 hβ1 h4
+  have := ind_pair_le hβ0 hβ1 h6
+  omega
+
+/-- **Woodford (2003) (Ch. 8 copy), App. G.4, p. 722 — the precise form of the argument (survey
+E21).** A `β`-palindromic quartic has exactly two roots (with multiplicity) in the open unit disc
+**iff** it has no root in the closed annulus `1 ≤ |µ| ≤ β⁻¹`. -/
+theorem palin_insideCard_eq_two_iff {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (a b : ℂ) :
+    insideCard (palinPoly β a b) = 2 ↔ ∀ μ, palin β a b μ = 0 → ¬ Annulus β μ := by
+  obtain ⟨ν1, ν2, m1, m1', m2, m2', -, -, -, h4, -, h6, hf⟩ := palin_split hβ0.ne' a b
+  unfold insideCard
+  rw [palinPoly_roots hf]
+  simp only [card_filter_cons, Multiset.filter_zero, Multiset.card_zero]
+  have l1 := ind_pair_le hβ0 hβ1 h4
+  have l2 := ind_pair_le hβ0 hβ1 h6
+  have e1 := ind_pair_eq_one_iff hβ0 hβ1 h4
+  have e2 := ind_pair_eq_one_iff hβ0 hβ1 h6
+  constructor
+  · intro hc μ hμ
+    have hc1 : ind m1 + ind m1' = 1 := by omega
+    have hc2 : ind m2 + ind m2' = 1 := by omega
+    rw [hf μ] at hμ
+    rcases mul_eq_zero.mp hμ with hμ | hμ <;> rcases mul_eq_zero.mp hμ with hμ | hμ <;>
+      rw [sub_eq_zero.mp hμ]
+    · exact (e1.mp hc1).1
+    · exact (e1.mp hc1).2
+    · exact (e2.mp hc2).1
+    · exact (e2.mp hc2).2
+  · intro hno
+    have r : ∀ z, palin β a b z = 0 → ¬ Annulus β z := hno
+    have hc1 : ind m1 + ind m1' = 1 := e1.mpr ⟨r m1 (by rw [hf]; ring), r m1' (by rw [hf]; ring)⟩
+    have hc2 : ind m2 + ind m2' = 1 := e2.mpr ⟨r m2 (by rw [hf]; ring), r m2' (by rw [hf]; ring)⟩
+    omega
+
+/-! ### No root of the model's `p` lies in the annulus -/
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722: the model's characteristic polynomial `p(µ)` at a
+complex argument. -/
+noncomputable def pG (β σ κ lx li : ℝ) (μ : ℂ) : ℂ := palin β (aG β σ κ lx li) (bG β σ κ lx li) μ
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722: `p` as a polynomial. -/
+noncomputable def pGPoly (β σ κ lx li : ℝ) : Polynomial ℂ :=
+  palinPoly β (aG β σ κ lx li) (bG β σ κ lx li)
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722: at a real argument `p` is the real polynomial
+`pR`. -/
+theorem pG_ofReal (β σ κ lx li μ : ℝ) : pG β σ κ lx li μ = pR β σ κ lx li μ := by
+  simp [pG, palin, pR]
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722 (tool): the quadratic `Q(s) = s² − T_Q s + K_Q`
+with `T_Q = 2κσ/β + σ²λ_x/λ_i` and `K_Q = κ²σ²(β⁻² + (βλ_i)⁻¹)`. -/
+noncomputable def Qs (β σ κ lx li : ℝ) (s : ℂ) : ℂ :=
+  s ^ 2 - ((2 * κ * σ / β + σ ^ 2 * lx / li : ℝ) : ℂ) * s
+    + ((κ ^ 2 * σ ^ 2 * (1 / β ^ 2 + 1 / (β * li)) : ℝ) : ℂ)
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722 (the structure behind it): with `s = µ + (βµ)⁻¹ −
+(1+β)/β`, `p(µ) = µ² Q(s)`. -/
+theorem pG_eq_Qs {β σ κ lx li : ℝ} (hβ : β ≠ 0) (hli : li ≠ 0) {μ : ℂ} (hμ : μ ≠ 0) :
+    pG β σ κ lx li μ = μ ^ 2 * Qs β σ κ lx li (μ + ((β : ℂ) * μ)⁻¹ - (((1 + β) / β : ℝ) : ℂ)) := by
+  have hβ' : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ
+  have hli' : (li : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hli
+  unfold pG palin Qs aG bG
+  push_cast
+  field_simp
+  ring
+
+/-- Woodford (2003) (Ch. 8 copy), (G.12), p. 722: in the variable `ν = µ + (βµ)⁻¹`, `ν² − aν + b −
+2/β = Q(ν − (1+β)/β)`. -/
+theorem nu_quad_eq_Qs {β σ κ lx li : ℝ} (hβ : β ≠ 0) (hli : li ≠ 0) (ν : ℂ) :
+    ν ^ 2 - (aG β σ κ lx li : ℂ) * ν + ((bG β σ κ lx li : ℂ) - 2 / β) =
+      Qs β σ κ lx li (ν - (((1 + β) / β : ℝ) : ℂ)) := by
+  have hβ' : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ
+  have hli' : (li : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hli
+  unfold Qs aG bG
+  push_cast
+  field_simp
+  ring
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722 (tool): a quadratic `s² − Ts + K` with `T, K > 0`
+has no root with `Re s ≤ 0`. -/
+theorem quad_ne_zero_of_re_nonpos {Tq Kq : ℝ} (hT : 0 < Tq) (hK : 0 < Kq) {s : ℂ}
+    (hs : s.re ≤ 0) : s ^ 2 - (Tq : ℂ) * s + (Kq : ℂ) ≠ 0 := by
+  intro h
+  have hre := congrArg Complex.re h
+  have him := congrArg Complex.im h
+  simp only [sq, Complex.add_re, Complex.sub_re, Complex.mul_re, Complex.ofReal_re,
+    Complex.ofReal_im, Complex.zero_re, Complex.add_im, Complex.sub_im, Complex.mul_im,
+    Complex.zero_im] at hre him
+  have hm : s.im * (2 * s.re - Tq) = 0 := by linarith
+  rcases mul_eq_zero.mp hm with h0 | h0
+  · rw [h0] at hre
+    nlinarith
+  · linarith
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722: on the annulus `1 ≤ |µ| ≤ β⁻¹`, the variable
+`s = µ + (βµ)⁻¹ − (1+β)/β` has `Re s ≤ 0`. -/
+theorem re_s_nonpos {β : ℝ} (hβ0 : 0 < β) {μ : ℂ} (ha : Annulus β μ) :
+    (μ + ((β : ℂ) * μ)⁻¹ - (((1 + β) / β : ℝ) : ℂ)).re ≤ 0 := by
+  obtain ⟨h1, h2⟩ := ha
+  set r := ‖μ‖ with hr
+  have hr0 : 0 < r := by linarith
+  have hns : Complex.normSq μ = r ^ 2 := by rw [hr, Complex.sq_norm]
+  have hinv : (((β : ℂ) * μ)⁻¹).re = μ.re / (β * r ^ 2) := by
+    rw [Complex.inv_re, Complex.normSq_mul, Complex.normSq_ofReal, hns, Complex.re_ofReal_mul]
+    field_simp
+  rw [Complex.sub_re, Complex.add_re, hinv, Complex.ofReal_re]
+  have hre : μ.re ≤ r := Complex.re_le_norm μ
+  have hc : 0 < 1 + 1 / (β * r ^ 2) := by positivity
+  have key : μ.re + μ.re / (β * r ^ 2) ≤ r + r / (β * r ^ 2) := by
+    have : μ.re + μ.re / (β * r ^ 2) = μ.re * (1 + 1 / (β * r ^ 2)) := by ring
+    rw [this]
+    have : r + r / (β * r ^ 2) = r * (1 + 1 / (β * r ^ 2)) := by ring
+    rw [this]
+    exact mul_le_mul_of_nonneg_right hre hc.le
+  have hbound : r + r / (β * r ^ 2) - (1 + β) / β = (r - 1) * (β * r - 1) / (β * r) := by
+    field_simp
+    ring
+  have hβr : β * r ≤ 1 := by
+    have := h2
+    rw [le_div_iff₀ hβ0] at this
+    linarith
+  have : (r - 1) * (β * r - 1) / (β * r) ≤ 0 := by
+    apply div_nonpos_of_nonpos_of_nonneg _ (by positivity)
+    exact mul_nonpos_of_nonneg_of_nonpos (by linarith) (by linarith)
+  linarith
+
+/-- **Woodford (2003) (Ch. 8 copy), App. G.4, p. 722 (survey E21, closing the gap).** For `0 < β <
+1`, `σ, κ, λ_i > 0`, `λ_x ≥ 0`, the polynomial `p` of (G.12) has no root in the closed annulus `1 ≤
+|µ| ≤ β⁻¹` — in particular none on the unit circle. -/
+theorem pG_ne_zero_of_annulus {β σ κ lx li : ℝ} (hβ0 : 0 < β) (hσ : 0 < σ) (hκ : 0 < κ)
+    (hlx : 0 ≤ lx) (hli : 0 < li) {μ : ℂ} (ha : Annulus β μ) : pG β σ κ lx li μ ≠ 0 := by
+  have hμ : μ ≠ 0 := by
+    intro h
+    have := ha.1
+    rw [h, norm_zero] at this
+    linarith
+  rw [pG_eq_Qs hβ0.ne' hli.ne' hμ]
+  refine mul_ne_zero (pow_ne_zero 2 hμ) ?_
+  unfold Qs
+  refine quad_ne_zero_of_re_nonpos (by positivity) (by positivity) (re_s_nonpos hβ0 ha)
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722 (survey E21): any root `ν` of `ν² − aν + b − 2/β`
+has `Re ν > (1+β)/β > 0`. -/
+theorem nu_re_pos {β σ κ lx li : ℝ} (hβ0 : 0 < β) (hσ : 0 < σ) (hκ : 0 < κ) (hlx : 0 ≤ lx)
+    (hli : 0 < li) {ν : ℂ}
+    (hν : ν ^ 2 - (aG β σ κ lx li : ℂ) * ν + ((bG β σ κ lx li : ℂ) - 2 / β) = 0) :
+    (1 + β) / β < ν.re := by
+  rw [nu_quad_eq_Qs hβ0.ne' hli.ne'] at hν
+  by_contra hc
+  push Not at hc
+  have hs : (ν - (((1 + β) / β : ℝ) : ℂ)).re ≤ 0 := by
+    rw [Complex.sub_re, Complex.ofReal_re]; linarith
+  exact quad_ne_zero_of_re_nonpos (by positivity) (by positivity) hs hν
+
+/-- **Woodford (2003) (Ch. 8 copy), App. G.4, p. 722: exactly two roots inside.** For all admissible
+parameters, `p` has exactly two roots (counted with multiplicity) in the open unit disc. -/
+theorem pG_insideCard_eq_two {β σ κ lx li : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 0 < σ)
+    (hκ : 0 < κ) (hlx : 0 ≤ lx) (hli : 0 < li) : insideCard (pGPoly β σ κ lx li) = 2 :=
+  (palin_insideCard_eq_two_iff hβ0 hβ1 _ _).mpr fun _ hμ ha =>
+    pG_ne_zero_of_annulus hβ0 hσ hκ hlx hli ha hμ
+
+/-! ### The stable real factor of `p` -/
+
+/-- Woodford (2003) (Ch. 8 copy), (G.13), p. 722: a pair `µµ' = β⁻¹` whose first root is not in the
+annulus (then neither is the second, `annulus_pair`) can be ordered with the first root inside the
+unit disc and the second outside the disc of radius `β⁻¹`. -/
+theorem pair_split {β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) {ν m m' : ℂ} (hs : m + m' = ν)
+    (hp : m * m' = 1 / β) (ha : ¬ Annulus β m) :
+    ∃ u v : ℂ, u + v = ν ∧ u * v = 1 / β ∧ ‖u‖ < 1 ∧ 1 / β < ‖v‖ := by
+  have hn := norm_pair hβ0 hp
+  have h1 : 1 < 1 / β := by rw [lt_div_iff₀ hβ0]; linarith
+  have hb : 0 < 1 / β := by positivity
+  by_cases hm : ‖m‖ < 1
+  · refine ⟨m, m', hs, hp, hm, ?_⟩
+    by_contra hc
+    push Not at hc
+    nlinarith [mul_nonneg (norm_nonneg m) (sub_nonneg.mpr hc), mul_pos (sub_pos.mpr hm) hb]
+  · push Not at hm
+    have hgt : 1 / β < ‖m‖ := by
+      by_contra hc
+      push Not at hc
+      exact ha ⟨hm, hc⟩
+    refine ⟨m', m, by rw [add_comm]; exact hs, by rw [mul_comm]; exact hp, ?_, hgt⟩
+    by_contra hc
+    push Not at hc
+    nlinarith [mul_le_mul_of_nonneg_left hc (norm_nonneg m)]
+
+/-- Woodford (2003) (Ch. 8 copy), (G.13), p. 722: the root of `z² − νz + β⁻¹` in the open unit disc
+is unique when its partner has modulus at least one. -/
+theorem inside_root_unique {β : ℝ} {ν u v z : ℂ} (hs : u + v = ν) (hp : u * v = 1 / β)
+    (hv : 1 ≤ ‖v‖) (hz : z ^ 2 - ν * z + 1 / β = 0) (hz1 : ‖z‖ < 1) : z = u := by
+  have h : (z - u) * (z - v) = 0 := by linear_combination hz + (-z) * hs + hp
+  rcases mul_eq_zero.mp h with h | h
+  · exact sub_eq_zero.mp h
+  · rw [sub_eq_zero.mp h] at hz1
+    linarith
+
+/-- Woodford (2003) (Ch. 8 copy), (G.13), p. 722: a root of a pair is a root of its quadratic
+factor. -/
+theorem pair_root {β : ℝ} {ν u v : ℂ} (hs : u + v = ν) (hp : u * v = 1 / β) :
+    u ^ 2 - ν * u + 1 / β = 0 := by
+  linear_combination u * hs - hp
+
+/-- Woodford (2003) (Ch. 8 copy), (G.13), p. 722: conjugating a root of `z² − νz + β⁻¹`. -/
+theorem conj_pair_root {β : ℝ} {ν u : ℂ} (h : u ^ 2 - ν * u + 1 / β = 0) :
+    (conj u) ^ 2 - conj ν * conj u + 1 / β = 0 := by
+  have := congrArg conj h
+  simpa [map_sub, map_add, map_mul, map_pow, Complex.conj_ofReal, map_div₀] using this
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722: a real root `u` of `z² − νz + β⁻¹` with `Re ν >
+0`, real `ν`, is positive. -/
+theorem pos_of_real_pair {β : ℝ} (hβ0 : 0 < β) {ν u v : ℂ} (hs : u + v = ν)
+    (hp : u * v = 1 / β) (hνim : ν.im = 0) (huim : u.im = 0) (hνre : 0 < ν.re) : 0 < u.re := by
+  have hvim : v.im = 0 := by
+    have := congrArg Complex.im hs
+    simp only [Complex.add_im] at this
+    linarith
+  have hre := congrArg Complex.re hp
+  have hsre := congrArg Complex.re hs
+  simp only [Complex.mul_re, huim, hvim, mul_zero, sub_zero, Complex.add_re] at hre hsre
+  have h1 : (1 / (β : ℂ)).re = 1 / β := by
+    rw [← Complex.ofReal_one, ← Complex.ofReal_div, Complex.ofReal_re]
+  rw [h1] at hre
+  have hb : 0 < 1 / β := by positivity
+  by_contra hc
+  push Not at hc
+  nlinarith
+
+/-- **Woodford (2003) (Ch. 8 copy), App. G.4, p. 722: the stable factor of `p` is real.** For
+admissible parameters there are real `T, D` with `µ² − Tµ + D` Schur-stable (both roots in the open
+unit disc), `D > 0`, and `p(µ) = (µ² − Tµ + D)(µ² − (T/(βD))µ + 1/(β²D))` — the second factor
+carries the partner roots `(βµ_k)⁻¹`. -/
+theorem exists_real_split {β σ κ lx li : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 0 < σ)
+    (hκ : 0 < κ) (hlx : 0 ≤ lx) (hli : 0 < li) :
+    ∃ T D : ℝ, SchurStable T D ∧ 0 < D ∧ ∀ μ : ℂ, pG β σ κ lx li μ =
+      (μ ^ 2 - T * μ + D) *
+        (μ ^ 2 - ((T / (β * D) : ℝ) : ℂ) * μ + ((1 / (β ^ 2 * D) : ℝ) : ℂ)) := by
+  have hβ' : (β : ℂ) ≠ 0 := Complex.ofReal_ne_zero.mpr hβ0.ne'
+  set a := aG β σ κ lx li with ha
+  set b := bG β σ κ lx li with hb
+  obtain ⟨ν1, ν2, h1, h2⟩ := exists_sum_prod (a : ℂ) ((b : ℂ) - 2 / β)
+  obtain ⟨p, p', hp1, hp2⟩ := exists_sum_prod ν1 (1 / β)
+  obtain ⟨q, q', hq1, hq2⟩ := exists_sum_prod ν2 (1 / β)
+  have hf : ∀ μ, pG β σ κ lx li μ = (μ - p) * (μ - p') * ((μ - q) * (μ - q')) := by
+    intro μ
+    unfold pG
+    rw [palin_factor hβ0.ne' h1 h2 μ, ← hp1, ← hq1]
+    linear_combination (-(μ ^ 2 - (q + q') * μ + q * q')) * hp2
+      + (-(μ ^ 2 - (p + p') * μ + 1 / β)) * hq2
+  have hroot : ∀ z, pG β σ κ lx li z = 0 → ¬ Annulus β z := fun z hz ha =>
+    pG_ne_zero_of_annulus hβ0 hσ hκ hlx hli ha hz
+  obtain ⟨u1, v1, hu1, hv1, hn1, hm1⟩ := pair_split hβ0 hβ1 hp1 hp2
+    (hroot p (by rw [hf]; ring))
+  obtain ⟨u2, v2, hu2, hv2, hn2, hm2⟩ := pair_split hβ0 hβ1 hq1 hq2
+    (hroot q (by rw [hf]; ring))
+  have hone : 1 < 1 / β := by rw [lt_div_iff₀ hβ0]; linarith
+  have hv1ge : 1 ≤ ‖v1‖ := by linarith
+  have hv2ge : 1 ≤ ‖v2‖ := by linarith
+  have hνq : ∀ z : ℂ, z ^ 2 - (a : ℂ) * z + ((b : ℂ) - 2 / β) = (z - ν1) * (z - ν2) := by
+    intro z
+    rw [← h1, ← h2]
+    ring
+  have hν1root : ν1 ^ 2 - (a : ℂ) * ν1 + ((b : ℂ) - 2 / β) = 0 := by rw [hνq]; ring
+  have hν2root : ν2 ^ 2 - (a : ℂ) * ν2 + ((b : ℂ) - 2 / β) = 0 := by rw [hνq]; ring
+  have hcν : conj ν1 = ν1 ∨ conj ν1 = ν2 := by
+    have hc : (conj ν1) ^ 2 - (a : ℂ) * conj ν1 + ((b : ℂ) - 2 / β) = 0 := by
+      have := congrArg conj hν1root
+      simpa [map_sub, map_add, map_mul, map_pow, Complex.conj_ofReal, map_div₀, map_ofNat]
+        using this
+    rw [hνq] at hc
+    rcases mul_eq_zero.mp hc with h | h
+    · exact Or.inl (sub_eq_zero.mp h)
+    · exact Or.inr (sub_eq_zero.mp h)
+  have hcu1 := conj_pair_root (pair_root hu1 hv1)
+  have hcu2 := conj_pair_root (pair_root hu2 hv2)
+  have hnc1 : ‖conj u1‖ < 1 := by rw [Complex.norm_conj]; exact hn1
+  have hnc2 : ‖conj u2‖ < 1 := by rw [Complex.norm_conj]; exact hn2
+  have hu1ne : u1 ≠ 0 := by
+    intro h
+    rw [h, zero_mul] at hv1
+    exact (one_div_ne_zero hβ') hv1.symm
+  have hu2ne : u2 ≠ 0 := by
+    intro h
+    rw [h, zero_mul] at hv2
+    exact (one_div_ne_zero hβ') hv2.symm
+  have key : (u1 + u2).im = 0 ∧ (u1 * u2).im = 0 ∧ 0 < (u1 * u2).re := by
+    rcases hcν with hc | hc
+    · have e1 : conj u1 = u1 := inside_root_unique hu1 hv1 hv1ge (by rw [← hc]; exact hcu1) hnc1
+      have hc2 : conj ν2 = ν2 := by
+        have : ν2 = (a : ℂ) - ν1 := by rw [← h1]; ring
+        rw [this, map_sub, Complex.conj_ofReal, hc]
+      have e2 : conj u2 = u2 :=
+        inside_root_unique hu2 hv2 hv2ge (by rw [← hc2]; exact hcu2) hnc2
+      have i1 : u1.im = 0 := Complex.conj_eq_iff_im.mp e1
+      have i2 : u2.im = 0 := Complex.conj_eq_iff_im.mp e2
+      have r1 : 0 < u1.re := pos_of_real_pair hβ0 hu1 hv1 (Complex.conj_eq_iff_im.mp hc) i1
+        (lt_trans (by positivity) (nu_re_pos hβ0 hσ hκ hlx hli hν1root))
+      have r2 : 0 < u2.re := pos_of_real_pair hβ0 hu2 hv2 (Complex.conj_eq_iff_im.mp hc2) i2
+        (lt_trans (by positivity) (nu_re_pos hβ0 hσ hκ hlx hli hν2root))
+      refine ⟨?_, ?_, ?_⟩
+      · simp [Complex.add_im, i1, i2]
+      · simp [Complex.mul_im, i1, i2]
+      · simp only [Complex.mul_re, i1, i2, mul_zero, sub_zero]
+        positivity
+    · have e : conj u1 = u2 := inside_root_unique hu2 hv2 hv2ge (by rw [← hc]; exact hcu1) hnc1
+      rw [← e, Complex.mul_conj]
+      refine ⟨by simp [Complex.add_im], by simp, ?_⟩
+      rw [Complex.ofReal_re]
+      exact Complex.normSq_pos.mpr hu1ne
+  set T := (u1 + u2).re with hTdef
+  set D := (u1 * u2).re with hDdef
+  have hT : (T : ℂ) = u1 + u2 := Complex.ext (by simp [hTdef]) (by simp [key.1])
+  have hD : (D : ℂ) = u1 * u2 := Complex.ext (by simp [hDdef]) (by simp [key.2.1])
+  refine ⟨T, D, schurStable_of_factor (fun z => by rw [hT, hD]; ring) hn1 hn2, key.2.2,
+    fun μ => ?_⟩
+  have e1 : (μ - p) * (μ - p') = (μ - u1) * (μ - v1) := by
+    linear_combination (-μ) * hp1 + hp2 + μ * hu1 - hv1
+  have e2 : (μ - q) * (μ - q') = (μ - u2) * (μ - v2) := by
+    linear_combination (-μ) * hq1 + hq2 + μ * hu2 - hv2
+  have hv1' : v1 = 1 / (β * u1) := by
+    rw [eq_div_iff (mul_ne_zero hβ' hu1ne)]
+    have h : u1 * v1 * β = 1 := by rw [hv1]; field_simp
+    linear_combination h
+  have hv2' : v2 = 1 / (β * u2) := by
+    rw [eq_div_iff (mul_ne_zero hβ' hu2ne)]
+    have h : u2 * v2 * β = 1 := by rw [hv2]; field_simp
+    linear_combination h
+  rw [hf μ, e1, e2]
+  push_cast
+  rw [hT, hD, hv1', hv2']
+  field_simp
+  ring
+
+/-! ### Second-order vector systems with one predetermined lag (the Blanchard–Kahn argument) -/
+
+/-- Woodford (2003) (Ch. 8 copy), §1.2 and App. G.4, p. 721: a vector process lagged once, with the
+pre-sample value `z_{−1} = z₀` (known numbers). -/
+def lagV (z0 : Fin 2 → ℝ) (z : ℕ → Fin 2 → Ω → ℝ) : ℕ → Fin 2 → Ω → ℝ
+  | 0 => fun i _ => z0 i
+  | t + 1 => z t
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 721: `Φ` solves the second-order system
+`P E_tΦ_{t+1} − A₁Φ_t + A₂Φ_{t−1} = F_t` for all `t ≥ 0`, with `Φ_{−1} = Φm`. -/
+def Sys2 (P A1 A2 : Matrix (Fin 2) (Fin 2) ℝ) (F : ℕ → Fin 2 → Ω → ℝ) (Φm : Fin 2 → ℝ)
+    (Φ : ℕ → Fin 2 → Ω → ℝ) : Prop :=
+  ∀ t, rvMul P (fun j => 𝔼.E t (Φ (t + 1) j)) - rvMul A1 (Φ t) + rvMul A2 (lagV Φm Φ t) = F t
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (the unstable block): `ψ_t = Φ_t − XΦ_{t−1}`. -/
+def psiOf (X : Matrix (Fin 2) (Fin 2) ℝ) (Φm : Fin 2 → ℝ) (Φ : ℕ → Fin 2 → Ω → ℝ) :
+    ℕ → Fin 2 → Ω → ℝ :=
+  fun s => Φ s - rvMul X (lagV Φm Φ s)
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 721 (tool): `E_t` of a matrix image, as vectors. -/
+theorem E_rvMul_vec (t : ℕ) (M : Matrix (Fin 2) (Fin 2) ℝ) (a : Fin 2 → Ω → ℝ) :
+    (fun j => 𝔼.E t (rvMul M a j)) = rvMul M (fun j => 𝔼.E t (a j)) := by
+  funext j
+  exact E_rvMul 𝔼 t M a j
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 721 (the key reduction): if `X` solves the matrix
+quadratic `PX² − A₁X + A₂ = 0` and `B = PX − A₁` is invertible, then for an adapted `Φ` the system
+holds at date `t` iff `ψ = Φ − XΦ_{−1}` solves the forward system `ψ_t = K E_tψ_{t+1} + B⁻¹F_t` with
+`K = −B⁻¹P`. -/
+theorem sys2_step_iff {P A1 A2 X : Matrix (Fin 2) (Fin 2) ℝ} (hX : P * X * X - A1 * X + A2 = 0)
+    (hB : det2 (P * X - A1) ≠ 0) {F : ℕ → Fin 2 → Ω → ℝ} {Φm : Fin 2 → ℝ}
+    {Φ : ℕ → Fin 2 → Ω → ℝ} (hΦa : VAdapted 𝔼 Φ) (t : ℕ) :
+    (rvMul P (fun j => 𝔼.E t (Φ (t + 1) j)) - rvMul A1 (Φ t) + rvMul A2 (lagV Φm Φ t) = F t) ↔
+      psiOf X Φm Φ t = rvMul (-(inv2 (P * X - A1) * P))
+        (fun j => 𝔼.E t (psiOf X Φm Φ (t + 1) j)) + rvMul (inv2 (P * X - A1)) (F t) := by
+  set B := P * X - A1 with hBdef
+  have hEΦ : (fun j => 𝔼.E t (Φ t j)) = Φ t := funext fun j => hΦa t j
+  have hEψ : (fun j => 𝔼.E t (psiOf X Φm Φ (t + 1) j)) =
+      (fun j => 𝔼.E t (Φ (t + 1) j)) - rvMul X (Φ t) := by
+    funext j
+    simp only [psiOf, lagV, Pi.sub_apply, map_sub]
+    rw [E_rvMul 𝔼, hEΦ]
+  have hBX : B * X = -A2 := by
+    rw [hBdef, sub_mul]
+    exact eq_neg_of_add_eq_zero_left hX
+  have hL : rvMul P (fun j => 𝔼.E t (Φ (t + 1) j)) - rvMul A1 (Φ t) + rvMul A2 (lagV Φm Φ t) =
+      rvMul P (fun j => 𝔼.E t (psiOf X Φm Φ (t + 1) j)) + rvMul B (psiOf X Φm Φ t) := by
+    rw [hEψ]
+    simp only [psiOf]
+    rw [rvMul_sub, rvMul_sub, rvMul_rvMul, rvMul_rvMul, hBX, neg_rvMul, hBdef, sub_rvMul]
+    abel
+  rw [hL]
+  set v := (fun j => 𝔼.E t (psiOf X Φm Φ (t + 1) j))
+  set ψ := psiOf X Φm Φ t
+  constructor
+  · intro h
+    have h2 := congrArg (rvMul (inv2 B)) h
+    rw [rvMul_add, rvMul_rvMul, rvMul_rvMul, inv2_mul hB, rvMul_one] at h2
+    rw [neg_rvMul]
+    linear_combination h2
+  · intro h
+    rw [h, rvMul_add, rvMul_rvMul, rvMul_rvMul, mul_neg, ← mul_assoc, mul_inv2 hB, one_mul,
+      rvMul_one, neg_rvMul]
+    abel
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (the stable block, backward): `Φ_t = XΦ_{t−1} + ψ_t` from
+`Φ_{−1} = Φm`. -/
+def backRec (X : Matrix (Fin 2) (Fin 2) ℝ) (Φm : Fin 2 → ℝ) (ψ : ℕ → Fin 2 → Ω → ℝ) :
+    ℕ → Fin 2 → Ω → ℝ
+  | 0 => rvMul X (fun i _ => Φm i) + ψ 0
+  | t + 1 => rvMul X (backRec X Φm ψ t) + ψ (t + 1)
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4: the backward recursion in lag form. -/
+theorem backRec_eq (X : Matrix (Fin 2) (Fin 2) ℝ) (Φm : Fin 2 → ℝ) (ψ : ℕ → Fin 2 → Ω → ℝ)
+    (t : ℕ) : backRec X Φm ψ t = rvMul X (lagV Φm (backRec X Φm ψ) t) + ψ t := by
+  cases t <;> rfl
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): a matrix image of a finite sum. -/
+theorem rvMul_sum (M : Matrix (Fin 2) (Fin 2) ℝ) (s : Finset ℕ) (f : ℕ → Fin 2 → Ω → ℝ) :
+    rvMul M (∑ k ∈ s, f k) = ∑ k ∈ s, rvMul M (f k) := by
+  induction s using Finset.induction_on with
+  | empty => funext i; simp [rvMul]
+  | insert a s ha ih => rw [Finset.sum_insert ha, Finset.sum_insert ha, rvMul_add, ih]
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4: the closed form
+`Φ_t = X^{t+1}Φ_{−1} + ∑_{k ≤ t} X^{t−k}ψ_k`. -/
+theorem backRec_closed (X : Matrix (Fin 2) (Fin 2) ℝ) (Φm : Fin 2 → ℝ)
+    (ψ : ℕ → Fin 2 → Ω → ℝ) (t : ℕ) :
+    backRec X Φm ψ t = rvMul (X ^ (t + 1)) (fun i _ => Φm i)
+      + ∑ k ∈ Finset.range (t + 1), rvMul (X ^ (t - k)) (ψ k) := by
+  induction t with
+  | zero => simp [backRec, rvMul_one]
+  | succ t ih =>
+    rw [show backRec X Φm ψ (t + 1) = rvMul X (backRec X Φm ψ t) + ψ (t + 1) from rfl, ih,
+      rvMul_add, rvMul_rvMul, rvMul_sum, Finset.sum_range_succ _ (t + 1), Nat.sub_self,
+      pow_zero, rvMul_one, ← pow_succ']
+    have : ∑ k ∈ Finset.range (t + 1), rvMul X (rvMul (X ^ (t - k)) (ψ k)) =
+        ∑ k ∈ Finset.range (t + 1), rvMul (X ^ (t + 1 - k)) (ψ k) := by
+      refine Finset.sum_congr rfl fun k hk => ?_
+      rw [Finset.mem_range] at hk
+      rw [rvMul_rvMul, ← pow_succ', show t + 1 - k = t - k + 1 by omega]
+    rw [this]
+    abel
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4: with `X` Schur-stable and `ψ` bounded, the backward
+recursion is bounded. -/
+theorem backRec_bounded {X : Matrix (Fin 2) (Fin 2) ℝ} (hXs : SchurStable (tr2 X) (det2 X))
+    (Φm : Fin 2 → ℝ) {ψ : ℕ → Fin 2 → Ω → ℝ} (hψ : VBounded ψ) : VBounded (backRec X Φm ψ) := by
+  obtain ⟨Cb, ρ, hCb, hρ0, hρ1, hX⟩ := pow_bound_of_schurStable hXs
+  obtain ⟨Mψ, hMψ⟩ := hψ
+  set M0 := |Φm 0| + |Φm 1| with hM0def
+  have hM0n : 0 ≤ M0 := by positivity
+  have hM0 : ∀ j (ω : Ω), |(fun i (_ : Ω) => Φm i) j ω| ≤ M0 := by
+    intro j ω
+    fin_cases j
+    · simp only [hM0def]; simp
+    · simp only [hM0def]; simp
+  have hψ' : ∀ k j ω, |ψ k j ω| ≤ max Mψ 0 := fun k j ω => (hMψ k j ω).trans (le_max_left _ _)
+  have hgeo : ∀ t : ℕ, ∑ k ∈ Finset.range (t + 1), ρ ^ (t - k) ≤ (1 - ρ)⁻¹ := by
+    intro t
+    have e : ∑ k ∈ Finset.range (t + 1), ρ ^ (t - k) = ∑ k ∈ Finset.range (t + 1), ρ ^ k := by
+      have := Finset.sum_range_reflect (fun j => ρ ^ j) (t + 1)
+      simpa using this
+    rw [e, ← tsum_geometric_of_lt_one hρ0.le hρ1]
+    exact (summable_geometric_of_lt_one hρ0.le hρ1).sum_le_tsum _
+      (fun j _ => pow_nonneg hρ0.le j)
+  refine ⟨2 * (Cb * M0) + 2 * (Cb * max Mψ 0) * (1 - ρ)⁻¹, fun t i ω => ?_⟩
+  rw [backRec_closed, Pi.add_apply, Pi.add_apply, Finset.sum_apply, Finset.sum_apply]
+  have h1 : |rvMul (X ^ (t + 1)) (fun i _ => Φm i) i ω| ≤ 2 * (Cb * M0) := by
+    have := abs_rvMul_pow_le hX (t + 1) hM0 i ω
+    have hp : ρ ^ (t + 1) ≤ 1 := pow_le_one₀ hρ0.le hρ1.le
+    have hc : Cb * ρ ^ (t + 1) * M0 ≤ Cb * M0 := by
+      have := mul_le_mul_of_nonneg_left hp hCb
+      nlinarith
+    push_cast at this
+    linarith
+  have h2 : ∀ k ∈ Finset.range (t + 1),
+      |rvMul (X ^ (t - k)) (ψ k) i ω| ≤ 2 * (Cb * max Mψ 0) * ρ ^ (t - k) := by
+    intro k _
+    have := abs_rvMul_pow_le hX (t - k) (hψ' k) i ω
+    push_cast at this
+    linarith
+  have hC : 0 ≤ 2 * (Cb * max Mψ 0) := by positivity
+  calc |rvMul (X ^ (t + 1)) (fun i _ => Φm i) i ω
+        + ∑ k ∈ Finset.range (t + 1), rvMul (X ^ (t - k)) (ψ k) i ω|
+      ≤ |rvMul (X ^ (t + 1)) (fun i _ => Φm i) i ω|
+        + ∑ k ∈ Finset.range (t + 1), |rvMul (X ^ (t - k)) (ψ k) i ω| :=
+        (abs_add_le _ _).trans (add_le_add le_rfl (Finset.abs_sum_le_sum_abs _ _))
+    _ ≤ 2 * (Cb * M0) + ∑ k ∈ Finset.range (t + 1), 2 * (Cb * max Mψ 0) * ρ ^ (t - k) :=
+        add_le_add h1 (Finset.sum_le_sum h2)
+    _ ≤ 2 * (Cb * M0) + 2 * (Cb * max Mψ 0) * (1 - ρ)⁻¹ := by
+        rw [← Finset.mul_sum]
+        exact add_le_add le_rfl (mul_le_mul_of_nonneg_left (hgeo t) hC)
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): the backward recursion is adapted when `ψ` is. -/
+theorem backRec_adapted (X : Matrix (Fin 2) (Fin 2) ℝ) (Φm : Fin 2 → ℝ)
+    {ψ : ℕ → Fin 2 → Ω → ℝ} (hψ : VAdapted 𝔼 ψ) : VAdapted 𝔼 (backRec X Φm ψ) := by
+  have h : ∀ t, (fun i => 𝔼.E t (backRec X Φm ψ t i)) = backRec X Φm ψ t := by
+    intro t
+    induction t with
+    | zero =>
+      funext i
+      change 𝔼.E 0 ((rvMul X (fun i (_ : Ω) => Φm i) + ψ 0) i) =
+        (rvMul X (fun i (_ : Ω) => Φm i) + ψ 0) i
+      rw [Pi.add_apply, map_add, E_rvMul 𝔼, hψ 0 i]
+      congr 2
+      funext j
+      exact 𝔼.const 0 (Φm j)
+    | succ t ih =>
+      funext i
+      change 𝔼.E (t + 1) ((rvMul X (backRec X Φm ψ t) + ψ (t + 1)) i) =
+        (rvMul X (backRec X Φm ψ t) + ψ (t + 1)) i
+      rw [Pi.add_apply, map_add, E_rvMul 𝔼, hψ (t + 1) i]
+      congr 2
+      funext j
+      exact ForwardSolution.E_of_known 𝔼 (Nat.le_succ t) (congrFun ih j)
+  exact fun t i => congrFun (h t) i
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): the lag of an adapted process is known one date
+ahead. -/
+theorem lagV_known {Φm : Fin 2 → ℝ} {Φ : ℕ → Fin 2 → Ω → ℝ} (hΦ : VAdapted 𝔼 Φ) (t : ℕ)
+    (j : Fin 2) : 𝔼.E t (lagV Φm Φ t j) = lagV Φm Φ t j := by
+  cases t with
+  | zero => exact 𝔼.const 0 (Φm j)
+  | succ t => exact ForwardSolution.E_of_known 𝔼 (Nat.le_succ t) (hΦ t j)
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): the lag of a bounded process is bounded. -/
+theorem lagV_bounded (Φm : Fin 2 → ℝ) {Φ : ℕ → Fin 2 → Ω → ℝ} (hΦ : VBounded Φ) :
+    VBounded (lagV Φm Φ) := by
+  obtain ⟨M, hM⟩ := hΦ
+  refine ⟨max M (|Φm 0| + |Φm 1|), fun t j ω => ?_⟩
+  cases t with
+  | zero =>
+    refine le_trans ?_ (le_max_right _ _)
+    fin_cases j
+    · change |Φm 0| ≤ _
+      linarith [abs_nonneg (Φm 1)]
+    · change |Φm 1| ≤ _
+      linarith [abs_nonneg (Φm 0)]
+  | succ t => exact (hM t j ω).trans (le_max_left _ _)
+
+/-- **Woodford (2003) (Ch. 8 copy), §1.2 and App. G.4, pp. 721–722 — the Blanchard–Kahn theorem for
+a second-order system, proved.** Suppose `X` is a real solvent of `PX² − A₁X + A₂ = 0` with both
+eigenvalues in the open unit disc (the stable roots), `B = PX − A₁` is invertible and `K = −B⁻¹P`
+has both eigenvalues in the open unit disc (the reciprocals of the unstable roots). Then for every
+bounded adapted forcing `F` and every `Φ_{−1}` the system `P E_tΦ_{t+1} − A₁Φ_t + A₂Φ_{t−1} = F_t`
+has exactly one bounded adapted solution: `Φ_t = XΦ_{t−1} + ψ_t` with `ψ` the forward solution of
+`ψ_t = K E_tψ_{t+1} + B⁻¹F_t`. -/
+theorem sys2_existsUnique {P A1 A2 X : Matrix (Fin 2) (Fin 2) ℝ}
+    (hX : P * X * X - A1 * X + A2 = 0) (hXs : SchurStable (tr2 X) (det2 X))
+    (hB : det2 (P * X - A1) ≠ 0)
+    (hK : SchurStable (tr2 (-(inv2 (P * X - A1) * P))) (det2 (-(inv2 (P * X - A1) * P))))
+    {F : ℕ → Fin 2 → Ω → ℝ} (hFb : VBounded F) (hFa : VAdapted 𝔼 F) (Φm : Fin 2 → ℝ) :
+    ∃! Φ, Sys2 𝔼 P A1 A2 F Φm Φ ∧ VAdapted 𝔼 Φ ∧ VBounded Φ := by
+  set B := P * X - A1 with hBdef
+  set K := -(inv2 B * P) with hKdef
+  set w : ℕ → Fin 2 → Ω → ℝ := fun t => rvMul (inv2 B) (F t) with hw
+  obtain ⟨Cb, ρ, -, hρ0, hρ1, hKb⟩ := pow_bound_of_schurStable hK
+  have hwb : VBounded w := vBounded_rvMul (inv2 B) hFb
+  have hwa : VAdapted 𝔼 w := vAdapted_rvMul 𝔼 (inv2 B) hFa
+  obtain ⟨Mw, hMw⟩ := hwb
+  have hpsiA : ∀ Φ : ℕ → Fin 2 → Ω → ℝ, VAdapted 𝔼 Φ → VAdapted 𝔼 (psiOf X Φm Φ) := by
+    intro Φ hΦ t i
+    simp only [psiOf, Pi.sub_apply, map_sub, E_rvMul 𝔼, hΦ t i]
+    congr 2
+    funext j
+    exact lagV_known 𝔼 hΦ t j
+  have hpsiB : ∀ Φ : ℕ → Fin 2 → Ω → ℝ, VBounded Φ → VBounded (psiOf X Φm Φ) := by
+    intro Φ hΦ
+    obtain ⟨M1, hM1⟩ := hΦ
+    obtain ⟨M2, hM2⟩ := vBounded_rvMul X (lagV_bounded Φm ⟨M1, hM1⟩)
+    refine ⟨M1 + M2, fun t i ω => ?_⟩
+    simp only [psiOf, Pi.sub_apply]
+    exact (abs_sub _ _).trans (add_le_add (hM1 t i ω) (hM2 t i ω))
+  have hsolves : ∀ Φ : ℕ → Fin 2 → Ω → ℝ, VAdapted 𝔼 Φ →
+      (Sys2 𝔼 P A1 A2 F Φm Φ ↔ FSolves 𝔼 K w (psiOf X Φm Φ)) := fun Φ hΦ =>
+    ⟨fun h t => (sys2_step_iff 𝔼 hX hB hΦ t).mp (h t),
+      fun h t => (sys2_step_iff 𝔼 hX hB hΦ t).mpr (h t)⟩
+  obtain ⟨ψ, hψs, hψa, hψb⟩ := fsolves_exists 𝔼 hρ0.le hρ1 hKb hMw hwa
+  have hpsiΦ : psiOf X Φm (backRec X Φm ψ) = ψ := by
+    funext t
+    simp only [psiOf]
+    rw [backRec_eq X Φm ψ t]
+    abel
+  have hΦa : VAdapted 𝔼 (backRec X Φm ψ) := backRec_adapted 𝔼 X Φm hψa
+  refine ⟨backRec X Φm ψ, ⟨(hsolves _ hΦa).mpr (by rw [hpsiΦ]; exact hψs), hΦa,
+    backRec_bounded hXs Φm hψb⟩, ?_⟩
+  rintro Φ' ⟨hs', ha', hb'⟩
+  have e : psiOf X Φm Φ' = ψ := fsolves_unique 𝔼 hρ0.le hρ1 hKb ((hsolves Φ' ha').mp hs') hψs
+    (hpsiA Φ' ha') hψa (hpsiB Φ' hb') hψb
+  funext t
+  induction t with
+  | zero =>
+    have := congrFun e 0
+    simp only [psiOf, lagV] at this
+    rw [show backRec X Φm ψ 0 = rvMul X (fun i (_ : Ω) => Φm i) + ψ 0 from rfl, ← this]
+    abel
+  | succ t ih =>
+    have := congrFun e (t + 1)
+    simp only [psiOf, lagV] at this
+    rw [show backRec X Φm ψ (t + 1) = rvMul X (backRec X Φm ψ t) + ψ (t + 1) from rfl, ← ih,
+      ← this]
+    abel
+
+/-! ### The multiplier system of the model and its real solvent -/
+
+/-- Woodford (2003) (Ch. 8 copy), (3.3)–(3.5) and (G.10)–(G.11): the coupling coefficient `σ −
+κ/λ_x` of the multiplier system. -/
+noncomputable def cpG (σ κ lx : ℝ) : ℝ := σ - κ / lx
+
+/-- Woodford (2003) (Ch. 8 copy), (3.1) in multiplier form: the coefficient
+`c₁ = 1 + β + βλ_xσ²/λ_i + λ_xσ²`. -/
+noncomputable def c1G (β σ lx li : ℝ) : ℝ := 1 + β + β * lx * σ ^ 2 / li + lx * σ ^ 2
+
+/-- Woodford (2003) (Ch. 8 copy), (2.1) in multiplier form: the coefficient `c₂ = 1 + β + κ²/λ_x`.
+-/
+noncomputable def c2G (β κ lx : ℝ) : ℝ := 1 + β + κ ^ 2 / lx
+
+/-- Woodford (2003) (Ch. 8 copy), (3.3)–(3.5) with (2.1), (3.1): the lead matrix `P = βA₀` of the
+multiplier system `P E_tΦ_{t+1} − A₁Φ_t + A₂Φ_{t−1} = F_t`, `Φ = (φ₁, φ₂)`. -/
+noncomputable def PmG (β σ κ lx : ℝ) : Matrix (Fin 2) (Fin 2) ℝ :=
+  !![β, β * lx * cpG σ κ lx; 0, β]
+
+/-- Woodford (2003) (Ch. 8 copy), (3.3)–(3.5) with (2.1), (3.1): the matrix `A₁`. -/
+noncomputable def A1G (β σ κ lx li : ℝ) : Matrix (Fin 2) (Fin 2) ℝ :=
+  !![c1G β σ lx li, β * lx * cpG σ κ lx; cpG σ κ lx, c2G β κ lx]
+
+/-- Woodford (2003) (Ch. 8 copy), (3.3)–(3.5) with (2.1), (3.1): the lag matrix `A₂`. -/
+noncomputable def A2G (β σ κ lx : ℝ) : Matrix (Fin 2) (Fin 2) ℝ :=
+  !![1, 0; cpG σ κ lx / β, 1]
+
+/-- Woodford (2003) (Ch. 8 copy), (G.11), p. 722: the characteristic matrix `M(µ) = µ²P − µA₁ + A₂`
+of the multiplier system. -/
+noncomputable def MphiG (β σ κ lx li μ : ℝ) : Matrix (Fin 2) (Fin 2) ℝ :=
+  μ ^ 2 • PmG β σ κ lx - μ • A1G β σ κ lx li + A2G β σ κ lx
+
+/-- **Woodford (2003) (Ch. 8 copy), (G.11)–(G.12), p. 722**: the characteristic polynomial of the
+multiplier system is `det M(µ) = β² p(µ)`. -/
+theorem det_Mphi {β σ κ lx li : ℝ} (hβ : β ≠ 0) (hlx : lx ≠ 0) (hli : li ≠ 0) (μ : ℝ) :
+    det2 (MphiG β σ κ lx li μ) = β ^ 2 * pR β σ κ lx li μ := by
+  simp only [det2, MphiG, PmG, A1G, A2G, cpG, c1G, c2G, pR, aG, bG, Matrix.add_apply,
+    Matrix.sub_apply, Matrix.smul_apply, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
+    Matrix.cons_val_one, Matrix.empty_val', Matrix.cons_val_fin_one, smul_eq_mul]
+  field_simp
+  ring
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): `det(sP + N) = s² det P + s cross(P, N) + det N`.
+-/
+noncomputable def cross2 (P N : Matrix (Fin 2) (Fin 2) ℝ) : ℝ :=
+  P 0 0 * N 1 1 + P 1 1 * N 0 0 - P 0 1 * N 1 0 - P 1 0 * N 0 1
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): expansion of a `2 × 2` determinant along a
+pencil. -/
+theorem det2_smul_add (s : ℝ) (P N : Matrix (Fin 2) (Fin 2) ℝ) :
+    det2 (s • P + N) = s ^ 2 * det2 P + s * cross2 P N + det2 N := by
+  simp only [det2, cross2, Matrix.add_apply, Matrix.smul_apply, smul_eq_mul]
+  ring
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): matching coefficients — if
+`g₂µ² − g₁µ + g₀ = (µ² − Tµ + D)(l₁µ + l₀)` for all real `µ`, then `l₁ = 0`, `g₂ = l₀`,
+`g₁ = T l₀` and `g₀ = D l₀`. -/
+theorem coeff_match {g2 g1 g0 T D l1 l0 : ℝ}
+    (h : ∀ μ : ℝ, g2 * μ ^ 2 - g1 * μ + g0 = (μ ^ 2 - T * μ + D) * (l1 * μ + l0)) :
+    l1 = 0 ∧ g2 = l0 ∧ g1 = T * l0 ∧ g0 = D * l0 := by
+  have h0 := h 0
+  have h1 := h 1
+  have hm := h (-1)
+  have h2 := h 2
+  have e1 : l1 = 0 := by linear_combination (-1 / 6 : ℝ) * (h2 - 3 * h1 + 3 * h0 - hm)
+  subst e1
+  refine ⟨rfl, ?_, ?_, ?_⟩
+  · linear_combination (1 / 2 : ℝ) * (h1 + hm - 2 * h0)
+  · linear_combination (-1 / 2 : ℝ) * (h1 - hm)
+  · linear_combination h0
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): the trace of `G⁻¹H` for `2 × 2` matrices. -/
+theorem tr2_inv2_mul (G H : Matrix (Fin 2) (Fin 2) ℝ) :
+    tr2 (inv2 G * H) = cross2 G H / det2 G := by
+  simp only [tr2, inv2, cross2, Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply,
+    Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.empty_val',
+    Matrix.cons_val_fin_one]
+  ring
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): the determinant of `G⁻¹H`. -/
+theorem det2_inv2_mul {G : Matrix (Fin 2) (Fin 2) ℝ} (hG : det2 G ≠ 0)
+    (H : Matrix (Fin 2) (Fin 2) ℝ) : det2 (inv2 G * H) = det2 H / det2 G := by
+  have e : det2 (inv2 G * H) = det2 H * (det2 G * (det2 G)⁻¹ ^ 2) := by
+    simp only [det2, inv2, Matrix.mul_apply, Fin.sum_univ_two, Matrix.of_apply,
+      Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.empty_val',
+      Matrix.cons_val_fin_one]
+    ring
+  rw [e]
+  field_simp
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): `det(−M) = det M` for `2 × 2` matrices. -/
+theorem det2_neg (M : Matrix (Fin 2) (Fin 2) ℝ) : det2 (-M) = det2 M := by
+  simp only [det2, Matrix.neg_apply]
+  ring
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): `tr(−M) = −tr M`. -/
+theorem tr2_neg (M : Matrix (Fin 2) (Fin 2) ℝ) : tr2 (-M) = -tr2 M := by
+  simp only [tr2, Matrix.neg_apply]
+  ring
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): `det(µI − X) = µ² − (tr X)µ + det X`. -/
+theorem det2_scalar_sub (μ : ℝ) (X : Matrix (Fin 2) (Fin 2) ℝ) :
+    det2 (μ • (1 : Matrix (Fin 2) (Fin 2) ℝ) - X) = μ ^ 2 - tr2 X * μ + det2 X := by
+  simp only [det2, tr2, Matrix.sub_apply, Matrix.smul_apply, Matrix.one_apply, smul_eq_mul]
+  simp
+  ring
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4 (tool): `det(MN) = det M det N` for `2 × 2` matrices. -/
+theorem det2_mul (M N : Matrix (Fin 2) (Fin 2) ℝ) : det2 (M * N) = det2 M * det2 N := by
+  rw [det2_eq_det, det2_eq_det, det2_eq_det, Matrix.det_mul]
+
+/-- Woodford (2003) (Ch. 8 copy), App. G.4, p. 722: Schur stability is preserved when both roots are
+scaled by `β ∈ (0, 1)`: `SchurStable T D → SchurStable (βT) (β²D)`. -/
+theorem schurStable_scale {T D β : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (h : SchurStable T D) :
+    SchurStable (β * T) (β ^ 2 * D) := by
+  obtain ⟨hD, hT⟩ := h
+  rw [abs_lt] at hD
+  have hb2 : β ^ 2 < 1 := by nlinarith
+  refine ⟨?_, ?_⟩
+  · rw [abs_lt]
+    constructor <;> nlinarith
+  · rw [abs_mul, abs_of_pos hβ0]
+    have h1 : β * |T| < β * (1 + D) := mul_lt_mul_of_pos_left hT hβ0
+    have h2 : 0 < 1 - β * D := by nlinarith [mul_pos hβ0 (sub_pos.mpr hD.2)]
+    nlinarith [mul_pos (sub_pos.mpr hβ1) h2]
+
+/-- **Woodford (2003) (Ch. 8 copy), App. G.4: the real solvent.** If `µ² − Tµ + D` (Schur-stable, `D
+> 0`) divides `p` as `p(µ) = (µ² − Tµ + D)(µ² − (T/(βD))µ + 1/(β²D))`, then `X = (A₁ − TP)⁻¹(A₂ −
+DP)` solves `PX² − A₁X + A₂ = 0`, has trace `T` and determinant `D`, and `B = PX − A₁` is invertible
+with `K = −B⁻¹P` having trace `βT` and determinant `β²D` (so its eigenvalues `βµ_k = 1/µ_k'` are the
+reciprocals of the unstable roots). -/
+theorem solvent_eq {β σ κ lx li T D : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hlx : 0 < lx)
+    (hli : 0 < li) (hTD : SchurStable T D) (hD : 0 < D)
+    (hfac : ∀ μ : ℝ, pR β σ κ lx li μ =
+      (μ ^ 2 - T * μ + D) * (μ ^ 2 - T / (β * D) * μ + 1 / (β ^ 2 * D))) :
+    let G := A1G β σ κ lx li - T • PmG β σ κ lx
+    let H := A2G β σ κ lx - D • PmG β σ κ lx
+    let X := inv2 G * H
+    let B := PmG β σ κ lx * X - A1G β σ κ lx li
+    det2 G ≠ 0 ∧ PmG β σ κ lx * X * X - A1G β σ κ lx li * X + A2G β σ κ lx = 0 ∧
+      tr2 X = T ∧ det2 X = D ∧ det2 B ≠ 0 ∧
+      tr2 (-(inv2 B * PmG β σ κ lx)) = β * T ∧ det2 (-(inv2 B * PmG β σ κ lx)) = β ^ 2 * D := by
+  intro G H X B
+  set P := PmG β σ κ lx with hP
+  set A1 := A1G β σ κ lx li with hA1
+  set A2 := A2G β σ κ lx with hA2
+  have hβ : β ≠ 0 := hβ0.ne'
+  -- the determinant of `H` is positive
+  have hdetH : det2 H = (1 - β * D) ^ 2 + D * lx * cpG σ κ lx ^ 2 := by
+    simp only [H, det2, PmG, A2G, Matrix.sub_apply, Matrix.smul_apply,
+      Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero, Matrix.cons_val_one,
+      Matrix.empty_val', Matrix.cons_val_fin_one, smul_eq_mul]
+    field_simp
+    ring
+  have hHpos : 0 < det2 H := by
+    rw [hdetH]
+    have : 0 < (1 - β * D) ^ 2 := by
+      obtain ⟨hD1, -⟩ := hTD
+      rw [abs_lt] at hD1
+      have : β * D < 1 := by nlinarith
+      positivity
+    positivity
+  -- the pencil identity `M(µ) = P_in(µ) P + (H − µG)`
+  have hM : ∀ μ : ℝ, MphiG β σ κ lx li μ = (μ ^ 2 - T * μ + D) • P + (H - μ • G) := by
+    intro μ
+    simp only [MphiG, H, G, ← hP, ← hA1, ← hA2]
+    module
+  have hpoly : ∀ μ : ℝ, det2 G * μ ^ 2 - cross2 G H * μ + det2 H =
+      (μ ^ 2 - T * μ + D) * ((β ^ 2 * (T - T / (β * D)) + cross2 P G) * μ
+        + (β ^ 2 * (1 / (β ^ 2 * D) - D) - cross2 P H)) := by
+    intro μ
+    have e1 := det_Mphi (σ := σ) (κ := κ) hβ hlx.ne' hli.ne' μ
+    rw [hM μ, det2_smul_add, hfac μ] at e1
+    have e2 : det2 (H - μ • G) = det2 G * μ ^ 2 - cross2 G H * μ + det2 H := by
+      simp only [det2, cross2, Matrix.sub_apply, Matrix.smul_apply, smul_eq_mul]
+      ring
+    have e3 : cross2 P (H - μ • G) = cross2 P H - μ * cross2 P G := by
+      simp only [cross2, Matrix.sub_apply, Matrix.smul_apply, smul_eq_mul]
+      ring
+    have e4 : det2 P = β ^ 2 := by
+      simp only [hP, det2, PmG, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
+        Matrix.cons_val_one, Matrix.empty_val', Matrix.cons_val_fin_one]
+      ring
+    rw [e2, e3, e4] at e1
+    linear_combination e1
+  obtain ⟨-, hg2, hg1, hg0⟩ := coeff_match hpoly
+  have hG : det2 G ≠ 0 := by
+    intro h0
+    rw [h0] at hg2
+    rw [← hg2, mul_zero] at hg0
+    linarith
+  have htrX : tr2 X = T := by
+    simp only [X]
+    rw [tr2_inv2_mul, hg1, ← hg2]
+    field_simp
+  have hdetX : det2 X = D := by
+    simp only [X]
+    rw [det2_inv2_mul hG, hg0, ← hg2]
+    field_simp
+  have hsolv : P * X * X - A1 * X + A2 = 0 := by
+    have hCH := sq_eq_cayleyHamilton X
+    rw [htrX, hdetX, sq] at hCH
+    have hGX : G * X = H := by
+      simp only [X]
+      rw [← mul_assoc, mul_inv2 hG, one_mul]
+    have hGX' : A1 * X - T • (P * X) = A2 - D • P := by
+      have hG' : G = A1 - T • P := rfl
+      have hH' : H = A2 - D • P := rfl
+      rw [hG', hH', sub_mul, smul_mul_assoc] at hGX
+      exact hGX
+    rw [mul_assoc, hCH, mul_sub, mul_smul_comm, mul_smul_comm, mul_one,
+      show A1 * X = A2 - D • P + T • (P * X) by rw [← hGX']; abel]
+    abel
+  refine ⟨hG, hsolv, htrX, hdetX, ?_⟩
+  -- the factorisation `M(µ) = (µP + B)(µI − X)`
+  have hBX : B * X = -A2 := by
+    simp only [B]
+    rw [sub_mul]
+    exact eq_neg_of_add_eq_zero_left hsolv
+  have hfact : ∀ μ : ℝ, MphiG β σ κ lx li μ =
+      (μ • P + B) * (μ • (1 : Matrix (Fin 2) (Fin 2) ℝ) - X) := by
+    intro μ
+    have hB' : B = P * X - A1 := rfl
+    rw [add_mul, mul_sub, mul_sub, smul_mul_assoc, mul_smul_comm, mul_one, smul_mul_assoc,
+      mul_smul_comm, mul_one, hBX, hB', smul_smul, ← sq]
+    simp only [MphiG, ← hP, ← hA1, ← hA2, smul_sub]
+    abel
+  have hdet : ∀ μ : ℝ, det2 (μ • P + B) * (μ ^ 2 - T * μ + D) =
+      β ^ 2 * ((μ ^ 2 - T * μ + D) * (μ ^ 2 - T / (β * D) * μ + 1 / (β ^ 2 * D))) := by
+    intro μ
+    have := det_Mphi (σ := σ) (κ := κ) hβ hlx.ne' hli.ne' μ
+    rw [hfact μ, det2_mul, det2_scalar_sub, htrX, hdetX, hfac μ] at this
+    exact this
+  have e4 : det2 P = β ^ 2 := by
+    simp only [hP, det2, PmG, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
+      Matrix.cons_val_one, Matrix.empty_val', Matrix.cons_val_fin_one]
+    ring
+  obtain ⟨hD1, hT1⟩ := hTD
+  rw [abs_lt] at hD1 hT1
+  have hp1 : 0 < 1 - T + D := by linarith
+  have hpm1 : 0 < 1 + T + D := by linarith
+  have q1 := hdet 1
+  have qm1 := hdet (-1)
+  rw [det2_smul_add, e4] at q1 qm1
+  have q1' : β ^ 2 + cross2 P B + det2 B =
+      β ^ 2 * (1 - T / (β * D) + 1 / (β ^ 2 * D)) := by
+    have h : (1 : ℝ) ^ 2 - T * 1 + D ≠ 0 := by nlinarith
+    apply mul_right_cancel₀ h
+    linear_combination q1
+  have qm1' : β ^ 2 - cross2 P B + det2 B =
+      β ^ 2 * (1 + T / (β * D) + 1 / (β ^ 2 * D)) := by
+    have h : (-1 : ℝ) ^ 2 - T * (-1) + D ≠ 0 := by nlinarith
+    apply mul_right_cancel₀ h
+    linear_combination qm1
+  have hdetB : det2 B = 1 / D := by
+    have : det2 B = β ^ 2 * (1 / (β ^ 2 * D)) := by linear_combination (q1' + qm1') / 2
+    rw [this]
+    field_simp
+  have hcrossB : cross2 P B = -(T / D) / β * β ^ 2 := by
+    have : cross2 P B = -(β ^ 2 * (T / (β * D))) := by linear_combination (q1' - qm1') / 2
+    rw [this]
+    field_simp
+  have hB0 : det2 B ≠ 0 := by rw [hdetB]; positivity
+  refine ⟨hB0, ?_, ?_⟩
+  · rw [tr2_neg, tr2_inv2_mul]
+    have hc : cross2 B P = cross2 P B := by simp only [cross2]; ring
+    rw [hc, hcrossB, hdetB]
+    field_simp
+  · rw [det2_neg, det2_inv2_mul hB0, e4, hdetB]
+    field_simp
+
+/-! ### The model (2.1), (3.1) and the first-order conditions (3.3)–(3.5) -/
+
+/-- Woodford (2003) (Ch. 8 copy), §3.1, pp. 583–584, Table 6.1: the parameters `β, σ, κ` of (2.1),
+(3.1), the loss weights `λ_x, λ_i` of (3.2) and the targets `x*, i*`. -/
+structure Calib where
+  /-- the discount factor -/
+  β : ℝ
+  /-- the intertemporal elasticity of substitution -/
+  σ : ℝ
+  /-- the slope of the aggregate-supply relation -/
+  κ : ℝ
+  /-- the weight on the output gap -/
+  lx : ℝ
+  /-- the weight on the interest rate -/
+  li : ℝ
+  /-- the output-gap target -/
+  xstar : ℝ
+  /-- the interest-rate target -/
+  istar : ℝ
+
+/-- Woodford (2003) (Ch. 8 copy), §3.1, p. 584: the admissible parameters, `0 < β < 1`, `σ, κ, λ_x,
+λ_i > 0`. -/
+def Calib.Adm (c : Calib) : Prop :=
+  0 < c.β ∧ c.β < 1 ∧ 0 < c.σ ∧ 0 < c.κ ∧ 0 < c.lx ∧ 0 < c.li
+
+/-- Woodford (2003) (Ch. 8 copy), (3.6)–(3.7), p. 584: a scalar process lagged once, with the
+pre-sample value `z_{−1} = z₀`. -/
+def lag (z0 : ℝ) (z : ℕ → Ω → ℝ) : ℕ → Ω → ℝ
+  | 0 => fun _ => z0
+  | t + 1 => z t
+
+/-- Woodford (2003) (Ch. 8 copy), (2.1), p. 560: `π_t = κx_t + βE_tπ_{t+1} + u_t`. -/
+def AS (c : Calib) (u π x : ℕ → Ω → ℝ) (t : ℕ) : Prop :=
+  π t = c.κ • x t + c.β • 𝔼.E t (π (t + 1)) + u t
+
+/-- Woodford (2003) (Ch. 8 copy), (3.1), p. 583: `x_t = E_t x_{t+1} − σ(i_t − E_tπ_{t+1} − rⁿ_t)`.
+-/
+def IS (c : Calib) (rn π x i : ℕ → Ω → ℝ) (t : ℕ) : Prop :=
+  x t = 𝔼.E t (x (t + 1)) - c.σ • (i t - 𝔼.E t (π (t + 1)) - rn t)
+
+/-- Woodford (2003) (Ch. 8 copy), (3.3), p. 584: `π_t − β⁻¹σφ_{1,t−1} + φ_{2t} − φ_{2,t−1} = 0`. -/
+def FOC3 (c : Calib) (π φ1 φ2 : ℕ → Ω → ℝ) (φ1h φ2h : ℝ) (t : ℕ) : Prop :=
+  π t - (c.σ / c.β) • lag φ1h φ1 t + φ2 t - lag φ2h φ2 t = 0
+
+/-- Woodford (2003) (Ch. 8 copy), (3.4), p. 584: `λ_x(x_t − x*) + φ_{1t} − β⁻¹φ_{1,t−1} − κφ_{2t} =
+0`. -/
+def FOC4 (c : Calib) (x φ1 φ2 : ℕ → Ω → ℝ) (φ1h : ℝ) (t : ℕ) : Prop :=
+  c.lx • (x t - fun _ => c.xstar) + φ1 t - c.β⁻¹ • lag φ1h φ1 t - c.κ • φ2 t = 0
+
+/-- Woodford (2003) (Ch. 8 copy), (3.5), p. 584: `λ_i(i_t − i*) + σφ_{1t} = 0`. -/
+def FOC5 (c : Calib) (i φ1 : ℕ → Ω → ℝ) (t : ℕ) : Prop :=
+  c.li • (i t - fun _ => c.istar) + c.σ • φ1 t = 0
+
+/-! ### The multiplier system -/
+
+/-- Woodford (2003) (Ch. 8 copy), (2.1), (3.1), (3.3)–(3.5) (real form of the substitution): with
+`π_t = β⁻¹σφ_{1,t−1} − φ_{2t} + φ_{2,t−1}`, `x_t − x* = λ_x⁻¹(κφ_{2t} − φ_{1t} + β⁻¹φ_{1,t−1})`,
+`i_t − i* = −(σ/λ_i)φ_{1t}` (and the same one date ahead in expectation), (2.1) is the second
+row and (3.1) the first row of the multiplier system. -/
+theorem rows_real (c : Calib) (hβ : c.β ≠ 0) (hlx : c.lx ≠ 0) (hli : c.li ≠ 0)
+    {a1 a2 f1 f2 e1 e2 p x i ep ex u rn : ℝ}
+    (hp : p = c.σ / c.β * a1 - f2 + a2) (hep : ep = c.σ / c.β * f1 - e2 + f2)
+    (hx : x = c.xstar + c.lx⁻¹ * (c.κ * f2 - f1 + c.β⁻¹ * a1))
+    (hex : ex = c.xstar + c.lx⁻¹ * (c.κ * e2 - e1 + c.β⁻¹ * f1))
+    (hi : i = c.istar - c.σ / c.li * f1) :
+    (p = c.κ * x + c.β * ep + u ↔
+      c.β * e2 - cpG c.σ c.κ c.lx * f1 - c2G c.β c.κ c.lx * f2 + cpG c.σ c.κ c.lx / c.β * a1
+        + a2 = u + c.κ * c.xstar) ∧
+    (x = ex - c.σ * (i - ep - rn) ↔
+      c.β * e1 + c.β * c.lx * cpG c.σ c.κ c.lx * e2 - c1G c.β c.σ c.lx c.li * f1
+        - c.β * c.lx * cpG c.σ c.κ c.lx * f2 + a1 = c.β * c.lx * c.σ * (rn - c.istar)) := by
+  subst hp hep hx hex hi
+  unfold cpG c1G c2G
+  have hbl : c.β * c.lx ≠ 0 := mul_ne_zero hβ hlx
+  refine ⟨⟨fun h => ?_, fun h => ?_⟩, ⟨fun h => ?_, fun h => ?_⟩⟩
+  · linear_combination (norm := (field_simp; ring)) h
+  · linear_combination (norm := (field_simp; ring)) h
+  · linear_combination (norm := (field_simp; ring)) (c.β * c.lx) * h
+  · linear_combination (norm := (field_simp; ring)) (1 / (c.β * c.lx)) * h
+
+/-- Woodford (2003) (Ch. 8 copy), (2.1), (3.1): the forcing of the multiplier system,
+`F_t = (βλ_xσ(rⁿ_t − i*), u_t + κx*)`. -/
+noncomputable def Fphi (c : Calib) (rn u : ℕ → Ω → ℝ) : ℕ → Fin 2 → Ω → ℝ :=
+  fun t => ![(c.β * c.lx * c.σ) • (rn t - fun _ => c.istar), u t + fun _ => c.κ * c.xstar]
+
+/-- Woodford (2003) (Ch. 8 copy), (3.3): inflation from the multipliers. -/
+noncomputable def piOf (c : Calib) (Φh : Fin 2 → ℝ) (Φ : ℕ → Fin 2 → Ω → ℝ) : ℕ → Ω → ℝ :=
+  fun t => (c.σ / c.β) • lagV Φh Φ t 0 - Φ t 1 + lagV Φh Φ t 1
+
+/-- Woodford (2003) (Ch. 8 copy), (3.4): the output gap from the multipliers. -/
+noncomputable def xOf (c : Calib) (Φh : Fin 2 → ℝ) (Φ : ℕ → Fin 2 → Ω → ℝ) : ℕ → Ω → ℝ :=
+  fun t => (fun _ => c.xstar) + c.lx⁻¹ • (c.κ • Φ t 1 - Φ t 0 + c.β⁻¹ • lagV Φh Φ t 0)
+
+/-- Woodford (2003) (Ch. 8 copy), (3.5): the interest rate from the multipliers. -/
+noncomputable def iOf (c : Calib) (Φ : ℕ → Fin 2 → Ω → ℝ) : ℕ → Ω → ℝ :=
+  fun t => (fun _ => c.istar) - (c.σ / c.li) • Φ t 0
+
+/-- Woodford (2003) (Ch. 8 copy), p. 584 (tool): a lag of an adapted process is known at each date.
+-/
+theorem lag_known (z0 : ℝ) {z : ℕ → Ω → ℝ} (hz : 𝔼.Adapted z) (t : ℕ) :
+    𝔼.E t (lag z0 z t) = lag z0 z t := by
+  cases t with
+  | zero => exact 𝔼.const 0 z0
+  | succ t => exact ForwardSolution.E_of_known 𝔼 (Nat.le_succ t) (hz t)
+
+/-- Woodford (2003) (Ch. 8 copy), (2.1), (3.1): the forcing of the multiplier system is adapted. -/
+theorem Fphi_adapted (c : Calib) {rn u : ℕ → Ω → ℝ} (hr : 𝔼.Adapted rn) (hu : 𝔼.Adapted u) :
+    VAdapted 𝔼 (Fphi c rn u) := by
+  intro t j
+  fin_cases j
+  · simp [Fphi, map_smul, map_sub, hr t, 𝔼.const]
+  · simp [Fphi, map_add, hu t, 𝔼.const]
+
+/-- Woodford (2003) (Ch. 8 copy), (2.1), (3.1): the forcing of the multiplier system is bounded. -/
+theorem Fphi_bounded (c : Calib) {rn u : ℕ → Ω → ℝ} (hr : BoundedProc rn)
+    (hu : BoundedProc u) : VBounded (Fphi c rn u) := by
+  obtain ⟨Mr, hMr⟩ := hr
+  obtain ⟨Mu, hMu⟩ := hu
+  refine ⟨|c.β * c.lx * c.σ| * (Mr + |c.istar|) + (Mu + |c.κ * c.xstar|), fun t j ω => ?_⟩
+  have h1 : |(c.β * c.lx * c.σ) * (rn t ω - c.istar)| ≤ |c.β * c.lx * c.σ| * (Mr + |c.istar|) := by
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left ((abs_sub _ _).trans (add_le_add (hMr t ω) le_rfl))
+      (abs_nonneg _)
+  have h2 : |u t ω + c.κ * c.xstar| ≤ Mu + |c.κ * c.xstar| :=
+    (abs_add_le _ _).trans (add_le_add (hMu t ω) le_rfl)
+  have h1' : 0 ≤ |c.β * c.lx * c.σ| * (Mr + |c.istar|) := (abs_nonneg _).trans h1
+  have h2' : 0 ≤ Mu + |c.κ * c.xstar| := (abs_nonneg _).trans h2
+  fin_cases j
+  · simp only [Fphi]
+    simp only [Fin.zero_eta, Matrix.cons_val_zero, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    linarith
+  · simp only [Fphi]
+    simp only [Fin.mk_one, Matrix.cons_val_one, Matrix.cons_val_zero, Pi.add_apply]
+    linarith
+
+/-- Woodford (2003) (Ch. 8 copy), p. 584 (tool): unfolding the entries of the multiplier system. -/
+theorem sys_row (P A1 A2 : Matrix (Fin 2) (Fin 2) ℝ) (v w z : Fin 2 → Ω → ℝ) (j : Fin 2)
+    (ω : Ω) : (rvMul P v - rvMul A1 w + rvMul A2 z) j ω =
+      P j 0 * v 0 ω + P j 1 * v 1 ω - (A1 j 0 * w 0 ω + A1 j 1 * w 1 ω)
+        + (A2 j 0 * z 0 ω + A2 j 1 * z 1 ω) := by
+  simp only [Pi.add_apply, Pi.sub_apply, rvMul_two]
+
+/-- Woodford (2003) (Ch. 8 copy), p. 585 (tool): the plan built from a bounded `Φ` is bounded. -/
+theorem planOf_bounded (c : Calib) (Φh : Fin 2 → ℝ) {Φ : ℕ → Fin 2 → Ω → ℝ}
+    (hΦ : VBounded Φ) :
+    BoundedProc (piOf c Φh Φ) ∧ BoundedProc (xOf c Φh Φ) ∧ BoundedProc (iOf c Φ) := by
+  obtain ⟨M, hM⟩ := hΦ
+  obtain ⟨ML, hML⟩ := lagV_bounded Φh ⟨M, hM⟩
+  refine ⟨⟨|c.σ / c.β| * ML + M + ML, fun t ω => ?_⟩,
+    ⟨|c.xstar| + |c.lx⁻¹| * (|c.κ| * M + M + |c.β⁻¹| * ML), fun t ω => ?_⟩,
+    ⟨|c.istar| + |c.σ / c.li| * M, fun t ω => ?_⟩⟩
+  · simp only [piOf, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    refine (abs_add_le _ _).trans (add_le_add ((abs_sub _ _).trans (add_le_add ?_
+      (hM t 1 ω))) (hML t 1 ω))
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hML t 0 ω) (abs_nonneg _)
+  · simp only [xOf, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    refine (abs_add_le _ _).trans (add_le_add le_rfl ?_)
+    rw [abs_mul]
+    refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg _)
+    refine (abs_add_le _ _).trans (add_le_add ((abs_sub _ _).trans (add_le_add ?_
+      (hM t 0 ω))) ?_)
+    · rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hM t 1 ω) (abs_nonneg _)
+    · rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hML t 0 ω) (abs_nonneg _)
+  · simp only [iOf, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    refine (abs_sub _ _).trans (add_le_add le_rfl ?_)
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hM t 0 ω) (abs_nonneg _)
+
+/-- Woodford (2003) (Ch. 8 copy), p. 585 (tool): the plan built from an adapted `Φ` is adapted. -/
+theorem planOf_adapted (c : Calib) (Φh : Fin 2 → ℝ) {Φ : ℕ → Fin 2 → Ω → ℝ}
+    (hΦ : VAdapted 𝔼 Φ) :
+    𝔼.Adapted (piOf c Φh Φ) ∧ 𝔼.Adapted (xOf c Φh Φ) ∧ 𝔼.Adapted (iOf c Φ) := by
+  refine ⟨fun t => ?_, fun t => ?_, fun t => ?_⟩
+  · simp only [piOf, map_add, map_sub, map_smul, hΦ t 1, lagV_known 𝔼 hΦ t 0,
+      lagV_known 𝔼 hΦ t 1]
+  · simp only [xOf, map_add, map_sub, map_smul, hΦ t 0, hΦ t 1, 𝔼.const,
+      lagV_known 𝔼 hΦ t 0]
+  · simp only [iOf, map_sub, map_smul, hΦ t 0, 𝔼.const]
+
+/-! ### Optimality: Lagrangian sufficiency, timeless and robust -/
+
+/-- Woodford (2003) (Ch. 8 copy), (3.2), p. 583: the period loss `π_t² + λ_x(x_t − x*)² + λ_i(i_t −
+i*)²`. -/
+noncomputable def periodLoss (c : Calib) (π x i : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => π t ω ^ 2 + c.lx * (x t ω - c.xstar) ^ 2 + c.li * (i t ω - c.istar) ^ 2
+
+/-- Woodford (2003) (Ch. 8 copy), (2.2), p. 560, with (3.2): the expected discounted loss
+`E_{t₀} ∑_{t ≥ t₀} β^{t−t₀} L_t` (`t₀ = 0`), as a function of the date-0 state. -/
+noncomputable def Jloss (c : Calib) (π x i : ℕ → Ω → ℝ) : Ω → ℝ :=
+  fun ω => ∑' t, c.β ^ t * 𝔼.E 0 (periodLoss c π x i t) ω
+
+/-- Woodford (2003) (Ch. 8 copy), §3.1, p. 584: a plan is feasible if it satisfies (2.1) and (3.1)
+at all dates. -/
+def Feasible (c : Calib) (rn u π x i : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, AS 𝔼 c u π x t ∧ IS 𝔼 c rn π x i t
+
+/-- Woodford (2003) (Ch. 8 copy), (3.3)–(3.5), p. 584: the first-order conditions with multipliers
+`φ₁, φ₂` and pre-sample multipliers `φ_{1,−1}, φ_{2,−1}`. -/
+def FOC (c : Calib) (π x i φ1 φ2 : ℕ → Ω → ℝ) (φ1h φ2h : ℝ) : Prop :=
+  ∀ t, FOC3 c π φ1 φ2 φ1h φ2h t ∧ FOC4 c x φ1 φ2 φ1h t ∧ FOC5 c i φ1 t
+
+/-- Woodford (2003) (Ch. 8 copy), §1.1, p. 538 (optimality subject to the initial commitments
+(3.6)): the plan is bounded, adapted and feasible, has `π₀ = π̄₀`, `x₀ = x̄₀`, and attains the
+lowest expected discounted loss among all such plans. -/
+def OptimalGiven (c : Calib) (rn u : ℕ → Ω → ℝ) (πbar xbar : Ω → ℝ) (π x i : ℕ → Ω → ℝ) :
+    Prop :=
+  Feasible 𝔼 c rn u π x i ∧ (𝔼.Adapted π ∧ 𝔼.Adapted x ∧ 𝔼.Adapted i) ∧
+    (BoundedProc π ∧ BoundedProc x ∧ BoundedProc i) ∧ π 0 = πbar ∧ x 0 = xbar ∧
+    ∀ π' x' i' : ℕ → Ω → ℝ, Feasible 𝔼 c rn u π' x' i' →
+      (𝔼.Adapted π' ∧ 𝔼.Adapted x' ∧ 𝔼.Adapted i') →
+      (BoundedProc π' ∧ BoundedProc x' ∧ BoundedProc i') → π' 0 = πbar → x' 0 = xbar →
+      Jloss 𝔼 c π x i ≤ Jloss 𝔼 c π' x' i'
+
+/-- Woodford (2003) (Ch. 8 copy), App. G (tool): a telescoping series with geometrically vanishing
+terms. -/
+theorem tsum_telescope {y : ℕ → ℝ} {C ρ : ℝ} (hρ0 : 0 ≤ ρ) (hρ1 : ρ < 1)
+    (hy : ∀ t, |y t| ≤ C * ρ ^ t) : ∑' t, (y t - y (t + 1)) = y 0 := by
+  have hs : Summable (fun t => y t - y (t + 1)) := by
+    refine Summable.of_norm_bounded ((summable_geometric_of_lt_one hρ0 hρ1).mul_left (2 * C))
+      (fun t => ?_)
+    rw [Real.norm_eq_abs]
+    have h1 := hy t
+    have h2 := hy (t + 1)
+    have hp : ρ ^ (t + 1) ≤ ρ ^ t := pow_le_pow_of_le_one hρ0 hρ1.le (Nat.le_succ t)
+    have hC : 0 ≤ C := by
+      have := (abs_nonneg (y 0)).trans (hy 0)
+      simpa using this
+    calc |y t - y (t + 1)| ≤ |y t| + |y (t + 1)| := abs_sub _ _
+      _ ≤ C * ρ ^ t + C * ρ ^ t := add_le_add h1 (h2.trans (mul_le_mul_of_nonneg_left hp hC))
+      _ = 2 * C * ρ ^ t := by ring
+  have hlim : Tendsto (fun n => ∑ t ∈ Finset.range n, (y t - y (t + 1))) atTop
+      (𝓝 (y 0)) := by
+    have hy0 : Tendsto y atTop (𝓝 0) := by
+      refine squeeze_zero_norm (a := fun t => C * ρ ^ t) (fun t => ?_) ?_
+      · rw [Real.norm_eq_abs]; exact hy t
+      · simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one hρ0 hρ1).const_mul C
+    have : (fun n => ∑ t ∈ Finset.range n, (y t - y (t + 1))) = fun n => y 0 - y n := by
+      funext n
+      exact Finset.sum_range_sub' y n
+    rw [this]
+    simpa using hy0.const_sub (y 0)
+  exact tendsto_nhds_unique hs.hasSum.tendsto_sum_nat hlim
+
+/-- Woodford (2003) (Ch. 8 copy), (2.2), p. 560 (tool): discounted expectations of a bounded process
+are summable. -/
+theorem summable_disc {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {f : ℕ → Ω → ℝ} {M : ℝ}
+    (hf : ∀ t ω, |f t ω| ≤ M) (ω : Ω) : Summable (fun t => β ^ t * 𝔼.E 0 (f t) ω) :=
+  Summable.of_norm_bounded ((summable_geometric_of_lt_one hβ0 hβ1).mul_right M) (fun t => by
+    rw [Real.norm_eq_abs, abs_mul, abs_pow, abs_of_nonneg hβ0]
+    exact mul_le_mul_of_nonneg_left (𝔼.abs_E_le (hf t) 0 ω) (pow_nonneg hβ0 t))
+
+/-- Woodford (2003) (Ch. 8 copy), (3.2), p. 583 (tool): the period loss of a bounded plan is
+bounded. -/
+theorem periodLoss_bounded (c : Calib) (hc : c.Adm) {π x i : ℕ → Ω → ℝ} (hπ : BoundedProc π)
+    (hx : BoundedProc x) (hi : BoundedProc i) :
+    ∃ M, ∀ t ω, |periodLoss c π x i t ω| ≤ M := by
+  obtain ⟨-, -, -, -, hlx, hli⟩ := hc
+  obtain ⟨Mπ, hMπ⟩ := hπ
+  obtain ⟨Mx, hMx⟩ := hx
+  obtain ⟨Mi, hMi⟩ := hi
+  refine ⟨Mπ ^ 2 + c.lx * (Mx + |c.xstar|) ^ 2 + c.li * (Mi + |c.istar|) ^ 2, fun t ω => ?_⟩
+  have h1 : π t ω ^ 2 ≤ Mπ ^ 2 := by
+    have := hMπ t ω
+    have h0 : 0 ≤ |π t ω| := abs_nonneg _
+    nlinarith [sq_abs (π t ω)]
+  have h2 : (x t ω - c.xstar) ^ 2 ≤ (Mx + |c.xstar|) ^ 2 := by
+    have := (abs_sub (x t ω) c.xstar).trans (add_le_add (hMx t ω) le_rfl)
+    have h0 : 0 ≤ |x t ω - c.xstar| := abs_nonneg _
+    nlinarith [sq_abs (x t ω - c.xstar)]
+  have h3 : (i t ω - c.istar) ^ 2 ≤ (Mi + |c.istar|) ^ 2 := by
+    have := (abs_sub (i t ω) c.istar).trans (add_le_add (hMi t ω) le_rfl)
+    have h0 : 0 ≤ |i t ω - c.istar| := abs_nonneg _
+    nlinarith [sq_abs (i t ω - c.istar)]
+  have hnn : 0 ≤ periodLoss c π x i t ω := by
+    unfold periodLoss
+    positivity
+  rw [abs_of_nonneg hnn]
+  unfold periodLoss
+  nlinarith [mul_le_mul_of_nonneg_left h2 hlx.le, mul_le_mul_of_nonneg_left h3 hli.le]
+
+/-- **Woodford (2003) (Ch. 8 copy, generalised), §3.1, pp. 584–585, and Ch. 7 (the Lagrangian
+method made exact):
+the Lagrangian identity.** Let `(π, x, i)` be feasible and satisfy the first-order conditions
+(3.3)–(3.5) with bounded adapted multipliers, and let `(π', x', i')` be any bounded feasible plan
+with the same initial values `π'₀ = π₀`, `x'₀ = x₀` (the commitments (3.6)), or with zero initial
+multipliers `φ1h = φ2h = 0` (the date-0 problem (2.25)). Then (under the
+pull-out property) the loss difference is exactly
+`J' − J = ∑ βᵗ E₀[(π'_t − π_t)² + λ_x(x'_t − x_t)² + λ_i(i'_t − i_t)²]`. -/
+theorem lagrangian_identity (c : Calib) (hc : c.Adm) (hpo : 𝔼.PullOut)
+    {rn u π x i φ1 φ2 : ℕ → Ω → ℝ} {φ1h φ2h : ℝ}
+    (hf : Feasible 𝔼 c rn u π x i) (hfoc : FOC c π x i φ1 φ2 φ1h φ2h)
+    (hφ1a : 𝔼.Adapted φ1) (hφ2a : 𝔼.Adapted φ2)
+    (hπb : BoundedProc π) (hxb : BoundedProc x) (hib : BoundedProc i)
+    (hφ1b : BoundedProc φ1) (hφ2b : BoundedProc φ2)
+    {π' x' i' : ℕ → Ω → ℝ} (hf' : Feasible 𝔼 c rn u π' x' i')
+    (hπb' : BoundedProc π') (hxb' : BoundedProc x') (hib' : BoundedProc i')
+    (hinit : (φ1h = 0 ∧ φ2h = 0) ∨ (π' 0 = π 0 ∧ x' 0 = x 0)) (ω : Ω) :
+    Jloss 𝔼 c π' x' i' ω = Jloss 𝔼 c π x i ω +
+      ∑' t, c.β ^ t * 𝔼.E 0 (fun ω' => (π' t ω' - π t ω') ^ 2
+        + c.lx * (x' t ω' - x t ω') ^ 2 + c.li * (i' t ω' - i t ω') ^ 2) ω := by
+  have hc' := hc
+  obtain ⟨hβ0, hβ1, hσ, hκ, hlx, hli⟩ := hc'
+  set dπ : ℕ → Ω → ℝ := fun t => π' t - π t with hdπ
+  set dx : ℕ → Ω → ℝ := fun t => x' t - x t with hdx
+  set di : ℕ → Ω → ℝ := fun t => i' t - i t with hdi
+  set Sq : ℕ → Ω → ℝ := fun t ω' => (π' t ω' - π t ω') ^ 2
+    + c.lx * (x' t ω' - x t ω') ^ 2 + c.li * (i' t ω' - i t ω') ^ 2 with hSq
+  set G : ℕ → Ω → ℝ := fun t => π t * dπ t + c.lx • ((x t - fun _ => c.xstar) * dx t)
+    + c.li • ((i t - fun _ => c.istar) * di t) with hG
+  set b : ℕ → Ω → ℝ := fun t => c.β⁻¹ • (lag φ1h φ1 t * (c.σ • dπ t + dx t))
+    + lag φ2h φ2 t * dπ t with hb
+  -- (1) the loss difference
+  have hL : ∀ t, periodLoss c π' x' i' t = periodLoss c π x i t + (2 : ℝ) • G t + Sq t := by
+    intro t
+    funext ω'
+    simp only [periodLoss, hG, hSq, hdπ, hdx, hdi, Pi.add_apply, Pi.smul_apply, Pi.mul_apply,
+      Pi.sub_apply, smul_eq_mul]
+    ring
+  -- (2) the first-order conditions and the constraints
+  have hGb : ∀ t, G t = b t - (c.β • (φ2 t * 𝔼.E t (dπ (t + 1)))
+      + φ1 t * (𝔼.E t (dx (t + 1)) + c.σ • 𝔼.E t (dπ (t + 1)))) := by
+    intro t
+    funext ω'
+    obtain ⟨f3, f4, f5⟩ := hfoc t
+    have f3 := congrFun f3 ω'
+    have f4 := congrFun f4 ω'
+    have f5 := congrFun f5 ω'
+    have a1 := congrFun (hf t).1 ω'
+    have a2 := congrFun (hf' t).1 ω'
+    have s1 := congrFun (hf t).2 ω'
+    have s2 := congrFun (hf' t).2 ω'
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul,
+      Pi.zero_apply] at f3 f4 f5 a1 a2 s1 s2
+    simp only [hG, hb, hdπ, hdx, hdi, map_sub, Pi.add_apply, Pi.sub_apply, Pi.smul_apply,
+      Pi.mul_apply, smul_eq_mul]
+    have hβne : c.β ≠ 0 := hβ0.ne'
+    linear_combination (norm := (field_simp; ring)) (π' t ω' - π t ω') * f3
+      + (x' t ω' - x t ω') * f4 + (i' t ω' - i t ω') * f5
+      - φ2 t ω' * (a2 - a1) - φ1 t ω' * (s2 - s1)
+  -- (3) the pull-out step: `E₀ c'_t = β E₀ b_{t+1}`
+  have hc' : ∀ t, 𝔼.E 0 (c.β • (φ2 t * 𝔼.E t (dπ (t + 1)))
+      + φ1 t * (𝔼.E t (dx (t + 1)) + c.σ • 𝔼.E t (dπ (t + 1)))) = c.β • 𝔼.E 0 (b (t + 1)) := by
+    intro t
+    have e1 : c.β • (φ2 t * 𝔼.E t (dπ (t + 1)))
+        + φ1 t * (𝔼.E t (dx (t + 1)) + c.σ • 𝔼.E t (dπ (t + 1))) =
+        𝔼.E t (c.β • (φ2 t * dπ (t + 1)) + φ1 t * (dx (t + 1) + c.σ • dπ (t + 1))) := by
+      rw [map_add, map_smul, hpo t _ _ (hφ2a t), hpo t _ _ (hφ1a t), map_add, map_smul]
+    have e2 : c.β • (φ2 t * dπ (t + 1)) + φ1 t * (dx (t + 1) + c.σ • dπ (t + 1)) =
+        c.β • b (t + 1) := by
+      have hβne : c.β ≠ 0 := hβ0.ne'
+      funext ω'
+      simp only [hb, lag, Pi.add_apply, Pi.smul_apply, Pi.mul_apply, smul_eq_mul]
+      field_simp
+      ring
+    rw [e1, 𝔼.tower (Nat.zero_le t), e2, map_smul]
+  -- (4) the initial term vanishes by the commitments (3.6)
+  have hb0 : b 0 = 0 := by
+    funext ω'
+    rcases hinit with ⟨h1, h2⟩ | ⟨h0, hx0⟩
+    · simp only [hb, lag, h1, h2, Pi.add_apply, Pi.smul_apply, Pi.mul_apply, smul_eq_mul,
+        Pi.zero_apply]
+      ring
+    · simp only [hb, hdπ, hdx, lag, h0, hx0, sub_self, Pi.add_apply, Pi.smul_apply,
+        Pi.mul_apply, smul_eq_mul, Pi.zero_apply]
+      ring
+  -- (5) bounds
+  obtain ⟨Mπ, hMπ⟩ := hπb
+  obtain ⟨Mx, hMx⟩ := hxb
+  obtain ⟨Mπ', hMπ'⟩ := hπb'
+  obtain ⟨Mx', hMx'⟩ := hxb'
+  obtain ⟨M1, hM1⟩ := hφ1b
+  obtain ⟨M2, hM2⟩ := hφ2b
+  set L1M := max M1 |φ1h|
+  set L2M := max M2 |φ2h|
+  have hl1 : ∀ t ω', |lag φ1h φ1 t ω'| ≤ L1M := by
+    intro t ω'
+    cases t with
+    | zero => exact le_max_right _ _
+    | succ t => exact (hM1 t ω').trans (le_max_left _ _)
+  have hl2 : ∀ t ω', |lag φ2h φ2 t ω'| ≤ L2M := by
+    intro t ω'
+    cases t with
+    | zero => exact le_max_right _ _
+    | succ t => exact (hM2 t ω').trans (le_max_left _ _)
+  have hdπb : ∀ t ω', |dπ t ω'| ≤ Mπ' + Mπ := fun t ω' =>
+    (abs_sub _ _).trans (add_le_add (hMπ' t ω') (hMπ t ω'))
+  have hdxb : ∀ t ω', |dx t ω'| ≤ Mx' + Mx := fun t ω' =>
+    (abs_sub _ _).trans (add_le_add (hMx' t ω') (hMx t ω'))
+  set MB := |c.β⁻¹| * (L1M * (|c.σ| * (Mπ' + Mπ) + (Mx' + Mx))) + L2M * (Mπ' + Mπ)
+  have hbb : ∀ t ω', |b t ω'| ≤ MB := by
+    intro t ω'
+    simp only [hb, Pi.add_apply, Pi.smul_apply, Pi.mul_apply, smul_eq_mul]
+    refine (abs_add_le _ _).trans (add_le_add ?_ ?_)
+    · rw [abs_mul, abs_mul]
+      refine mul_le_mul_of_nonneg_left (mul_le_mul (hl1 t ω') ?_ (abs_nonneg _)
+        ((abs_nonneg _).trans (hl1 t ω'))) (abs_nonneg _)
+      refine (abs_add_le _ _).trans (add_le_add ?_ (hdxb t ω'))
+      rw [abs_mul]
+      exact mul_le_mul_of_nonneg_left (hdπb t ω') (abs_nonneg _)
+    · rw [abs_mul]
+      exact mul_le_mul (hl2 t ω') (hdπb t ω') (abs_nonneg _) ((abs_nonneg _).trans (hl2 t ω'))
+  -- (6) summing
+  set y : ℕ → ℝ := fun t => c.β ^ t * 𝔼.E 0 (b t) ω with hy
+  have hyb : ∀ t, |y t| ≤ MB * c.β ^ t := by
+    intro t
+    simp only [hy, abs_mul, abs_pow, abs_of_pos hβ0]
+    rw [mul_comm MB]
+    exact mul_le_mul_of_nonneg_left (𝔼.abs_E_le (hbb t) 0 ω) (pow_nonneg hβ0.le t)
+  have key : ∀ t, c.β ^ t * 𝔼.E 0 (periodLoss c π' x' i' t) ω =
+      c.β ^ t * 𝔼.E 0 (periodLoss c π x i t) ω + 2 * (y t - y (t + 1))
+        + c.β ^ t * 𝔼.E 0 (Sq t) ω := by
+    intro t
+    have e := congrFun (congrArg (𝔼.E 0) (hL t)) ω
+    rw [map_add, map_add, map_smul, hGb t, map_sub, hc' t] at e
+    simp only [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul] at e
+    rw [e]
+    simp only [hy, pow_succ]
+    ring
+  obtain ⟨ML, hML⟩ := periodLoss_bounded c hc ⟨Mπ, hMπ⟩ ⟨Mx, hMx⟩ hib
+  obtain ⟨ML', hML'⟩ := periodLoss_bounded c hc ⟨Mπ', hMπ'⟩ ⟨Mx', hMx'⟩ hib'
+  have s1 := summable_disc 𝔼 hβ0.le hβ1 hML ω
+  have s1' := summable_disc 𝔼 hβ0.le hβ1 hML' ω
+  have s2 : Summable (fun t => y t - y (t + 1)) := by
+    refine Summable.of_norm_bounded ((summable_geometric_of_lt_one hβ0.le hβ1).mul_left
+      (2 * MB)) (fun t => ?_)
+    rw [Real.norm_eq_abs]
+    have hp : c.β ^ (t + 1) ≤ c.β ^ t := pow_le_pow_of_le_one hβ0.le hβ1.le (Nat.le_succ t)
+    have hMB : 0 ≤ MB := (abs_nonneg _).trans (hbb 0 ω)
+    calc |y t - y (t + 1)| ≤ |y t| + |y (t + 1)| := abs_sub _ _
+      _ ≤ MB * c.β ^ t + MB * c.β ^ t :=
+          add_le_add (hyb t) ((hyb (t + 1)).trans (mul_le_mul_of_nonneg_left hp hMB))
+      _ = 2 * MB * c.β ^ t := by ring
+  have s3 : Summable (fun t => c.β ^ t * 𝔼.E 0 (Sq t) ω) := by
+    have : (fun t => c.β ^ t * 𝔼.E 0 (Sq t) ω) = fun t =>
+        c.β ^ t * 𝔼.E 0 (periodLoss c π' x' i' t) ω
+          - c.β ^ t * 𝔼.E 0 (periodLoss c π x i t) ω - 2 * (y t - y (t + 1)) := by
+      funext t
+      rw [key t]
+      ring
+    rw [this]
+    exact (s1'.sub s1).sub (s2.mul_left 2)
+  have htel : ∑' t, (y t - y (t + 1)) = 0 := by
+    rw [tsum_telescope hβ0.le hβ1 (C := MB) hyb]
+    simp [hy, hb0]
+  unfold Jloss
+  rw [tsum_congr key, (s1.add (s2.mul_left 2)).tsum_add s3, s1.tsum_add (s2.mul_left 2),
+    tsum_mul_left, htel]
+  ring
+
+/-- **Woodford (2003) (Ch. 8 copy, generalised), §3.1, pp. 584–585: Lagrangian sufficiency.** A plan
+satisfying (2.1), (3.1) and the first-order conditions (3.3)–(3.5) with bounded adapted multipliers
+minimises the expected discounted loss among all bounded feasible plans with the same initial values
+(3.6), or among all bounded feasible plans when the initial multipliers are zero ((2.25)) (under the
+pull-out property, true for perfect foresight and every finite event tree). -/
+theorem plan_optimal (c : Calib) (hc : c.Adm) (hpo : 𝔼.PullOut)
+    {rn u π x i φ1 φ2 : ℕ → Ω → ℝ} {φ1h φ2h : ℝ}
+    (hf : Feasible 𝔼 c rn u π x i) (hfoc : FOC c π x i φ1 φ2 φ1h φ2h)
+    (hφ1a : 𝔼.Adapted φ1) (hφ2a : 𝔼.Adapted φ2)
+    (hπb : BoundedProc π) (hxb : BoundedProc x) (hib : BoundedProc i)
+    (hφ1b : BoundedProc φ1) (hφ2b : BoundedProc φ2)
+    {π' x' i' : ℕ → Ω → ℝ} (hf' : Feasible 𝔼 c rn u π' x' i')
+    (hπb' : BoundedProc π') (hxb' : BoundedProc x') (hib' : BoundedProc i')
+    (hinit : (φ1h = 0 ∧ φ2h = 0) ∨ (π' 0 = π 0 ∧ x' 0 = x 0)) :
+    Jloss 𝔼 c π x i ≤ Jloss 𝔼 c π' x' i' := by
+  intro ω
+  rw [lagrangian_identity 𝔼 c hc hpo hf hfoc hφ1a hφ2a hπb hxb hib hφ1b hφ2b hf' hπb' hxb'
+    hib' hinit ω]
+  have hlx := hc.2.2.2.2.1
+  have hli := hc.2.2.2.2.2
+  refine le_add_of_nonneg_right (tsum_nonneg fun t => mul_nonneg (pow_nonneg hc.1.le t) ?_)
+  have hm := 𝔼.mono 0 (x := fun _ => (0 : ℝ))
+    (y := fun ω' => (π' t ω' - π t ω') ^ 2 + c.lx * (x' t ω' - x t ω') ^ 2
+      + c.li * (i' t ω' - i t ω') ^ 2) (fun ω' => by positivity)
+  rw [𝔼.const] at hm
+  exact hm ω
+
+/-! ### Uniqueness of the optimum under a faithful expectation system -/
+
+/-- **Woodford (2003) (Ch. 8 copy), §3.1 (uniqueness of the optimum by strict convexity), any
+faithful expectation system with the pull-out property.** A bounded feasible plan with the same
+initial values (3.6) (or any bounded feasible plan, when the initial multipliers are zero) and the
+same expected discounted loss as a plan satisfying the first-order conditions (3.3)–(3.5) with
+bounded adapted multipliers coincides with it. -/
+theorem unique_optimum (c : Calib) (hc : c.Adm) (hpo : 𝔼.PullOut) (hfa : Faithful 𝔼)
+    {rn u π x i φ1 φ2 : ℕ → Ω → ℝ} {φ1h φ2h : ℝ}
+    (hf : Feasible 𝔼 c rn u π x i) (hfoc : FOC c π x i φ1 φ2 φ1h φ2h)
+    (hφ1a : 𝔼.Adapted φ1) (hφ2a : 𝔼.Adapted φ2)
+    (hπb : BoundedProc π) (hxb : BoundedProc x) (hib : BoundedProc i)
+    (hφ1b : BoundedProc φ1) (hφ2b : BoundedProc φ2)
+    {π' x' i' : ℕ → Ω → ℝ} (hf' : Feasible 𝔼 c rn u π' x' i')
+    (hπb' : BoundedProc π') (hxb' : BoundedProc x') (hib' : BoundedProc i')
+    (hinit : (φ1h = 0 ∧ φ2h = 0) ∨ (π' 0 = π 0 ∧ x' 0 = x 0))
+    (hJ : Jloss 𝔼 c π' x' i' = Jloss 𝔼 c π x i) :
+    π' = π ∧ x' = x ∧ i' = i := by
+  have hc' := hc
+  obtain ⟨hβ0, hβ1, -, -, hlx, hli⟩ := hc'
+  set Sq : ℕ → Ω → ℝ := fun t ω' => (π' t ω' - π t ω') ^ 2 + c.lx * (x' t ω' - x t ω') ^ 2
+    + c.li * (i' t ω' - i t ω') ^ 2 with hSq
+  have hS0 : ∀ t, 0 ≤ Sq t := fun t ω' => by simp only [hSq]; positivity
+  obtain ⟨Mπ, hMπ⟩ := hπb
+  obtain ⟨Mx, hMx⟩ := hxb
+  obtain ⟨Mi, hMi⟩ := hib
+  obtain ⟨Mπ', hMπ'⟩ := hπb'
+  obtain ⟨Mx', hMx'⟩ := hxb'
+  obtain ⟨Mi', hMi'⟩ := hib'
+  have hSb : ∀ t ω', |Sq t ω'| ≤
+      (Mπ' + Mπ) ^ 2 + c.lx * (Mx' + Mx) ^ 2 + c.li * (Mi' + Mi) ^ 2 := by
+    intro t ω'
+    have a := (abs_sub (π' t ω') (π t ω')).trans (add_le_add (hMπ' t ω') (hMπ t ω'))
+    have b := (abs_sub (x' t ω') (x t ω')).trans (add_le_add (hMx' t ω') (hMx t ω'))
+    have d := (abs_sub (i' t ω') (i t ω')).trans (add_le_add (hMi' t ω') (hMi t ω'))
+    have a2 := sq_le_sq' (abs_le.mp a).1 (abs_le.mp a).2
+    have b2 := sq_le_sq' (abs_le.mp b).1 (abs_le.mp b).2
+    have d2 := sq_le_sq' (abs_le.mp d).1 (abs_le.mp d).2
+    rw [abs_of_nonneg (hS0 t ω')]
+    simp only [hSq]
+    nlinarith [mul_le_mul_of_nonneg_left b2 hlx.le, mul_le_mul_of_nonneg_left d2 hli.le]
+  have hE0 : ∀ t, 𝔼.E 0 (Sq t) = 0 := by
+    intro t
+    funext ω
+    have hid := lagrangian_identity 𝔼 c hc hpo hf hfoc hφ1a hφ2a ⟨Mπ, hMπ⟩ ⟨Mx, hMx⟩
+      ⟨Mi, hMi⟩ hφ1b hφ2b hf' ⟨Mπ', hMπ'⟩ ⟨Mx', hMx'⟩ ⟨Mi', hMi'⟩ hinit ω
+    rw [hJ] at hid
+    have hsum0 : ∑' s, c.β ^ s * 𝔼.E 0 (Sq s) ω = 0 := by linarith
+    have hnn : ∀ s, 0 ≤ c.β ^ s * 𝔼.E 0 (Sq s) ω := by
+      intro s
+      refine mul_nonneg (pow_nonneg hβ0.le s) ?_
+      have hm := 𝔼.mono 0 (hS0 s)
+      rw [show (0 : Ω → ℝ) = fun _ => (0 : ℝ) from rfl, 𝔼.const] at hm
+      exact hm ω
+    have hzero := (hasSum_zero_iff_of_nonneg hnn).mp
+      (hsum0 ▸ (summable_disc 𝔼 hβ0.le hβ1 hSb ω).hasSum)
+    have := congrFun hzero t
+    simp only [Pi.zero_apply] at this
+    rcases mul_eq_zero.mp this with h | h
+    · exact absurd h (pow_ne_zero t hβ0.ne')
+    · exact h
+  have hSt : ∀ t ω', Sq t ω' = 0 := fun t ω' =>
+    congrFun (hfa 0 (Sq t) (hS0 t) (hE0 t)) ω'
+  have hcomp : ∀ t ω', π' t ω' = π t ω' ∧ x' t ω' = x t ω' ∧ i' t ω' = i t ω' := by
+    intro t ω'
+    have h := hSt t ω'
+    simp only [hSq] at h
+    have q1 := sq_nonneg (π' t ω' - π t ω')
+    have q2 := mul_nonneg hlx.le (sq_nonneg (x' t ω' - x t ω'))
+    have q3 := mul_nonneg hli.le (sq_nonneg (i' t ω' - i t ω'))
+    have e1 : (π' t ω' - π t ω') ^ 2 = 0 := by linarith
+    have e2' : c.lx * (x' t ω' - x t ω') ^ 2 = 0 := by linarith
+    have e3' : c.li * (i' t ω' - i t ω') ^ 2 = 0 := by linarith
+    have e2 : (x' t ω' - x t ω') ^ 2 = 0 := (mul_eq_zero.mp e2').resolve_left hlx.ne'
+    have e3 : (i' t ω' - i t ω') ^ 2 = 0 := (mul_eq_zero.mp e3').resolve_left hli.ne'
+    exact ⟨sub_eq_zero.mp ((pow_eq_zero_iff two_ne_zero).mp e1),
+      sub_eq_zero.mp ((pow_eq_zero_iff two_ne_zero).mp e2),
+      sub_eq_zero.mp ((pow_eq_zero_iff two_ne_zero).mp e3)⟩
+  exact ⟨funext fun t => funext fun ω' => (hcomp t ω').1,
+    funext fun t => funext fun ω' => (hcomp t ω').2.1,
+    funext fun t => funext fun ω' => (hcomp t ω').2.2⟩
+
+end Woodford.GainsFromCommitment.TidyR5KappaPosCore
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Optimal responses to natural-rate disturbances: `κ > 0`, and uniqueness at `κ = 0`
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §1.2 (the first-order conditions
+(1.16)–(1.18), p. 478) and §2.2, pp. 502–507 (the loss (2.24), the IS relation (2.23), the initial
+conditions (2.25) and (2.26), Figure 7.6, and the `κ = 0` optimum (2.28)–(2.30)).
+
+## Main results
+
+**The general system with `κ > 0`** (the dynamics behind Figure 7.6). For every admissible
+calibration (`0 < β < 1`, `σ, κ, λₓ, λᵢ > 0`), every bounded adapted natural rate `rⁿ` (and
+cost-push `u`) and every pair of initial multipliers `(φ_{1,t₀−1}, φ_{2,t₀−1})`:
+
+* the system (2.1), (2.23), (1.16)–(1.18) has **exactly one** bounded adapted solution
+  `(π, x, i, φ₁, φ₂)` (`foc_system_existsUnique`), through the one-to-one correspondence with the
+  multiplier system (`sys_of_foc`, `foc_of_sys`, `plan_eq_of_foc`);
+* with the initial conditions (2.25) it is the **`t₀`-optimal commitment**: it minimises the
+  expected discounted loss (2.24) among all bounded plans satisfying (2.1) and (2.23)
+  (`t0_optimal`); with any initial multipliers it is optimal given its own `π_{t₀}, x_{t₀}`, i.e.
+  **timelessly optimal** in the sense of (2.26) (`timeless_optimal`); with a faithful expectation
+  system it is the unique such optimum (`optimum_unique`);
+* **history dependence** (pp. 503–505): the multipliers follow the partial-adjustment law
+  `Φ_t = XΦ_{t−1} + ψ_t`, where `ψ_t` is the forward solution of `ψ_t = K E_tψ_{t+1} + B⁻¹F_t`
+  (current and expected future disturbances only) and the inertia matrix `X` is real, has both
+  eigenvalues inside the unit circle and `det X > 0` (so lagged multipliers always matter)
+  (`partial_adjustment`). This generalises (2.29) to `κ > 0`.
+
+**The `κ = 0` optimum (2.29).** Uniqueness holds whenever the date-`t₀` expectation is faithful
+(`kappa0_unique_faithful`) but **fails for a general expectation system**: on a two-state system
+in which the second state is null at `t₀` but revealed at `t₀ + 1`, a different bounded adapted
+plan satisfying (2.23) and the timeless constraint (2.26) attains the same expected loss
+(`kappa0_not_unique`).
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR5NaturalRateKappa
+
+open Filter Topology
+open TidyR5KappaPosCore (Calib lag AS IS FOC3 FOC4 FOC5 FOC Feasible Jloss OptimalGiven Sys2
+  lagV Fphi piOf xOf iOf PmG A1G A2G rows_real sys_row VAdapted VBounded planOf_bounded
+  planOf_adapted sys2_existsUnique exists_real_split solvent_eq schurStable_scale pG_ofReal pR
+  plan_optimal unique_optimum Faithful lagV_known Fphi_bounded Fphi_adapted psiOf inv2 FSolves
+  rvMul sys2_step_iff)
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-! ### The multipliers as a vector -/
+
+/-- Woodford (2003), (1.16)–(1.18), p. 478: the multiplier vector `Φ_t = (φ_{1t}, φ_{2t})`. -/
+def vecOf (φ1 φ2 : ℕ → Ω → ℝ) : ℕ → Fin 2 → Ω → ℝ := fun t => ![φ1 t, φ2 t]
+
+omit 𝔼 in
+/-- Woodford (2003), (2.25), p. 503: the initial multipliers `Φ_{t₀−1} = (φ_{1,t₀−1},
+φ_{2,t₀−1})`. -/
+def vecH (φ1h φ2h : ℝ) : Fin 2 → ℝ := ![φ1h, φ2h]
+
+omit 𝔼 in
+/-- Woodford (2003), p. 478 (tool): the lagged first multiplier is the first coordinate of the
+lagged vector. -/
+theorem lag_vec0 (φ1h φ2h : ℝ) (φ1 φ2 : ℕ → Ω → ℝ) (t : ℕ) :
+    lag φ1h φ1 t = lagV (vecH φ1h φ2h) (vecOf φ1 φ2) t 0 := by
+  cases t <;> rfl
+
+omit 𝔼 in
+/-- Woodford (2003), p. 478 (tool): the lagged second multiplier is the second coordinate. -/
+theorem lag_vec1 (φ1h φ2h : ℝ) (φ1 φ2 : ℕ → Ω → ℝ) (t : ℕ) :
+    lag φ2h φ2 t = lagV (vecH φ1h φ2h) (vecOf φ1 φ2) t 1 := by
+  cases t <;> rfl
+
+omit 𝔼 in
+/-- Woodford (2003), p. 478 (tool): the coordinates of a lagged vector are the lags of the
+coordinates. -/
+theorem lagV_coords (φ1h φ2h : ℝ) (Φ : ℕ → Fin 2 → Ω → ℝ) (t : ℕ) :
+    lagV (vecH φ1h φ2h) Φ t 0 = lag φ1h (fun s => Φ s 0) t ∧
+      lagV (vecH φ1h φ2h) Φ t 1 = lag φ2h (fun s => Φ s 1) t := by
+  cases t <;> exact ⟨rfl, rfl⟩
+
+omit 𝔼 in
+/-- Woodford (2003), (1.16)–(1.18), p. 478: given the multipliers, the first-order conditions
+determine the plan: `π`, `x`, `i` are `TidyR5KappaPosCore.piOf`, `TidyR5KappaPosCore.xOf`,
+`TidyR5KappaPosCore.iOf` of the multipliers. -/
+theorem plan_eq_of_foc (c : Calib) (hc : c.Adm) {π x i φ1 φ2 : ℕ → Ω → ℝ} {φ1h φ2h : ℝ}
+    (hfoc : FOC c π x i φ1 φ2 φ1h φ2h) :
+    π = piOf c (vecH φ1h φ2h) (vecOf φ1 φ2) ∧ x = xOf c (vecH φ1h φ2h) (vecOf φ1 φ2) ∧
+      i = iOf c (vecOf φ1 φ2) := by
+  obtain ⟨-, -, hσ, -, hlx, hli⟩ := hc
+  refine ⟨funext fun t => funext fun ω => ?_, funext fun t => funext fun ω => ?_,
+    funext fun t => funext fun ω => ?_⟩
+  · have h := congrFun (hfoc t).1 ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at h
+    simp only [piOf, ← lag_vec0, ← lag_vec1, Pi.add_apply, Pi.sub_apply, Pi.smul_apply,
+      smul_eq_mul]
+    simp only [vecOf, Matrix.cons_val_one, Matrix.cons_val_zero]
+    linarith
+  · have h := congrFun (hfoc t).2.1 ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at h
+    simp only [xOf, ← lag_vec0, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    simp only [vecOf, Matrix.cons_val_one, Matrix.cons_val_zero]
+    have e : c.lx * (x t ω - c.xstar) = c.κ * φ2 t ω - φ1 t ω + c.β⁻¹ * lag φ1h φ1 t ω := by
+      linarith
+    rw [← e]
+    field_simp
+    ring
+  · have h := congrFun (hfoc t).2.2 ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at h
+    simp only [iOf, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    simp only [vecOf, Matrix.cons_val_zero]
+    have e : c.σ * φ1 t ω = -(c.li * (i t ω - c.istar)) := by linarith
+    rw [div_mul_eq_mul_div, e]
+    field_simp
+    ring
+
+/-- Woodford (2003), (1.16)–(1.18) with (2.1), (2.23), pp. 478, 502–503 (from the plan to the
+multiplier system): the multipliers of a feasible plan satisfying the first-order conditions
+solve `P E_tΦ_{t+1} − A₁Φ_t + A₂Φ_{t−1} = F_t` with `Φ_{t₀−1}` the initial multipliers. -/
+theorem sys_of_foc (c : Calib) (hc : c.Adm) {rn u π x i φ1 φ2 : ℕ → Ω → ℝ} {φ1h φ2h : ℝ}
+    (hf : Feasible 𝔼 c rn u π x i) (hfoc : FOC c π x i φ1 φ2 φ1h φ2h) (hφ1a : 𝔼.Adapted φ1)
+    (hφ2a : 𝔼.Adapted φ2) :
+    Sys2 𝔼 (PmG c.β c.σ c.κ c.lx) (A1G c.β c.σ c.κ c.lx c.li) (A2G c.β c.σ c.κ c.lx)
+      (Fphi c rn u) (vecH φ1h φ2h) (vecOf φ1 φ2) := by
+  obtain ⟨hβ0, -, hσ, hκ, hlx, hli⟩ := hc
+  intro t
+  funext j ω
+  have hp : π t ω = c.σ / c.β * lag φ1h φ1 t ω - φ2 t ω + lag φ2h φ2 t ω := by
+    have := congrFun (hfoc t).1 ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at this
+    linarith
+  have hep : 𝔼.E t (π (t + 1)) ω = c.σ / c.β * φ1 t ω - 𝔼.E t (φ2 (t + 1)) ω + φ2 t ω := by
+    have h := congrArg (𝔼.E t) (hfoc (t + 1)).1
+    rw [map_zero] at h
+    have := congrFun h ω
+    simp only [lag, map_add, map_sub, map_smul, hφ1a t, hφ2a t, Pi.add_apply, Pi.sub_apply,
+      Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at this
+    linarith
+  have hx : x t ω = c.xstar + c.lx⁻¹ * (c.κ * φ2 t ω - φ1 t ω + c.β⁻¹ * lag φ1h φ1 t ω) := by
+    have := congrFun (hfoc t).2.1 ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at this
+    have e : c.lx * (x t ω - c.xstar) = c.κ * φ2 t ω - φ1 t ω + c.β⁻¹ * lag φ1h φ1 t ω := by
+      linarith
+    rw [← e]
+    field_simp
+    ring
+  have hex : 𝔼.E t (x (t + 1)) ω = c.xstar + c.lx⁻¹ * (c.κ * 𝔼.E t (φ2 (t + 1)) ω
+      - 𝔼.E t (φ1 (t + 1)) ω + c.β⁻¹ * φ1 t ω) := by
+    have h := congrArg (𝔼.E t) (hfoc (t + 1)).2.1
+    rw [map_zero] at h
+    have := congrFun h ω
+    simp only [lag, map_add, map_sub, map_smul, hφ1a t, 𝔼.const, Pi.add_apply, Pi.sub_apply,
+      Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at this
+    have e : c.lx * (𝔼.E t (x (t + 1)) ω - c.xstar) = c.κ * 𝔼.E t (φ2 (t + 1)) ω
+        - 𝔼.E t (φ1 (t + 1)) ω + c.β⁻¹ * φ1 t ω := by linarith
+    rw [← e]
+    field_simp
+    ring
+  have hi : i t ω = c.istar - c.σ / c.li * φ1 t ω := by
+    have := congrFun (hfoc t).2.2 ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at this
+    have e : c.σ * φ1 t ω = -(c.li * (i t ω - c.istar)) := by linarith
+    rw [div_mul_eq_mul_div, e]
+    field_simp
+    ring
+  have r := rows_real c hβ0.ne' hlx.ne' hli.ne' (u := u t ω) (rn := rn t ω) hp hep hx hex hi
+  have hAS : π t ω = c.κ * x t ω + c.β * 𝔼.E t (π (t + 1)) ω + u t ω := by
+    have := congrFun (hf t).1 ω
+    simpa only [AS, Pi.add_apply, Pi.smul_apply, smul_eq_mul] using this
+  have hIS : x t ω = 𝔼.E t (x (t + 1)) ω - c.σ * (i t ω - 𝔼.E t (π (t + 1)) ω - rn t ω) := by
+    have := congrFun (hf t).2 ω
+    simpa only [IS, Pi.sub_apply, Pi.smul_apply, smul_eq_mul] using this
+  rw [sys_row, ← lag_vec0, ← lag_vec1]
+  fin_cases j
+  · have := r.2.mp hIS
+    simp only [PmG, A1G, A2G, Fphi, vecOf, Matrix.of_apply, Matrix.cons_val', Fin.zero_eta,
+      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.empty_val', Matrix.cons_val_fin_one,
+      Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    linarith
+  · have := r.1.mp hAS
+    simp only [PmG, A1G, A2G, Fphi, vecOf, Matrix.of_apply, Matrix.cons_val', Fin.mk_one,
+      Matrix.cons_val_zero, Matrix.cons_val_one, Matrix.empty_val', Matrix.cons_val_fin_one,
+      Pi.add_apply]
+    linarith
+
+
+/-- Woodford (2003), (1.16)–(1.18) with (2.1), (2.23), pp. 478, 502–503 (from the multiplier
+system to the plan): for an adapted solution `Φ` of the multiplier system, the plan read off the
+first-order conditions satisfies (2.1) and (2.23), and `(Φ₁, Φ₂)` are its multipliers. -/
+theorem foc_of_sys (c : Calib) (hc : c.Adm) {rn u : ℕ → Ω → ℝ} {φ1h φ2h : ℝ}
+    {Φ : ℕ → Fin 2 → Ω → ℝ}
+    (hs : Sys2 𝔼 (PmG c.β c.σ c.κ c.lx) (A1G c.β c.σ c.κ c.lx c.li) (A2G c.β c.σ c.κ c.lx)
+      (Fphi c rn u) (vecH φ1h φ2h) Φ) (ha : VAdapted 𝔼 Φ) :
+    Feasible 𝔼 c rn u (piOf c (vecH φ1h φ2h) Φ) (xOf c (vecH φ1h φ2h) Φ) (iOf c Φ) ∧
+      FOC c (piOf c (vecH φ1h φ2h) Φ) (xOf c (vecH φ1h φ2h) Φ) (iOf c Φ) (fun s => Φ s 0)
+        (fun s => Φ s 1) φ1h φ2h := by
+  obtain ⟨hβ0, -, hσ, hκ, hlx, hli⟩ := hc
+  set Φh := vecH φ1h φ2h with hΦh
+  refine ⟨fun t => ?_, fun t => ⟨?_, ?_, ?_⟩⟩
+  · refine ⟨?_, ?_⟩
+    all_goals
+      have hrow := congrFun (hs t)
+      have hl : lagV Φh Φ (t + 1) = Φ t := rfl
+      funext ω
+      have r := rows_real c hβ0.ne' hlx.ne' hli.ne' (u := u t ω) (rn := rn t ω)
+        (a1 := lagV Φh Φ t 0 ω) (a2 := lagV Φh Φ t 1 ω) (f1 := Φ t 0 ω) (f2 := Φ t 1 ω)
+        (e1 := 𝔼.E t (Φ (t + 1) 0) ω) (e2 := 𝔼.E t (Φ (t + 1) 1) ω)
+        (p := piOf c Φh Φ t ω) (x := xOf c Φh Φ t ω) (i := iOf c Φ t ω)
+        (ep := 𝔼.E t (piOf c Φh Φ (t + 1)) ω) (ex := 𝔼.E t (xOf c Φh Φ (t + 1)) ω)
+        (by simp only [piOf, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul])
+        (by simp only [piOf, hl, map_add, map_sub, map_smul, ha t 0, ha t 1, Pi.add_apply,
+              Pi.sub_apply, Pi.smul_apply, smul_eq_mul])
+        (by simp only [xOf, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul])
+        (by simp only [xOf, hl, map_add, map_sub, map_smul, ha t 0, 𝔼.const, Pi.add_apply,
+              Pi.sub_apply, Pi.smul_apply, smul_eq_mul])
+        (by simp only [iOf, Pi.sub_apply, Pi.smul_apply, smul_eq_mul])
+      have h0 := hrow 0
+      have h1 := hrow 1
+      rw [funext_iff] at h0 h1
+      have h0 := h0 ω
+      have h1 := h1 ω
+      rw [sys_row] at h0 h1
+      simp only [PmG, A1G, A2G, Fphi, Matrix.of_apply, Matrix.cons_val', Matrix.cons_val_zero,
+        Matrix.cons_val_one, Matrix.empty_val',
+        Matrix.cons_val_fin_one, Pi.smul_apply, Pi.sub_apply, Pi.add_apply,
+        smul_eq_mul] at h0 h1
+    · simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      exact r.1.mpr (by linarith)
+    · simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      exact r.2.mpr (by linarith)
+  · obtain ⟨l0, l1⟩ := lagV_coords φ1h φ2h Φ t
+    unfold FOC3
+    rw [← l0, ← l1]
+    funext ω
+    simp only [piOf, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+    ring
+  · obtain ⟨l0, -⟩ := lagV_coords φ1h φ2h Φ t
+    unfold FOC4
+    rw [← l0]
+    funext ω
+    simp only [xOf, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+    field_simp
+    ring
+  · unfold FOC5
+    funext ω
+    simp only [iOf, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+    field_simp
+    ring
+
+omit 𝔼 in
+/-- Woodford (2003), App. G.4, p. 722, for the Chapter 7 problem (§2.2): the multiplier system has
+a real solvent `X` (`PX² − A₁X + A₂ = 0`) with both eigenvalues inside the unit circle and
+`det X > 0`, `B = PX − A₁` invertible, and `K = −B⁻¹P` with both eigenvalues inside the unit
+circle — for every admissible calibration. -/
+theorem exists_solvent (c : Calib) (hc : c.Adm) :
+    ∃ X : Matrix (Fin 2) (Fin 2) ℝ,
+      PmG c.β c.σ c.κ c.lx * X * X - A1G c.β c.σ c.κ c.lx c.li * X + A2G c.β c.σ c.κ c.lx = 0 ∧
+      SchurStable (tr2 X) (det2 X) ∧ 0 < det2 X ∧
+      det2 (PmG c.β c.σ c.κ c.lx * X - A1G c.β c.σ c.κ c.lx c.li) ≠ 0 ∧
+      SchurStable (tr2 (-(inv2 (PmG c.β c.σ c.κ c.lx * X - A1G c.β c.σ c.κ c.lx c.li) *
+          PmG c.β c.σ c.κ c.lx)))
+        (det2 (-(inv2 (PmG c.β c.σ c.κ c.lx * X - A1G c.β c.σ c.κ c.lx c.li) *
+          PmG c.β c.σ c.κ c.lx))) := by
+  obtain ⟨hβ0, hβ1, hσ, hκ, hlx, hli⟩ := hc
+  obtain ⟨T, D, hTD, hD, hfacC⟩ := exists_real_split hβ0 hβ1 hσ hκ hlx.le hli
+  have hfac : ∀ μ : ℝ, pR c.β c.σ c.κ c.lx c.li μ =
+      (μ ^ 2 - T * μ + D) * (μ ^ 2 - T / (c.β * D) * μ + 1 / (c.β ^ 2 * D)) := by
+    intro μ
+    have := hfacC μ
+    rw [pG_ofReal] at this
+    exact_mod_cast this
+  obtain ⟨-, hsolv, htr, hdet, hB, htrK, hdetK⟩ := solvent_eq hβ0 hβ1 hlx hli hTD hD hfac
+  have hK := schurStable_scale hβ0 hβ1 hTD
+  rw [← htrK, ← hdetK] at hK
+  refine ⟨_, hsolv, ?_, ?_, hB, hK⟩
+  · rw [htr, hdet]; exact hTD
+  · rw [hdet]; exact hD
+
+/-! ### Existence, uniqueness, optimality and history dependence for `κ > 0` -/
+
+/-- **The general system (1.16)–(1.18) under natural-rate (and cost-push) disturbances,
+`κ > 0`** (Woodford (2003), pp. 478 and 502–505): for every admissible calibration, every bounded
+adapted `rⁿ`, `u` and every pair of initial multipliers, (2.1), (2.23) and the first-order
+conditions (1.16)–(1.18) have **exactly one** bounded adapted solution `(π, x, i, φ₁, φ₂)`. -/
+theorem foc_system_existsUnique (c : Calib) (hc : c.Adm) {rn u : ℕ → Ω → ℝ}
+    (hrb : BoundedProc rn) (hra : 𝔼.Adapted rn) (hub : BoundedProc u) (hua : 𝔼.Adapted u)
+    (φ1h φ2h : ℝ) :
+    ∃! p : (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ) × (ℕ → Ω → ℝ),
+      Feasible 𝔼 c rn u p.1 p.2.1 p.2.2.1 ∧ FOC c p.1 p.2.1 p.2.2.1 p.2.2.2.1 p.2.2.2.2 φ1h φ2h ∧
+      (𝔼.Adapted p.1 ∧ 𝔼.Adapted p.2.1 ∧ 𝔼.Adapted p.2.2.1 ∧ 𝔼.Adapted p.2.2.2.1 ∧
+        𝔼.Adapted p.2.2.2.2) ∧
+      (BoundedProc p.1 ∧ BoundedProc p.2.1 ∧ BoundedProc p.2.2.1 ∧ BoundedProc p.2.2.2.1 ∧
+        BoundedProc p.2.2.2.2) := by
+  obtain ⟨X, hsolv, hXs, -, hB, hK⟩ := exists_solvent c hc
+  obtain ⟨Φ, ⟨hs, ha, hb⟩, huniq⟩ := sys2_existsUnique 𝔼 hsolv hXs hB hK
+    (Fphi_bounded c hrb hub) (Fphi_adapted 𝔼 c hra hua) (vecH φ1h φ2h)
+  obtain ⟨hf, hfoc⟩ := foc_of_sys 𝔼 c hc hs ha
+  obtain ⟨b1, b2, b3⟩ := planOf_bounded c (vecH φ1h φ2h) hb
+  obtain ⟨a1, a2, a3⟩ := planOf_adapted 𝔼 c (vecH φ1h φ2h) ha
+  obtain ⟨M, hM⟩ := hb
+  refine ⟨(piOf c (vecH φ1h φ2h) Φ, xOf c (vecH φ1h φ2h) Φ, iOf c Φ, fun s => Φ s 0,
+    fun s => Φ s 1), ⟨hf, hfoc, ⟨a1, a2, a3, fun t => ha t 0, fun t => ha t 1⟩,
+    ⟨b1, b2, b3, ⟨M, fun t ω => hM t 0 ω⟩, ⟨M, fun t ω => hM t 1 ω⟩⟩⟩, ?_⟩
+  rintro ⟨π', x', i', φ1', φ2'⟩ ⟨hf', hfoc', ⟨-, -, -, h1a, h2a⟩, ⟨-, -, -, ⟨M1, hM1⟩, ⟨M2, hM2⟩⟩⟩
+  have hs' := sys_of_foc 𝔼 c hc hf' hfoc' h1a h2a
+  have hva : VAdapted 𝔼 (vecOf φ1' φ2') := by
+    intro t j
+    fin_cases j
+    · exact h1a t
+    · exact h2a t
+  have hvb : VBounded (vecOf φ1' φ2') := by
+    refine ⟨max M1 M2, fun t j ω => ?_⟩
+    fin_cases j
+    · exact (hM1 t ω).trans (le_max_left _ _)
+    · exact (hM2 t ω).trans (le_max_right _ _)
+  have hΦ := huniq _ ⟨hs', hva, hvb⟩
+  obtain ⟨e1, e2, e3⟩ := plan_eq_of_foc c hc hfoc'
+  have e4 : φ1' = fun s => Φ s 0 := funext fun s => by rw [← hΦ]; rfl
+  have e5 : φ2' = fun s => Φ s 1 := funext fun s => by rw [← hΦ]; rfl
+  simp only at e1 e2 e3
+  rw [hΦ] at e1 e2 e3
+  simp only [Prod.mk.injEq]
+  exact ⟨e1, e2, e3, e4, e5⟩
+
+/-- **The `t₀`-optimal commitment with `κ > 0`** (Woodford (2003), (2.24)–(2.25), p. 503): the
+solution of (2.1), (2.23), (1.16)–(1.18) with zero initial multipliers (2.25) and bounded adapted
+multipliers minimises the expected discounted loss (2.24) among **all** bounded plans satisfying
+(2.1) and (2.23) (pull-out property assumed). -/
+theorem t0_optimal (c : Calib) (hc : c.Adm) (hpo : 𝔼.PullOut) {rn u π x i φ1 φ2 : ℕ → Ω → ℝ}
+    (hf : Feasible 𝔼 c rn u π x i) (hfoc : FOC c π x i φ1 φ2 0 0) (hφ1a : 𝔼.Adapted φ1)
+    (hφ2a : 𝔼.Adapted φ2) (hπb : BoundedProc π) (hxb : BoundedProc x) (hib : BoundedProc i)
+    (hφ1b : BoundedProc φ1) (hφ2b : BoundedProc φ2) {π' x' i' : ℕ → Ω → ℝ}
+    (hf' : Feasible 𝔼 c rn u π' x' i') (hπb' : BoundedProc π') (hxb' : BoundedProc x')
+    (hib' : BoundedProc i') : Jloss 𝔼 c π x i ≤ Jloss 𝔼 c π' x' i' :=
+  plan_optimal 𝔼 c hc hpo hf hfoc hφ1a hφ2a hπb hxb hib hφ1b hφ2b hf' hπb' hxb' hib'
+    (Or.inl ⟨rfl, rfl⟩)
+
+/-- **Timeless optimality with `κ > 0`** (Woodford (2003), (2.26), p. 503): for any initial
+multipliers, the bounded adapted solution of (2.1), (2.23), (1.16)–(1.18) minimises (2.24) among
+all bounded adapted plans satisfying (2.1), (2.23) and the initial constraints
+`π_{t₀} = π̄_{t₀}`, `x_{t₀} = x̄_{t₀}` with its own values. -/
+theorem timeless_optimal (c : Calib) (hc : c.Adm) (hpo : 𝔼.PullOut)
+    {rn u π x i φ1 φ2 : ℕ → Ω → ℝ} {φ1h φ2h : ℝ} (hf : Feasible 𝔼 c rn u π x i)
+    (hfoc : FOC c π x i φ1 φ2 φ1h φ2h) (hπa : 𝔼.Adapted π) (hxa : 𝔼.Adapted x)
+    (hia : 𝔼.Adapted i) (hφ1a : 𝔼.Adapted φ1) (hφ2a : 𝔼.Adapted φ2) (hπb : BoundedProc π)
+    (hxb : BoundedProc x) (hib : BoundedProc i) (hφ1b : BoundedProc φ1)
+    (hφ2b : BoundedProc φ2) : OptimalGiven 𝔼 c rn u (π 0) (x 0) π x i :=
+  ⟨hf, ⟨hπa, hxa, hia⟩, ⟨hπb, hxb, hib⟩, rfl, rfl, fun _ _ _ hf' _ ⟨hπb', hxb', hib'⟩ h0 hx0 =>
+    plan_optimal 𝔼 c hc hpo hf hfoc hφ1a hφ2a hπb hxb hib hφ1b hφ2b hf' hπb' hxb' hib'
+      (Or.inr ⟨h0, hx0⟩)⟩
+
+/-- Woodford (2003), (2.25)–(2.26), p. 503 (uniqueness of the optimum): with a faithful
+expectation system and the pull-out property, a bounded feasible plan with the same initial
+condition — zero initial multipliers (2.25), or the same `π_{t₀}, x_{t₀}` (2.26) — and the same
+expected loss coincides with the solution of the first-order conditions. -/
+theorem optimum_unique (c : Calib) (hc : c.Adm) (hpo : 𝔼.PullOut) (hfa : Faithful 𝔼)
+    {rn u π x i φ1 φ2 : ℕ → Ω → ℝ} {φ1h φ2h : ℝ} (hf : Feasible 𝔼 c rn u π x i)
+    (hfoc : FOC c π x i φ1 φ2 φ1h φ2h) (hφ1a : 𝔼.Adapted φ1) (hφ2a : 𝔼.Adapted φ2)
+    (hπb : BoundedProc π) (hxb : BoundedProc x) (hib : BoundedProc i) (hφ1b : BoundedProc φ1)
+    (hφ2b : BoundedProc φ2) {π' x' i' : ℕ → Ω → ℝ} (hf' : Feasible 𝔼 c rn u π' x' i')
+    (hπb' : BoundedProc π') (hxb' : BoundedProc x') (hib' : BoundedProc i')
+    (hinit : (φ1h = 0 ∧ φ2h = 0) ∨ (π' 0 = π 0 ∧ x' 0 = x 0))
+    (hJ : Jloss 𝔼 c π' x' i' = Jloss 𝔼 c π x i) : π' = π ∧ x' = x ∧ i' = i :=
+  unique_optimum 𝔼 c hc hpo hfa hf hfoc hφ1a hφ2a hπb hxb hib hφ1b hφ2b hf' hπb' hxb' hib' hinit hJ
+
+/-- **History dependence of the optimal responses** (Woodford (2003), pp. 503–505 and Figure 7.6;
+the `κ > 0` counterpart of (2.29)): there is a real inertia matrix `X`, with both eigenvalues
+inside the unit circle and `det X > 0`, and a matrix `K` with both eigenvalues inside the unit
+circle, such that for every bounded adapted `rⁿ, u` and initial multipliers, the multipliers of
+the solution of (2.1), (2.23), (1.16)–(1.18) follow `Φ_t = XΦ_{t−1} + ψ_t`, where `ψ` is bounded,
+adapted and solves `ψ_t = K E_tψ_{t+1} + B⁻¹F_t` — so `ψ_t` depends only on current and expected
+future disturbances, while the lagged multipliers enter with the invertible weight `X`. -/
+theorem partial_adjustment (c : Calib) (hc : c.Adm) :
+    ∃ X : Matrix (Fin 2) (Fin 2) ℝ, SchurStable (tr2 X) (det2 X) ∧ 0 < det2 X ∧
+      SchurStable (tr2 (-(inv2 (PmG c.β c.σ c.κ c.lx * X - A1G c.β c.σ c.κ c.lx c.li) *
+          PmG c.β c.σ c.κ c.lx)))
+        (det2 (-(inv2 (PmG c.β c.σ c.κ c.lx * X - A1G c.β c.σ c.κ c.lx c.li) *
+          PmG c.β c.σ c.κ c.lx))) ∧
+      ∀ {rn u π x i φ1 φ2 : ℕ → Ω → ℝ} {φ1h φ2h : ℝ}, Feasible 𝔼 c rn u π x i →
+        FOC c π x i φ1 φ2 φ1h φ2h → 𝔼.Adapted φ1 → 𝔼.Adapted φ2 →
+        (∀ t, vecOf φ1 φ2 t = rvMul X (lagV (vecH φ1h φ2h) (vecOf φ1 φ2) t) +
+          psiOf X (vecH φ1h φ2h) (vecOf φ1 φ2) t) ∧
+        FSolves 𝔼 (-(inv2 (PmG c.β c.σ c.κ c.lx * X - A1G c.β c.σ c.κ c.lx c.li) *
+          PmG c.β c.σ c.κ c.lx))
+          (fun t => rvMul (inv2 (PmG c.β c.σ c.κ c.lx * X - A1G c.β c.σ c.κ c.lx c.li))
+            (Fphi c rn u t)) (psiOf X (vecH φ1h φ2h) (vecOf φ1 φ2)) := by
+  obtain ⟨X, hsolv, hXs, hdet, hB, hK⟩ := exists_solvent c hc
+  refine ⟨X, hXs, hdet, hK, fun {rn u π x i φ1 φ2 φ1h φ2h} hf hfoc h1a h2a => ⟨fun t => ?_,
+    fun t => ?_⟩⟩
+  · simp only [psiOf]
+    abel
+  · have hva : VAdapted 𝔼 (vecOf φ1 φ2) := by
+      intro s j
+      fin_cases j
+      · exact h1a s
+      · exact h2a s
+    exact (sys2_step_iff 𝔼 hsolv hB hva t).mp (sys_of_foc 𝔼 c hc hf hfoc h1a h2a t)
+
+
+/-! ### The `κ = 0` optimum (2.29): uniqueness under faithfulness, and a counterexample -/
+
+omit 𝔼 in
+/-- Woodford (2003), (2.24), p. 503, with `κ = 0` (so `π ≡ 0`): the realised discounted loss
+`∑_k βᵏ[λₓ(x_{t₀+k} − x*)² + λᵢ(i_{t₀+k} − i*)²]` (Lean dates `k + 1`), state by state. -/
+noncomputable def kloss (β lamx lami xs is : ℝ) (y z : ℕ → Ω → ℝ) : Ω → ℝ :=
+  fun ω => ∑' k, β ^ k * (lamx * (y (k + 1) ω - xs) ^ 2 + lami * (z (k + 1) ω - is) ^ 2)
+
+omit 𝔼 in
+/-- Woodford (2003), (2.24), p. 503 (tool): the discounted loss of a bounded plan is summable. -/
+theorem summable_kloss {β lamx lami xs is : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {y z : ℕ → Ω → ℝ}
+    (hy : BoundedProc y) (hz : BoundedProc z) (ω : Ω) :
+    Summable fun k => β ^ k * (lamx * (y (k + 1) ω - xs) ^ 2 + lami * (z (k + 1) ω - is) ^ 2) := by
+  obtain ⟨My, hMy⟩ := hy
+  obtain ⟨Mz, hMz⟩ := hz
+  refine Summable.of_norm_bounded ((summable_geometric_of_lt_one hβ0 hβ1).mul_right
+    (|lamx| * (My + |xs|) ^ 2 + |lami| * (Mz + |is|) ^ 2)) fun k => ?_
+  rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (pow_nonneg hβ0 k)]
+  refine mul_le_mul_of_nonneg_left ?_ (pow_nonneg hβ0 k)
+  have a := (abs_sub (y (k + 1) ω) xs).trans (add_le_add (hMy (k + 1) ω) le_rfl)
+  have b := (abs_sub (z (k + 1) ω) is).trans (add_le_add (hMz (k + 1) ω) le_rfl)
+  have a2 : (y (k + 1) ω - xs) ^ 2 ≤ (My + |xs|) ^ 2 := by
+    rw [← sq_abs]; exact pow_le_pow_left₀ (abs_nonneg _) a 2
+  have b2 : (z (k + 1) ω - is) ^ 2 ≤ (Mz + |is|) ^ 2 := by
+    rw [← sq_abs]; exact pow_le_pow_left₀ (abs_nonneg _) b 2
+  calc |lamx * (y (k + 1) ω - xs) ^ 2 + lami * (z (k + 1) ω - is) ^ 2|
+      ≤ |lamx| * (y (k + 1) ω - xs) ^ 2 + |lami| * (z (k + 1) ω - is) ^ 2 := by
+        refine (abs_add_le _ _).trans (le_of_eq ?_)
+        rw [abs_mul, abs_mul, abs_of_nonneg (sq_nonneg (y (k + 1) ω - xs)),
+          abs_of_nonneg (sq_nonneg (z (k + 1) ω - is))]
+    _ ≤ _ := by gcongr
+
+omit 𝔼 in
+/-- Woodford (2003), (2.24), p. 503 (the parallelogram identity behind strict convexity): the
+loss of the midpoint of two bounded plans is the average loss minus a quarter of the loss of
+their difference. -/
+theorem kloss_midpoint {β lamx lami xs is : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    {y z y' z' : ℕ → Ω → ℝ} (hy : BoundedProc y) (hz : BoundedProc z) (hy' : BoundedProc y')
+    (hz' : BoundedProc z') :
+    kloss β lamx lami xs is (fun t => (1 / 2 : ℝ) • (y t + y' t))
+        (fun t => (1 / 2 : ℝ) • (z t + z' t)) =
+      (1 / 2 : ℝ) • kloss β lamx lami xs is y z + (1 / 2 : ℝ) • kloss β lamx lami xs is y' z' -
+        (1 / 4 : ℝ) • kloss β lamx lami 0 0 (fun t => y t - y' t) (fun t => z t - z' t) := by
+  have hd1 : BoundedProc (fun t => y t - y' t) := by
+    obtain ⟨A, hA⟩ := hy
+    obtain ⟨B, hB⟩ := hy'
+    exact ⟨A + B, fun t ω => (abs_sub _ _).trans (add_le_add (hA t ω) (hB t ω))⟩
+  have hd2 : BoundedProc (fun t => z t - z' t) := by
+    obtain ⟨A, hA⟩ := hz
+    obtain ⟨B, hB⟩ := hz'
+    exact ⟨A + B, fun t ω => (abs_sub _ _).trans (add_le_add (hA t ω) (hB t ω))⟩
+  funext ω
+  have h := (((summable_kloss (lamx := lamx) (lami := lami) (xs := xs) (is := is) hβ0 hβ1 hy hz
+    ω).hasSum.mul_left (1 / 2)).add ((summable_kloss (lamx := lamx) (lami := lami) (xs := xs)
+    (is := is) hβ0 hβ1 hy' hz' ω).hasSum.mul_left (1 / 2))).sub
+    ((summable_kloss (lamx := lamx) (lami := lami) (xs := 0) (is := 0) hβ0 hβ1 hd1 hd2
+    ω).hasSum.mul_left (1 / 4))
+  simp only [kloss, Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+  refine HasSum.tsum_eq ?_
+  convert h using 1
+  funext k
+  simp only [Pi.sub_apply]
+  ring
+
+/-- **Uniqueness of the `κ = 0` optimum (2.29) for a faithful expectation system** (Woodford
+(2003), (2.28)–(2.30), p. 506, footnote 26): if `E_{t₀}` is faithful (a nonnegative variable with
+zero date-`t₀` expectation is zero), the plan of (2.29) with the first-order-condition output gap
+is the **only** bounded plan satisfying (2.23) and the timeless constraint `x_{t₀} = x̄_{t₀}` that
+attains the minimal expected loss (pull-out property assumed). -/
+theorem kappa0_unique_faithful (hpo : 𝔼.PullOut)
+    (hf1 : ∀ y : Ω → ℝ, 0 ≤ y → 𝔼.E 1 y = 0 → y = 0) {β σ lamx lami xs is M B0 : ℝ}
+    (hβ0 : 0 < β) (hβ1 : β < 1) (hσ : 0 < σ) (hlx : 0 < lamx) (hli : 0 < lami)
+    {rn : ℕ → Ω → ℝ} (hrn : ∀ t ω, |rn t ω| ≤ M) (hrna : 𝔼.Adapted rn) {i0 : Ω → ℝ}
+    (hi0 : 𝔼.E 0 i0 = i0) (hi0b : ∀ ω, |i0 ω| ≤ B0) :
+    ∃ ih : ℕ → Ω → ℝ, ih 0 = i0 ∧ 𝔼.Adapted ih ∧ BoundedProc ih ∧
+      NaturalRateCommitment.Eq228 𝔼 β (lamx * σ ^ 2 / lami) rn ih ∧
+      (∀ t, NaturalRateCommitment.xFromFoc β σ lamx lami xs is ih (t + 1) =
+        𝔼.E (t + 1) (NaturalRateCommitment.xFromFoc β σ lamx lami xs is ih (t + 2)) -
+          σ • (ih (t + 1) - rn (t + 1))) ∧
+      ∀ x i : ℕ → Ω → ℝ, BoundedProc x → BoundedProc i →
+        (∀ t, x (t + 1) = 𝔼.E (t + 1) (x (t + 2)) - σ • (i (t + 1) - rn (t + 1))) →
+        x 1 = NaturalRateCommitment.xFromFoc β σ lamx lami xs is ih 1 →
+        𝔼.E 1 (kloss β lamx lami xs is x i) =
+          𝔼.E 1 (kloss β lamx lami xs is (NaturalRateCommitment.xFromFoc β σ lamx lami xs is ih)
+            ih) →
+        ∀ t, x (t + 1) = NaturalRateCommitment.xFromFoc β σ lamx lami xs is ih (t + 1) ∧
+          i (t + 1) = ih (t + 1) := by
+  obtain ⟨ih, h0, ha, hb, h228, -, hIS, hopt⟩ :=
+    NaturalRateCommitment.optimal_plan_kappa0 𝔼 hpo (xs := xs) (is := is) hβ0 hβ1 hσ hlx hli
+      hrn hrna hi0 hi0b
+  refine ⟨ih, h0, ha, hb, h228, hIS, fun x i hxb hib hISx hx1 hL t => ?_⟩
+  set xh := NaturalRateCommitment.xFromFoc β σ lamx lami xs is ih with hxh
+  have hxhb : BoundedProc xh := by
+    obtain ⟨Mh, hMh⟩ := hb
+    refine ⟨|xs| + |lami / (σ * lamx)| * ((Mh + |is|) + |β⁻¹| * (Mh + |is|)), fun t ω => ?_⟩
+    simp only [hxh, NaturalRateCommitment.xFromFoc, Pi.add_apply, Pi.smul_apply, Pi.sub_apply,
+      smul_eq_mul]
+    have h1 : |ih t ω - is| ≤ Mh + |is| := (abs_sub _ _).trans (add_le_add (hMh _ _) le_rfl)
+    have h2 : |ih (t - 1) ω - is| ≤ Mh + |is| :=
+      (abs_sub _ _).trans (add_le_add (hMh _ _) le_rfl)
+    refine (abs_add_le _ _).trans (add_le_add le_rfl ?_)
+    rw [abs_mul]
+    refine mul_le_mul_of_nonneg_left ((abs_sub _ _).trans ?_) (abs_nonneg _)
+    rw [abs_mul]
+    gcongr
+  set xm : ℕ → Ω → ℝ := fun t => (1 / 2 : ℝ) • (x t + xh t) with hxm
+  set im : ℕ → Ω → ℝ := fun t => (1 / 2 : ℝ) • (i t + ih t) with him
+  have hmb : BoundedProc xm ∧ BoundedProc im := by
+    obtain ⟨A, hA⟩ := hxb
+    obtain ⟨B, hB⟩ := hxhb
+    obtain ⟨C, hC⟩ := hib
+    obtain ⟨D, hD⟩ := hb
+    refine ⟨⟨(A + B) / 2, fun t ω => ?_⟩, ⟨(C + D) / 2, fun t ω => ?_⟩⟩
+    · simp only [hxm, Pi.smul_apply, Pi.add_apply, smul_eq_mul]
+      rw [abs_mul, abs_of_pos (by norm_num : (0 : ℝ) < 1 / 2)]
+      linarith [(abs_add_le (x t ω) (xh t ω)).trans (add_le_add (hA t ω) (hB t ω))]
+    · simp only [him, Pi.smul_apply, Pi.add_apply, smul_eq_mul]
+      rw [abs_mul, abs_of_pos (by norm_num : (0 : ℝ) < 1 / 2)]
+      linarith [(abs_add_le (i t ω) (ih t ω)).trans (add_le_add (hC t ω) (hD t ω))]
+  have hISm : ∀ t, xm (t + 1) = 𝔼.E (t + 1) (xm (t + 2)) - σ • (im (t + 1) - rn (t + 1)) := by
+    intro t
+    have a := hISx t
+    have b := hIS t
+    simp only [hxm, him, map_smul, map_add]
+    funext ω
+    have a' := congrFun a ω
+    have b' := congrFun b ω
+    simp only [Pi.sub_apply, Pi.smul_apply, Pi.add_apply, smul_eq_mul] at a' b' ⊢
+    linear_combination (1 / 2 : ℝ) * a' + (1 / 2 : ℝ) * b'
+  have hm1 : xm 1 = xh 1 := by
+    simp only [hxm, hx1]
+    funext ω
+    simp only [Pi.smul_apply, Pi.add_apply, smul_eq_mul]
+    ring
+  set D := kloss β lamx lami 0 0 (fun t => x t - xh t) (fun t => i t - ih t) with hD
+  have hDnn : 0 ≤ D := fun ω => tsum_nonneg fun k => mul_nonneg (pow_nonneg hβ0.le k)
+    (by positivity)
+  have hmid := kloss_midpoint (lamx := lamx) (lami := lami) (xs := xs) (is := is) hβ0.le hβ1 hxb
+    hib hxhb hb
+  have hED : 𝔼.E 1 D = 0 := by
+    funext ω
+    have hle := hopt xm im hmb.1 hmb.2 hISm hm1 ω
+    change 𝔼.E 1 (kloss β lamx lami xs is xh ih) ω ≤ 𝔼.E 1 (kloss β lamx lami xs is xm im) ω
+      at hle
+    have e : kloss β lamx lami xs is xm im = kloss β lamx lami xs is
+        (fun t => (1 / 2 : ℝ) • (x t + xh t)) (fun t => (1 / 2 : ℝ) • (i t + ih t)) := rfl
+    rw [e, hmid, map_sub, map_add, map_smul, map_smul, map_smul, hL] at hle
+    simp only [Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul] at hle
+    have hge : 0 ≤ 𝔼.E 1 D ω := by
+      have hm := 𝔼.mono 1 hDnn
+      rw [show (0 : Ω → ℝ) = fun _ => (0 : ℝ) from rfl, 𝔼.const] at hm
+      exact hm ω
+    simp only [Pi.zero_apply]
+    linarith
+  have hD0 := hf1 D hDnn hED
+  have hd1 : BoundedProc (fun t => x t - xh t) := by
+    obtain ⟨A, hA⟩ := hxb
+    obtain ⟨B, hB⟩ := hxhb
+    exact ⟨A + B, fun t ω => (abs_sub _ _).trans (add_le_add (hA t ω) (hB t ω))⟩
+  have hd2 : BoundedProc (fun t => i t - ih t) := by
+    obtain ⟨A, hA⟩ := hib
+    obtain ⟨B, hB⟩ := hb
+    exact ⟨A + B, fun t ω => (abs_sub _ _).trans (add_le_add (hA t ω) (hB t ω))⟩
+  have hterm : ∀ ω k, β ^ k * (lamx * (x (k + 1) ω - xh (k + 1) ω - 0) ^ 2 +
+      lami * (i (k + 1) ω - ih (k + 1) ω - 0) ^ 2) = 0 := by
+    intro ω k
+    have hs := summable_kloss (lamx := lamx) (lami := lami) (xs := 0) (is := 0) hβ0.le hβ1 hd1
+      hd2 ω
+    have hz := congrFun hD0 ω
+    simp only [hD, kloss, Pi.zero_apply] at hz
+    have hnn : ∀ k, 0 ≤ β ^ k * (lamx * (x (k + 1) ω - xh (k + 1) ω - 0) ^ 2 +
+        lami * (i (k + 1) ω - ih (k + 1) ω - 0) ^ 2) := fun k =>
+      mul_nonneg (pow_nonneg hβ0.le k) (by positivity)
+    have := (hasSum_zero_iff_of_nonneg hnn).mp (hz ▸ hs.hasSum)
+    exact congrFun this k
+  have hp := (pow_pos hβ0 t).ne'
+  refine ⟨funext fun ω => ?_, funext fun ω => ?_⟩
+  · have q := (mul_eq_zero.mp (hterm ω t)).resolve_left hp
+    have a1 := mul_nonneg hlx.le (sq_nonneg (x (t + 1) ω - xh (t + 1) ω - 0))
+    have a2 := mul_nonneg hli.le (sq_nonneg (i (t + 1) ω - ih (t + 1) ω - 0))
+    have e : lamx * (x (t + 1) ω - xh (t + 1) ω - 0) ^ 2 = 0 := by linarith
+    have e' := pow_eq_zero_iff two_ne_zero |>.mp ((mul_eq_zero.mp e).resolve_left hlx.ne')
+    linarith
+  · have q := (mul_eq_zero.mp (hterm ω t)).resolve_left hp
+    have a1 := mul_nonneg hlx.le (sq_nonneg (x (t + 1) ω - xh (t + 1) ω - 0))
+    have a2 := mul_nonneg hli.le (sq_nonneg (i (t + 1) ω - ih (t + 1) ω - 0))
+    have e : lami * (i (t + 1) ω - ih (t + 1) ω - 0) ^ 2 = 0 := by linarith
+    have e' := pow_eq_zero_iff two_ne_zero |>.mp ((mul_eq_zero.mp e).resolve_left hli.ne')
+    linarith
+
+
+omit 𝔼 in
+/-- Woodford (2003), p. 506, fn. 26 (counterexample tool): on two states, the expectation that
+puts all weight on the state `true`, `y ↦ (ω ↦ y true)`. -/
+def evalTrue : (Bool → ℝ) →ₗ[ℝ] (Bool → ℝ) where
+  toFun y := fun _ => y true
+  map_add' _ _ := rfl
+  map_smul' _ _ := rfl
+
+omit 𝔼 in
+/-- Woodford (2003), p. 506, fn. 26 (counterexample): an expectation system on two states in which
+the state `false` is null at dates `0` and `1` (`E_t y = y(true)`) but revealed from date `2`
+(`E_t = id`). It satisfies all the axioms of an `ExpectationSystem`. -/
+def lateInfo : ExpectationSystem Bool where
+  E t := if t ≤ 1 then evalTrue else LinearMap.id
+  const t c := by split_ifs <;> rfl
+  mono t x y h := by
+    split_ifs
+    · intro ω; exact h true
+    · exact h
+  tower {s t} hst x := by
+    by_cases hs : s ≤ 1 <;> by_cases ht : t ≤ 1
+    · simp only [hs, ht, ↓reduceIte]; rfl
+    · simp only [hs, ht, ↓reduceIte]; rfl
+    · omega
+    · simp only [hs, ht, ↓reduceIte]; rfl
+  known {s t} hst x := by
+    by_cases hs : s ≤ 1 <;> by_cases ht : t ≤ 1
+    · simp only [hs, ht, ↓reduceIte]; rfl
+    · simp only [hs, ht, ↓reduceIte]; rfl
+    · omega
+    · simp only [hs, ht, ↓reduceIte]; rfl
+
+omit 𝔼 in
+/-- Woodford (2003), p. 506 (counterexample tool): `lateInfo` has the pull-out property. -/
+theorem lateInfo_pullOut : lateInfo.PullOut := by
+  intro t a y ha
+  change (if t ≤ 1 then evalTrue else LinearMap.id) (a * y) =
+    a * (if t ≤ 1 then evalTrue else LinearMap.id) y
+  change (if t ≤ 1 then evalTrue else LinearMap.id) a = a at ha
+  by_cases ht : t ≤ 1
+  · simp only [ht, ↓reduceIte] at ha ⊢
+    funext ω
+    have := congrFun ha ω
+    simp only [evalTrue, LinearMap.coe_mk, AddHom.coe_mk, Pi.mul_apply] at this ⊢
+    rw [this]
+  · simp only [ht, ↓reduceIte, LinearMap.id_apply]
+
+omit 𝔼 in
+/-- Woodford (2003), p. 506 (counterexample tool): `E_t` of `lateInfo` at dates `t ≤ 1`. -/
+theorem lateInfo_E_le {t : ℕ} (ht : t ≤ 1) (y : Bool → ℝ) : lateInfo.E t y = fun _ => y true := by
+  change (if t ≤ 1 then evalTrue else LinearMap.id) y = _
+  simp only [ht, ↓reduceIte]
+  rfl
+
+omit 𝔼 in
+/-- Woodford (2003), p. 506 (counterexample tool): `E_t` of `lateInfo` at dates `t ≥ 2`. -/
+theorem lateInfo_E_ge {t : ℕ} (ht : 2 ≤ t) (y : Bool → ℝ) : lateInfo.E t y = y := by
+  change (if t ≤ 1 then evalTrue else LinearMap.id) y = _
+  simp only [show ¬ t ≤ 1 by omega, ↓reduceIte, LinearMap.id_apply]
+
+omit 𝔼 in
+/-- Woodford (2003), p. 506 (counterexample tool): the deviation `1` in state `false` from date
+`2` on. -/
+def devFalse (t : ℕ) (ω : Bool) : ℝ := if 2 ≤ t ∧ ω = false then 1 else 0
+
+omit 𝔼 in
+/-- **The `κ = 0` optimum (2.29) is not unique for a general expectation system** (Woodford
+(2003), p. 506, fn. 26; the uniqueness of `kappa0_unique_faithful` needs faithfulness). On
+`lateInfo` (`β = 1/2`, `σ = λₓ = λᵢ = 1`, `x* = i* = 0`, `rⁿ ≡ 0`, `i_{t₀−1} = 0`), the plan
+(2.29) with the first-order-condition gap is optimal, yet the plan with the same interest rate and
+output gap raised by `1` in the null state from `t₀ + 1` on is also bounded, adapted, satisfies
+(2.23) and the timeless constraint, and has the same expected loss — but is a different plan. -/
+theorem kappa0_not_unique :
+    ∃ ih : ℕ → Bool → ℝ, ih 0 = 0 ∧ lateInfo.Adapted ih ∧ BoundedProc ih ∧
+      NaturalRateCommitment.Eq228 lateInfo (1 / 2) (1 * 1 ^ 2 / 1) 0 ih ∧
+      (∀ t, NaturalRateCommitment.xFromFoc (1 / 2) 1 1 1 0 0 ih (t + 1) =
+        lateInfo.E (t + 1) (NaturalRateCommitment.xFromFoc (1 / 2) 1 1 1 0 0 ih (t + 2)) -
+          (1 : ℝ) • (ih (t + 1) - (0 : ℕ → Bool → ℝ) (t + 1))) ∧
+      (∀ x i : ℕ → Bool → ℝ, BoundedProc x → BoundedProc i →
+        (∀ t, x (t + 1) = lateInfo.E (t + 1) (x (t + 2)) -
+          (1 : ℝ) • (i (t + 1) - (0 : ℕ → Bool → ℝ) (t + 1))) →
+        x 1 = NaturalRateCommitment.xFromFoc (1 / 2) 1 1 1 0 0 ih 1 → ∀ ω,
+        lateInfo.E 1 (kloss (1 / 2) 1 1 0 0
+          (NaturalRateCommitment.xFromFoc (1 / 2) 1 1 1 0 0 ih) ih) ω ≤
+          lateInfo.E 1 (kloss (1 / 2) 1 1 0 0 x i) ω) ∧
+      ∃ x : ℕ → Bool → ℝ, BoundedProc x ∧ lateInfo.Adapted x ∧
+        (∀ t, x (t + 1) = lateInfo.E (t + 1) (x (t + 2)) -
+          (1 : ℝ) • (ih (t + 1) - (0 : ℕ → Bool → ℝ) (t + 1))) ∧
+        x 1 = NaturalRateCommitment.xFromFoc (1 / 2) 1 1 1 0 0 ih 1 ∧
+        lateInfo.E 1 (kloss (1 / 2) 1 1 0 0 x ih) =
+          lateInfo.E 1 (kloss (1 / 2) 1 1 0 0
+            (NaturalRateCommitment.xFromFoc (1 / 2) 1 1 1 0 0 ih) ih) ∧
+        x ≠ NaturalRateCommitment.xFromFoc (1 / 2) 1 1 1 0 0 ih := by
+  obtain ⟨ih, h0, ha, hb, h228, -, hIS, hopt⟩ :=
+    NaturalRateCommitment.optimal_plan_kappa0 lateInfo lateInfo_pullOut (xs := 0) (is := 0)
+      (β := 1 / 2) (σ := 1) (lamx := 1) (lami := 1) (M := 0) (B0 := 0) (by norm_num)
+      (by norm_num) one_pos one_pos one_pos (rn := 0) (fun _ _ => by simp)
+      (fun t => map_zero _) (i0 := 0) (map_zero _) (fun _ => by simp)
+  set xh := NaturalRateCommitment.xFromFoc (1 / 2) 1 1 1 0 0 ih with hxh
+  refine ⟨ih, h0, ha, hb, h228, hIS, hopt, fun t => xh t + devFalse t, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · obtain ⟨Mh, hMh⟩ := hb
+    refine ⟨(Mh + 2 * Mh) + 1, fun t ω => ?_⟩
+    simp only [hxh, NaturalRateCommitment.xFromFoc, Pi.add_apply, Pi.smul_apply, Pi.sub_apply,
+      smul_eq_mul, devFalse]
+    have h1 := hMh t ω
+    have h2 := hMh (t - 1) ω
+    have hd : |(if 2 ≤ t ∧ ω = false then (1 : ℝ) else 0)| ≤ 1 := by split_ifs <;> norm_num
+    refine (abs_add_le _ _).trans (add_le_add ?_ hd)
+    rw [abs_le] at h1 h2 ⊢
+    constructor <;> nlinarith [h1.1, h1.2, h2.1, h2.2]
+  · intro t
+    have hxa : lateInfo.E t (xh t) = xh t := by
+      simp only [hxh, NaturalRateCommitment.xFromFoc, map_add, map_smul, map_sub, lateInfo.const,
+        ha t]
+      rcases Nat.eq_zero_or_pos t with rfl | ht
+      · simp only [Nat.zero_sub, ha 0]
+      · have e : lateInfo.E t (ih (t - 1)) = ih (t - 1) := by
+          conv_lhs => rw [← ha (t - 1)]
+          rw [lateInfo.known (by omega : t - 1 ≤ t), ha (t - 1)]
+        rw [e]
+    rw [map_add, hxa]
+    congr 1
+    by_cases ht : t ≤ 1
+    · rw [lateInfo_E_le ht]
+      funext ω
+      simp only [devFalse]
+      simp [show ¬ 2 ≤ t by omega]
+    · rw [lateInfo_E_ge (by omega)]
+  · intro t
+    have h := hIS t
+    funext ω
+    have hω := congrFun h ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, map_add] at hω ⊢
+    rcases Nat.eq_zero_or_pos t with rfl | ht
+    · simp only [lateInfo_E_le (le_refl 1)] at hω ⊢
+      simp only [devFalse]
+      norm_num at hω ⊢
+      linarith
+    · simp only [lateInfo_E_ge (show 2 ≤ t + 1 by omega)] at hω ⊢
+      have e1 : 2 ≤ t + 1 := by omega
+      have e2 : 2 ≤ t + 1 + 1 := by omega
+      simp only [devFalse, e1, e2, true_and]
+      linarith
+  · funext ω
+    change xh 1 ω + devFalse 1 ω = xh 1 ω
+    simp [devFalse]
+  · rw [lateInfo_E_le (le_refl 1), lateInfo_E_le (le_refl 1)]
+    funext ω
+    simp only [kloss, Pi.add_apply, devFalse, Bool.true_eq_false, and_false, ↓reduceIte,
+      add_zero]
+    rfl
+  · intro h
+    have := congrFun (congrFun h 2) false
+    change xh 2 false + devFalse 2 false = xh 2 false at this
+    simp only [devFalse] at this
+    norm_num at this
+
+end Woodford.GainsFromCommitment.TidyR5NaturalRateKappa
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Necessity of the long-run inflation rate with indexation and transactions frictions
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §1.2, pp. 483–484.
+
+The module Indexation proves that the steady state
+`π̄ = −λ_i(r̄ − iᵐ)/(λ_i + β(1 − γ)(1 − βγ))` is the unique constant plan consistent with the
+first-order conditions (`Indexation.ss_ind_iff`) and that it is optimal given its own initial
+values (`Indexation.ss_ind_optimal`). Here the converse is proved: a constant plan that is
+optimal among bounded feasible plans with the same `π_0, x_0` (the timeless constraint)
+**must** be this steady state — without assuming that multipliers exist.
+
+## Main results
+
+* An explicit feasible perturbation (`dPi`, `dX`, `dI`): quasi-differenced inflation rises by `1`
+  at date `2` (`dPi_t = γ^{t−2}` from date `2`), the output gap moves at dates `1, 2` only, the
+  interest rate follows from (1.15); it satisfies the homogeneous (1.21) and (1.15) and leaves
+  `π_0, x_0` unchanged (`pert_feasible`).
+* Its discounted sums (`dsum_dPi`, `dsum_dX`, `dsum_dI`) and the exact quadratic expansion of the
+  loss along it (`lossI_pert`): the first-order coefficient is
+  `β/(1 − βγ) · [β(1 − γ)(1 − βγ)π̄ + λ_i(ı̄ − iᵐ)]` (`gradI_eq`).
+* **Necessity** (`ss_ind_necessary`): optimality of the constant plan forces the steady-state
+  condition `λ_i(ı̄ − iᵐ) = −β(1 − γ)(1 − βγ)π̄`; with feasibility this pins down the long-run
+  inflation rate, so the constant plan is timelessly optimal **iff**
+  `π̄ = −λ_i(r̄ − iᵐ)/(λ_i + β(1 − γ)(1 − βγ))`, `ı̄ = r̄ + π̄` and `κx̄ = (1 − β)(1 − γ)π̄`
+  (`ss_ind_timeless_iff`), for `0 ≤ γ ≤ 1`.
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR5IndexationNecessity
+
+open Filter Topology Woodford.GainsFromCommitment.MonetaryFrictions
+open Woodford.GainsFromCommitment.Indexation
+open Sequences
+
+/-! ### The perturbation -/
+
+/-- Woodford (2003), p. 484 (the perturbation of inflation): `dπ_t = γ^{t−2}` for `t ≥ 2`, `0`
+before, so that quasi-differenced inflation `dπ_t − γdπ_{t−1}` is `1` at `t = 2` and `0`
+otherwise. -/
+noncomputable def dPi (γ : ℝ) (t : ℕ) : ℝ := if 2 ≤ t then γ ^ (t - 2) else 0
+
+/-- Woodford (2003), p. 484 (the perturbation of the output gap, from (1.21)): `−β/κ` at `t = 1`,
+`1/κ` at `t = 2`, `0` otherwise. -/
+noncomputable def dX (β κ : ℝ) (t : ℕ) : ℝ := if t = 1 then -β / κ else if t = 2 then 1 / κ else 0
+
+/-- Woodford (2003), p. 484 (the perturbation of the interest rate, from (1.15)):
+`di_t = dπ_{t+1} + (dx_{t+1} − dx_t)/σ`. -/
+noncomputable def dI (β κ σ γ : ℝ) (t : ℕ) : ℝ := dPi γ (t + 1) + (dX β κ (t + 1) - dX β κ t) / σ
+
+/-- Woodford (2003), p. 484 (tool): for `0 ≤ γ ≤ 1` the inflation perturbation is bounded by
+`1`. -/
+theorem dPi_bdd {γ : ℝ} (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1) : Bdd (dPi γ) := by
+  refine ⟨1, fun t => ?_⟩
+  unfold dPi
+  split_ifs
+  · rw [abs_of_nonneg (pow_nonneg hγ0 _)]; exact pow_le_one₀ hγ0 hγ1
+  · norm_num
+
+/-- Woodford (2003), p. 484 (tool): the output-gap perturbation vanishes from date `3`. -/
+theorem dX_bdd (β κ : ℝ) : Bdd (dX β κ) :=
+  bdd_of_zero_from 3 fun t ht => by
+    simp only [dX, show t ≠ 1 by omega, show t ≠ 2 by omega, ↓reduceIte]
+
+/-- Woodford (2003), p. 484 (tool): the interest-rate perturbation is bounded. -/
+theorem dI_bdd {β κ σ γ : ℝ} (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1) : Bdd (dI β κ σ γ) := by
+  have h1 := (dPi_bdd hγ0 hγ1).shift
+  have h2 := ((dX_bdd β κ).shift.sub (dX_bdd β κ))
+  obtain ⟨A, hA⟩ := h1
+  obtain ⟨B, hB⟩ := h2
+  refine ⟨A + B / |σ|, fun t => ?_⟩
+  unfold dI
+  refine (abs_add_le _ _).trans (add_le_add (hA t) ?_)
+  rw [abs_div]
+  rcases eq_or_ne σ 0 with h | h
+  · rw [h, abs_zero, div_zero, div_zero]
+  · exact div_le_div_of_nonneg_right (hB t) (abs_nonneg _)
+
+/-- Woodford (2003), p. 484: the perturbation satisfies the homogeneous (1.21),
+`dπ_t − γdπ_{t−1} = κdx_t + β(dπ_{t+1} − γdπ_t)` with `dπ_{−1} = 0` (`κ ≠ 0`). -/
+theorem pert_AS {β κ γ : ℝ} (hκ : κ ≠ 0) (t : ℕ) :
+    dPi γ t - γ * lagged 0 (dPi γ) t = κ * dX β κ t + β * (dPi γ (t + 1) - γ * dPi γ t) := by
+  match t with
+  | 0 => simp [dPi, dX]
+  | 1 => simp [dPi, dX]; field_simp; ring
+  | 2 => simp [dPi, dX]; field_simp
+  | s + 3 =>
+    have e1 : dPi γ (s + 3) = γ ^ (s + 1) := by
+      simp only [dPi, show 2 ≤ s + 3 by omega, ↓reduceIte, show s + 3 - 2 = s + 1 by omega]
+    have e2 : dPi γ (s + 2) = γ ^ s := by
+      simp only [dPi, show 2 ≤ s + 2 by omega, ↓reduceIte, show s + 2 - 2 = s by omega]
+    have e3 : dPi γ (s + 3 + 1) = γ ^ (s + 2) := by
+      simp only [dPi, show 2 ≤ s + 3 + 1 by omega, ↓reduceIte,
+        show s + 3 + 1 - 2 = s + 2 by omega]
+    have e4 : dX β κ (s + 3) = 0 := by
+      simp only [dX, show s + 3 ≠ 1 by omega, show s + 3 ≠ 2 by omega, ↓reduceIte]
+    rw [lagged_succ, e1, e2, e3, e4]
+    ring
+
+/-- Woodford (2003), p. 484: the perturbation satisfies the homogeneous (1.15),
+`dx_t = dx_{t+1} − σ(di_t − dπ_{t+1})` (`σ ≠ 0`). -/
+theorem pert_IS {β κ σ γ : ℝ} (hσ : σ ≠ 0) (t : ℕ) :
+    dX β κ t = dX β κ (t + 1) - σ * (dI β κ σ γ t - dPi γ (t + 1)) := by
+  unfold dI
+  field_simp
+  ring
+
+/-- Woodford (2003), p. 484: the perturbed constant plan is feasible — (1.21) and (1.15) at every
+date — whenever the constant plan is (`π_{−1} = π̄`, `κ, σ ≠ 0`). -/
+theorem pert_feasible {M : IModel} (hκ : M.κ ≠ 0) (hσ : M.σ ≠ 0) {πb xb ib : ℝ}
+    (hpm : M.πm1 = πb)
+    (hF : ∀ t, ASi M (fun _ => πb) (fun _ => xb) t ∧ ISi M (fun _ => πb) (fun _ => xb)
+      (fun _ => ib) t) (ε : ℝ) (t : ℕ) :
+    ASi M (fun t => πb + ε * dPi M.γ t) (fun t => xb + ε * dX M.β M.κ t) t ∧
+      ISi M (fun t => πb + ε * dPi M.γ t) (fun t => xb + ε * dX M.β M.κ t)
+        (fun t => ib + ε * dI M.β M.κ M.σ M.γ t) t := by
+  obtain ⟨ha, hb⟩ := hF t
+  unfold ASi at ha ⊢
+  unfold ISi at hb ⊢
+  have hl : lagged M.πm1 (fun t => πb + ε * dPi M.γ t) t =
+      lagged M.πm1 (fun _ => πb) t + ε * lagged 0 (dPi M.γ) t := lag_pert M.πm1 ε _ _ t
+  rw [hpm] at hl ha
+  rw [hpm, hl]
+  rw [lagged_const] at ha ⊢
+  have p1 := pert_AS (β := M.β) (γ := M.γ) hκ t
+  have p2 := pert_IS (β := M.β) (κ := M.κ) (γ := M.γ) hσ t
+  refine ⟨?_, ?_⟩
+  · linear_combination ha + ε * p1
+  · linear_combination hb + ε * p2
+
+/-! ### Discounted sums along the perturbation -/
+
+/-- Woodford (2003), p. 484: `∑ βᵗ dπ_t = β²/(1 − βγ)`. -/
+theorem dsum_dPi {β γ : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1) :
+    dsum β (dPi γ) = β ^ 2 / (1 - β * γ) := by
+  have hbg0 : 0 ≤ β * γ := mul_nonneg hβ0.le hγ0
+  have hbg1 : β * γ < 1 := by nlinarith
+  have hs := summable_dsum hβ0.le hβ1 (dPi_bdd hγ0 hγ1)
+  unfold dsum
+  rw [← hs.sum_add_tsum_nat_add 2]
+  have e : (fun t => β ^ (t + 2) * dPi γ (t + 2)) = fun t => β ^ 2 * (β * γ) ^ t := by
+    funext t
+    simp only [dPi, show 2 ≤ t + 2 by omega, ↓reduceIte, Nat.add_sub_cancel]
+    ring
+  rw [e, tsum_mul_left, tsum_geometric_of_lt_one hbg0 hbg1]
+  simp [dPi, Finset.sum_range_succ]
+  ring
+
+/-- Woodford (2003), p. 484: `∑ βᵗ dπ_{t+1} = β/(1 − βγ)`. -/
+theorem dsum_dPi_succ {β γ : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1) :
+    dsum β (fun t => dPi γ (t + 1)) = β / (1 - β * γ) := by
+  have hbg1 : β * γ < 1 := by nlinarith
+  rw [dsum_shift hβ0 hβ1 (dPi_bdd hγ0 hγ1) (fun t => rfl), dsum_dPi hβ0 hβ1 hγ0 hγ1]
+  simp only [dPi, show ¬ 2 ≤ 0 by omega, ↓reduceIte, sub_zero]
+  have : 1 - β * γ ≠ 0 := by linarith
+  field_simp
+
+/-- Woodford (2003), p. 484: `∑ βᵗ dx_t = 0`. -/
+theorem dsum_dX {β κ : ℝ} (hκ : κ ≠ 0) : dsum β (dX β κ) = 0 := by
+  rw [dsum_of_zero_from β 3 fun t ht => by
+    simp only [dX, show t ≠ 1 by omega, show t ≠ 2 by omega, ↓reduceIte]]
+  simp [Finset.sum_range_succ, dX]
+  field_simp
+  ring
+
+/-- Woodford (2003), p. 484: `∑ βᵗ dx_{t+1} = 0`. -/
+theorem dsum_dX_succ {β κ : ℝ} (hκ : κ ≠ 0) : dsum β (fun t => dX β κ (t + 1)) = 0 := by
+  rw [dsum_of_zero_from β 2 fun t ht => by
+    simp only [dX, show t + 1 ≠ 1 by omega, show t + 1 ≠ 2 by omega, ↓reduceIte]]
+  simp [Finset.sum_range_succ, dX]
+  field_simp
+  ring
+
+/-- Woodford (2003), p. 484: `∑ βᵗ di_t = β/(1 − βγ)`. -/
+theorem dsum_dI {β κ σ γ : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1) (hγ0 : 0 ≤ γ) (hγ1 : γ ≤ 1)
+    (hκ : κ ≠ 0) : dsum β (dI β κ σ γ) = β / (1 - β * γ) := by
+  have e : dI β κ σ γ = fun t => dPi γ (t + 1) + σ⁻¹ * (dX β κ (t + 1) - dX β κ t) := by
+    funext t; unfold dI; ring
+  have hb : Bdd (fun t => σ⁻¹ * (dX β κ (t + 1) - dX β κ t)) :=
+    (bdd_const σ⁻¹).mul ((dX_bdd β κ).shift.sub (dX_bdd β κ))
+  rw [e, dsum_add hβ0.le hβ1 (dPi_bdd hγ0 hγ1).shift hb, dsum_mul_left,
+    dsum_sub hβ0.le hβ1 (dX_bdd β κ).shift (dX_bdd β κ), dsum_dX_succ hκ, dsum_dX hκ,
+    dsum_dPi_succ hβ0 hβ1 hγ0 hγ1]
+  ring
+
+
+/-! ### The loss along the perturbation and necessity -/
+
+/-- Woodford (2003), p. 483: with zero multipliers the Lagrangian is half the loss. -/
+theorem lagrI_zero (M : IModel) (π x i : ℕ → ℝ) :
+    lagrI M (fun _ => 0) (fun _ => 0) 0 0 π x i = lossI M π x i / 2 := by
+  unfold lagrI lossI initI
+  have h : (fun t => periodLossI M π x i t / 2 + (fun _ => (0 : ℝ)) t * resISi M π x i t +
+      (fun _ => (0 : ℝ)) t * resASi M π x t) = fun t => (1 / 2) * periodLossI M π x i t := by
+    funext t; ring
+  rw [h, dsum_mul_left]
+  ring
+
+/-- Woodford (2003), p. 484: the first-order coefficient of the loss along the perturbation,
+`∑βᵗ[F^π_t dπ_t + F^x_t dx_t + F^i_t di_t]` with zero multipliers at the constant plan. -/
+noncomputable def gradI (M : IModel) (πb xb ib : ℝ) : ℝ :=
+  dsum M.β (fun t => focPiI M (fun _ => 0) (fun _ => 0) 0 0 (fun _ => πb) t * dPi M.γ t +
+    focXI M (fun _ => 0) (fun _ => 0) 0 (fun _ => xb) t * dX M.β M.κ t +
+    focII M (fun _ => 0) (fun _ => ib) t * dI M.β M.κ M.σ M.γ t)
+
+/-- Woodford (2003), p. 484: the exact expansion of the loss along the perturbation,
+`L(ȳ + εd) = L(ȳ) + 2ε G + ε² Q` with `Q = ∑βᵗ Q_t(d)` (`0 ≤ γ ≤ 1`). -/
+theorem lossI_pert {M : IModel} (hβ0 : 0 < M.β) (hβ1 : M.β < 1) (hγ0 : 0 ≤ M.γ) (hγ1 : M.γ ≤ 1)
+    (πb xb ib ε : ℝ) :
+    lossI M (fun t => πb + ε * dPi M.γ t) (fun t => xb + ε * dX M.β M.κ t)
+        (fun t => ib + ε * dI M.β M.κ M.σ M.γ t) =
+      lossI M (fun _ => πb) (fun _ => xb) (fun _ => ib) + 2 * ε * gradI M πb xb ib +
+        ε ^ 2 * dsum M.β (quadI M (dPi M.γ) (dX M.β M.κ) (dI M.β M.κ M.σ M.γ)) := by
+  have he := lagrI_expand (M := M) (φ1 := fun _ => 0) (φ2 := fun _ => 0)
+    (π := fun _ => πb) (x := fun _ => xb) (i := fun _ => ib) hβ0 hβ1 0 0 ε
+    (bdd_const 0) (bdd_const 0) (bdd_const πb) (bdd_const xb) (bdd_const ib)
+    (dPi_bdd hγ0 hγ1) (dX_bdd M.β M.κ) (dI_bdd (β := M.β) (κ := M.κ) (σ := M.σ) hγ0 hγ1)
+  rw [lagrI_zero, lagrI_zero] at he
+  unfold gradI
+  linarith
+
+/-- Woodford (2003), p. 484: at the constant plan (`π_{−1} = π̄`) with zero multipliers, the
+first-order coefficient is `β/(1 − βγ) · [β(1 − γ)(1 − βγ)π̄ + λ_i(ı̄ − iᵐ)]`. -/
+theorem gradI_eq {M : IModel} (hβ0 : 0 < M.β) (hβ1 : M.β < 1) (hγ0 : 0 ≤ M.γ) (hγ1 : M.γ ≤ 1)
+    (hκ : M.κ ≠ 0) {πb xb ib : ℝ} (hpm : M.πm1 = πb) :
+    gradI M πb xb ib = M.β / (1 - M.β * M.γ) *
+      (M.β * (1 - M.γ) * (1 - M.β * M.γ) * πb + M.lami * (ib - M.im)) := by
+  have hbg : 1 - M.β * M.γ ≠ 0 := by nlinarith
+  have e : (fun t => focPiI M (fun _ => 0) (fun _ => 0) 0 0 (fun _ => πb) t * dPi M.γ t +
+      focXI M (fun _ => 0) (fun _ => 0) 0 (fun _ => xb) t * dX M.β M.κ t +
+      focII M (fun _ => 0) (fun _ => ib) t * dI M.β M.κ M.σ M.γ t) =
+      fun t => ((1 - M.γ) * (1 - M.β * M.γ) * πb * dPi M.γ t +
+        M.lam * (xb - M.xstar) * dX M.β M.κ t) +
+        M.lami * (ib - M.im) * dI M.β M.κ M.σ M.γ t := by
+    funext t
+    simp only [focPiI, focXI, focII, hpm, lagged_const]
+    ring
+  have b1 : Bdd (fun t => (1 - M.γ) * (1 - M.β * M.γ) * πb * dPi M.γ t) :=
+    (bdd_const _).mul (dPi_bdd hγ0 hγ1)
+  have b2 : Bdd (fun t => M.lam * (xb - M.xstar) * dX M.β M.κ t) :=
+    (bdd_const _).mul (dX_bdd M.β M.κ)
+  have b3 : Bdd (fun t => M.lami * (ib - M.im) * dI M.β M.κ M.σ M.γ t) :=
+    (bdd_const _).mul (dI_bdd hγ0 hγ1)
+  unfold gradI
+  rw [e, dsum_add hβ0.le hβ1 (b1.add b2) b3, dsum_add hβ0.le hβ1 b1 b2, dsum_mul_left,
+    dsum_mul_left, dsum_mul_left, dsum_dPi hβ0 hβ1 hγ0 hγ1, dsum_dX hκ,
+    dsum_dI hβ0 hβ1 hγ0 hγ1 hκ]
+  field_simp
+  ring
+
+/-- **Necessity of the long-run inflation rate** (Woodford (2003), p. 484): with `π_{−1} = π̄`,
+`0 < β < 1`, `0 ≤ γ ≤ 1`, `κ, σ ≠ 0`, if the feasible constant plan `(π̄, x̄, ı̄)` minimises the
+loss among all bounded plans satisfying (1.21) and (1.15) with `π_0 = π̄`, `x_0 = x̄`, then the
+steady-state condition `λ_i(ı̄ − iᵐ) = −β(1 − γ)(1 − βγ)π̄` holds. No multiplier is assumed. -/
+theorem ss_ind_necessary {M : IModel} (hβ0 : 0 < M.β) (hβ1 : M.β < 1) (hγ0 : 0 ≤ M.γ)
+    (hγ1 : M.γ ≤ 1) (hκ : M.κ ≠ 0) (hσ : M.σ ≠ 0) {πb xb ib : ℝ} (hpm : M.πm1 = πb)
+    (hF : ∀ t, ASi M (fun _ => πb) (fun _ => xb) t ∧
+      ISi M (fun _ => πb) (fun _ => xb) (fun _ => ib) t)
+    (hopt : ∀ π x i : ℕ → ℝ, Bdd π → Bdd x → Bdd i → (∀ t, ASi M π x t ∧ ISi M π x i t) →
+      π 0 = πb → x 0 = xb → lossI M (fun _ => πb) (fun _ => xb) (fun _ => ib) ≤ lossI M π x i) :
+    SSCondI M πb ib := by
+  set G := gradI M πb xb ib with hG
+  set Q := dsum M.β (quadI M (dPi M.γ) (dX M.β M.κ) (dI M.β M.κ M.σ M.γ)) with hQ
+  have key : ∀ ε : ℝ, 0 ≤ 2 * ε * G + ε ^ 2 * Q := by
+    intro ε
+    have h := hopt _ _ _ ((bdd_const πb).add ((bdd_const ε).mul (dPi_bdd hγ0 hγ1)))
+      ((bdd_const xb).add ((bdd_const ε).mul (dX_bdd M.β M.κ)))
+      ((bdd_const ib).add ((bdd_const ε).mul (dI_bdd (β := M.β) (κ := M.κ) (σ := M.σ) hγ0
+        hγ1)))
+      (pert_feasible hκ hσ hpm hF ε) (by simp [dPi]) (by simp [dX])
+    rw [lossI_pert hβ0 hβ1 hγ0 hγ1] at h
+    linarith
+  have hG0 : G = 0 := by
+    by_contra hne
+    have hq : 0 < |Q| + 1 := by positivity
+    have h := key (-G / (|Q| + 1))
+    have hG2 : 0 < G ^ 2 := by positivity
+    have hQle : Q ≤ |Q| := le_abs_self Q
+    have e : 2 * (-G / (|Q| + 1)) * G + (-G / (|Q| + 1)) ^ 2 * Q =
+        G ^ 2 / (|Q| + 1) ^ 2 * (-2 * (|Q| + 1) + Q) := by
+      field_simp
+    rw [e] at h
+    have : -2 * (|Q| + 1) + Q < 0 := by linarith
+    have := mul_neg_of_pos_of_neg (div_pos hG2 (pow_pos hq 2)) this
+    linarith
+  rw [hG, gradI_eq hβ0 hβ1 hγ0 hγ1 hκ hpm] at hG0
+  have hbg : 0 < 1 - M.β * M.γ := by nlinarith
+  have hpos : 0 < M.β / (1 - M.β * M.γ) := div_pos hβ0 hbg
+  have h2 := (mul_eq_zero.mp hG0).resolve_left hpos.ne'
+  unfold SSCondI
+  linarith
+
+/-- **The p. 484 steady state, necessary and sufficient** (Woodford (2003), p. 484): with
+`π_{−1} = π̄`, `0 < β < 1`, `0 ≤ γ ≤ 1`, `κ, σ ≠ 0`, `λ, λ_i ≥ 0` and
+`λ_i + β(1 − γ)(1 − βγ) ≠ 0`, the constant plan `(π̄, x̄, ı̄)` is feasible and minimises the loss
+among all bounded feasible plans with `π_0 = π̄`, `x_0 = x̄` **iff**
+`π̄ = −λ_i(r̄ − iᵐ)/(λ_i + β(1 − γ)(1 − βγ))`, `ı̄ = r̄ + π̄` and `κx̄ = (1 − β)(1 − γ)π̄`. -/
+theorem ss_ind_timeless_iff {M : IModel} (hβ0 : 0 < M.β) (hβ1 : M.β < 1) (hγ0 : 0 ≤ M.γ)
+    (hγ1 : M.γ ≤ 1) (hκ : M.κ ≠ 0) (hσ : M.σ ≠ 0) (hlam : 0 ≤ M.lam) (hli : 0 ≤ M.lami)
+    (hD : M.lami + M.β * (1 - M.γ) * (1 - M.β * M.γ) ≠ 0) {πb xb ib : ℝ} (hpm : M.πm1 = πb) :
+    ((∀ t, ASi M (fun _ => πb) (fun _ => xb) t ∧
+        ISi M (fun _ => πb) (fun _ => xb) (fun _ => ib) t) ∧
+      ∀ π x i : ℕ → ℝ, Bdd π → Bdd x → Bdd i → (∀ t, ASi M π x t ∧ ISi M π x i t) →
+        π 0 = πb → x 0 = xb →
+        lossI M (fun _ => πb) (fun _ => xb) (fun _ => ib) ≤ lossI M π x i) ↔
+      πb = -(M.lami * (M.rbar - M.im)) / (M.lami + M.β * (1 - M.γ) * (1 - M.β * M.γ)) ∧
+        ib = M.rbar + πb ∧ M.κ * xb = (1 - M.β) * (1 - M.γ) * πb := by
+  constructor
+  · rintro ⟨hF, hopt⟩
+    have hss := ss_ind_necessary hβ0 hβ1 hγ0 hγ1 hκ hσ hpm hF hopt
+    have hfoc := (focI_const_iff (xb := xb) hβ0.ne' hσ hκ hpm).mpr hss
+    exact (ss_ind_iff hβ0.ne' hσ hκ hD hpm).mp ⟨hfoc, hF⟩
+  · intro h
+    obtain ⟨⟨c1, c2, hfoc⟩, hF⟩ := (ss_ind_iff hβ0.ne' hσ hκ hD hpm).mpr h
+    exact ⟨hF, fun π x i hπ hx hi hF' h0 h0' =>
+      ss_ind_optimal hβ0 hβ1 hlam hli hfoc hF hπ hx hi hF' h0 h0'⟩
+
+end Woodford.GainsFromCommitment.TidyR5IndexationNecessity
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Composite disturbances with infinitely many shock types
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §4, eq. (4.3), pp. 520–521, and §5.1
+(Proposition 7.15, p. 523).
+
+`InstrumentPath.compositeShock` formalises (4.3) for finitely many types. The book allows "an
+extremely large (not necessarily finite) number of different types of real disturbances"
+(p. 521). Here the types are indexed by `ℕ`, with an absolutely summable family of weights.
+
+## Main results
+
+* `typeShock` (`u^j_t = ∑_k ψ_{jk} ε^j_{t−k}`) and `compositeInf` (`u_t = ∑_j u^j_t`), under
+  `SummableFamily ψ` (`∑_j ∑_k |ψ_{jk}| < ∞`): well defined and bounded (`typeShock_bdd`,
+  `compositeInf_summable`, `compositeInf_bdd`); every finite composite is one
+  (`compositeShock_eq_inf`, `summableFamily_fin`), in particular the AR(1) process; if every shock
+  is known from its date on, the composite is adapted (`compositeInf_adapted`).
+* **Superposition** (pp. 520–521, "one can compute the response … to this particular type of
+  shock"): the forward component of the optimal plan is the sum over types of the type-specific
+  forward components (`fwdU_composite`), so along the optimal equilibrium of (5.1)
+  `x_t = μ₁x_{t−1} − (κ/λ)∑_j F^j_t` and `π_t = (1 − μ₁)(λ/κ)x_{t−1} + ∑_j F^j_t`
+  (`star_composite`).
+* **Robust optimality for infinitely many types** (p. 521): for every summable family and every
+  bounded shock histories, the target criterion (5.1) — with coefficients that do not depend on
+  `ψ` — has exactly one bounded adapted equilibrium, and it solves the optimal-policy problem of
+  Proposition 7.7 (`targeting_rule_composite`).
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR5CompositeShocks
+
+open Filter Topology
+
+variable {Ω : Type*}
+
+/-! ### Composite disturbances with countably many types -/
+
+/-- Woodford (2003), eq. (4.3), p. 520: the contribution of shock type `j`,
+`u^j_t = ∑_{k≥0} ψ_{jk} ε^j_{t−k}` (shock histories indexed by `ℤ`). -/
+noncomputable def typeShock (ψ : ℕ → ℕ → ℝ) (ε : ℕ → ℤ → Ω → ℝ) (j : ℕ) (t : ℤ) : Ω → ℝ :=
+  fun ω => ∑' k : ℕ, ψ j k * ε j (t - k) ω
+
+/-- Woodford (2003), eq. (4.3), p. 520, with countably many types:
+`u_t = ∑_j ∑_{k≥0} ψ_{jk} ε^j_{t−k}`. -/
+noncomputable def compositeInf (ψ : ℕ → ℕ → ℝ) (ε : ℕ → ℤ → Ω → ℝ) (t : ℤ) : Ω → ℝ :=
+  fun ω => ∑' j, typeShock ψ ε j t ω
+
+/-- Woodford (2003), p. 521 ("not necessarily finite"): the weights form an absolutely summable
+family, `∑_k |ψ_{jk}| < ∞` for each type and `∑_j ∑_k |ψ_{jk}| < ∞`. -/
+def SummableFamily (ψ : ℕ → ℕ → ℝ) : Prop :=
+  (∀ j, Summable fun k => |ψ j k|) ∧ Summable fun j => ∑' k, |ψ j k|
+
+/-- Woodford (2003), eq. (4.3) (tool): each type's series converges absolutely. -/
+theorem typeShock_summable {ψ : ℕ → ℕ → ℝ} {ε : ℕ → ℤ → Ω → ℝ} {M : ℝ}
+    (hψ : SummableFamily ψ) (hε : ∀ j s ω, |ε j s ω| ≤ M) (j : ℕ) (t : ℤ) (ω : Ω) :
+    Summable fun k : ℕ => ψ j k * ε j (t - k) ω :=
+  Summable.of_norm_bounded ((hψ.1 j).mul_right M) fun k => by
+    rw [Real.norm_eq_abs, abs_mul]
+    exact mul_le_mul_of_nonneg_left (hε j _ ω) (abs_nonneg _)
+
+/-- Woodford (2003), eq. (4.3): `|u^j_t| ≤ (∑_k |ψ_{jk}|) M` for shocks bounded by `M`. -/
+theorem typeShock_bdd {ψ : ℕ → ℕ → ℝ} {ε : ℕ → ℤ → Ω → ℝ} {M : ℝ}
+    (hψ : SummableFamily ψ) (hε : ∀ j s ω, |ε j s ω| ≤ M) (j : ℕ) (t : ℤ) (ω : Ω) :
+    |typeShock ψ ε j t ω| ≤ (∑' k, |ψ j k|) * M := by
+  have hg : HasSum (fun k => |ψ j k| * M) ((∑' k, |ψ j k|) * M) := (hψ.1 j).hasSum.mul_right M
+  have := tsum_of_norm_bounded hg (f := fun k : ℕ => ψ j k * ε j (t - k) ω) (fun k => by
+    rw [Real.norm_eq_abs, abs_mul]
+    exact mul_le_mul_of_nonneg_left (hε j _ ω) (abs_nonneg _))
+  rwa [Real.norm_eq_abs] at this
+
+/-- Woodford (2003), eq. (4.3): the series over types converges absolutely. -/
+theorem compositeInf_summable {ψ : ℕ → ℕ → ℝ} {ε : ℕ → ℤ → Ω → ℝ} {M : ℝ}
+    (hψ : SummableFamily ψ) (hε : ∀ j s ω, |ε j s ω| ≤ M) (t : ℤ) (ω : Ω) :
+    Summable fun j => typeShock ψ ε j t ω :=
+  Summable.of_norm_bounded (hψ.2.mul_right M) fun j => by
+    rw [Real.norm_eq_abs]
+    exact typeShock_bdd hψ hε j t ω
+
+/-- Woodford (2003), eq. (4.3): with countably many types the composite disturbance is bounded,
+`|u_t| ≤ (∑_j ∑_k |ψ_{jk}|) M`. -/
+theorem compositeInf_bdd {ψ : ℕ → ℕ → ℝ} {ε : ℕ → ℤ → Ω → ℝ} {M : ℝ}
+    (hψ : SummableFamily ψ) (hε : ∀ j s ω, |ε j s ω| ≤ M) (t : ℤ) (ω : Ω) :
+    |compositeInf ψ ε t ω| ≤ (∑' j, ∑' k, |ψ j k|) * M := by
+  have hg : HasSum (fun j => (∑' k, |ψ j k|) * M) ((∑' j, ∑' k, |ψ j k|) * M) :=
+    hψ.2.hasSum.mul_right M
+  have := tsum_of_norm_bounded hg (f := fun j => typeShock ψ ε j t ω) (fun j => by
+    rw [Real.norm_eq_abs]
+    exact typeShock_bdd hψ hε j t ω)
+  rwa [Real.norm_eq_abs] at this
+
+/-- Woodford (2003), eq. (4.3) (tool): extending a finite family of weights by zero. -/
+noncomputable def extendPsi {J : ℕ} (ψ : Fin J → ℕ → ℝ) : ℕ → ℕ → ℝ :=
+  fun j k => if h : j < J then ψ ⟨j, h⟩ k else 0
+
+/-- Woodford (2003), eq. (4.3) (tool): extending a finite family of shocks by zero. -/
+noncomputable def extendEps {J : ℕ} (ε : Fin J → ℤ → Ω → ℝ) : ℕ → ℤ → Ω → ℝ :=
+  fun j s => if h : j < J then ε ⟨j, h⟩ s else 0
+
+/-- Woodford (2003), eq. (4.3): a finite family of absolutely summable weights, extended by zero,
+is a summable family. -/
+theorem summableFamily_fin {J : ℕ} {ψ : Fin J → ℕ → ℝ} (hψ : ∀ j, Summable fun k => |ψ j k|) :
+    SummableFamily (extendPsi ψ) := by
+  refine ⟨fun j => ?_, ?_⟩
+  · by_cases h : j < J
+    · simpa [extendPsi, h] using hψ ⟨j, h⟩
+    · simp [extendPsi, h]
+  · refine summable_of_ne_finset_zero (s := Finset.range J) fun j hj => ?_
+    have h : ¬ j < J := fun h => hj (Finset.mem_range.mpr h)
+    simp [extendPsi, h]
+
+/-- Woodford (2003), eq. (4.3): every finite composite (`InstrumentPath.compositeShock`, in
+particular the AR(1) process, `InstrumentPath.ar1_as_composite`) is a composite with countably
+many types. -/
+theorem compositeShock_eq_inf {J : ℕ} (ψ : Fin J → ℕ → ℝ) (ε : Fin J → ℤ → Ω → ℝ) (t : ℤ) :
+    InstrumentPath.compositeShock ψ ε t = compositeInf (extendPsi ψ) (extendEps ε) t := by
+  funext ω
+  unfold InstrumentPath.compositeShock compositeInf
+  rw [tsum_eq_sum (s := Finset.range J) fun j hj => ?_]
+  · rw [← Fin.sum_univ_eq_sum_range (fun j => typeShock (extendPsi ψ) (extendEps ε) j t ω)]
+    refine Finset.sum_congr rfl fun j _ => ?_
+    simp [typeShock, extendPsi, extendEps, j.isLt]
+  · have h : ¬ j < J := fun h => hj (Finset.mem_range.mpr h)
+    simp [typeShock, extendPsi, h]
+
+/-- Woodford (2003), eq. (4.3) and p. 488 (adaptedness): if every shock `ε^j_s` is known at every
+date `n ≥ s`, the composite disturbance `u_n` is known at date `n`, for any expectation system
+(`E_n` commutes with the dominated series over types and over lags). -/
+theorem compositeInf_adapted (𝔼 : ExpectationSystem Ω) {ψ : ℕ → ℕ → ℝ} {ε : ℕ → ℤ → Ω → ℝ}
+    {M : ℝ} (hψ : SummableFamily ψ) (hε : ∀ j s ω, |ε j s ω| ≤ M)
+    (hk : ∀ j (s : ℤ) (n : ℕ), s ≤ n → 𝔼.E n (ε j s) = ε j s) (n : ℕ) :
+    𝔼.E n (compositeInf ψ ε n) = compositeInf ψ ε n := by
+  have htype : ∀ j, 𝔼.E n (typeShock ψ ε j n) = typeShock ψ ε j n := by
+    intro j
+    funext ω
+    have h := ForwardSolution.E_tsum_dom 𝔼 ((hψ.1 j).mul_right M)
+      (f := fun k ω' => ψ j k * ε j ((n : ℤ) - k) ω') (fun k ω' => by
+        rw [abs_mul]; exact mul_le_mul_of_nonneg_left (hε j _ ω') (abs_nonneg _)) n ω
+    change 𝔼.E n (fun ω' => ∑' k, ψ j k * ε j ((n : ℤ) - k) ω') ω = _
+    rw [h]
+    refine tsum_congr fun k => ?_
+    have e : (fun ω' => ψ j k * ε j ((n : ℤ) - k) ω') = ψ j k • ε j ((n : ℤ) - k) := rfl
+    rw [e, map_smul, hk j _ n (by omega)]
+    rfl
+  funext ω
+  have h := ForwardSolution.E_tsum_dom 𝔼 (hψ.2.mul_right M)
+    (f := fun j => typeShock ψ ε j n) (fun j ω' => typeShock_bdd hψ hε j n ω') n ω
+  change 𝔼.E n (fun ω' => ∑' j, typeShock ψ ε j n ω') ω = _
+  rw [h]
+  exact tsum_congr fun j => by rw [htype j]
+
+
+/-! ### Superposition and robust optimality of the target criterion -/
+
+/-- **Superposition** (Woodford (2003), pp. 520–521): the forward component
+`F_t = β⁻¹∑_i μ₂^{−i−1} E_t u_{t+i}` of the optimal plan for the composite disturbance is the
+sum over shock types of the type-specific forward components (`κ, λ > 0`, `0 < β`). -/
+theorem fwdU_composite (𝔼 : ExpectationSystem Ω) {β κ lam : ℝ} (hβ : 0 < β) (hκ : 0 < κ)
+    (hlam : 0 < lam) {ψ : ℕ → ℕ → ℝ} {ε : ℕ → ℤ → Ω → ℝ} {M : ℝ} (hψ : SummableFamily ψ)
+    (hε : ∀ j s ω, |ε j s ω| ≤ M) (t : ℕ) :
+    TargetingRule.fwdU 𝔼 β κ lam (fun n => compositeInf ψ ε n) t =
+      fun ω => ∑' j, TargetingRule.fwdU 𝔼 β κ lam (fun n => typeShock ψ ε j n) t ω := by
+  funext ω
+  rw [TargetingRule.fwdU_apply]
+  simp_rw [TargetingRule.fwdU_apply]
+  set m := SecondOrderRE.mu2 β (κ ^ 2 / lam) with hmdef
+  have hm : 1 < m := SecondOrderRE.one_lt_mu2 hβ (by positivity)
+  have hm0 : 0 < m := lt_trans one_pos hm
+  have ha_eq : ∀ i : ℕ, (m ^ (i + 1))⁻¹ = m⁻¹ * (m⁻¹) ^ i := fun i => by
+    rw [pow_succ, mul_inv, inv_pow]; ring
+  have ha : Summable fun i : ℕ => (m ^ (i + 1))⁻¹ := by
+    have := (summable_geometric_of_lt_one (inv_nonneg.mpr hm0.le)
+      (inv_lt_one_of_one_lt₀ hm)).mul_left m⁻¹
+    exact this.congr fun i => (ha_eq i).symm
+  have ha0 : ∀ i : ℕ, 0 ≤ (m ^ (i + 1))⁻¹ := fun i => inv_nonneg.mpr (pow_nonneg hm0.le _)
+  set e : ℕ → ℕ → ℝ := fun i j => 𝔼.E t (typeShock ψ ε j ((t + i : ℕ) : ℤ)) ω with he
+  have heb : ∀ i j, |e i j| ≤ (∑' k, |ψ j k|) * M := fun i j =>
+    𝔼.abs_E_le (fun ω' => typeShock_bdd hψ hε j _ ω') t ω
+  have hE : ∀ i : ℕ, 𝔼.E t (compositeInf ψ ε ((t + i : ℕ) : ℤ)) ω = ∑' j, e i j := fun i =>
+    ForwardSolution.E_tsum_dom 𝔼 (hψ.2.mul_right M)
+      (f := fun j => typeShock ψ ε j ((t + i : ℕ) : ℤ)) (fun j ω' => typeShock_bdd hψ hε j _ ω')
+      t ω
+  simp_rw [hE]
+  set g : ℕ → ℕ → ℝ := fun i j => (m ^ (i + 1))⁻¹ * e i j with hg
+  have hgb : ∀ i j, ‖g i j‖ ≤ (m ^ (i + 1))⁻¹ * ((∑' k, |ψ j k|) * M) := fun i j => by
+    rw [Real.norm_eq_abs, abs_mul, abs_of_nonneg (ha0 i)]
+    exact mul_le_mul_of_nonneg_left (heb i j) (ha0 i)
+  have hcs : Summable fun j => (∑' k, |ψ j k|) * M := hψ.2.mul_right M
+  have hprod : Summable fun x : ℕ × ℕ => (m ^ (x.1 + 1))⁻¹ * ((∑' k, |ψ x.2 k|) * M) := by
+    refine summable_mul_of_summable_norm (f := fun i : ℕ => (m ^ (i + 1))⁻¹)
+      (g := fun j => (∑' k, |ψ j k|) * M) ?_ ?_
+    · exact ha.congr fun i => by rw [Real.norm_eq_abs, abs_of_nonneg (ha0 i)]
+    · exact (summable_abs_iff.mpr hcs).congr fun j => (Real.norm_eq_abs _).symm
+  have hunc : Summable (Function.uncurry g) :=
+    Summable.of_norm_bounded hprod fun x => hgb x.1 x.2
+  have h1 : ∀ i, Summable (g i) := fun i =>
+    Summable.of_norm_bounded (hcs.mul_left ((m ^ (i + 1))⁻¹)) fun j => hgb i j
+  have h2 : ∀ j, Summable fun i => g i j := fun j =>
+    Summable.of_norm_bounded (ha.mul_right ((∑' k, |ψ j k|) * M)) fun i => hgb i j
+  have hswap := Summable.tsum_comm' hunc h1 h2
+  have eL : (∑' i, (m ^ (i + 1))⁻¹ * ∑' j, e i j) = ∑' i, ∑' j, g i j :=
+    tsum_congr fun i => by rw [← tsum_mul_left]
+  rw [eL, ← hswap, ← tsum_mul_left]
+
+/-- **The optimal equilibrium for a composite disturbance, type by type** (Woodford (2003),
+pp. 520–521, (2.12) and (F.10)): along the equilibrium of the target criterion (5.1) for the
+composite `u`, `x_t = μ₁x_{t−1} − (κ/λ)∑_j F^j_t` and
+`π_t = (1 − μ₁)(λ/κ)x_{t−1} + ∑_j F^j_t`, with `F^j` the forward component of shock type `j`. -/
+theorem star_composite (𝔼 : ExpectationSystem Ω) {β κ lam : ℝ} (hβ : 0 < β) (hκ : 0 < κ)
+    (hlam : 0 < lam) {ψ : ℕ → ℕ → ℝ} {ε : ℕ → ℤ → Ω → ℝ} {M : ℝ} (hψ : SummableFamily ψ)
+    (hε : ∀ j s ω, |ε j s ω| ≤ M) (xm1 : Ω → ℝ) (t : ℕ) :
+    TargetingRule.xStar 𝔼 β κ lam xm1 (fun n => compositeInf ψ ε n) t =
+        SecondOrderRE.mu1 β (κ ^ 2 / lam) •
+          Sequences.lagged xm1 (TargetingRule.xStar 𝔼 β κ lam xm1 (fun n => compositeInf ψ ε n))
+            t -
+          (κ / lam) • (fun ω => ∑' j, TargetingRule.fwdU 𝔼 β κ lam (fun n => typeShock ψ ε j n) t ω)
+      ∧
+      TargetingRule.piStar 𝔼 β κ lam xm1 (fun n => compositeInf ψ ε n) t =
+        ((1 - SecondOrderRE.mu1 β (κ ^ 2 / lam)) * (lam / κ)) •
+          Sequences.lagged xm1 (TargetingRule.xStar 𝔼 β κ lam xm1 (fun n => compositeInf ψ ε n))
+            t +
+          (fun ω => ∑' j, TargetingRule.fwdU 𝔼 β κ lam (fun n => typeShock ψ ε j n) t ω) := by
+  rw [TargetingRule.xStar_eq, TargetingRule.piStar_eq 𝔼 hκ.ne' hlam.ne',
+    fwdU_composite 𝔼 hβ hκ hlam hψ hε t]
+  exact ⟨rfl, rfl⟩
+
+/-- **Robust optimality of the target criterion for infinitely many shock types** (Woodford
+(2003), p. 521, and Proposition 7.15, p. 523): for every absolutely summable family of weights
+and every bounded shock histories known from their dates on, with the composite cost-push
+disturbance (4.3), the target criterion (5.1) — whose coefficient `λ/κ` does not depend on the
+weights — has exactly one bounded adapted equilibrium with (2.1), and that equilibrium solves the
+optimal-policy problem of Proposition 7.7 (initial constraint (2.11)), for any target `x*`
+(pull-out property assumed). -/
+theorem targeting_rule_composite (𝔼 : ExpectationSystem Ω) (hpo : 𝔼.PullOut) {β κ lam : ℝ}
+    (hβ : 0 < β) (hβ1 : β < 1) (hκ : 0 < κ) (hlam : 0 < lam) {ψ : ℕ → ℕ → ℝ}
+    {ε : ℕ → ℤ → Ω → ℝ} {M : ℝ} (hψ : SummableFamily ψ) (hε : ∀ j s ω, |ε j s ω| ≤ M)
+    (hk : ∀ j (s : ℤ) (n : ℕ), s ≤ n → 𝔼.E n (ε j s) = ε j s) {xm1 : Ω → ℝ} {K : ℝ}
+    (hK : ∀ ω, |xm1 ω| ≤ K) (hm0 : 𝔼.E 0 xm1 = xm1) :
+    (VarianceFrontier.AS 𝔼 β κ (fun n => compositeInf ψ ε n)
+        (TargetingRule.piStar 𝔼 β κ lam xm1 (fun n => compositeInf ψ ε n))
+        (TargetingRule.xStar 𝔼 β κ lam xm1 (fun n => compositeInf ψ ε n)) ∧
+      TargetingRule.Crit lam κ xm1
+        (TargetingRule.piStar 𝔼 β κ lam xm1 (fun n => compositeInf ψ ε n))
+        (TargetingRule.xStar 𝔼 β κ lam xm1 (fun n => compositeInf ψ ε n))) ∧
+    (∀ π x : ℕ → Ω → ℝ, VarianceFrontier.AS 𝔼 β κ (fun n => compositeInf ψ ε n) π x →
+      TargetingRule.Crit lam κ xm1 π x → BoundedProc x → 𝔼.Adapted x →
+      π = TargetingRule.piStar 𝔼 β κ lam xm1 (fun n => compositeInf ψ ε n) ∧
+        x = TargetingRule.xStar 𝔼 β κ lam xm1 (fun n => compositeInf ψ ε n)) ∧
+    ∀ xs : ℝ, TargetingRule.IsConstrainedOpt 𝔼 β κ lam xs (fun n => compositeInf ψ ε n)
+      (TargetingRule.eq211 𝔼 β κ lam (fun n => compositeInf ψ ε n) xm1)
+      (TargetingRule.piStar 𝔼 β κ lam xm1 (fun n => compositeInf ψ ε n))
+      (TargetingRule.xStar 𝔼 β κ lam xm1 (fun n => compositeInf ψ ε n)) := by
+  have hub : BoundedProc (fun n : ℕ => compositeInf ψ ε n) :=
+    ⟨_, fun n ω => compositeInf_bdd hψ hε n ω⟩
+  have hua : 𝔼.Adapted (fun n : ℕ => compositeInf ψ ε n) :=
+    fun n => compositeInf_adapted 𝔼 hψ hε hk n
+  obtain ⟨⟨hAS, hC, hpb, hxb, hpa, hxa⟩, huniq⟩ :=
+    TargetingRule.prop_7_15 𝔼 hβ hκ hlam hub hua hK hm0
+  exact ⟨⟨hAS, hC⟩, huniq, fun xs => TargetingRule.crit_isConstrainedOpt 𝔼 hβ hβ1 hκ hlam hpo
+    xs hub hua hK hm0 hAS hC hpb hxb hpa hxa⟩
+
+end Woodford.GainsFromCommitment.TidyR5CompositeShocks
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Orders of integration as properties of stochastic processes
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §2.1, p. 501: "Under optimal policy, the price
+is an integrated process of order one, while under discretion it is an integrated process of order
+two, since there is a unit root in the inflation rate" (with full indexation, `γ = 1`), and the
+price level is stationary under optimal policy with `γ = 0`.
+
+ImpulseResponses formalised these as root multiplicities at `z = 1` of lag polynomials. Here
+"integrated of order `d`" is the genuine time-series notion on a probability space:
+
+* `CovStationary μ y`: every y_t is square-integrable, the mean is constant and
+  `Cov(y_t, y_{t+h})` does not depend on `t` (weak, or covariance, stationarity);
+* `diffN d y`: the `d`-th forward difference `Δᵈy` (`(Δy)_t = y_{t+1} − y_t`);
+* `IntegratedOfOrder μ d y`: `Δᵈy` is covariance stationary and `Δᵏy` is not for any `k < d`
+  (the order of integration is the least number of differences that makes the process
+  stationary). `I(1)` with `d = 1` is a unit-root process.
+
+This module develops the general notions and the moment calculus for processes that are finite
+linear combinations of i.i.d. fair-coin shocks (`lin`); the price-level applications are in
+TidyR6IntegrationPolicy.
+
+## Main results
+
+* `CovStationary`, `diffN`, `IntegratedOfOrder`; `covStationary_congr_ae`,
+  `integratedOfOrder_congr_ae` (only the a.e. class matters).
+* `integral_coord`, `integral_coord_mul` (the coins are orthonormal in `L²`), `memLp_lin`,
+  `integral_lin`, `cov_lin` (`Cov(y_t, y_r) = ∑_j b_{t,j}b_{r,j}`), `covStationary_lin_iff`,
+  `not_covStationary_of_var_ne`.
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR6IntegrationOrder
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasureIID
+
+/-! ### Covariance stationarity and orders of integration -/
+
+variable {Ω : Type*} [MeasurableSpace Ω]
+
+/-- Woodford (2003), p. 501 (time-series background): the covariance
+`Cov(X, Y) = ∫ (X − EX)(Y − EY) dμ`. -/
+noncomputable def cov (μ : Measure Ω) (X Y : Ω → ℝ) : ℝ :=
+  ∫ ω, (X ω - ∫ ω', X ω' ∂μ) * (Y ω - ∫ ω', Y ω' ∂μ) ∂μ
+
+/-- Woodford (2003), p. 501 ("stationary"): a process is **covariance stationary** if every
+y_t is square-integrable, its mean does not depend on `t`, and `Cov(y_t, y_{t+h})` depends on
+the lag `h` only. -/
+def CovStationary (μ : Measure Ω) (y : ℕ → Ω → ℝ) : Prop :=
+  (∀ t, MemLp (y t) 2 μ) ∧ (∀ t, ∫ ω, y t ω ∂μ = ∫ ω, y 0 ω ∂μ) ∧
+    ∀ t h, cov μ (y t) (y (t + h)) = cov μ (y 0) (y h)
+
+/-- Woodford (2003), p. 501: the forward difference `(Δy)_t = y_{t+1} − y_t`. -/
+def diff (y : ℕ → Ω → ℝ) : ℕ → Ω → ℝ := fun t ω => y (t + 1) ω - y t ω
+
+/-- Woodford (2003), p. 501: the `d`-th difference `Δᵈy`. -/
+def diffN : ℕ → (ℕ → Ω → ℝ) → ℕ → Ω → ℝ
+  | 0, y => y
+  | d + 1, y => diff (diffN d y)
+
+/-- Woodford (2003), p. 501 (**integrated of order `d`**): `Δᵈy` is covariance stationary and no
+lower difference `Δᵏy`, `k < d`, is. `I(0)` is covariance stationarity; `I(1)` is a unit-root
+process (non-stationary, with a stationary first difference). -/
+def IntegratedOfOrder (μ : Measure Ω) (d : ℕ) (y : ℕ → Ω → ℝ) : Prop :=
+  CovStationary μ (diffN d y) ∧ ∀ k < d, ¬ CovStationary μ (diffN k y)
+
+/-- Woodford (2003), p. 501: changing each y_t on a null set changes neither the moments nor
+square-integrability. -/
+theorem covStationary_congr_ae {μ : Measure Ω} {y z : ℕ → Ω → ℝ}
+    (h : ∀ t, y t =ᵐ[μ] z t) : CovStationary μ y ↔ CovStationary μ z := by
+  have hi : ∀ t, ∫ ω, y t ω ∂μ = ∫ ω, z t ω ∂μ := fun t => integral_congr_ae (h t)
+  have hc : ∀ s t, cov μ (y s) (y t) = cov μ (z s) (z t) := fun s t => by
+    unfold cov
+    rw [hi s, hi t]
+    refine integral_congr_ae ?_
+    filter_upwards [h s, h t] with ω h1 h2
+    rw [h1, h2]
+  constructor
+  · rintro ⟨h1, h2, h3⟩
+    exact ⟨fun t => (h1 t).ae_eq (h t), fun t => by rw [← hi, ← hi]; exact h2 t,
+      fun t k => by rw [← hc, ← hc]; exact h3 t k⟩
+  · rintro ⟨h1, h2, h3⟩
+    exact ⟨fun t => (h1 t).ae_eq (h t).symm, fun t => by rw [hi, hi]; exact h2 t,
+      fun t k => by rw [hc, hc]; exact h3 t k⟩
+
+/-- Woodford (2003), p. 501: differences of a.e.-equal processes are a.e. equal. -/
+theorem diffN_congr_ae {μ : Measure Ω} {y z : ℕ → Ω → ℝ} (h : ∀ t, y t =ᵐ[μ] z t) (d : ℕ) :
+    ∀ t, diffN d y t =ᵐ[μ] diffN d z t := by
+  induction d with
+  | zero => exact h
+  | succ d ih =>
+    intro t
+    filter_upwards [ih t, ih (t + 1)] with ω h1 h2
+    simp only [diffN, diff, h1, h2]
+
+/-- Woodford (2003), p. 501: the order of integration depends only on the a.e. class of the
+process. -/
+theorem integratedOfOrder_congr_ae {μ : Measure Ω} {y z : ℕ → Ω → ℝ} (h : ∀ t, y t =ᵐ[μ] z t)
+    (d : ℕ) : IntegratedOfOrder μ d y ↔ IntegratedOfOrder μ d z := by
+  unfold IntegratedOfOrder
+  rw [covStationary_congr_ae (diffN_congr_ae h d)]
+  exact and_congr_right fun _ => forall₂_congr fun k _ => by
+    rw [covStationary_congr_ae (diffN_congr_ae h k)]
+
+/-- Woodford (2003), p. 501: a process whose variance at some date differs from its variance at
+date `0` is not covariance stationary. -/
+theorem not_covStationary_of_var_ne {μ : Measure Ω} {y : ℕ → Ω → ℝ} {t : ℕ}
+    (h : cov μ (y t) (y t) ≠ cov μ (y 0) (y 0)) : ¬ CovStationary μ y := by
+  rintro ⟨-, -, h3⟩
+  exact h (by simpa using h3 t 0)
+
+/-! ### Linear combinations of i.i.d. fair coins -/
+
+/-- Woodford (2003), p. 501 (the probability space): the i.i.d. fair-coin economy `ν^ℕ` on
+`ℕ → ℝ` (`ExpectationsMeasureIID.coin`). -/
+noncomputable abbrev Pc : Measure (ℕ → ℝ) := (iidSystem coin).μ
+
+/-- Woodford (2003), p. 501: the coins are bounded by one almost surely. -/
+theorem coord_bdd (j : ℕ) : ∀ᵐ ω ∂Pc, |ω j| ≤ 1 := shock_ae_bdd coin coin_bdd j
+
+/-- Woodford (2003), p. 501: each coin is integrable. -/
+theorem coord_integrable (j : ℕ) : Integrable (fun ω : ℕ → ℝ => ω j) Pc :=
+  Integrable.of_bound (measurable_pi_apply j).aestronglyMeasurable 1
+    ((coord_bdd j).mono fun ω h => by rwa [Real.norm_eq_abs])
+
+/-- Woodford (2003), p. 501: products of two coins are integrable. -/
+theorem coord_mul_integrable (i j : ℕ) : Integrable (fun ω : ℕ → ℝ => ω i * ω j) Pc :=
+  Integrable.of_bound ((measurable_pi_apply i).mul (measurable_pi_apply j)).aestronglyMeasurable 1
+    ((coord_bdd i).mp ((coord_bdd j).mono fun ω h2 h1 => by
+      rw [Real.norm_eq_abs, abs_mul]
+      nlinarith [abs_nonneg (ω i), abs_nonneg (ω j)]))
+
+/-- Woodford (2003), p. 501: each coin has mean zero. -/
+theorem integral_coord (j : ℕ) : ∫ ω, ω j ∂Pc = 0 := by
+  have := integral_shock_fun coin j (f := id) measurable_id
+  simp only [id] at this
+  rw [this, coin_mean]
+
+/-- Woodford (2003), p. 501: the coins are orthonormal, `E[εᵢεⱼ] = 1` if `i = j` and `0`
+otherwise (independence and mean zero). -/
+theorem integral_coord_mul (i j : ℕ) :
+    ∫ ω, ω i * ω j ∂Pc = if i = j then 1 else 0 := by
+  split_ifs with h
+  · subst h
+    have := integral_shock_fun coin i (f := fun x => x ^ 2) (measurable_id.pow_const 2)
+    rw [← coin_var, ← this]
+    exact integral_congr_ae (Eventually.of_forall fun ω => by ring)
+  · have hind : IndepFun (fun ω : ℕ → ℝ => ω i) (fun ω : ℕ → ℝ => ω j) Pc :=
+      (iIndepFun_infinitePi (P := fun _ => (coin : Measure ℝ)) (X := fun _ => id)
+        (fun _ => measurable_id)).indepFun h
+    have := hind.integral_mul_eq_mul_integral (measurable_pi_apply i).aestronglyMeasurable
+      (measurable_pi_apply j).aestronglyMeasurable
+    simp only [Pi.mul_apply] at this
+    rw [this, integral_coord, zero_mul]
+
+/-- Woodford (2003), p. 501: a process that is, at each date, a constant plus a finite linear
+combination of the coins, `y_t = a_t + ∑_{j < n_t} b_{t,j} ε_j`. -/
+noncomputable def lin (a : ℕ → ℝ) (b : ℕ → ℕ → ℝ) (n : ℕ → ℕ) : ℕ → (ℕ → ℝ) → ℝ :=
+  fun t ω => a t + ∑ j ∈ Finset.range (n t), b t j * ω j
+
+/-- Woodford (2003), p. 501: such a process is square-integrable. -/
+theorem memLp_lin (a : ℕ → ℝ) (b : ℕ → ℕ → ℝ) (n : ℕ → ℕ) (t : ℕ) :
+    MemLp (lin a b n t) 2 Pc := by
+  have hc : ∀ j, MemLp (fun ω : ℕ → ℝ => ω j) 2 Pc := fun j =>
+    MemLp.of_bound (measurable_pi_apply j).aestronglyMeasurable 1
+      ((coord_bdd j).mono fun ω h => by rwa [Real.norm_eq_abs])
+  unfold lin
+  refine (memLp_const (a t)).add ?_
+  have := memLp_finsetSum' (Finset.range (n t)) (fun j _ => (hc j).const_mul (b t j))
+  convert this using 1
+  funext ω
+  simp [Finset.sum_apply]
+
+/-- Woodford (2003), p. 501: the linear-combination part is integrable. -/
+theorem integrable_sum (b : ℕ → ℝ) (m : ℕ) :
+    Integrable (fun ω : ℕ → ℝ => ∑ j ∈ Finset.range m, b j * ω j) Pc :=
+  integrable_finsetSum _ fun j _ => (coord_integrable j).const_mul (b j)
+
+/-- Woodford (2003), p. 501: the mean of y_t is a_t. -/
+theorem integral_lin (a : ℕ → ℝ) (b : ℕ → ℕ → ℝ) (n : ℕ → ℕ) (t : ℕ) :
+    ∫ ω, lin a b n t ω ∂Pc = a t := by
+  unfold lin
+  rw [integral_add (integrable_const _) (integrable_sum _ _), integral_const,
+    integral_finsetSum _ fun j _ => (coord_integrable j).const_mul (b t j)]
+  simp [integral_const_mul, integral_coord]
+
+/-- Woodford (2003), p. 501: `E[(∑ bᵢεᵢ)(∑ cⱼεⱼ)] = ∑_{j < min(m, k)} bⱼcⱼ`. -/
+theorem integral_sum_mul_sum (b c : ℕ → ℝ) (m k : ℕ) :
+    ∫ ω, (∑ i ∈ Finset.range m, b i * ω i) * (∑ j ∈ Finset.range k, c j * ω j) ∂Pc =
+      ∑ j ∈ Finset.range (min m k), b j * c j := by
+  have e : (fun ω : ℕ → ℝ => (∑ i ∈ Finset.range m, b i * ω i) *
+      (∑ j ∈ Finset.range k, c j * ω j)) =
+      fun ω => ∑ i ∈ Finset.range m, ∑ j ∈ Finset.range k, (b i * c j) * (ω i * ω j) := by
+    funext ω
+    rw [Finset.sum_mul_sum]
+    exact Finset.sum_congr rfl fun i _ => Finset.sum_congr rfl fun j _ => by ring
+  rw [e, integral_finsetSum _ fun i _ => integrable_finsetSum _ fun j _ =>
+    (coord_mul_integrable i j).const_mul _]
+  simp_rw [integral_finsetSum _ fun j _ => (coord_mul_integrable _ j).const_mul _,
+    integral_const_mul, integral_coord_mul, mul_ite, mul_one, mul_zero]
+  rw [Finset.range_eq_Ico, Finset.range_eq_Ico]
+  simp only [Finset.sum_ite_eq, Finset.mem_Ico]
+  rw [Finset.range_eq_Ico, ← Finset.sum_filter]
+  congr 1
+  ext j
+  simp [lt_min_iff]
+
+/-- Woodford (2003), p. 501: `Cov(y_t, y_r) = ∑_{j < min(n_t, n_r)} b_{t,j} b_{r,j}`. -/
+theorem cov_lin (a : ℕ → ℝ) (b : ℕ → ℕ → ℝ) (n : ℕ → ℕ) (t r : ℕ) :
+    cov Pc (lin a b n t) (lin a b n r) =
+      ∑ j ∈ Finset.range (min (n t) (n r)), b t j * b r j := by
+  unfold cov
+  rw [integral_lin, integral_lin]
+  simp only [lin, add_sub_cancel_left]
+  exact integral_sum_mul_sum (b t) (b r) (n t) (n r)
+
+/-- Woodford (2003), p. 501: covariance stationarity of a linear coin process in terms of its
+coefficients. -/
+theorem covStationary_lin_iff (a : ℕ → ℝ) (b : ℕ → ℕ → ℝ) (n : ℕ → ℕ) :
+    CovStationary Pc (lin a b n) ↔ (∀ t, a t = a 0) ∧
+      ∀ t h, ∑ j ∈ Finset.range (min (n t) (n (t + h))), b t j * b (t + h) j =
+        ∑ j ∈ Finset.range (min (n 0) (n h)), b 0 j * b h j := by
+  unfold CovStationary
+  simp only [integral_lin, cov_lin]
+  exact ⟨fun h => ⟨h.2.1, h.2.2⟩, fun h => ⟨memLp_lin a b n, h.1, h.2⟩⟩
+
+end Woodford.GainsFromCommitment.TidyR6IntegrationOrder
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The price level is `I(0)`, `I(1)` or `I(2)`: page 501 as statements about processes
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §2.1, p. 501 and footnote 22: with cost-push
+shocks, the price level is stationary under optimal policy without indexation (`γ = 0`); with
+full indexation (`γ = 1`), "under optimal policy, the price is an integrated process of order
+one, while under discretion it is an integrated process of order two, since there is a unit root
+in the inflation rate"; and under discretion with `γ = 0` the price level has a unit root.
+
+The economy is the genuine i.i.d. one (`ExpectationsMeasureIID.iidSystem` with fair coins, every
+history null): the cost-push shock is white noise `u_t = ε_t` (mean `0`, variance `1`), and
+E_t is Mathlib's conditional expectation. The policies are given by their laws of motion
+(restated for this measure-theoretic system from `ImpulseResponses.Plan`, (1.7) and (2.7), and
+from (2.3) for discretion), with the forward sums `∑ⱼ aʲE_tu_{t+j}` computed as
+`ExpectationsMeasure.MeasExpectationSystem.forwardSol`; `forwardSol_shock` shows that with
+white noise they are the current shock.
+
+## Main results
+
+* `forwardSol_shock`: `∑ⱼ aʲE_tε_{t+j} = ε_t` a.s.
+* `optimal_gamma0_I0`: optimal policy, `γ = 0`, stationary initial multiplier: `p` is `I(0)`.
+* `optimal_gamma1_I1`: optimal policy, `γ = 1`: `p` is `I(1)` (a unit-root process).
+* `discretion_gamma0_I1`: discretion, `γ = 0`: `p` is `I(1)`.
+* `discretion_gamma1_I2`: discretion, `γ = 1`: `p` is `I(2)`.
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR6IntegrationPolicy
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure ExpectationsMeasureIID TidyR6IntegrationOrder
+
+/-- Woodford (2003), p. 501: the i.i.d. fair-coin expectation system. -/
+noncomputable abbrev Sc : MeasExpectationSystem (ℕ → ℝ) := iidSystem coin
+
+/-! ### White-noise news -/
+
+/-- Woodford (2003), (2.3) and (2.7): with i.i.d. mean-zero shocks the discounted forecast sum is
+the current shock, `∑ⱼ aʲ E_t ε_{t+j} = ε_t` a.s. (`|a| < 1`). -/
+theorem forwardSol_shock {a : ℝ} (ha : |a| < 1) (t : ℕ) :
+    Sc.forwardSol a shock t =ᵐ[Pc] shock t := by
+  have hc : Summable (fun k : ℕ => |a| ^ k) := summable_geometric_of_lt_one (abs_nonneg a) ha
+  have hm : ∀ k, AEStronglyMeasurable (fun ω : ℕ → ℝ => a ^ k * shock (t + k) ω) Pc :=
+    fun k => ((measurable_pi_apply (t + k)).const_mul _).aestronglyMeasurable
+  have hf : ∀ k, ∀ᵐ ω ∂Pc, |a ^ k * shock (t + k) ω| ≤ |a| ^ k := fun k =>
+    (coord_bdd (t + k)).mono fun ω h => by
+      rw [abs_mul, abs_pow]
+      exact mul_le_of_le_one_right (by positivity) h
+  have hs := Sc.E_hasSum hc hm hf t
+  have hk : ∀ k, Sc.E t (fun ω => a ^ k * shock (t + k) ω) =ᵐ[Pc]
+      fun ω => if k = 0 then shock t ω else 0 := by
+    intro k
+    rcases Nat.eq_zero_or_pos k with rfl | hk
+    · have e : (fun ω : ℕ → ℝ => a ^ 0 * shock (t + 0) ω) = shock t := by
+        funext ω; simp
+      rw [e, Sc.E_of_stronglyMeasurable (measurable_shock coin le_rfl).stronglyMeasurable
+        (coord_integrable t)]
+      exact Eventually.of_forall fun ω => by simp
+    · have hmeas : StronglyMeasurable[futureSigma t] (shock (t + k)) :=
+        (Measurable.of_comap_le (le_iSup₂ (f := fun i (_ : i ∈ Set.Ioi t) => coordSigma i)
+          (t + k) (by simp only [Set.mem_Ioi]; omega))).stronglyMeasurable
+      have e : (fun ω : ℕ → ℝ => a ^ k * shock (t + k) ω) = a ^ k • shock (t + k) := rfl
+      rw [e]
+      filter_upwards [Sc.E_smul (a ^ k) (shock (t + k)) t, E_future coin t hmeas] with ω h1 h2
+      rw [h1, Pi.smul_apply, h2]
+      have : ∫ ω', shock (t + k) ω' ∂(iidSystem coin).μ = 0 := integral_coord (t + k)
+      simp [this, hk.ne']
+  filter_upwards [hs, ae_all_iff.2 hk] with ω h1 h2
+  have h3 : (fun k => Sc.E t (fun ω => a ^ k * shock (t + k) ω) ω) =
+      fun k => if k = 0 then shock t ω else 0 := funext h2
+  rw [h3] at h1
+  exact (h1.unique (hasSum_ite_eq 0 (shock t ω))).symm ▸ rfl
+
+/-! ### Small moment facts -/
+
+/-- Woodford (2003), p. 501: a constant has zero variance (probability measure). -/
+theorem cov_const (c : ℝ) : cov Pc (fun _ => c) (fun _ => c) = 0 := by
+  unfold cov
+  simp
+
+/-- Woodford (2003), p. 501: the variance depends only on the a.e. class. -/
+theorem cov_congr {X Y : (ℕ → ℝ) → ℝ} (h : X =ᵐ[Pc] Y) : cov Pc X X = cov Pc Y Y := by
+  unfold cov
+  rw [integral_congr_ae h]
+  exact integral_congr_ae (h.mono fun ω hω => by simp only [hω])
+
+/-- Woodford (2003), p. 501: a single coin with weight `a` placed at `t + c`,
+`∑_{j < t+c+1} 1[j = t+c] a ε_j = a ε_{t+c}`. -/
+theorem sum_single (a : ℝ) (c t : ℕ) (ω : ℕ → ℝ) :
+    ∑ j ∈ Finset.range (t + c + 1), (if j = t + c then a else 0) * ω j = a * ω (t + c) := by
+  rw [Finset.sum_eq_single (t + c)]
+  · simp
+  · intro j _ hj; simp [hj]
+  · intro h; simp at h
+
+/-- Woodford (2003), p. 501: white noise with a constant mean, `y_t = π̄ + a ε_{t+c}`, is
+covariance stationary. -/
+theorem covStationary_single (pbar a : ℝ) (c : ℕ) :
+    CovStationary Pc (lin (fun _ => pbar) (fun t j => if j = t + c then a else 0)
+      (fun t => t + c + 1)) := by
+  rw [covStationary_lin_iff]
+  refine ⟨fun _ => rfl, fun t h => ?_⟩
+  have key : ∀ s, ∑ j ∈ Finset.range (min (s + c + 1) (s + h + c + 1)),
+      (if j = s + c then a else 0) * (if j = s + h + c then a else 0) =
+        if h = 0 then a * a else 0 := by
+    intro s
+    rw [min_eq_left (by omega), Finset.sum_eq_single (s + c)]
+    · by_cases hh : h = 0
+      · subst hh; simp
+      · have : s + c ≠ s + h + c := by omega
+        simp [hh]
+    · intro j _ hj; simp [hj]
+    · intro hm; simp at hm
+  have e1 := key t
+  have e2 := key 0
+  simp only [zero_add] at e2
+  convert e1.trans e2.symm using 3 <;> ring_nf
+
+/-! ### The multiplier under optimal policy: a stationary AR(1) -/
+
+/-- Woodford (2003), (2.7) with white noise: the coefficients of the multiplier process
+`φ_t = m + c₀μ^t ε_0 − k∑_{1≤j≤t} μ^{t−j} ε_j`. -/
+noncomputable def phiB (μ c0 k : ℝ) (t j : ℕ) : ℝ :=
+  if j = 0 then c0 * μ ^ t else -(k * μ ^ (t - j))
+
+/-- Woodford (2003), (2.7): the coefficients scale by `μ` each period. -/
+theorem phiB_succ (μ c0 k : ℝ) {t j : ℕ} (hj : j ≤ t) :
+    phiB μ c0 k (t + 1) j = μ * phiB μ c0 k t j := by
+  unfold phiB
+  split_ifs with h
+  · ring
+  · rw [show t + 1 - j = (t - j) + 1 by omega, pow_succ]; ring
+
+/-- Woodford (2003), (2.7): after `h` periods the coefficients scale by `μʰ`. -/
+theorem phiB_add (μ c0 k : ℝ) {t j : ℕ} (hj : j ≤ t) (h : ℕ) :
+    phiB μ c0 k (t + h) j = μ ^ h * phiB μ c0 k t j := by
+  induction h with
+  | zero => simp
+  | succ h ih =>
+    rw [← add_assoc, phiB_succ μ c0 k (by omega), ih, pow_succ]
+    ring
+
+/-- Woodford (2003), (2.7): with `c₀²(1 − μ²) = k²` the variance of the multiplier is
+`∑_{j ≤ t} b_{t,j}² = c₀²` at every date (stationary initial condition). -/
+theorem phiB_sq_sum {μ c0 k : ℝ} (hc : c0 ^ 2 * (1 - μ ^ 2) = k ^ 2) (t : ℕ) :
+    ∑ j ∈ Finset.range (t + 1), phiB μ c0 k t j * phiB μ c0 k t j = c0 ^ 2 := by
+  induction t with
+  | zero => simp [phiB]; ring
+  | succ t ih =>
+    rw [Finset.sum_range_succ]
+    have hlast : phiB μ c0 k (t + 1) (t + 1) = -k := by simp [phiB]
+    have hrest : ∑ j ∈ Finset.range (t + 1), phiB μ c0 k (t + 1) j * phiB μ c0 k (t + 1) j =
+        μ ^ 2 * ∑ j ∈ Finset.range (t + 1), phiB μ c0 k t j * phiB μ c0 k t j := by
+      rw [Finset.mul_sum]
+      refine Finset.sum_congr rfl fun j hj => ?_
+      rw [phiB_succ μ c0 k (Nat.lt_succ_iff.mp (Finset.mem_range.mp hj))]
+      ring
+    rw [hrest, ih, hlast]
+    linear_combination -hc
+
+/-- Woodford (2003), (2.7): `Cov(φ_t, φ_{t+h}) = μʰc₀²` for every `t`. -/
+theorem phiB_cov {μ c0 k : ℝ} (hc : c0 ^ 2 * (1 - μ ^ 2) = k ^ 2) (t h : ℕ) :
+    ∑ j ∈ Finset.range (min (t + 1) (t + h + 1)), phiB μ c0 k t j * phiB μ c0 k (t + h) j =
+      μ ^ h * c0 ^ 2 := by
+  rw [min_eq_left (by omega), ← phiB_sq_sum hc t, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun j hj => ?_
+  rw [phiB_add μ c0 k (Nat.lt_succ_iff.mp (Finset.mem_range.mp hj))]
+  ring
+
+/-- Woodford (2003), (2.7): the linear coin process of the multiplier. -/
+noncomputable def phiL (m μ c0 k : ℝ) : ℕ → (ℕ → ℝ) → ℝ :=
+  lin (fun _ => m) (phiB μ c0 k) (fun t => t + 1)
+
+/-- Woodford (2003), (2.7): the multiplier process satisfies
+`φ_{t+1} = μφ_t + (1 − μ)m − kε_{t+1}`. -/
+theorem phiL_succ (m μ c0 k : ℝ) (t : ℕ) (ω : ℕ → ℝ) :
+    phiL m μ c0 k (t + 1) ω = μ * phiL m μ c0 k t ω + (1 - μ) * m - k * ω (t + 1) := by
+  unfold phiL lin
+  rw [Finset.sum_range_succ]
+  have hlast : phiB μ c0 k (t + 1) (t + 1) = -k := by simp [phiB]
+  have hrest : ∑ j ∈ Finset.range (t + 1), phiB μ c0 k (t + 1) j * ω j =
+      μ * ∑ j ∈ Finset.range (t + 1), phiB μ c0 k t j * ω j := by
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl fun j hj => ?_
+    rw [phiB_succ μ c0 k (Nat.lt_succ_iff.mp (Finset.mem_range.mp hj))]
+    ring
+  rw [hrest, hlast]
+  ring
+
+/-- Woodford (2003), (2.7): the multiplier process at date `0` is `m + c₀ε_0`. -/
+theorem phiL_zero (m μ c0 k : ℝ) (ω : ℕ → ℝ) : phiL m μ c0 k 0 ω = m + c0 * ω 0 := by
+  simp [phiL, lin, phiB]
+
+/-! ### The policy laws in the i.i.d. economy -/
+
+/-- Woodford (2003), (1.7) and (2.7), p. 489 (restated from `ImpulseResponses.Plan` for the
+measure-theoretic system; `x` is not needed): under optimal commitment with indexation `γ`,
+`π_{t+1} − γπ_t = φ_t − φ_{t+1}` and
+`φ_{t+1} = μ₁φ_t − C − k∑ⱼ μ₂^{−j}E_{t+1}u_{t+1+j}` with `C = (1 − μ₁)(λ/κ)x*`,
+`k = β⁻¹μ₂⁻¹`, here with white-noise cost-push shocks `u = ε`. -/
+def OptLaw (μ1 μ2 C k γ : ℝ) (π φ : ℕ → (ℕ → ℝ) → ℝ) : Prop :=
+  (∀ t, π (t + 1) - γ • π t = φ t - φ (t + 1)) ∧
+    ∀ t, φ (t + 1) =ᵐ[Pc] μ1 • φ t - (fun _ => C) - k • Sc.forwardSol μ2⁻¹ shock (t + 1)
+
+/-- Woodford (2003), (2.3), p. 487 (with indexation, footnote 22): under discretion,
+quasi-differenced inflation is `π̄ + a∑ⱼ (βa)ʲE_tu_{t+j}`, `a = λ/(λ + κ²)`, here with
+white-noise cost-push shocks. -/
+def DiscLaw (pbar a β γ : ℝ) (π : ℕ → (ℕ → ℝ) → ℝ) : Prop :=
+  ∀ t, π (t + 1) - γ • π t =ᵐ[Pc] (fun _ => pbar) + a • Sc.forwardSol (β * a) shock (t + 1)
+
+/-- Woodford (2003), p. 491: the price level, `p_{t+1} = p_t + π_{t+1}`. -/
+def PriceLaw (p π : ℕ → (ℕ → ℝ) → ℝ) : Prop := ∀ t, p (t + 1) = p t + π (t + 1)
+
+/-- Woodford (2003), (2.7) in the i.i.d. economy: the multiplier is a.s. the linear coin
+process `phiL` with `m = −C/(1 − μ₁)`, given its initial value `m + c₀ε_0`. -/
+theorem phi_ae {μ1 μ2 C k γ c0 : ℝ} (hμ1 : μ1 ≠ 1) (hμ2 : |μ2⁻¹| < 1)
+    {π φ : ℕ → (ℕ → ℝ) → ℝ} (hL : OptLaw μ1 μ2 C k γ π φ)
+    (h0 : φ 0 = fun ω => -C / (1 - μ1) + c0 * ω 0) (t : ℕ) :
+    φ t =ᵐ[Pc] phiL (-C / (1 - μ1)) μ1 c0 k t := by
+  induction t with
+  | zero => exact Eventually.of_forall fun ω => by rw [h0, phiL_zero]
+  | succ t ih =>
+    filter_upwards [hL.2 t, ih, forwardSol_shock hμ2 (t + 1)] with ω h1 h2 h3
+    rw [h1, phiL_succ]
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul, h2, h3, shock]
+    have h1μ : 1 - μ1 ≠ 0 := sub_ne_zero.mpr (Ne.symm hμ1)
+    field_simp
+    ring
+
+/-- Woodford (2003), p. 501: the variance of `π̄ + aε_{t+c}` is `a²`. -/
+theorem cov_single (q a : ℝ) (c t : ℕ) :
+    cov Pc (lin (fun _ => q) (fun t j => if j = t + c then a else 0) (fun t => t + c + 1) t)
+      (lin (fun _ => q) (fun t j => if j = t + c then a else 0) (fun t => t + c + 1) t) =
+      a * a := by
+  rw [cov_lin, min_self, Finset.sum_eq_single (t + c)]
+  · simp
+  · intro j _ hj; simp [hj]
+  · intro hm; simp at hm
+
+/-- Woodford (2003), p. 501: the random walk `y_t = q_t + a∑_{1≤j≤t} ε_j` has variance `t a²`. -/
+theorem cov_walk (q : ℕ → ℝ) (a : ℝ) (t : ℕ) :
+    cov Pc (lin q (fun _ j => if j = 0 then 0 else a) (fun t => t + 1) t)
+      (lin q (fun _ j => if j = 0 then 0 else a) (fun t => t + 1) t) = t * (a * a) := by
+  rw [cov_lin, min_self]
+  induction t with
+  | zero => simp
+  | succ t ih =>
+    rw [Finset.sum_range_succ, ih]
+    simp only [Nat.add_eq_zero_iff, one_ne_zero, and_false, ↓reduceIte]
+    push_cast
+    ring
+
+/-- Woodford (2003), p. 501: the random walk's law of motion. -/
+theorem walk_succ (q : ℕ → ℝ) (a : ℝ) (t : ℕ) (ω : ℕ → ℝ) :
+    lin q (fun _ j => if j = 0 then 0 else a) (fun t => t + 1) (t + 1) ω =
+      lin q (fun _ j => if j = 0 then 0 else a) (fun t => t + 1) t ω + (q (t + 1) - q t) +
+        a * ω (t + 1) := by
+  unfold lin
+  rw [Finset.sum_range_succ (n := t + 1)]
+  simp only [Nat.add_eq_zero_iff, one_ne_zero, and_false, ↓reduceIte]
+  ring
+
+/-! ### Page 501 -/
+
+/-- **Woodford (2003), p. 501 (optimal policy, `γ = 0`: "the price level is stationary").** In
+the i.i.d. economy with white-noise cost-push shocks, let `(π, φ)` follow the optimal plan
+(`OptLaw`, `|μ₁| < 1`, `|μ₂⁻¹| < 1`), with the stationary initial multiplier
+`φ_0 = m + c₀ε_0`, `m = −C/(1 − μ₁)`, `c₀²(1 − μ₁²) = k²` (the policy has been followed forever:
+the timeless perspective), and let `p_{t₀−1} + φ_{t₀−1} = K` be the price-level target. Then the
+price level is covariance stationary: `p` is `I(0)`. -/
+theorem optimal_gamma0_I0 {μ1 μ2 C k c0 K : ℝ} (hμ1 : |μ1| < 1) (hμ2 : |μ2⁻¹| < 1)
+    (hc : c0 ^ 2 * (1 - μ1 ^ 2) = k ^ 2) {π φ p : ℕ → (ℕ → ℝ) → ℝ}
+    (hL : OptLaw μ1 μ2 C k 0 π φ) (hP : PriceLaw p π)
+    (h0 : φ 0 = fun ω => -C / (1 - μ1) + c0 * ω 0) (hK : p 0 + φ 0 = fun _ => K) :
+    IntegratedOfOrder Pc 0 p := by
+  have hμ1' : μ1 ≠ 1 := fun h => by rw [h, abs_one] at hμ1; exact lt_irrefl _ hμ1
+  have hpφ : ∀ t, p t + φ t = fun _ => K := by
+    intro t
+    induction t with
+    | zero => exact hK
+    | succ t ih =>
+      rw [hP t, ← ih]
+      have := hL.1 t
+      simp only [zero_smul, sub_zero] at this
+      rw [this]
+      abel
+  set m := -C / (1 - μ1)
+  have hae : ∀ t, p t =ᵐ[Pc] lin (fun _ => K - m) (fun t j => -phiB μ1 c0 k t j)
+      (fun t => t + 1) t := by
+    intro t
+    filter_upwards [phi_ae hμ1' hμ2 hL h0 t] with ω h
+    have e := congrFun (hpφ t) ω
+    simp only [Pi.add_apply] at e
+    have e2 : p t ω = K - φ t ω := by linarith
+    rw [e2, h]
+    simp only [phiL, lin, neg_mul, Finset.sum_neg_distrib]
+    ring
+  refine ⟨?_, fun k hk => absurd hk (Nat.not_lt_zero k)⟩
+  rw [show diffN 0 p = p from rfl, covStationary_congr_ae hae, covStationary_lin_iff]
+  refine ⟨fun _ => rfl, fun t h => ?_⟩
+  simp only [neg_mul_neg]
+  rw [phiB_cov hc t h]
+  have := phiB_cov hc 0 h
+  simp only [zero_add] at this
+  rw [this]
+
+/-- **Woodford (2003), p. 501 (optimal policy, `γ = 1`: "the price is an integrated process of
+order one").** With full indexation the optimal plan has `π_{t+1} − π_t = φ_t − φ_{t+1}`; with the
+stationary initial multiplier and the initial condition of the stationary regime
+(`π_{t₀−1} + φ_{t₀−1} = K`, `p_{t₀−1} = P₀` known), and a nonzero response `k` of the multiplier
+to cost-push news, the price level is `I(1)`: its first difference (inflation) is covariance
+stationary and the price level itself is not. -/
+theorem optimal_gamma1_I1 {μ1 μ2 C k c0 K P0 : ℝ} (hμ1 : |μ1| < 1) (hμ2 : |μ2⁻¹| < 1)
+    (hk : k ≠ 0) (hc : c0 ^ 2 * (1 - μ1 ^ 2) = k ^ 2) {π φ p : ℕ → (ℕ → ℝ) → ℝ}
+    (hL : OptLaw μ1 μ2 C k 1 π φ) (hP : PriceLaw p π)
+    (h0 : φ 0 = fun ω => -C / (1 - μ1) + c0 * ω 0) (hK : π 0 + φ 0 = fun _ => K)
+    (hp0 : p 0 = fun _ => P0) : IntegratedOfOrder Pc 1 p := by
+  have hμ1' : μ1 ≠ 1 := fun h => by rw [h, abs_one] at hμ1; exact lt_irrefl _ hμ1
+  have hπφ : ∀ t, π t + φ t = fun _ => K := by
+    intro t
+    induction t with
+    | zero => exact hK
+    | succ t ih =>
+      rw [← ih]
+      have := hL.1 t
+      simp only [one_smul] at this
+      funext ω
+      have := congrFun this ω
+      simp only [Pi.sub_apply, Pi.add_apply] at this ⊢
+      linarith
+  set m := -C / (1 - μ1)
+  have hπ : ∀ t, π (t + 1) =ᵐ[Pc] lin (fun _ => K - m) (fun t j => -phiB μ1 c0 k (t + 1) j)
+      (fun t => t + 2) t := by
+    intro t
+    filter_upwards [phi_ae hμ1' hμ2 hL h0 (t + 1)] with ω h
+    have e := congrFun (hπφ (t + 1)) ω
+    simp only [Pi.add_apply] at e
+    have e2 : π (t + 1) ω = K - φ (t + 1) ω := by linarith
+    rw [e2, h]
+    simp only [phiL, lin, neg_mul, Finset.sum_neg_distrib]
+    ring
+  have hc0 : c0 ^ 2 ≠ 0 := by
+    intro h
+    rw [h, zero_mul] at hc
+    exact hk (pow_eq_zero_iff (n := 2) (by norm_num) |>.mp hc.symm)
+  refine ⟨?_, fun j hj => ?_⟩
+  · have hd : ∀ t, diffN 1 p t =ᵐ[Pc] lin (fun _ => K - m) (fun t j => -phiB μ1 c0 k (t + 1) j)
+        (fun t => t + 2) t := fun t => by
+      filter_upwards [hπ t] with ω h
+      simp only [diffN, diff, hP t, Pi.add_apply]
+      rw [← h]
+      ring
+    rw [covStationary_congr_ae hd, covStationary_lin_iff]
+    refine ⟨fun _ => rfl, fun t h => ?_⟩
+    simp only [neg_mul_neg]
+    have A : ∀ s : ℕ, ∑ x ∈ Finset.range (min (s + 2) (s + h + 2)),
+        phiB μ1 c0 k (s + 1) x * phiB μ1 c0 k (s + h + 1) x = μ1 ^ h * c0 ^ 2 := fun s => by
+      have := phiB_cov hc (s + 1) h
+      rwa [show s + 1 + 1 = s + 2 by ring, show s + 1 + h + 1 = s + h + 2 by ring,
+        show s + 1 + h = s + h + 1 by ring] at this
+    rw [A t]
+    have := A 0
+    simp only [zero_add] at this ⊢
+    rw [this]
+  · have hj0 : j = 0 := by omega
+    subst hj0
+    refine not_covStationary_of_var_ne (t := 1) ?_
+    have hp1 : p 1 =ᵐ[Pc] lin (fun _ => P0 + K - m) (fun _ j => -phiB μ1 c0 k 1 j)
+        (fun _ => 2) 1 := by
+      filter_upwards [hπ 0] with ω h
+      rw [hP 0, Pi.add_apply, hp0, h]
+      simp only [lin]
+      ring
+    rw [show diffN 0 p = p from rfl, cov_congr hp1, hp0, cov_const, cov_lin, min_self]
+    simp only [neg_mul_neg]
+    rw [phiB_sq_sum hc 1]
+    exact hc0
+
+/-- **Woodford (2003), p. 501 (discretion, `γ = 0`: a unit root in the price level).** Under
+discretion, with white-noise cost-push shocks, `a ≠ 0`, `|βa| < 1` and `p_{t₀−1} = P₀` known,
+inflation is `π̄ + aε_t` (stationary) and the price level is `I(1)`. -/
+theorem discretion_gamma0_I1 {pbar a β P0 : ℝ} (ha : a ≠ 0) (hβa : |β * a| < 1)
+    {π p : ℕ → (ℕ → ℝ) → ℝ} (hL : DiscLaw pbar a β 0 π) (hP : PriceLaw p π)
+    (hp0 : p 0 = fun _ => P0) : IntegratedOfOrder Pc 1 p := by
+  have hπ : ∀ t, π (t + 1) =ᵐ[Pc] lin (fun _ => pbar) (fun t j => if j = t + 1 then a else 0)
+      (fun t => t + 1 + 1) t := by
+    intro t
+    filter_upwards [hL t, forwardSol_shock hβa (t + 1)] with ω h1 h2
+    simp only [zero_smul, sub_zero, Pi.add_apply, Pi.smul_apply, smul_eq_mul] at h1
+    rw [h1, h2]
+    simp only [lin, sum_single, shock]
+  refine ⟨?_, fun j hj => ?_⟩
+  · have hd : ∀ t, diffN 1 p t =ᵐ[Pc] lin (fun _ => pbar)
+        (fun t j => if j = t + 1 then a else 0) (fun t => t + 1 + 1) t := fun t => by
+      filter_upwards [hπ t] with ω h
+      simp only [diffN, diff, hP t, Pi.add_apply]
+      rw [← h]
+      ring
+    rw [covStationary_congr_ae hd]
+    exact covStationary_single pbar a 1
+  · have hj0 : j = 0 := by omega
+    subst hj0
+    refine not_covStationary_of_var_ne (t := 1) ?_
+    have hp1 : p 1 =ᵐ[Pc] lin (fun _ => P0 + pbar) (fun t j => if j = t + 0 then a else 0)
+        (fun t => t + 0 + 1) 1 := by
+      filter_upwards [hπ 0] with ω h
+      rw [hP 0, Pi.add_apply, hp0, h]
+      simp only [lin]
+      ring
+    rw [show diffN 0 p = p from rfl, cov_congr hp1, hp0, cov_const, cov_single]
+    exact mul_ne_zero ha ha
+
+/-- **Woodford (2003), p. 501 (discretion, `γ = 1`: "an integrated process of order two, since
+there is a unit root in the inflation rate").** With full indexation, under discretion the change
+in inflation is `π̄ + aε_t`; with `π_{t₀−1} = Pπ` and `p_{t₀−1} = P₀` known, `a ≠ 0`,
+`|βa| < 1`, the price level is `I(2)`: its second difference is covariance stationary, while
+inflation (a random walk with variance `t a²`) and the price level are not. -/
+theorem discretion_gamma1_I2 {pbar a β P0 Pπ : ℝ} (ha : a ≠ 0) (hβa : |β * a| < 1)
+    {π p : ℕ → (ℕ → ℝ) → ℝ} (hL : DiscLaw pbar a β 1 π) (hP : PriceLaw p π)
+    (hπ0 : π 0 = fun _ => Pπ) (hp0 : p 0 = fun _ => P0) : IntegratedOfOrder Pc 2 p := by
+  have hstep : ∀ t, π (t + 1) =ᵐ[Pc] fun ω => π t ω + pbar + a * ω (t + 1) := by
+    intro t
+    filter_upwards [hL t, forwardSol_shock hβa (t + 1)] with ω h1 h2
+    simp only [one_smul, Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul] at h1
+    rw [h2] at h1
+    simp only [shock] at h1
+    linarith
+  set W := lin (fun t : ℕ => Pπ + (t : ℝ) * pbar) (fun _ j => if j = 0 then 0 else a)
+    (fun t => t + 1) with hW
+  have hπW : ∀ t, π t =ᵐ[Pc] W t := by
+    intro t
+    induction t with
+    | zero =>
+      refine Eventually.of_forall fun ω => ?_
+      rw [hπ0, hW]
+      simp [lin]
+    | succ t ih =>
+      filter_upwards [hstep t, ih] with ω h1 h2
+      rw [h1, h2, hW, walk_succ]
+      push_cast
+      ring
+  refine ⟨?_, fun j hj => ?_⟩
+  · have hd : ∀ t, diffN 2 p t =ᵐ[Pc] lin (fun _ => pbar)
+        (fun t j => if j = t + 2 then a else 0) (fun t => t + 2 + 1) t := fun t => by
+      filter_upwards [hstep (t + 1)] with ω h
+      have e1 : p (t + 2) ω = p (t + 1) ω + π (t + 2) ω := by rw [hP (t + 1)]; rfl
+      have e2 : p (t + 1) ω = p t ω + π (t + 1) ω := by rw [hP t]; rfl
+      simp only [diffN, diff, lin, sum_single]
+      rw [show t + 1 + 1 = t + 2 by ring] at h ⊢
+      rw [e1, e2, h]
+      ring
+    rw [covStationary_congr_ae hd]
+    exact covStationary_single pbar a 2
+  · interval_cases j
+    · refine not_covStationary_of_var_ne (t := 1) ?_
+      set Wp := lin (fun t : ℕ => P0 + Pπ + (t : ℝ) * pbar) (fun _ j => if j = 0 then 0 else a)
+        (fun t => t + 1) with hWp
+      have hp1 : p 1 =ᵐ[Pc] Wp 1 := by
+        filter_upwards [hπW 1] with ω h
+        rw [hP 0, Pi.add_apply, hp0, h, hW, hWp]
+        simp only [lin]
+        ring
+      rw [show diffN 0 p = p from rfl, cov_congr hp1, hp0, cov_const, hWp, cov_walk]
+      simp only [Nat.cast_one, one_mul]
+      exact mul_ne_zero ha ha
+    · refine not_covStationary_of_var_ne (t := 1) ?_
+      have hd : ∀ t, diffN 1 p t = π (t + 1) := fun t => by
+        funext ω
+        simp only [diffN, diff, hP t, Pi.add_apply]
+        ring
+      rw [hd, hd, cov_congr (hπW 2), cov_congr (hπW 1), hW, cov_walk, cov_walk]
+      intro h
+      have : a * a = 0 := by push_cast at h; linarith
+      exact mul_ne_zero ha ha this
+
+end Woodford.GainsFromCommitment.TidyR6IntegrationPolicy
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 7.12 at the singular `(ρ_r, ρ_u)`: the rank-deficient case
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §3.2, pp. 514–515 (Proposition 7.12, the
+consistency conditions for `(φ_π, φ_x)` and the remark that they determine the coefficients
+"for almost all parameter values"), and footnote 33 (Taylor coefficients of any sign).
+
+`TidyR5TaylorRegion.oni_implementable_iff` characterises exactly when the optimal noninertial
+(ONI) plan is the equilibrium of a determinate Taylor rule at every `(ρ_r, ρ_u)` where the 2×2
+consistency system for `(φ_π, φ_x/4)` is nonsingular. This module removes that restriction.
+
+## Main results
+
+* `oni_implementable_iff_exists` (**every `(ρ_r, ρ_u)`**): the ONI plan is the equilibrium of a
+  determinate Taylor rule of any sign iff some `(φ_π, φ_x)` solves the consistency system and
+  lies in the determinacy region.
+* `iRF4_pos`: the response of the interest rate to `rⁿ` in the ONI plan is positive, so the
+  `rⁿ`-row of the consistency system is never `0 = 0`.
+* **The rank-deficient case** (`oni_implementable_singular_iff`): where `det G = 0` the ONI plan
+  is implementable iff (i) the `rⁿ`-row `(π_r, x_r)` is nonzero, (ii) the augmented system has
+  rank one (`π_u i_r = i_u π_r`, `x_u i_r = i_u x_r`), and (iii) the line of solutions meets the
+  determinacy region — an explicit one-dimensional Fourier–Motzkin condition on the three affine
+  functions `Δ − β`, `A`, `C` (or their negatives) along the line (`fm1_iff`, `region_line_iff`).
+* `not_implementable_li_zero`: for `λ_i = 0` (singular everywhere) the ONI plan is NEVER the
+  equilibrium of a Taylor rule (for non-degenerate disturbances); `not_implementable_r_row_zero`:
+  the same at every `ρ_r` with `γ_r = ρ_rκσ`.
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR6TaylorSingular
+
+open Filter Topology
+open OptimalTaylor (taylorDelta TaylorEqm ModelDet detG phiPiG phiXG taylorRule_plan2
+  plan2_bdd_adapted plan2_of)
+open Noninertial (taylorRule Nondeg2)
+open VarianceFrontier (plan2 plan2_apply)
+open TidyR5TaylorRegion (TaylorRegion regA regC taylor_determinate_iff_region
+  taylor_determinate_iff_region_any)
+
+/-! ### One-dimensional Fourier–Motzkin -/
+
+/-- Woodford (2003), fn. 33, p. 515 (tool): finitely many affine functions `pᵢ + qᵢ s` of one real
+variable are simultaneously positive at some `s` iff every constant one is positive and every
+increasing one is below every decreasing one where they cross (`pᵢqⱼ < pⱼqᵢ`). -/
+theorem fm1_iff {n : ℕ} (p q : Fin n → ℝ) :
+    (∃ s : ℝ, ∀ i, 0 < p i + q i * s) ↔
+      (∀ i, q i = 0 → 0 < p i) ∧ ∀ i j, 0 < q i → q j < 0 → p i * q j < p j * q i := by
+  constructor
+  · rintro ⟨s, hs⟩
+    refine ⟨fun i hi => by simpa [hi] using hs i, fun i j hi hj => ?_⟩
+    have h1 := hs i
+    have h2 := hs j
+    nlinarith [mul_pos hi (neg_pos.mpr hj)]
+  · rintro ⟨h0, hpair⟩
+    set lo : Fin n → ℝ := fun i => -p i / q i with hlo
+    have hpos : ∀ i s, 0 < q i → lo i < s → 0 < p i + q i * s := fun i s hi h => by
+      have : -p i < q i * s := by
+        have := (div_lt_iff₀ hi).mp h
+        linarith
+      linarith
+    have hneg : ∀ i s, q i < 0 → s < lo i → 0 < p i + q i * s := fun i s hi h => by
+      have : q i * s > -p i := by
+        have := (lt_div_iff_of_neg hi).mp h
+        linarith
+      linarith
+    set SL := Finset.univ.filter (fun i => 0 < q i) with hSL
+    set SU := Finset.univ.filter (fun i => q i < 0) with hSU
+    have hcase : ∀ i, 0 < q i ∨ q i < 0 ∨ q i = 0 := fun i => by
+      rcases lt_trichotomy (q i) 0 with h | h | h
+      · exact Or.inr (Or.inl h)
+      · exact Or.inr (Or.inr h)
+      · exact Or.inl h
+    by_cases hL : SL.Nonempty <;> by_cases hU : SU.Nonempty
+    · set L := SL.sup' hL lo
+      set U := SU.inf' hU lo
+      obtain ⟨i0, hi0, hLi⟩ := Finset.exists_mem_eq_sup' hL lo
+      obtain ⟨j0, hj0, hUj⟩ := Finset.exists_mem_eq_inf' hU lo
+      have hi0' : 0 < q i0 := (Finset.mem_filter.mp hi0).2
+      have hj0' : q j0 < 0 := (Finset.mem_filter.mp hj0).2
+      have hLU : L < U := by
+        change SL.sup' hL lo < SU.inf' hU lo
+        rw [hLi, hUj]
+        have ea : lo i0 * q i0 = -p i0 := by simp only [hlo]; field_simp
+        have eb : lo j0 * q j0 = -p j0 := by
+          simp only [hlo]; rw [div_mul_cancel₀ _ hj0'.ne]
+        have hp := hpair i0 j0 hi0' hj0'
+        have hm : 0 < q i0 * -q j0 := mul_pos hi0' (neg_pos.mpr hj0')
+        by_contra hc
+        push Not at hc
+        have : (lo j0 - lo i0) * (q i0 * -q j0) ≤ 0 :=
+          mul_nonpos_of_nonpos_of_nonneg (by linarith) hm.le
+        nlinarith
+      refine ⟨(L + U) / 2, fun i => ?_⟩
+      rcases hcase i with h | h | h
+      · refine hpos i _ h ?_
+        have : lo i ≤ L := Finset.le_sup' lo (Finset.mem_filter.mpr ⟨Finset.mem_univ _, h⟩)
+        linarith
+      · refine hneg i _ h ?_
+        have : U ≤ lo i := Finset.inf'_le lo (Finset.mem_filter.mpr ⟨Finset.mem_univ _, h⟩)
+        linarith
+      · simpa [h] using h0 i h
+    · set L := SL.sup' hL lo
+      refine ⟨L + 1, fun i => ?_⟩
+      rcases hcase i with h | h | h
+      · refine hpos i _ h ?_
+        have : lo i ≤ L := Finset.le_sup' lo (Finset.mem_filter.mpr ⟨Finset.mem_univ _, h⟩)
+        linarith
+      · exact absurd ⟨i, Finset.mem_filter.mpr ⟨Finset.mem_univ _, h⟩⟩ hU
+      · simpa [h] using h0 i h
+    · set U := SU.inf' hU lo
+      refine ⟨U - 1, fun i => ?_⟩
+      rcases hcase i with h | h | h
+      · exact absurd ⟨i, Finset.mem_filter.mpr ⟨Finset.mem_univ _, h⟩⟩ hL
+      · refine hneg i _ h ?_
+        have : U ≤ lo i := Finset.inf'_le lo (Finset.mem_filter.mpr ⟨Finset.mem_univ _, h⟩)
+        linarith
+      · simpa [h] using h0 i h
+    · refine ⟨0, fun i => ?_⟩
+      rcases hcase i with h | h | h
+      · exact absurd ⟨i, Finset.mem_filter.mpr ⟨Finset.mem_univ _, h⟩⟩ hL
+      · exact absurd ⟨i, Finset.mem_filter.mpr ⟨Finset.mem_univ _, h⟩⟩ hU
+      · simpa [h] using h0 i h
+
+/-- Woodford (2003), fn. 33, p. 515: the Fourier–Motzkin condition of `fm1_iff`. -/
+def FM {n : ℕ} (p q : Fin n → ℝ) : Prop :=
+  (∀ i, q i = 0 → 0 < p i) ∧ ∀ i j, 0 < q i → q j < 0 → p i * q j < p j * q i
+
+/-! ### The determinacy region along a line -/
+
+/-- Woodford (2003), fn. 33 and App. C.2: the constant terms of `(Δ − β, A, C)` at the point
+`(φ_π, φ_x) = (φ₀, 4y₀)`. -/
+noncomputable def pReg (β σ κ φ0 y0 : ℝ) : Fin 3 → ℝ :=
+  ![1 - β + σ * y0 + σ * κ * φ0, κ * φ0 - κ + (1 - β) * y0,
+    2 * (1 + β) + σ * κ * (1 + φ0) + (1 + β) * σ * y0]
+
+/-- Woodford (2003), fn. 33 and App. C.2: the slopes of `(Δ − β, A, C)` along the direction
+`(dφ, 4dy)`. -/
+noncomputable def qReg (β σ κ dφ dy : ℝ) : Fin 3 → ℝ :=
+  ![σ * dy + σ * κ * dφ, κ * dφ + (1 - β) * dy, σ * κ * dφ + (1 + β) * σ * dy]
+
+/-- Woodford (2003), fn. 33: the constant terms of `(−β − Δ, −A, −C)`. -/
+noncomputable def pReg' (β σ κ φ0 y0 : ℝ) : Fin 3 → ℝ :=
+  ![-(1 + β) - σ * y0 - σ * κ * φ0, -(κ * φ0 - κ + (1 - β) * y0),
+    -(2 * (1 + β) + σ * κ * (1 + φ0) + (1 + β) * σ * y0)]
+
+/-- Woodford (2003), fn. 33: the slopes of `(−β − Δ, −A, −C)`. -/
+noncomputable def qReg' (β σ κ dφ dy : ℝ) : Fin 3 → ℝ := -qReg β σ κ dφ dy
+
+/-- Woodford (2003), fn. 33, p. 515: along the line `(φ_π, φ_x) = (φ₀ + s dφ, 4(y₀ + s dy))` the
+determinacy region is the union of two systems of three affine inequalities in `s`. -/
+theorem region_line_iff (β σ κ φ0 y0 dφ dy s : ℝ) :
+    TaylorRegion β σ κ (φ0 + s * dφ) (4 * (y0 + s * dy)) ↔
+      (∀ i, 0 < pReg β σ κ φ0 y0 i + qReg β σ κ dφ dy i * s) ∨
+        (∀ i, 0 < pReg' β σ κ φ0 y0 i + qReg' β σ κ dφ dy i * s) := by
+  simp only [TaylorRegion, Fin.forall_fin_succ, IsEmpty.forall_iff,
+    pReg, qReg, pReg', qReg', taylorDelta, regA, regC, Pi.neg_apply, Matrix.cons_val_zero,
+    Matrix.cons_val_succ, and_true]
+  constructor
+  · rintro (⟨h1, h2, h3⟩ | ⟨h1, h2, h3⟩)
+    · left; exact ⟨by linarith, by linarith, by linarith⟩
+    · right; exact ⟨by linarith, by linarith, by linarith⟩
+  · rintro (⟨h1, h2, h3⟩ | ⟨h1, h2, h3⟩)
+    · left; exact ⟨by linarith, by linarith, by linarith⟩
+    · right; exact ⟨by linarith, by linarith, by linarith⟩
+
+/-- Woodford (2003), fn. 33, p. 515: the line meets the determinacy region iff one of the two
+Fourier–Motzkin conditions holds. -/
+theorem exists_region_line_iff (β σ κ φ0 y0 dφ dy : ℝ) :
+    (∃ s, TaylorRegion β σ κ (φ0 + s * dφ) (4 * (y0 + s * dy))) ↔
+      FM (pReg β σ κ φ0 y0) (qReg β σ κ dφ dy) ∨ FM (pReg' β σ κ φ0 y0) (qReg' β σ κ dφ dy) := by
+  simp only [region_line_iff, FM]
+  rw [← fm1_iff, ← fm1_iff]
+  constructor
+  · rintro ⟨s, h | h⟩
+    · exact Or.inl ⟨s, h⟩
+    · exact Or.inr ⟨s, h⟩
+  · rintro (⟨s, h⟩ | ⟨s, h⟩)
+    · exact ⟨s, Or.inl h⟩
+    · exact ⟨s, Or.inr h⟩
+
+/-! ### Implementability at every `(ρ_r, ρ_u)` -/
+
+/-- Woodford (2003), App. F.4, p. 713: the response i_r of the interest rate to the natural rate
+in the ONI plan is positive, `i_r = (λₓ(1 − βρ_r)² + κ²)/h_r > 0` (`κ > 0`, `λₓ, λᵢ ≥ 0`). -/
+theorem iRF4_pos {β κ σ lx li ρ : ℝ} (hκ : 0 < κ) (hlx : 0 ≤ lx) (hli : 0 ≤ li) :
+    0 < Noninertial.iRF4 β κ σ lx li ρ := by
+  have hh := Noninertial.hF4_pos (β := β) (σ := σ) (ρ := ρ) hκ.ne' hlx hli
+  unfold Noninertial.iRF4 Noninertial.xiF4
+  have : 0 < lx * (1 - β * ρ) * (1 - β * ρ) + κ ^ 2 := by
+    have := mul_nonneg hlx (mul_self_nonneg (1 - β * ρ))
+    nlinarith [sq_pos_of_pos hκ]
+  positivity
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- **Woodford (2003), Proposition 7.12 for coefficients of any sign, at EVERY `(ρ_r, ρ_u)`**
+(pp. 514–515, fn. 33): with AR(1) disturbances non-degenerate as a pair, the optimal
+noninertial plan is an equilibrium of some Taylor rule (3.1) (any intercepts, any real
+coefficients) implying a determinate equilibrium iff some `(φ_π, φ_x)` solves the consistency
+system `i_u = φ_ππ_u + (φ_x/4)x_u`, `i_r = φ_ππ_r + (φ_x/4)x_r` and lies in `TaylorRegion`. -/
+theorem oni_implementable_iff_exists [Nonempty Ω] {β κ σ rbar lx li istar ρr ρu : ℝ}
+    (hβ0 : 0 < β) (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 ≤ lx) (hli : 0 ≤ li) {u r : ℕ → Ω → ℝ}
+    (hu : 𝔼.IsAR1 ρu u) (hr : 𝔼.IsAR1 ρr r) (hnd : Nondeg2 u r) {xs is : ℝ}
+    (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (∃ ibar φπ φx πbar xbar : ℝ, ModelDet 𝔼 (TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar) ∧
+      TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar u (fun t ω => rbar + r t ω)
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)) ↔
+      ∃ φπ φx : ℝ, Noninertial.iUF4 β κ σ lx li ρu = φπ * Noninertial.piUF4 β κ σ lx li ρu +
+          φx / 4 * Noninertial.xUF4 β κ σ lx li ρu ∧
+        Noninertial.iRF4 β κ σ lx li ρr = φπ * Noninertial.piRF4 β κ σ lx li ρr +
+          φx / 4 * Noninertial.xRF4 β κ σ lx li ρr ∧ TaylorRegion β σ κ φπ φx := by
+  set πs := Noninertial.piBar119 β li rbar istar
+  obtain ⟨c1, c2⟩ := Noninertial.f4_u_feasible (β := β) (ρ := ρu) hκ hσ hlx hli
+  obtain ⟨c3, c4⟩ := Noninertial.f4_r_feasible (β := β) (ρ := ρr) hκ hσ hlx hli
+  have hxb : κ * xs = (1 - β) * πs := by rw [hxs]; field_simp
+  have hO := plan2_of 𝔼 (rbar := rbar) (πbar := πs) (xbar := xs) hu hr (by linarith [hxb]) his
+    c1 c2 c3 c4
+  constructor
+  · rintro ⟨ibar, φπ, φx, πbar, xbar, hdet, heq⟩
+    have hreg := (taylor_determinate_iff_region_any 𝔼 hβ0 hσ).mp hdet
+    have hI1 := (OptimalTaylor.IS_iff 𝔼 _ _ _ _ _).mp heq.2
+    have hI2 := (OptimalTaylor.IS_iff 𝔼 _ _ _ _ _).mp hO.2
+    have hi : ∀ t ω, taylorRule ibar φπ φx πbar xbar
+        (plan2 πs (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) t ω =
+        plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r t ω := by
+      intro t ω
+      have h := (hI1 t ω).symm.trans (hI2 t ω)
+      have : σ * (taylorRule ibar φπ φx πbar xbar
+          (plan2 πs (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) t ω -
+          plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r t ω)
+          = 0 := by linarith
+      exact sub_eq_zero.mp ((mul_eq_zero.mp this).resolve_left hσ.ne')
+    rw [taylorRule_plan2] at hi
+    obtain ⟨-, k1, k2⟩ := Noninertial.affine_zero2 hnd
+      (a := ibar + φπ * (πs - πbar) + φx * (xs - xbar) / 4 - is)
+      (b := φπ * Noninertial.piUF4 β κ σ lx li ρu + φx * Noninertial.xUF4 β κ σ lx li ρu / 4 -
+        Noninertial.iUF4 β κ σ lx li ρu)
+      (c := φπ * Noninertial.piRF4 β κ σ lx li ρr + φx * Noninertial.xRF4 β κ σ lx li ρr / 4 -
+        Noninertial.iRF4 β κ σ lx li ρr) (fun t ω => by
+          have h := hi t ω
+          simp only [plan2_apply] at h
+          linear_combination h)
+    exact ⟨φπ, φx, by linear_combination -k1, by linear_combination -k2, hreg⟩
+  · rintro ⟨φπ, φx, hU, hR, hreg⟩
+    have hrule : plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r =
+        taylorRule is φπ φx πs xs
+          (plan2 πs (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.piRF4 β κ σ lx li ρr) u r)
+          (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) := by
+      rw [taylorRule_plan2, hU, hR]
+      congr 1 <;> ring
+    have heq : TaylorEqm 𝔼 β σ κ is φπ φx πs xs u (fun t ω => rbar + r t ω)
+        (plan2 πs (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) := by
+      unfold TaylorEqm
+      rw [← hrule]
+      exact hO
+    exact ⟨is, φπ, φx, πs, xs, (taylor_determinate_iff_region 𝔼 hβ0 hσ hxb).mpr hreg, heq⟩
+
+/-! ### The rank-deficient case -/
+
+/-- **Woodford (2003), Proposition 7.12 at the singular `(ρ_r, ρ_u)` (pp. 514–515, fn. 33), exact,
+both directions.** Where the consistency system is singular (`det G = 0`), write
+`(a, b, c) = (π_r, x_r, i_r)` (the `rⁿ`-row) and parametrise the line `aφ_π + b(φ_x/4) = c` by
+`φ_π = ca/(a² + b²) − sb`, `φ_x/4 = cb/(a² + b²) + sa`. The optimal noninertial plan is the
+equilibrium of some determinate Taylor rule (any sign) iff (i) the `rⁿ`-row is nonzero, (ii) the
+augmented system has rank one, `π_u i_r = i_u π_r` and `x_u i_r = i_u x_r`, and (iii) one of the
+two Fourier–Motzkin conditions (`FM`) for `(Δ − β, A, C)` or `(−β − Δ, −A, −C)` along the line
+holds. -/
+theorem oni_implementable_singular_iff [Nonempty Ω] {β κ σ rbar lx li istar ρr ρu : ℝ}
+    (hβ0 : 0 < β) (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 ≤ lx) (hli : 0 ≤ li)
+    (hd : detG β κ σ lx li (ρr, ρu) = 0) {u r : ℕ → Ω → ℝ}
+    (hu : 𝔼.IsAR1 ρu u) (hr : 𝔼.IsAR1 ρr r) (hnd : Nondeg2 u r) {xs is : ℝ}
+    (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    (∃ ibar φπ φx πbar xbar : ℝ, ModelDet 𝔼 (TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar) ∧
+      TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar u (fun t ω => rbar + r t ω)
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r)) ↔
+      (Noninertial.piRF4 β κ σ lx li ρr ≠ 0 ∨ Noninertial.xRF4 β κ σ lx li ρr ≠ 0) ∧
+      Noninertial.piUF4 β κ σ lx li ρu * Noninertial.iRF4 β κ σ lx li ρr =
+        Noninertial.iUF4 β κ σ lx li ρu * Noninertial.piRF4 β κ σ lx li ρr ∧
+      Noninertial.xUF4 β κ σ lx li ρu * Noninertial.iRF4 β κ σ lx li ρr =
+        Noninertial.iUF4 β κ σ lx li ρu * Noninertial.xRF4 β κ σ lx li ρr ∧
+      (FM (pReg β σ κ
+          (Noninertial.iRF4 β κ σ lx li ρr * Noninertial.piRF4 β κ σ lx li ρr /
+            (Noninertial.piRF4 β κ σ lx li ρr ^ 2 + Noninertial.xRF4 β κ σ lx li ρr ^ 2))
+          (Noninertial.iRF4 β κ σ lx li ρr * Noninertial.xRF4 β κ σ lx li ρr /
+            (Noninertial.piRF4 β κ σ lx li ρr ^ 2 + Noninertial.xRF4 β κ σ lx li ρr ^ 2)))
+        (qReg β σ κ (-Noninertial.xRF4 β κ σ lx li ρr) (Noninertial.piRF4 β κ σ lx li ρr)) ∨
+       FM (pReg' β σ κ
+          (Noninertial.iRF4 β κ σ lx li ρr * Noninertial.piRF4 β κ σ lx li ρr /
+            (Noninertial.piRF4 β κ σ lx li ρr ^ 2 + Noninertial.xRF4 β κ σ lx li ρr ^ 2))
+          (Noninertial.iRF4 β κ σ lx li ρr * Noninertial.xRF4 β κ σ lx li ρr /
+            (Noninertial.piRF4 β κ σ lx li ρr ^ 2 + Noninertial.xRF4 β κ σ lx li ρr ^ 2)))
+        (qReg' β σ κ (-Noninertial.xRF4 β κ σ lx li ρr) (Noninertial.piRF4 β κ σ lx li ρr))) := by
+  rw [oni_implementable_iff_exists 𝔼 hβ0 hκ hσ hlx hli hu hr hnd hxs his]
+  set a := Noninertial.piRF4 β κ σ lx li ρr with ha
+  set b := Noninertial.xRF4 β κ σ lx li ρr with hb
+  set c := Noninertial.iRF4 β κ σ lx li ρr with hc
+  set pu := Noninertial.piUF4 β κ σ lx li ρu with hpu
+  set xu := Noninertial.xUF4 β κ σ lx li ρu with hxu
+  set iu := Noninertial.iUF4 β κ σ lx li ρu with hiu
+  have hcpos : 0 < c := iRF4_pos hκ hlx hli
+  have hdet : pu * b - xu * a = 0 := hd
+  rw [← exists_region_line_iff]
+  constructor
+  · rintro ⟨φπ, φx, hU, hR, hreg⟩
+    have hrow : a ≠ 0 ∨ b ≠ 0 := by
+      by_contra hcon
+      push Not at hcon
+      rw [hcon.1, hcon.2] at hR
+      linarith
+    have hn : a ^ 2 + b ^ 2 ≠ 0 := by
+      rcases hrow with h | h <;> positivity
+    refine ⟨hrow, by linear_combination pu * hR - a * hU + φx / 4 * hdet,
+      by linear_combination xu * hR - b * hU - φπ * hdet, ?_⟩
+    refine ⟨(-b * φπ + a * (φx / 4)) / (a ^ 2 + b ^ 2), ?_⟩
+    have e1 : c * a / (a ^ 2 + b ^ 2) + (-b * φπ + a * (φx / 4)) / (a ^ 2 + b ^ 2) * -b = φπ := by
+      field_simp
+      linear_combination 4 * a * hR
+    have e2 : 4 * (c * b / (a ^ 2 + b ^ 2) + (-b * φπ + a * (φx / 4)) / (a ^ 2 + b ^ 2) * a) =
+        φx := by
+      field_simp
+      linear_combination 4 * b * hR
+    rw [e1, e2]
+    exact hreg
+  · rintro ⟨hrow, hk1, hk2, s, hreg⟩
+    have hn : a ^ 2 + b ^ 2 ≠ 0 := by
+      rcases hrow with h | h <;> positivity
+    set φπ := c * a / (a ^ 2 + b ^ 2) + s * -b with hφ
+    set y := c * b / (a ^ 2 + b ^ 2) + s * a with hy
+    have hR : c = φπ * a + 4 * y / 4 * b := by
+      rw [hφ, hy]
+      field_simp
+      ring
+    have hR' : c = φπ * a + y * b := by rw [hR]; ring
+    have hU : iu = φπ * pu + 4 * y / 4 * xu := by
+      have h1 : a * (φπ * pu + y * xu - iu) = 0 := by
+        linear_combination (-pu) * hR' + hk1 - y * hdet
+      have h2 : b * (φπ * pu + y * xu - iu) = 0 := by
+        linear_combination (-xu) * hR' + hk2 + φπ * hdet
+      have h3 : φπ * pu + y * xu - iu = 0 := by
+        rcases hrow with h | h
+        · exact (mul_eq_zero.mp h1).resolve_left h
+        · exact (mul_eq_zero.mp h2).resolve_left h
+      linear_combination -h3
+    exact ⟨φπ, 4 * y, hU, hR, hreg⟩
+
+/-- Woodford (2003), App. F.4, p. 713: if `λᵢ(γ_r − ρ_rκσ) = 0` then the ONI plan does not respond
+to the natural rate at all, `π_r = x_r = 0` (the `rⁿ`-row of the consistency system vanishes). -/
+theorem r_row_zero {β κ σ lx li ρ : ℝ} (h : li * (Noninertial.gamF4 β ρ - ρ * κ * σ) = 0) :
+    Noninertial.piRF4 β κ σ lx li ρ = 0 ∧ Noninertial.xRF4 β κ σ lx li ρ = 0 := by
+  unfold Noninertial.piRF4 Noninertial.xRF4
+  constructor
+  · rw [mul_right_comm li σ⁻¹, h, zero_mul, zero_mul, zero_div]
+  · rw [mul_right_comm li σ⁻¹, h, zero_mul, zero_mul, zero_div]
+
+/-- **Woodford (2003), Proposition 7.12 when the consistency system has a zero `rⁿ`-row**: if
+`λᵢ(γ_r − ρ_rκσ) = 0` — in particular for `λᵢ = 0`, where the system is singular at every
+`(ρ_r, ρ_u)` (`TidyR5TaylorRegion.detG_li_zero`) — the optimal noninertial plan is NOT the
+equilibrium of any Taylor rule (3.1), determinate or not, of any sign: the interest rate must
+respond to `rⁿ` (`iRF4_pos`) while inflation and the gap do not. -/
+theorem not_implementable_r_row_zero [Nonempty Ω] {β κ σ rbar lx li istar ρr ρu : ℝ}
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 ≤ lx) (hli : 0 ≤ li)
+    (h0 : li * (Noninertial.gamF4 β ρr - ρr * κ * σ) = 0) {u r : ℕ → Ω → ℝ}
+    (hu : 𝔼.IsAR1 ρu u) (hr : 𝔼.IsAR1 ρr r) (hnd : Nondeg2 u r) {xs is : ℝ}
+    (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β li rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β li rbar istar) :
+    ¬ ∃ ibar φπ φx πbar xbar : ℝ,
+      TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar u (fun t ω => rbar + r t ω)
+        (plan2 (Noninertial.piBar119 β li rbar istar) (Noninertial.piUF4 β κ σ lx li ρu)
+          (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) := by
+  rintro ⟨ibar, φπ, φx, πbar, xbar, heq⟩
+  set πs := Noninertial.piBar119 β li rbar istar
+  obtain ⟨c1, c2⟩ := Noninertial.f4_u_feasible (β := β) (ρ := ρu) hκ hσ hlx hli
+  obtain ⟨c3, c4⟩ := Noninertial.f4_r_feasible (β := β) (ρ := ρr) hκ hσ hlx hli
+  have hxb : κ * xs = (1 - β) * πs := by rw [hxs]; field_simp
+  have hO := plan2_of 𝔼 (rbar := rbar) (πbar := πs) (xbar := xs) hu hr (by linarith [hxb]) his
+    c1 c2 c3 c4
+  have hI1 := (OptimalTaylor.IS_iff 𝔼 _ _ _ _ _).mp heq.2
+  have hI2 := (OptimalTaylor.IS_iff 𝔼 _ _ _ _ _).mp hO.2
+  have hi : ∀ t ω, taylorRule ibar φπ φx πbar xbar
+      (plan2 πs (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.piRF4 β κ σ lx li ρr) u r)
+      (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) t ω =
+      plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r t ω := by
+    intro t ω
+    have h := (hI1 t ω).symm.trans (hI2 t ω)
+    have : σ * (taylorRule ibar φπ φx πbar xbar
+        (plan2 πs (Noninertial.piUF4 β κ σ lx li ρu) (Noninertial.piRF4 β κ σ lx li ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx li ρu) (Noninertial.xRF4 β κ σ lx li ρr) u r) t ω -
+        plan2 is (Noninertial.iUF4 β κ σ lx li ρu) (Noninertial.iRF4 β κ σ lx li ρr) u r t ω)
+        = 0 := by linarith
+    exact sub_eq_zero.mp ((mul_eq_zero.mp this).resolve_left hσ.ne')
+  rw [taylorRule_plan2] at hi
+  obtain ⟨-, -, k2⟩ := Noninertial.affine_zero2 hnd
+    (a := ibar + φπ * (πs - πbar) + φx * (xs - xbar) / 4 - is)
+    (b := φπ * Noninertial.piUF4 β κ σ lx li ρu + φx * Noninertial.xUF4 β κ σ lx li ρu / 4 -
+      Noninertial.iUF4 β κ σ lx li ρu)
+    (c := φπ * Noninertial.piRF4 β κ σ lx li ρr + φx * Noninertial.xRF4 β κ σ lx li ρr / 4 -
+      Noninertial.iRF4 β κ σ lx li ρr) (fun t ω => by
+        have h := hi t ω
+        simp only [plan2_apply] at h
+        linear_combination h)
+  obtain ⟨z1, z2⟩ := r_row_zero (lx := lx) h0
+  rw [z1, z2] at k2
+  have := iRF4_pos (β := β) (σ := σ) (ρ := ρr) hκ hlx hli
+  linarith
+
+/-- **Woodford (2003), p. 515, with `λᵢ = 0`**: the consistency system is singular everywhere and
+the optimal noninertial plan is never the equilibrium of a Taylor rule (3.1), at any
+`(ρ_r, ρ_u)`, with coefficients of any sign. -/
+theorem not_implementable_li_zero [Nonempty Ω] {β κ σ rbar lx istar ρr ρu : ℝ} (hκ : 0 < κ)
+    (hσ : 0 < σ) (hlx : 0 ≤ lx) {u r : ℕ → Ω → ℝ} (hu : 𝔼.IsAR1 ρu u) (hr : 𝔼.IsAR1 ρr r)
+    (hnd : Nondeg2 u r) {xs is : ℝ}
+    (hxs : xs = (1 - β) / κ * Noninertial.piBar119 β 0 rbar istar)
+    (his : is = rbar + Noninertial.piBar119 β 0 rbar istar) :
+    ¬ ∃ ibar φπ φx πbar xbar : ℝ,
+      TaylorEqm 𝔼 β σ κ ibar φπ φx πbar xbar u (fun t ω => rbar + r t ω)
+        (plan2 (Noninertial.piBar119 β 0 rbar istar) (Noninertial.piUF4 β κ σ lx 0 ρu)
+          (Noninertial.piRF4 β κ σ lx 0 ρr) u r)
+        (plan2 xs (Noninertial.xUF4 β κ σ lx 0 ρu) (Noninertial.xRF4 β κ σ lx 0 ρr) u r) :=
+  not_implementable_r_row_zero 𝔼 hκ hσ hlx le_rfl (by ring) hu hr hnd hxs his
+
+end Woodford.GainsFromCommitment.TidyR6TaylorSingular
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Chapter 6 welfare machinery for Chapter 7 (I): Taylor steps, CES, dispersion
+
+Woodford (2003), *Interest and Prices*, Chapter 6, §§1–2 and §4.1 (pp. 383–405, 420–426) and
+Appendix E.1–E.4 (pp. 692–699): the second-order welfare machinery that Chapter 7 uses
+("the approximation to welfare of Chapter 6", Woodford (2003), p. 471, fn. 6), restated from
+the Woodford Chapter 6 StabilizationWelfare project with the namespace renamed (the original
+module names are kept as nested namespaces; that project's Sequences is SeqW here).
+Only the declarations needed by the Chapter 7 welfare bridge are copied; proofs are verbatim.
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR6WelfBase
+
+namespace OneParamTaylor
+
+open Filter Topology Asymptotics
+/-- Woodford (2003), eq. (1.2), p. 385 (the analytic core): if `f′ = f1`, `f1′ = f2` on the
+closed ball of radius `r` about `0`, and `|f2 x − f2 0| ≤ C` there, then the second-order
+Taylor remainder at `0` satisfies `|f ε − (f 0 + ε f1 0 + ε²/2 f2 0)| ≤ C ε²` for `|ε| ≤ r`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem taylor2_remainder_le {f f1 f2 : ℝ → ℝ} {r C : ℝ}
+    (hf : ∀ x ∈ Metric.closedBall (0 : ℝ) r, HasDerivAt f (f1 x) x)
+    (hf1 : ∀ x ∈ Metric.closedBall (0 : ℝ) r, HasDerivAt f1 (f2 x) x)
+    (hC : ∀ x ∈ Metric.closedBall (0 : ℝ) r, |f2 x - f2 0| ≤ C) {ε : ℝ} (hε : |ε| ≤ r) :
+    |f ε - (f 0 + ε * f1 0 + ε ^ 2 / 2 * f2 0)| ≤ C * ε ^ 2 := by
+  have hr : 0 ≤ r := (abs_nonneg ε).trans hε
+  have h0 : (0 : ℝ) ∈ Metric.closedBall (0 : ℝ) r := Metric.mem_closedBall_self hr
+  have hC0 : 0 ≤ C := by simpa using hC 0 h0
+  have hh : ∀ x ∈ Metric.closedBall (0 : ℝ) r, |f1 x - f1 0 - x * f2 0| ≤ C * |x| := by
+    intro x hx
+    have key := Convex.norm_image_sub_le_of_norm_hasDerivWithin_le
+      (f := fun y => f1 y - f1 0 - y * f2 0) (f' := fun y => f2 y - f2 0)
+      (s := Metric.closedBall 0 r) (C := C) (fun y hy => ?_) (fun y hy => ?_)
+      (convex_closedBall 0 r) h0 hx
+    · simpa [Real.norm_eq_abs] using key
+    · have h1 := HasDerivAt.sub ((hf1 y hy).sub_const (f1 0))
+        ((hasDerivAt_id y).mul_const (f2 0))
+      exact (h1.congr_deriv (by simp)).hasDerivWithinAt
+    · simpa [Real.norm_eq_abs] using hC y hy
+  have hsub : Metric.closedBall (0 : ℝ) |ε| ⊆ Metric.closedBall (0 : ℝ) r :=
+    Metric.closedBall_subset_closedBall hε
+  have h0' : (0 : ℝ) ∈ Metric.closedBall (0 : ℝ) |ε| := Metric.mem_closedBall_self (abs_nonneg ε)
+  have hε' : ε ∈ Metric.closedBall (0 : ℝ) |ε| := by simp
+  have key := Convex.norm_image_sub_le_of_norm_hasDerivWithin_le
+    (f := fun y => f y - (f 0 + y * f1 0 + y ^ 2 / 2 * f2 0))
+    (f' := fun y => f1 y - f1 0 - y * f2 0)
+    (s := Metric.closedBall 0 |ε|) (C := C * |ε|) (fun y hy => ?_) (fun y hy => ?_)
+    (convex_closedBall 0 |ε|) h0' hε'
+  · have e : |ε| * |ε| = ε ^ 2 := by rw [abs_mul_abs_self, sq]
+    simpa [Real.norm_eq_abs, mul_assoc, e] using key
+  · have h1 := HasDerivAt.sub (hf y (hsub hy))
+      (HasDerivAt.add (HasDerivAt.add (hasDerivAt_const y (f 0))
+        ((hasDerivAt_id y).mul_const (f1 0)))
+        (((hasDerivAt_pow 2 y).div_const 2).mul_const (f2 0)))
+    refine (h1.congr_deriv ?_).hasDerivWithinAt
+    simp only [Nat.cast_ofNat]
+    ring
+  · have hy' : |y| ≤ |ε| := by simpa using hy
+    calc ‖f1 y - f1 0 - y * f2 0‖ ≤ C * |y| := by
+          simpa [Real.norm_eq_abs] using hh y (hsub hy)
+      _ ≤ C * |ε| := mul_le_mul_of_nonneg_left hy' hC0
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E]
+
+variable {P X : Type*} [NormedAddCommGroup P] [NormedSpace ℝ P]
+  [NormedAddCommGroup X] [NormedSpace ℝ X]
+
+/-- Woodford (2003), §1, pp. 386–389 (the use made of a second-order approximation), general
+filter form: if `W_A − W_B − q = O(s³)` where the quadratic gap satisfies `q ≥ c s²` with
+`c > 0`, `s → 0` and `s ≠ 0` eventually, then `W_B < W_A` eventually.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem eventually_lt_of_quadratic_gap {α : Type*} {l : Filter α} {s WA WB q : α → ℝ} {c : ℝ}
+    (hs : Tendsto s l (𝓝 0)) (hc : 0 < c) (hq : ∀ᶠ a in l, c * s a ^ 2 ≤ q a)
+    (hne : ∀ᶠ a in l, s a ≠ 0) (hR : (fun a => WA a - WB a - q a) =O[l] (fun a => s a ^ 3)) :
+    ∀ᶠ a in l, WB a < WA a := by
+  have h3 : (fun a => s a ^ 3) =o[l] (fun a => s a ^ 2) := by
+    have := ((isLittleO_one_iff ℝ).2 hs).mul_isBigO (isBigO_refl (fun a => s a ^ 2) l)
+    refine this.congr' (Eventually.of_forall fun a => by simp only; ring)
+      (Eventually.of_forall fun a => by simp)
+  have hlo := hR.trans_isLittleO h3
+  filter_upwards [isLittleO_iff.1 hlo (half_pos hc), hq, hne] with a ha hqa hna
+  have hp : 0 < s a ^ 2 := by positivity
+  rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_pos hp] at ha
+  have := neg_abs_le (WA a - WB a - q a)
+  nlinarith
+
+/-- Woodford (2003), §1, pp. 386–389 (welfare ranking, one-parameter form): if welfare under
+policies `A` and `B` has expansions `w0 + ε w1 + ε²/2 a_X + O(ε³)` with common zeroth- and
+first-order terms and `a_B < a_A`, then `A` is strictly better for every small `ε ≠ 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem welfare_ranking {WA WB : ℝ → ℝ} {w0 w1 aA aB : ℝ}
+    (hA : (fun ε => WA ε - (w0 + ε * w1 + ε ^ 2 / 2 * aA)) =O[𝓝 0] (fun ε => ε ^ 3))
+    (hB : (fun ε => WB ε - (w0 + ε * w1 + ε ^ 2 / 2 * aB)) =O[𝓝 0] (fun ε => ε ^ 3))
+    (h : aB < aA) : ∀ᶠ ε in 𝓝[≠] 0, WB ε < WA ε := by
+  refine eventually_lt_of_quadratic_gap (s := id) (q := fun ε => ε ^ 2 / 2 * (aA - aB))
+    (c := (aA - aB) / 2) (tendsto_id.mono_left nhdsWithin_le_nhds) (by linarith)
+    (Eventually.of_forall fun ε => by simp only [id]; nlinarith [sq_nonneg ε])
+    self_mem_nhdsWithin ?_
+  refine ((hA.sub hB).mono nhdsWithin_le_nhds).congr_left fun ε => ?_
+  ring
+
+/-- Woodford (2003), §1, pp. 386–389: the welfare ranking for small positive amplitudes,
+`∀ᶠ ε in 𝓝[>] 0` (the shock amplitude `ε` is a positive number).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem welfare_ranking_pos {WA WB : ℝ → ℝ} {w0 w1 aA aB : ℝ}
+    (hA : (fun ε => WA ε - (w0 + ε * w1 + ε ^ 2 / 2 * aA)) =O[𝓝 0] (fun ε => ε ^ 3))
+    (hB : (fun ε => WB ε - (w0 + ε * w1 + ε ^ 2 / 2 * aB)) =O[𝓝 0] (fun ε => ε ^ 3))
+    (h : aB < aA) : ∀ᶠ ε in 𝓝[>] 0, WB ε < WA ε :=
+  (welfare_ranking hA hB h).filter_mono (nhdsWithin_mono _ fun _ hε => ne_of_gt hε)
+
+/-- Woodford (2003), §1, pp. 386–389, and §2 (quadratic loss functions): if welfare under each
+policy is `w0 + ε w1 − (k/2) ε² L_X + O(ε³)` with `k > 0` (e.g. `k = Ȳ u_c`) and the
+quadratic losses satisfy `L_A < L_B`, then `W_A ε > W_B ε` for all small `ε > 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem welfare_ranking_of_loss {WA WB : ℝ → ℝ} {w0 w1 k LA LB : ℝ} (hk : 0 < k)
+    (hA : (fun ε => WA ε - (w0 + ε * w1 + ε ^ 2 / 2 * (-(k * LA)))) =O[𝓝 0] (fun ε => ε ^ 3))
+    (hB : (fun ε => WB ε - (w0 + ε * w1 + ε ^ 2 / 2 * (-(k * LB)))) =O[𝓝 0] (fun ε => ε ^ 3))
+    (hL : LA < LB) : ∀ᶠ ε in 𝓝[>] 0, WB ε < WA ε :=
+  welfare_ranking_pos hA hB (by nlinarith)
+
+variable {Ω : Type*} [Fintype Ω] {V : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V]
+
+/-- Woodford (2003), §1, p. 385: the expectation `E[f] = ∑_ω p ω • f ω` of a (vector-valued)
+random variable on a finite state space with probabilities `p`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+def expect (p : Ω → ℝ) (f : Ω → V) : V := ∑ ω, p ω • f ω
+
+/-- Woodford (2003), §1, p. 385: over a finite state space a remainder that is `O(g)` state by
+state is `O(g)` in expectation.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem isBigO_expect {α : Type*} {l : Filter α} (p : Ω → ℝ) {f : Ω → α → V} {g : α → ℝ}
+    (h : ∀ ω, f ω =O[l] g) : (fun a => expect p fun ω => f ω a) =O[l] g := by
+  unfold expect
+  have := IsBigO.sum (s := Finset.univ) fun ω _ => (h ω).const_smul_left (p ω)
+  refine this.congr_left fun a => ?_
+  simp
+
+/-- Woodford (2003), App. E, p. 693 (bookkeeping of orders): a real function tending to `0`
+dominates its own higher powers, `f^{n+1} = O(f)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem pow_succ_isBigO_self {α : Type*} {l : Filter α} {f : α → ℝ} (hf : Tendsto f l (𝓝 0))
+    (n : ℕ) : (fun a => f a ^ (n + 1)) =O[l] f := by
+  have h1 : (fun a => f a ^ n) =O[l] (fun _ => (1 : ℝ)) := (hf.pow n).isBigO_one ℝ
+  refine (h1.mul (isBigO_refl f l)).congr (fun a => by ring) (fun a => by simp)
+
+/-- Woodford (2003), §1, footnote 7, p. 386: `a² ≠ O(a³)` as `a → 0`; a second-order term is
+not a third-order residual.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem sq_not_isBigO_cube : ¬ (fun a : ℝ => a ^ 2) =O[𝓝 0] (fun a => a ^ 3) := by
+  intro h
+  have hlo : (fun a : ℝ => a ^ 3) =o[𝓝 0] (fun a => a ^ 2) := by
+    have := ((isLittleO_one_iff ℝ).2 (tendsto_id : Tendsto (fun a : ℝ => a) (𝓝 0) (𝓝 0))).mul_isBigO
+      (isBigO_refl (fun a : ℝ => a ^ 2) (𝓝 0))
+    exact this.congr (fun a => by simp only [id]; ring) (fun a => by simp)
+  refine hlo.not_isBigO ?_ h
+  have : ∀ᶠ a in 𝓝[≠] (0 : ℝ), a ^ 3 ≠ 0 := by
+    filter_upwards [self_mem_nhdsWithin] with a ha
+    exact pow_ne_zero 3 ha
+  exact this.frequently.filter_mono nhdsWithin_le_nhds
+
+/-- Woodford (2003), p. 394 (first-order Taylor expansion with a quadratic remainder,
+adapted from the Galí Chapter 4 project's taylor_two): if `f` is `C²` near `x₀`, then
+`f x − f x₀ − f'(x₀)(x − x₀) = O((x − x₀)²)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem taylor_one_bigO {f : ℝ → ℝ} {x₀ : ℝ} (hf : ContDiffAt ℝ 2 f x₀) :
+    (fun x => f x - f x₀ - deriv f x₀ * (x - x₀)) =O[𝓝 x₀] fun x => (x - x₀) ^ 2 := by
+  obtain ⟨U, hU, hfU⟩ := hf.contDiffOn le_rfl (by simp)
+  obtain ⟨r, hr, hball⟩ := Metric.mem_nhds_iff.1 hU
+  have hs : ContDiffOn ℝ 2 f (Metric.ball x₀ r) := hfU.mono hball
+  have hT := taylor_isLittleO (convex_ball x₀ r) (Metric.mem_ball_self hr) hs
+  rw [nhdsWithin_eq_nhds.2 (Metric.isOpen_ball.mem_nhds (Metric.mem_ball_self hr))] at hT
+  have hx0 := Metric.mem_ball_self hr (x := x₀)
+  have e1 := iteratedDerivWithin_of_isOpen (n := 1) (f := f) Metric.isOpen_ball hx0
+  have e2 := iteratedDerivWithin_of_isOpen (n := 2) (f := f) Metric.isOpen_ball hx0
+  have heq : (fun x => f x - f x₀ - deriv f x₀ * (x - x₀))
+      = fun x => (f x - taylorWithinEval f 2 (Metric.ball x₀ r) x₀ x) +
+        iteratedDeriv 2 f x₀ / 2 * (x - x₀) ^ 2 := by
+    funext x
+    rw [taylor_within_apply]
+    simp only [Finset.sum_range_succ, Finset.sum_range_zero, iteratedDerivWithin_zero, e1, e2,
+      iteratedDeriv_one, smul_eq_mul]
+    norm_num [Nat.factorial]
+    ring
+  rw [heq]
+  exact hT.isBigO.add ((isBigO_refl _ _).const_mul_left _)
+
+end OneParamTaylor
+
+namespace ExpLogCES
+
+open Filter Topology Asymptotics
+open OneParamTaylor (pow_succ_isBigO_self)
+/-- Woodford (2003), App. E, eq. (E.5), p. 693 (ingredient (T2)): for `|x| ≤ 1`,
+`|eˣ − (1 + x + x²/2)| ≤ (2/9)|x|³`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem abs_exp_sub_taylor2_le {x : ℝ} (hx : |x| ≤ 1) :
+    |Real.exp x - (1 + x + x ^ 2 / 2)| ≤ 2 / 9 * |x| ^ 3 := by
+  have h := Real.exp_bound hx (n := 3) (by norm_num)
+  have e : ∑ m ∈ Finset.range 3, x ^ m / (m.factorial : ℝ) = 1 + x + x ^ 2 / 2 := by
+    simp [Finset.sum_range_succ, Nat.factorial]
+  rw [e] at h
+  have e2 : ((Nat.succ 3 : ℕ) : ℝ) / ((Nat.factorial 3 : ℕ) * (3 : ℕ)) = 2 / 9 := by
+    norm_num [Nat.factorial]
+  rw [e2] at h
+  linarith
+
+/-- Woodford (2003), App. E, p. 693: the exact remainder of `eˣ = 1 + x + x²/2 + O(x³)`,
+`expRem x = eˣ − 1 − x − x²/2` (an atom of weight three, abs_expRem_le); it gives
+`Y/Ȳ − 1 = Ŷ + Ŷ²/2 + expRem Ŷ` exactly.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def expRem (x : ℝ) : ℝ := Real.exp x - 1 - x - x ^ 2 / 2
+
+/-- Woodford (2003), App. E, p. 693: `eˣ − 1 = x + x²/2 + expRem x` exactly.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem exp_sub_one_eq (x : ℝ) : Real.exp x - 1 = x + x ^ 2 / 2 + expRem x := by
+  unfold expRem; ring
+
+/-- Woodford (2003), App. E, p. 693: the logarithmic remainder
+`rlog u = log(1 + u) − u + u²/2` (an atom of weight three, `abs_rlog_le`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def rlog (u : ℝ) : ℝ := Real.log (1 + u) - u + u ^ 2 / 2
+
+/-- Woodford (2003), App. E, p. 693: the logarithmic remainder is of third order,
+`|rlog u| ≤ |u|³/(1 − |u|)` for `|u| < 1`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem abs_rlog_le {u : ℝ} (hu : |u| < 1) : |rlog u| ≤ |u| ^ 3 / (1 - |u|) := by
+  have hu' : |-u| < 1 := by rwa [abs_neg]
+  have h := Real.abs_log_sub_add_sum_range_le hu' 2
+  simp only [Finset.sum_range_succ, Finset.range_zero, Finset.sum_empty, zero_add,
+    Nat.cast_zero, Nat.cast_one, pow_one, abs_neg, sub_neg_eq_add] at h
+  have he : rlog u = -u / (0 + 1) + (-u) ^ 2 / (1 + 1) + Real.log (1 + u) := by
+    unfold rlog; ring
+  rw [he]
+  simpa using h
+
+/-- Woodford (2003), App. E, eq. (E.5), p. 693: `eˣ − (1 + x + x²/2) = O(x³)` as `x → 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem exp_taylor2_isBigO :
+    (fun x => Real.exp x - (1 + x + x ^ 2 / 2)) =O[𝓝 0] (fun x => x ^ 3) := by
+  refine IsBigO.of_bound (2 / 9) ?_
+  filter_upwards [Metric.closedBall_mem_nhds (0 : ℝ) one_pos] with x hx
+  have hx' : |x| ≤ 1 := by simpa using hx
+  rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_pow]
+  exact abs_exp_sub_taylor2_le hx'
+
+/-- Woodford (2003), App. E, p. 693 (log counterpart of (T2)): for `|u| ≤ 1/2`,
+`|log(1 + u) − (u − u²/2)| ≤ 2|u|³`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem abs_log_one_add_sub_le {u : ℝ} (hu : |u| ≤ 1 / 2) :
+    |Real.log (1 + u) - (u - u ^ 2 / 2)| ≤ 2 * |u| ^ 3 := by
+  have hpos : 0 < 1 - |u| := by linarith
+  have h := abs_rlog_le (by linarith : |u| < 1)
+  have e : Real.log (1 + u) - (u - u ^ 2 / 2) = rlog u := by unfold rlog; ring
+  rw [e]
+  refine h.trans ?_
+  rw [div_le_iff₀ hpos]
+  have : 0 ≤ |u| ^ 3 := by positivity
+  nlinarith
+
+/-- Woodford (2003), App. E, p. 693: `log(1 + u) − (u − u²/2) = O(u³)` as `u → 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem log_taylor2_isBigO :
+    (fun u => Real.log (1 + u) - (u - u ^ 2 / 2)) =O[𝓝 0] (fun u => u ^ 3) := by
+  refine IsBigO.of_bound 2 ?_
+  filter_upwards [Metric.closedBall_mem_nhds (0 : ℝ) (by norm_num : (0 : ℝ) < 1 / 2)] with u hu
+  have hu' : |u| ≤ 1 / 2 := by simpa using hu
+  rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_pow]
+  exact abs_log_one_add_sub_le hu'
+
+variable {ι : Type*} [Fintype ι]
+
+/-- Woodford (2003), App. E, p. 693: the cross-sectional mean `E_i y = ∑ w_i y_i` over a finite
+set of goods with weights `w`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+def crossMean (w y : ι → ℝ) : ℝ := ∑ i, w i * y i
+
+/-- Woodford (2003), App. E, p. 693: the cross-sectional variance
+`var_i y = ∑ w_i (y_i − E_i y)²`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+def crossVar (w y : ι → ℝ) : ℝ := ∑ i, w i * (y i - crossMean w y) ^ 2
+
+/-- Woodford (2003), App. E, p. 693: `var_i y = E_i y² − (E_i y)²` when the weights sum to one.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem crossVar_eq {w : ι → ℝ} (hw1 : ∑ i, w i = 1) (y : ι → ℝ) :
+    crossVar w y = crossMean w (fun i => y i ^ 2) - crossMean w y ^ 2 := by
+  unfold crossVar
+  have h : ∀ i, w i * (y i - crossMean w y) ^ 2 =
+      w i * y i ^ 2 - 2 * crossMean w y * (w i * y i) + crossMean w y ^ 2 * w i :=
+    fun i => by ring
+  rw [Finset.sum_congr rfl fun i _ => h i, Finset.sum_add_distrib, Finset.sum_sub_distrib,
+    ← Finset.mul_sum, ← Finset.mul_sum, hw1]
+  simp only [crossMean]
+  ring
+
+/-- Woodford (2003), §2, eq. (2.12), p. 396 (scaling): `E_i(a y) = a E_i y`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem crossMean_mul (w : ι → ℝ) (a : ℝ) (y : ι → ℝ) :
+    crossMean w (fun i => a * y i) = a * crossMean w y := by
+  simp only [crossMean, Finset.mul_sum]
+  exact Finset.sum_congr rfl fun i _ => by ring
+
+/-- Woodford (2003), App. E, p. 693: `|E_i y| ≤ ‖y‖∞` for probability weights.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem abs_crossMean_le {w : ι → ℝ} (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1)
+    (y : ι → ℝ) : |crossMean w y| ≤ ‖y‖ := by
+  unfold crossMean
+  calc |∑ i, w i * y i| ≤ ∑ i, |w i * y i| := Finset.abs_sum_le_sum_abs _ _
+    _ ≤ ∑ i, w i * ‖y‖ := Finset.sum_le_sum fun i _ => by
+        rw [abs_mul, abs_of_nonneg (hw i)]
+        exact mul_le_mul_of_nonneg_left (by simpa using norm_le_pi_norm y i) (hw i)
+    _ = ‖y‖ := by rw [← Finset.sum_mul, hw1, one_mul]
+
+/-- Woodford (2003), App. E, p. 693: `0 ≤ E_i y² ≤ ‖y‖∞²` for probability weights.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem crossMean_sq_le {w : ι → ℝ} (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1)
+    (y : ι → ℝ) :
+    0 ≤ crossMean w (fun i => y i ^ 2) ∧ crossMean w (fun i => y i ^ 2) ≤ ‖y‖ ^ 2 := by
+  unfold crossMean
+  refine ⟨Finset.sum_nonneg fun i _ => mul_nonneg (hw i) (sq_nonneg _), ?_⟩
+  calc ∑ i, w i * y i ^ 2 ≤ ∑ i, w i * ‖y‖ ^ 2 := Finset.sum_le_sum fun i _ => by
+        refine mul_le_mul_of_nonneg_left ?_ (hw i)
+        have h := norm_le_pi_norm y i
+        rw [Real.norm_eq_abs] at h
+        rw [← sq_abs]
+        exact pow_le_pow_left₀ (abs_nonneg _) h 2
+    _ = ‖y‖ ^ 2 := by rw [← Finset.sum_mul, hw1, one_mul]
+
+/-- Woodford (2003), App. E, p. 693: `0 ≤ var_i y ≤ ‖y‖∞²` for probability weights.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem crossVar_le {w : ι → ℝ} (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1) (y : ι → ℝ) :
+    0 ≤ crossVar w y ∧ crossVar w y ≤ ‖y‖ ^ 2 := by
+  refine ⟨Finset.sum_nonneg fun i _ => mul_nonneg (hw i) (sq_nonneg _), ?_⟩
+  rw [crossVar_eq hw1]
+  have := (crossMean_sq_le hw hw1 y).2
+  nlinarith [sq_nonneg (crossMean w y)]
+
+/-- Woodford (2003), eq. (2.6), p. 393: the exponential moment `E_i[exp(r y)] = ∑ w_i e^{r y_i}`
+underlying a Dixit–Stiglitz aggregate with exponent `r`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def cesMoment (w : ι → ℝ) (r : ℝ) (y : ι → ℝ) : ℝ := ∑ i, w i * Real.exp (r * y i)
+
+/-- Woodford (2003), eq. (2.6), p. 393: the normalised cumulant
+`(1/r) log E_i[exp(r y)]` (the log of a Dixit–Stiglitz aggregate of `e^{y}`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def cumulant (w : ι → ℝ) (r : ℝ) (y : ι → ℝ) : ℝ :=
+  1 / r * Real.log (cesMoment w r y)
+
+/-- Woodford (2003), eq. (2.6), p. 393: the exponential moment is positive for probability
+weights.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem cesMoment_pos {w : ι → ℝ} (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1) (r : ℝ)
+    (y : ι → ℝ) : 0 < cesMoment w r y := by
+  obtain ⟨i, -, hi⟩ := Finset.exists_ne_zero_of_sum_ne_zero (by rw [hw1]; exact one_ne_zero)
+  exact Finset.sum_pos' (fun j _ => mul_nonneg (hw j) (Real.exp_pos _).le)
+    ⟨i, Finset.mem_univ i, mul_pos (lt_of_le_of_ne (hw i) (Ne.symm hi)) (Real.exp_pos _)⟩
+
+/-- Woodford (2003), App. E, eq. (E.5), p. 693 and survey (T4): the CES / cumulant expansion
+for a finite weighted cross-section,
+`(1/r) log E_i[exp(r y)] = E_i y + (r/2) var_i y + O(‖y‖∞³)` as `y → 0`, for any `r ≠ 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem cumulant_expansion {w : ι → ℝ} (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1) {r : ℝ}
+    (hr : r ≠ 0) :
+    (fun y => cumulant w r y - (crossMean w y + r / 2 * crossVar w y)) =O[𝓝 0]
+      (fun y => ‖y‖ ^ 3) := by
+  have hN : Tendsto (fun y : ι → ℝ => ‖y‖) (𝓝 0) (𝓝 0) := by
+    simpa using (continuous_norm.tendsto (0 : ι → ℝ))
+  have hE1 : (fun y => crossMean w y) =O[𝓝 (0 : ι → ℝ)] (fun y => ‖y‖) :=
+    IsBigO.of_bound 1 (Eventually.of_forall fun y => by
+      simpa [Real.norm_eq_abs] using abs_crossMean_le hw hw1 y)
+  have hE2 : (fun y => crossMean w (fun i => y i ^ 2)) =O[𝓝 (0 : ι → ℝ)] (fun y => ‖y‖ ^ 2) :=
+    IsBigO.of_bound 1 (Eventually.of_forall fun y => by
+      have h := crossMean_sq_le hw hw1 y
+      rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg h.1, abs_of_nonneg (by positivity)]
+      linarith [h.2])
+  -- the remainder of the exponential moment
+  have hA : (fun y => (cesMoment w r y - 1) - (r * crossMean w y +
+      r ^ 2 / 2 * crossMean w (fun i => y i ^ 2))) =O[𝓝 (0 : ι → ℝ)] (fun y => ‖y‖ ^ 3) := by
+    refine IsBigO.of_bound (2 / 9 * |r| ^ 3) ?_
+    have hrpos : 0 < 1 / |r| := by positivity
+    filter_upwards [Metric.closedBall_mem_nhds (0 : ι → ℝ) hrpos] with y hy
+    have hy' : |r| * ‖y‖ ≤ 1 := by
+      have : ‖y‖ ≤ 1 / |r| := by simpa using hy
+      rw [le_div_iff₀ (abs_pos.2 hr)] at this
+      linarith
+    have key : (cesMoment w r y - 1) - (r * crossMean w y +
+        r ^ 2 / 2 * crossMean w (fun i => y i ^ 2)) =
+        ∑ i, w i * (Real.exp (r * y i) - (1 + r * y i + (r * y i) ^ 2 / 2)) := by
+      have h1 : ∀ i, w i * (Real.exp (r * y i) - (1 + r * y i + (r * y i) ^ 2 / 2)) =
+          w i * Real.exp (r * y i) - w i - r * (w i * y i) - r ^ 2 / 2 * (w i * y i ^ 2) :=
+        fun i => by ring
+      rw [Finset.sum_congr rfl fun i _ => h1 i, Finset.sum_sub_distrib, Finset.sum_sub_distrib,
+        Finset.sum_sub_distrib, ← Finset.mul_sum, ← Finset.mul_sum, hw1]
+      simp only [cesMoment, crossMean]
+      ring
+    rw [key, Real.norm_eq_abs, Real.norm_eq_abs, abs_pow, abs_norm]
+    calc |∑ i, w i * (Real.exp (r * y i) - (1 + r * y i + (r * y i) ^ 2 / 2))|
+        ≤ ∑ i, |w i * (Real.exp (r * y i) - (1 + r * y i + (r * y i) ^ 2 / 2))| :=
+          Finset.abs_sum_le_sum_abs _ _
+      _ ≤ ∑ i, w i * (2 / 9 * |r| ^ 3 * ‖y‖ ^ 3) := Finset.sum_le_sum fun i _ => by
+          rw [abs_mul, abs_of_nonneg (hw i)]
+          refine mul_le_mul_of_nonneg_left ?_ (hw i)
+          have hyi : |y i| ≤ ‖y‖ := by simpa using norm_le_pi_norm y i
+          have hri : |r * y i| ≤ |r| * ‖y‖ := by
+            rw [abs_mul]; exact mul_le_mul_of_nonneg_left hyi (abs_nonneg r)
+          calc _ ≤ 2 / 9 * |r * y i| ^ 3 := abs_exp_sub_taylor2_le (hri.trans hy')
+            _ ≤ 2 / 9 * (|r| * ‖y‖) ^ 3 := by gcongr
+            _ = 2 / 9 * |r| ^ 3 * ‖y‖ ^ 3 := by ring
+      _ = 2 / 9 * |r| ^ 3 * ‖y‖ ^ 3 := by rw [← Finset.sum_mul, hw1, one_mul]
+  have h31 : (fun y : ι → ℝ => ‖y‖ ^ 3) =O[𝓝 0] (fun y => ‖y‖) := pow_succ_isBigO_self hN 2
+  have h21 : (fun y : ι → ℝ => ‖y‖ ^ 2) =O[𝓝 0] (fun y => ‖y‖) := pow_succ_isBigO_self hN 1
+  have h32 : (fun y : ι → ℝ => ‖y‖ ^ 3) =O[𝓝 0] (fun y => ‖y‖ ^ 2) := by
+    refine ((hN.isBigO_one ℝ).mul (isBigO_refl (fun y : ι → ℝ => ‖y‖ ^ 2) _)).congr
+      (fun y => by ring) (fun y => by ring)
+  -- `u = E[exp(r y)] − 1` is first order
+  have hu : (fun y => cesMoment w r y - 1) =O[𝓝 (0 : ι → ℝ)] (fun y => ‖y‖) := by
+    refine ((hA.trans h31).add ((hE1.const_mul_left r).add
+      ((hE2.trans h21).const_mul_left (r ^ 2 / 2)))).congr_left fun y => ?_
+    ring
+  have hut : Tendsto (fun y => cesMoment w r y - 1) (𝓝 (0 : ι → ℝ)) (𝓝 0) :=
+    hu.trans_tendsto hN
+  have hL : (fun y => Real.log (1 + (cesMoment w r y - 1)) -
+      ((cesMoment w r y - 1) - (cesMoment w r y - 1) ^ 2 / 2)) =O[𝓝 (0 : ι → ℝ)]
+      (fun y => ‖y‖ ^ 3) :=
+    (log_taylor2_isBigO.comp_tendsto hut).trans (hu.pow 3)
+  have hP : (fun y => ((cesMoment w r y - 1) - r * crossMean w y) *
+      ((cesMoment w r y - 1) + r * crossMean w y)) =O[𝓝 (0 : ι → ℝ)] (fun y => ‖y‖ ^ 3) := by
+    have h1 : (fun y => (cesMoment w r y - 1) - r * crossMean w y) =O[𝓝 (0 : ι → ℝ)]
+        (fun y => ‖y‖ ^ 2) := by
+      refine ((hA.trans h32).add (hE2.const_mul_left (r ^ 2 / 2))).congr_left fun y => ?_
+      ring
+    exact (h1.mul (hu.add (hE1.const_mul_left r))).congr_right fun y => by ring
+  refine (((hL.add hA).sub (hP.const_mul_left (1 / 2))).const_mul_left (1 / r)).congr_left
+    fun y => ?_
+  rw [crossVar_eq hw1, cumulant]
+  have e : 1 + (cesMoment w r y - 1) = cesMoment w r y := by ring
+  rw [e]
+  field_simp
+  ring
+
+/-- Woodford (2003), eq. (2.6), p. 393 (and the price index, Ch. 3 eq. (1.3)): the
+Dixit–Stiglitz aggregate `(∑ w_i p_iʳ)^{1/r}` with exponent `r` (`r = 1 − θ` for the price
+index, `r = (θ − 1)/θ` for the output aggregate).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def cesIndex (w : ι → ℝ) (r : ℝ) (p : ι → ℝ) : ℝ :=
+  (∑ i, w i * p i ^ r) ^ (1 / r)
+
+/-- Woodford (2003), eq. (2.6), p. 393: the log of a Dixit–Stiglitz aggregate of `e^{q}` is
+the normalised cumulant `(1/r) log E_i[exp(r q)]`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem log_cesIndex_exp {w : ι → ℝ} (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1) (r : ℝ)
+    (q : ι → ℝ) : Real.log (cesIndex w r (fun i => Real.exp (q i))) = cumulant w r q := by
+  have e : ∑ i, w i * Real.exp (q i) ^ r = cesMoment w r q := by
+    unfold cesMoment
+    refine Finset.sum_congr rfl fun i _ => ?_
+    rw [Real.rpow_def_of_pos (Real.exp_pos _), Real.log_exp, mul_comm (q i) r]
+  unfold cesIndex cumulant
+  rw [e, Real.log_rpow (cesMoment_pos hw hw1 r q)]
+
+/-- Woodford (2003), App. E, eq. (E.5), p. 693: with `ŷ_i = log(y_i/Ȳ)` and
+`Ŷ = log(Y/Ȳ)`, `Y` the Dixit–Stiglitz aggregate (2.6) with elasticity `θ ≠ 1` (the book has
+`θ > 1`),
+`Ŷ = E_i ŷ + ½(1 − θ⁻¹) var_i ŷ + O(‖ŷ‖³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem log_outputIndex_expansion {w : ι → ℝ} (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1)
+    {θ : ℝ} (hθ1 : θ ≠ 1) :
+    (fun yhat => Real.log (cesIndex w (1 - θ⁻¹) (fun i => Real.exp (yhat i))) -
+      (crossMean w yhat + 1 / 2 * (1 - θ⁻¹) * crossVar w yhat)) =O[𝓝 0]
+      (fun yhat => ‖yhat‖ ^ 3) := by
+  have hr : 1 - θ⁻¹ ≠ 0 := by
+    intro h
+    apply hθ1
+    have : θ⁻¹ = 1 := by linarith
+    simpa using congrArg (·⁻¹) this
+  refine (cumulant_expansion hw hw1 hr).congr_left fun yhat => ?_
+  rw [log_cesIndex_exp hw hw1]
+  ring
+
+end ExpLogCES
+
+namespace Moments
+
+open ExpLogCES
+variable {ι : Type*} [Fintype ι]
+
+/-- Woodford (2003), App. E.1, p. 694: `E_i z² = var_i z + (E_i z)²` (weights summing to
+one).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem sum_sq_eq {w : ι → ℝ} (hw : ∑ i, w i = 1) (z : ι → ℝ) :
+    ∑ i, w i * z i ^ 2 = crossVar w z + crossMean w z ^ 2 := by
+  rw [crossVar_eq hw]
+  unfold crossMean
+  ring
+
+/-- Woodford (2003), App. E.1, p. 694 ("integrating this expression over the differentiated
+goods"): the cross-sectional average of a quadratic `a z + b z²` is
+`a E z + b((E z)² + var z)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem mean_quadratic {w : ι → ℝ} (hw : ∑ i, w i = 1) (a b : ℝ) (z : ι → ℝ) :
+    ∑ i, w i * (a * z i + b * z i ^ 2) =
+      a * crossMean w z + b * (crossMean w z ^ 2 + crossVar w z) := by
+  have h : ∀ i, w i * (a * z i + b * z i ^ 2) = a * (w i * z i) + b * (w i * z i ^ 2) :=
+    fun i => by ring
+  simp only [h, Finset.sum_add_distrib, ← Finset.mul_sum]
+  rw [sum_sq_eq hw]
+  unfold crossMean
+  ring
+
+/-- Woodford (2003), p. 400: the Calvo coefficient `α/[(1 − α)(1 − αβ)]` of the discounted
+dispersion.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def calvoK (α β : ℝ) : ℝ := α / ((1 - α) * (1 - α * β))
+
+/-- Woodford (2003), Ch. 3, eq. (2.19), restated: the slope of the New Keynesian Phillips curve
+with Calvo pricing and firm-specific inputs, `κ = (1−α)(1−αβ)/α · (ω+σ⁻¹)/(1+ωθ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def calvoKappa (α β ω θ σ : ℝ) : ℝ :=
+  (1 - α) * (1 - α * β) / α * ((ω + σ) / (1 + ω * θ))
+
+end Moments
+
+namespace SeqW
+
+open Filter Topology
+/-- Woodford (2003), App. E.3, p. 697 (discounted sums of bounded sequences): a real family is
+bounded.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+def Bdd {ι : Type*} (a : ι → ℝ) : Prop := ∃ M, ∀ i, |a i| ≤ M
+
+namespace Bdd
+
+variable {ι κ : Type*}
+
+/-- Woodford (2003), App. E.3, p. 697: constants are bounded.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem const (c : ℝ) : Bdd (fun _ : ι => c) := ⟨|c|, fun _ => le_rfl⟩
+
+/-- Woodford (2003), App. E.3, p. 697: the bound may be taken nonnegative.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem nonneg_bound {a : ι → ℝ} (ha : Bdd a) : ∃ M, 0 ≤ M ∧ ∀ i, |a i| ≤ M := by
+  obtain ⟨M, hM⟩ := ha
+  exact ⟨max M 0, le_max_right _ _, fun i => le_max_of_le_left (hM i)⟩
+
+/-- Woodford (2003), App. E.3, p. 697: sums of bounded families are bounded.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem add {a b : ι → ℝ} (ha : Bdd a) (hb : Bdd b) : Bdd (fun i => a i + b i) := by
+  obtain ⟨A, hA⟩ := ha
+  obtain ⟨B, hB⟩ := hb
+  exact ⟨A + B, fun i => (abs_add_le _ _).trans (add_le_add (hA i) (hB i))⟩
+
+/-- Woodford (2003), App. E.3, p. 697: negatives of bounded families are bounded.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem neg {a : ι → ℝ} (ha : Bdd a) : Bdd (fun i => -a i) := by
+  obtain ⟨A, hA⟩ := ha
+  exact ⟨A, fun i => by rw [abs_neg]; exact hA i⟩
+
+/-- Woodford (2003), App. E.3, p. 697: differences of bounded families are bounded.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem sub {a b : ι → ℝ} (ha : Bdd a) (hb : Bdd b) : Bdd (fun i => a i - b i) := by
+  simpa [sub_eq_add_neg] using ha.add hb.neg
+
+/-- Woodford (2003), App. E.3, p. 697: products of bounded families are bounded.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem mul {a b : ι → ℝ} (ha : Bdd a) (hb : Bdd b) : Bdd (fun i => a i * b i) := by
+  obtain ⟨A, hA0, hA⟩ := ha.nonneg_bound
+  obtain ⟨B, -, hB⟩ := hb.nonneg_bound
+  exact ⟨A * B, fun i => by
+    rw [abs_mul]; exact mul_le_mul (hA i) (hB i) (abs_nonneg _) hA0⟩
+
+/-- Woodford (2003), App. E.3, p. 697: quotients by a constant are bounded.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem div_const {a : ι → ℝ} (ha : Bdd a) (c : ℝ) : Bdd (fun i => a i / c) := by
+  simpa [div_eq_mul_inv] using ha.mul (const c⁻¹)
+
+/-- Woodford (2003), App. E.3, p. 697: powers of bounded families are bounded.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem pow {a : ι → ℝ} (ha : Bdd a) (n : ℕ) : Bdd (fun i => a i ^ n) := by
+  induction n with
+  | zero => simpa using const (ι := ι) 1
+  | succ n ih => simpa [pow_succ] using ih.mul ha
+
+/-- Woodford (2003), (2.21): linear combinations of bounded families are bounded.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem lin {a b : ι → ℝ} (ha : Bdd a) (hb : Bdd b) (c d : ℝ) :
+    Bdd fun i => c * a i + d * b i :=
+  ((const c).mul ha).add ((const d).mul hb)
+
+/-- Woodford (2003), App. E.3, p. 697: reindexing a bounded family keeps it bounded.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem comp {a : ι → ℝ} (ha : Bdd a) (f : κ → ι) : Bdd (fun j => a (f j)) := by
+  obtain ⟨A, hA⟩ := ha
+  exact ⟨A, fun j => hA (f j)⟩
+
+end Bdd
+
+/-- Woodford (2003), (2.21), p. 400: geometrically weighted bounded sequences are summable
+(`|β| < 1`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem summable_geom_bdd {β M : ℝ} (hβ : |β| < 1) {a : ℕ → ℝ} (ha : ∀ t, |a t| ≤ M) :
+    Summable (fun t => β ^ t * a t) :=
+  Summable.of_norm_bounded ((summable_geometric_of_lt_one (abs_nonneg β) hβ).mul_right M)
+    (fun t => by
+      rw [Real.norm_eq_abs, abs_mul, abs_pow]
+      exact mul_le_mul_of_nonneg_left (ha t) (pow_nonneg (abs_nonneg β) t))
+
+/-- Woodford (2003), (2.21), p. 400: absolute summability of `βᵗ a_t` for a bounded sequence
+(`|β| < 1`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem summable_norm_geom_bdd {β M : ℝ} (hβ : |β| < 1) {a : ℕ → ℝ} (ha : ∀ t, |a t| ≤ M) :
+    Summable (fun t => ‖β ^ t * a t‖) := by
+  have h := summable_geom_bdd (β := |β|) (a := fun t => |a t|) (by rwa [abs_abs]) (fun t => by
+    rw [abs_abs]; exact ha t)
+  refine h.congr fun t => ?_
+  rw [Real.norm_eq_abs, abs_mul, abs_pow]
+
+/-- Woodford (2003), App. E.3, p. 697: a bounded sequence is summable against `βᵗ`,
+`0 ≤ β < 1`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem Bdd.summable {a : ℕ → ℝ} (ha : Bdd a) {β : ℝ} (h0 : 0 ≤ β) (h1 : β < 1) :
+    Summable (fun t => β ^ t * a t) := by
+  obtain ⟨A, hA⟩ := ha
+  exact summable_geom_bdd (by rwa [abs_of_nonneg h0]) hA
+
+/-- Woodford (2003), (2.21): `|∑ βᵗ f_t| ≤ B/(1 − β)` when `|f_t| ≤ B` (`0 ≤ β < 1`; survey
+error 25: a uniform bound `B = O(ε³)` gives an `O(ε³)` discounted remainder).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem abs_tsum_le {f : ℕ → ℝ} {B β : ℝ} (hf : ∀ t, |f t| ≤ B) (hβ0 : 0 ≤ β) (hβ1 : β < 1) :
+    |∑' t, β ^ t * f t| ≤ B / (1 - β) := by
+  have hs := Bdd.summable (a := f) ⟨B, hf⟩ hβ0 hβ1
+  have hg := (hasSum_geometric_of_lt_one hβ0 hβ1).mul_left B
+  have h1 : |∑' t, β ^ t * f t| ≤ ∑' t, |β ^ t * f t| := by
+    have := norm_tsum_le_tsum_norm (f := fun t => β ^ t * f t)
+      (by simpa only [Real.norm_eq_abs] using hs.abs)
+    simpa only [Real.norm_eq_abs] using this
+  have h2 : ∑' t, |β ^ t * f t| ≤ ∑' t, B * β ^ t := by
+    refine hs.abs.tsum_le_tsum (fun t => ?_) hg.summable
+    rw [abs_mul, abs_pow, abs_of_nonneg hβ0, mul_comm]
+    exact mul_le_mul_of_nonneg_right (hf t) (pow_nonneg hβ0 t)
+  rw [hg.tsum_eq] at h2
+  calc _ ≤ _ := h1.trans h2
+    _ = B / (1 - β) := by rw [div_eq_mul_inv]
+
+/-- Woodford (2003), p. 400 (integrating (2.20) forward, exact): if
+`V_{t+1} = α V_t + c q_t` then `V_{t+1} = α^{t+1} V_0 + ∑_{s ≤ t} α^{t−s} c q_s`
+(with `V_0 = Δ_{−1}` the inherited dispersion).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem disp_integrated {α c : ℝ} {V q : ℕ → ℝ} (hrec : ∀ t, V (t + 1) = α * V t + c * q t)
+    (t : ℕ) :
+    V (t + 1) = α ^ (t + 1) * V 0 + ∑ s ∈ Finset.range (t + 1), α ^ (t - s) * (c * q s) := by
+  induction t with
+  | zero => simp [hrec 0]
+  | succ t ih =>
+    rw [hrec (t + 1), ih, Finset.sum_range_succ _ (t + 1), Nat.sub_self, pow_zero, one_mul,
+      mul_add, Finset.mul_sum]
+    have : ∀ s ∈ Finset.range (t + 1), α * (α ^ (t - s) * (c * q s)) =
+        α ^ (t + 1 - s) * (c * q s) := by
+      intro s hs
+      rw [Finset.mem_range] at hs
+      rw [Nat.sub_add_comm (Nat.lt_succ_iff.mp hs), pow_succ]
+      ring
+    rw [Finset.sum_congr rfl this]
+    ring
+
+/-- Woodford (2003), p. 400 (**the discounted sum, exact, genuine `tsum`s**): if
+`V_{t+1} = α V_t + c q_t`, `0 ≤ α`, `0 ≤ β`, `αβ < 1` and `∑ βᵗ q_t` converges absolutely,
+then `∑ βᵗ V_{t+1}` converges and equals `(α V_0 + c ∑ βᵗ q_t)/(1 − αβ)` (a Cauchy product
+of `∑ (αβ)ᵏ` with `∑ βˢ q_s`; no bound on `V` is needed).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem disp_discounted_hasSum {α β c : ℝ} (hα : 0 ≤ α) (hβ : 0 ≤ β) (hαβ : α * β < 1)
+    {V q : ℕ → ℝ} (hrec : ∀ t, V (t + 1) = α * V t + c * q t)
+    (hq : Summable fun t => ‖β ^ t * q t‖) :
+    HasSum (fun t => β ^ t * V (t + 1)) ((α * V 0 + c * ∑' t, β ^ t * q t) / (1 - α * β)) := by
+  set f : ℕ → ℝ := fun k => (α * β) ^ k with hfdef
+  set g : ℕ → ℝ := fun s => β ^ s * q s with hgdef
+  have hab0 : 0 ≤ α * β := mul_nonneg hα hβ
+  have hf : Summable fun k => ‖f k‖ := by
+    simpa [hfdef, Real.norm_eq_abs, abs_of_nonneg (pow_nonneg hab0 _)] using
+      summable_geometric_of_lt_one hab0 hαβ
+  have hcp := tsum_mul_tsum_eq_tsum_sum_range_of_summable_norm hf hq
+  have hcs := (summable_norm_sum_mul_range_of_summable_norm hf hq).of_norm
+  have hterm : ∀ t, β ^ t * V (t + 1) = (α * V 0) * f t +
+      c * ∑ k ∈ Finset.range (t + 1), f k * g (t - k) := by
+    intro t
+    rw [disp_integrated hrec t]
+    have hr := Finset.sum_range_reflect (fun k => f k * g (t - k)) (t + 1)
+    simp only [Nat.add_sub_cancel] at hr
+    rw [← hr, mul_add, Finset.mul_sum, Finset.mul_sum]
+    have : ∀ s ∈ Finset.range (t + 1), β ^ t * (α ^ (t - s) * (c * q s)) =
+        c * (f (t - s) * g (t - (t - s))) := by
+      intro s hs
+      rw [Finset.mem_range] at hs
+      have hst : s ≤ t := Nat.lt_succ_iff.mp hs
+      rw [Nat.sub_sub_self hst]
+      simp only [hfdef, hgdef]
+      have : β ^ t = β ^ (t - s) * β ^ s := by rw [← pow_add, Nat.sub_add_cancel hst]
+      rw [this, mul_pow]
+      ring
+    rw [Finset.sum_congr rfl this, pow_succ]
+    simp only [hfdef]
+    ring
+  have hgeo : HasSum f (1 - α * β)⁻¹ := hasSum_geometric_of_lt_one hab0 hαβ
+  have hA : HasSum (fun t => (α * V 0) * f t) ((α * V 0) * (1 - α * β)⁻¹) := hgeo.mul_left _
+  have hB : HasSum (fun t => c * ∑ k ∈ Finset.range (t + 1), f k * g (t - k))
+      (c * ((∑' k, f k) * ∑' s, g s)) := by
+    rw [hcp]
+    exact hcs.hasSum.mul_left c
+  have h := hA.add hB
+  rw [hgeo.tsum_eq] at h
+  have hpos : (1 : ℝ) - α * β ≠ 0 := by linarith
+  convert h using 1
+  · funext t
+    exact hterm t
+  · field_simp
+
+variable {Ω : Type*}
+
+variable (𝔼 : ExpectationSystem Ω)
+
+end SeqW
+
+namespace Prop61
+
+open MeasureTheory Filter Topology Asymptotics
+open OneParamTaylor (taylor_one_bigO)
+open ExpLogCES (expRem)
+variable {G : Type*} [MeasurableSpace G]
+
+/-- Woodford (2003), p. 393: `ω = Ȳ ṽ_yy/ṽ_y`, the elasticity of `ṽ_y` (of real marginal cost
+with respect to own output).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def omegaEl (Ybar vy vyy : ℝ) : ℝ := Ybar * vyy / vy
+
+/-- Woodford (2003), p. 393: `σ⁻¹ = −Ȳ u_cc/u_c`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def sigmaInvEl (Ybar uc ucc : ℝ) : ℝ := -(Ybar * ucc / uc)
+
+/-- Woodford (2003), App. E, p. 693: `g_t = −u_cξ ξ̃_t/(Ȳ u_cc)` (here Cu is the value of
+`u_cξ ξ̃_t`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def gShock (Ybar ucc Cu : ℝ) : ℝ := -(Cu / (Ybar * ucc))
+
+/-- Woodford (2003), App. E, p. 693: `q_t = −v_yξ ξ̃_t/(Ȳ v_yy)` (here Cv is the value of
+`v_yξ ξ̃_t`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def qShock (Ybar vyy Cv : ℝ) : ℝ := -(Cv / (Ybar * vyy))
+
+/-- Woodford (2003), p. 394 and imprecision 26 of the survey: the quadratic form of (2.10),
+`(σ⁻¹ + ω) X² + (θ⁻¹ + ω) V`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def lossQ (sinv omega θ X V : ℝ) : ℝ := (sinv + omega) * X ^ 2 + (θ⁻¹ + omega) * V
+
+/-- Woodford (2003), p. 693: `Ỹ = Y − Ȳ = Ȳ (Ŷ + Ŷ²/2 + expRem Ŷ)` exactly, `Y = Ȳ e^Ŷ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem levelDev_eq (Ybar Y : ℝ) :
+    Ybar * Real.exp Y - Ybar = Ybar * (Y + Y ^ 2 / 2 + expRem Y) := by
+  rw [← ExpLogCES.exp_sub_one_eq]
+  ring
+
+/-- Woodford (2003), eq. (E.2), first line, p. 692: the second-order Taylor polynomial of
+`ũ(Y; ξ̃)` at `(Ȳ, 0)` in the level deviation `Ỹ`, with `Lu = u_ξ ξ̃`, `Cu = u_cξ ξ̃`,
+`Qu = ξ̃' u_ξξ ξ̃`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def uTaylor (ubar uc ucc Lu Cu Qu Ytil : ℝ) : ℝ :=
+  ubar + uc * Ytil + Lu + ucc / 2 * Ytil ^ 2 + Cu * Ytil + Qu / 2
+
+/-- Woodford (2003), eq. (E.2), last line: the policy-relevant part
+`Ŷ + ½(1 − σ⁻¹) Ŷ² + σ⁻¹ g Ŷ` (normalised by `Ȳ u_c`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def Tu (sinv g Y : ℝ) : ℝ := Y + (1 - sinv) / 2 * Y ^ 2 + sinv * g * Y
+
+/-- Woodford (2003), eq. (E.2): the explicit remainder of (E.2) (normalised by `Ȳ u_c`), with
+`r = expRem Ŷ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def Ru (sinv g Y r : ℝ) : ℝ :=
+  r - sinv / 2 * ((Y + Y ^ 2 / 2 + r) ^ 2 - Y ^ 2) + sinv * g * (Y ^ 2 / 2 + r)
+
+/-- Woodford (2003), eq. (E.2), p. 692 (**exact, in terms of the coefficients**): if
+`u_cc = −σ⁻¹u_c/Ȳ` and `u_cξ ξ̃ = σ⁻¹u_c g` (the definitions of `σ⁻¹` and `g`), then at
+`Ỹ = Ȳ(Ŷ + Ŷ²/2 + r)`, `ũ-Taylor = (ū + u_ξ ξ̃ + ½ ξ̃' u_ξξ ξ̃) + Ȳ u_c [Tu + Ru]`; the first
+bracket is t.i.p. No nondegeneracy (not even `Ȳ ≠ 0`) is needed.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem uTaylor_eq_of_coeffs {ubar uc ucc Lu Cu Qu Ybar sinv g Y r : ℝ}
+    (hucc : ucc = -(sinv * uc / Ybar)) (hCu : Cu = sinv * uc * g) :
+    uTaylor ubar uc ucc Lu Cu Qu (Ybar * (Y + Y ^ 2 / 2 + r)) =
+      (ubar + Lu + Qu / 2) + Ybar * uc * (Tu sinv g Y + Ru sinv g Y r) := by
+  subst hucc hCu
+  unfold uTaylor Tu Ru
+  field_simp
+  ring
+
+/-- Woodford (2003), eq. (E.2), p. 692 (**exact**): with `σ⁻¹ = −Ȳ u_cc/u_c`,
+`g = −u_cξ ξ̃/(Ȳ u_cc)` and `Ỹ = Ȳ(Ŷ + Ŷ²/2 + r)`,
+`ũ-Taylor = (ū + u_ξ ξ̃ + ½ ξ̃' u_ξξ ξ̃) + Ȳ u_c [Tu + Ru]`; the first bracket is t.i.p.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem uTaylor_eq {ubar uc ucc Lu Cu Qu Ybar Y r : ℝ} (hY : Ybar ≠ 0) (huc : uc ≠ 0)
+    (hucc : ucc ≠ 0) :
+    uTaylor ubar uc ucc Lu Cu Qu (Ybar * (Y + Y ^ 2 / 2 + r)) =
+      (ubar + Lu + Qu / 2) + Ybar * uc *
+        (Tu (sigmaInvEl Ybar uc ucc) (gShock Ybar ucc Cu) Y +
+          Ru (sigmaInvEl Ybar uc ucc) (gShock Ybar ucc Cu) Y r) :=
+  uTaylor_eq_of_coeffs (by unfold sigmaInvEl; field_simp)
+    (by unfold sigmaInvEl gShock; field_simp)
+
+/-- Woodford (2003), eq. (E.3), first line, p. 693: the second-order Taylor polynomial of
+`ṽ(y; ξ̃)` at `(Ȳ, 0)` in the level deviation `ỹ`, with `Lv = v_ξ ξ̃`, `Cv = v_yξ ξ̃`,
+`Qv = ξ̃' v_ξξ ξ̃`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def vTaylor (vbar vy vyy Lv Cv Qv ytil : ℝ) : ℝ :=
+  vbar + vy * ytil + Lv + vyy / 2 * ytil ^ 2 + Cv * ytil + Qv / 2
+
+/-- Woodford (2003), eq. (E.3), last line: the policy-relevant part
+`(1 − Φ) ŷ + ½(1 + ω) ŷ² − ω q ŷ` (normalised by `Ȳ u_c`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def Tv (Φ omega q y : ℝ) : ℝ := (1 - Φ) * y + (1 + omega) / 2 * y ^ 2 - omega * q * y
+
+/-- Woodford (2003), eq. (E.3): the explicit remainder (normalised by `Ȳ u_c`), including the
+dropped `Φ × (quadratic)` terms ("terms of higher than second order given that `Φ` is an
+expansion parameter", p. 694).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def Rv (Φ omega q y r : ℝ) : ℝ :=
+  (1 - Φ) * (r + omega / 2 * ((y + y ^ 2 / 2 + r) ^ 2 - y ^ 2) - omega * q * (y ^ 2 / 2 + r)) -
+    Φ * ((1 + omega) / 2 * y ^ 2 - omega * q * y)
+
+/-- Woodford (2003), eq. (E.3), p. 693 (**exact, in terms of the coefficients**): with the
+steady-state condition `ṽ_y = (1 − Φ) u_c` ((2.7)–(2.8)), `v_yy = ωv_y/Ȳ`,
+`v_yξ ξ̃ = −ωv_y q` (the definitions of `ω` and `q`) and `ỹ = Ȳ(ŷ + ŷ²/2 + r)`,
+`ṽ-Taylor = (v̄ + v_ξ ξ̃ + ½ ξ̃' v_ξξ ξ̃) + Ȳ u_c [Tv + Rv]`; no nondegeneracy is needed.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem vTaylor_eq_of_coeffs {vbar vy vyy Lv Cv Qv Ybar uc Φ omega q y r : ℝ}
+    (hvy : vy = (1 - Φ) * uc) (hvyy : vyy = omega * vy / Ybar)
+    (hCv : Cv = -(omega * vy * q)) :
+    vTaylor vbar vy vyy Lv Cv Qv (Ybar * (y + y ^ 2 / 2 + r)) =
+      (vbar + Lv + Qv / 2) + Ybar * uc * (Tv Φ omega q y + Rv Φ omega q y r) := by
+  subst hvyy hCv
+  subst hvy
+  unfold vTaylor Tv Rv
+  field_simp
+  ring
+
+/-- Woodford (2003), eq. (E.3), p. 693 (**exact**): with the steady-state condition
+`ṽ_y = (1 − Φ) u_c` ((2.7)–(2.8)), `ω = Ȳ ṽ_yy/ṽ_y`, `q = −v_yξ ξ̃/(Ȳ v_yy)` and
+`ỹ = Ȳ(ŷ + ŷ²/2 + r)`, `ṽ-Taylor = (v̄ + v_ξ ξ̃ + ½ ξ̃' v_ξξ ξ̃) + Ȳ u_c [Tv + Rv]`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem vTaylor_eq {vbar vy vyy Lv Cv Qv Ybar uc Φ y r : ℝ} (hY : Ybar ≠ 0)
+    (hvy : vy = (1 - Φ) * uc) (hvy0 : vy ≠ 0) (hvyy : vyy ≠ 0) :
+    vTaylor vbar vy vyy Lv Cv Qv (Ybar * (y + y ^ 2 / 2 + r)) =
+      (vbar + Lv + Qv / 2) + Ybar * uc *
+        (Tv Φ (omegaEl Ybar vy vyy) (qShock Ybar vyy Cv) y +
+          Rv Φ (omegaEl Ybar vy vyy) (qShock Ybar vyy Cv) y r) :=
+  vTaylor_eq_of_coeffs hvy (by unfold omegaEl; field_simp)
+    (by unfold omegaEl qShock; field_simp)
+
+/-- Woodford (2003), (E.6), p. 694: the first-order natural rate
+`Ŷⁿ = (σ⁻¹ g + ω q)/(σ⁻¹ + ω)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def natLin (sinv omega g q : ℝ) : ℝ := (sinv * g + omega * q) / (sinv + omega)
+
+/-- Woodford (2003), (2.9)/(2.17): the first-order efficient gap `x* = Φ/(σ⁻¹ + ω)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def xStarLin (sinv omega Φ : ℝ) : ℝ := Φ / (sinv + omega)
+
+/-- Woodford (2003), (E.1): the terms independent of policy produced by completing the square,
+`½(σ⁻¹ + ω)(Ŷⁿ + x*)²`, a function of the exogenous `g`, `q`, `Φ` only.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def tipA (sinv omega g q Φ : ℝ) : ℝ :=
+  (sinv + omega) / 2 * (natLin sinv omega g q + xStarLin sinv omega Φ) ^ 2
+
+/-- Woodford (2003), (E.1)–(E.6) (**the explicit remainder of Theorem A1**). Arguments:
+`Y = Ŷ`, `V = var_i ŷ`, `e` the (E.5) error (`E_i ŷ = Ŷ − ½(1−θ⁻¹)V − e`), `n` the error in
+(E.6) (true natural rate `= natLin + n`), `k` the error in (2.9) (true `x* = xStarLin + k`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def R3 (sinv omega θ g q Φ Y V e n k : ℝ) : ℝ :=
+  -Φ * ((1 - θ⁻¹) / 2 * V + e) + e -
+    (1 + omega) / 2 * ((Y - (1 - θ⁻¹) / 2 * V - e) ^ 2 - Y ^ 2) -
+    omega * q * ((1 - θ⁻¹) / 2 * V + e) -
+    (sinv + omega) * (Y - natLin sinv omega g q - xStarLin sinv omega Φ) * (n + k) +
+    (sinv + omega) / 2 * (n + k) ^ 2
+
+/-- Woodford (2003), Prop. 6.1, App. E.1 (**Theorem A1, exact**): with
+`E_i ŷ = Ŷ − ½(1 − θ⁻¹) var_i ŷ − e`, the true natural rate `Ŷⁿ = natLin + n`, the true
+efficient gap `x* = xStarLin + k` and `x = Ŷ − Ŷⁿ`,
+`Tu(Ŷ) − E_i Tv(ŷ) = −½[(σ⁻¹ + ω)(x − x*)² + (θ⁻¹ + ω) var_i ŷ] + tipA(g, q, Φ) + R3`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem thmA1 {sinv omega θ g q Φ Y V e n k : ℝ} (hden : sinv + omega ≠ 0) :
+    Tu sinv g Y - ((1 - Φ) * (Y - (1 - θ⁻¹) / 2 * V - e) +
+        (1 + omega) / 2 * (V + (Y - (1 - θ⁻¹) / 2 * V - e) ^ 2) -
+        omega * q * (Y - (1 - θ⁻¹) / 2 * V - e)) =
+      -(1 / 2) * lossQ sinv omega θ
+          ((Y - (natLin sinv omega g q + n)) - (xStarLin sinv omega Φ + k)) V +
+        tipA sinv omega g q Φ + R3 sinv omega θ g q Φ Y V e n k := by
+  unfold Tu lossQ tipA R3 natLin xStarLin
+  field_simp
+  ring
+
+/-- Woodford (2003), eq. (2.13), p. 396: `(θ⁻¹ + ω) θ² = θ(1 + ωθ)`, so with
+`var_i ŷ = θ² var_i log p` ((2.12)) the loss becomes
+`(σ⁻¹ + ω)(x − x*)² + θ(1 + ωθ) var_i log p`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem lossQ_disp {sinv omega θ X Δ : ℝ} (hθ : θ ≠ 0) :
+    lossQ sinv omega θ X (θ ^ 2 * Δ) = (sinv + omega) * X ^ 2 + θ * (1 + omega * θ) * Δ := by
+  unfold lossQ
+  field_simp
+
+end Prop61
+
+namespace PriceDispersion
+
+open MeasureTheory Filter Topology
+open Prop61
+open Moments (calvoKappa)
+open SeqW (summable_norm_geom_bdd disp_discounted_hasSum)
+variable {G : Type*} [MeasurableSpace G]
+
+/-- Woodford (2003), Prop. 6.4, p. 400: the factor
+`Θ = ½ θ(1 + ωθ) α/((1−α)(1−αβ))` multiplying the loss (in units of `Ȳ u_c`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def ThetaCalvo (α β θ omega : ℝ) : ℝ :=
+  θ * (1 + omega * θ) / 2 * (α / ((1 - α) * (1 - α * β)))
+
+/-- Woodford (2003), Prop. 6.4: `Θ > 0` for `0 < α < 1`, `β < 1`, `θ > 0`, `1 + ωθ > 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem ThetaCalvo_pos {α β θ omega : ℝ} (hα0 : 0 < α) (hα1 : α < 1)
+    (hβ1 : β < 1) (hθ : 0 < θ) (hd : 0 < 1 + omega * θ) : 0 < ThetaCalvo α β θ omega := by
+  unfold ThetaCalvo
+  have : 0 < 1 - α := by linarith
+  have : 0 < 1 - α * β := by nlinarith
+  positivity
+
+/-- Woodford (2003), Props. 6.4–6.5, (2.21), p. 400 (**the discounted loss, Layer A, genuine
+`tsum`s**). Suppose the dispersion recursion `Δ_t = α Δ_{t−1} + (α/(1−α)) qd_t² + R_t` (index
+`t+1` is date `t`; `qd_t = π_t` for Prop. 6.4, `π_t − γπ_{t−1}` for Prop. 6.5) and period
+welfare (in units of `Ȳ u_c`) `W_t = −½[(σ⁻¹+ω) X_t² + θ(1+ωθ) Δ_t] + tip_t + rem_t` (the form of
+(2.13), `X_t = x_t − x*`), with all sequences bounded. Then `∑ βᵗ W_t` converges and equals
+`−Θ ∑ βᵗ (qd_t² + (κ/θ) X_t²) + TIP + REM`, where
+`TIP = ∑ βᵗ tip_t − ½θ(1+ωθ) α Δ_{−1}/(1−αβ)` depends only on exogenous terms and the initial
+dispersion, and `REM = ∑ βᵗ rem_t − ½θ(1+ωθ)/(1−αβ) ∑ βᵗ R_t`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem calvo_welfare_sum {α β θ omega sinv M : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 ≤ β)
+    (hβ1 : β < 1) (hθ : θ ≠ 0) (hd : 1 + omega * θ ≠ 0)
+    {D qd X tip rem R W : ℕ → ℝ}
+    (hrec : ∀ t, D (t + 1) = α * D t + α / (1 - α) * qd t ^ 2 + R t)
+    (hW : ∀ t, W t = -(1 / 2) * ((sinv + omega) * X t ^ 2 + θ * (1 + omega * θ) * D (t + 1)) +
+      tip t + rem t)
+    (hqd : ∀ t, |qd t| ≤ M) (hX : ∀ t, |X t| ≤ M) (hR : ∀ t, |R t| ≤ M)
+    (htip : ∀ t, |tip t| ≤ M) (hrem : ∀ t, |rem t| ≤ M) :
+    HasSum (fun t => β ^ t * W t)
+      (-ThetaCalvo α β θ omega *
+          ∑' t, β ^ t * (qd t ^ 2 + calvoKappa α β omega θ sinv / θ * X t ^ 2) +
+        (∑' t, β ^ t * tip t - θ * (1 + omega * θ) / 2 * (α * D 0 / (1 - α * β))) +
+        (∑' t, β ^ t * rem t -
+          θ * (1 + omega * θ) / 2 / (1 - α * β) * ∑' t, β ^ t * R t)) := by
+  have hM : 0 ≤ M := (abs_nonneg _).trans (hX 0)
+  have hβ : |β| < 1 := by rw [abs_of_nonneg hβ0]; exact hβ1
+  have hαβ : α * β < 1 := by nlinarith
+  have hne1 : (1 : ℝ) - α ≠ 0 := by linarith
+  have hne2 : (1 : ℝ) - α * β ≠ 0 := by linarith
+  have hq2 : ∀ t, |qd t ^ 2| ≤ M ^ 2 := fun t => by
+    rw [abs_pow]; exact pow_le_pow_left₀ (abs_nonneg _) (hqd t) 2
+  have hX2 : ∀ t, |X t ^ 2| ≤ M ^ 2 := fun t => by
+    rw [abs_pow]; exact pow_le_pow_left₀ (abs_nonneg _) (hX t) 2
+  have sq := (summable_norm_geom_bdd hβ hq2).of_norm
+  have sX := (summable_norm_geom_bdd hβ hX2).of_norm
+  have sR := (summable_norm_geom_bdd hβ hR).of_norm
+  have stip := (summable_norm_geom_bdd hβ htip).of_norm
+  have srem := (summable_norm_geom_bdd hβ hrem).of_norm
+  -- the dispersion sum
+  have hQ : ∀ t, |α / (1 - α) * qd t ^ 2 + R t| ≤ α / (1 - α) * M ^ 2 + M := fun t => by
+    have hc : 0 ≤ α / (1 - α) := div_nonneg hα0.le (by linarith)
+    have := abs_add_le (α / (1 - α) * qd t ^ 2) (R t)
+    rw [abs_mul, abs_of_nonneg hc] at this
+    have := mul_le_mul_of_nonneg_left (hq2 t) hc
+    linarith [hR t]
+  have hD := disp_discounted_hasSum (c := 1) (V := D) hα0.le hβ0 hαβ
+    (q := fun t => α / (1 - α) * qd t ^ 2 + R t) (fun t => by rw [hrec t]; ring)
+    (summable_norm_geom_bdd hβ hQ)
+  have hQsum : ∑' t, β ^ t * (α / (1 - α) * qd t ^ 2 + R t) =
+      α / (1 - α) * ∑' t, β ^ t * qd t ^ 2 + ∑' t, β ^ t * R t := by
+    have : (fun t => β ^ t * (α / (1 - α) * qd t ^ 2 + R t)) =
+        fun t => α / (1 - α) * (β ^ t * qd t ^ 2) + β ^ t * R t := by
+      funext t; ring
+    rw [this, (sq.mul_left _).tsum_add sR, tsum_mul_left]
+  rw [hQsum] at hD
+  -- assemble
+  have hsum := ((((sX.hasSum.mul_left (-(1 / 2) * (sinv + omega))).add
+    (hD.mul_left (-(1 / 2) * (θ * (1 + omega * θ))))).add stip.hasSum).add srem.hasSum)
+  have hL : ∑' t, β ^ t * (qd t ^ 2 + calvoKappa α β omega θ sinv / θ * X t ^ 2) =
+      ∑' t, β ^ t * qd t ^ 2 + calvoKappa α β omega θ sinv / θ * ∑' t, β ^ t * X t ^ 2 := by
+    have : (fun t => β ^ t * (qd t ^ 2 + calvoKappa α β omega θ sinv / θ * X t ^ 2)) =
+        fun t => β ^ t * qd t ^ 2 + calvoKappa α β omega θ sinv / θ * (β ^ t * X t ^ 2) := by
+      funext t; ring
+    rw [this, sq.tsum_add (sX.mul_left _), tsum_mul_left]
+  rw [hL]
+  convert hsum using 1
+  · funext t
+    rw [hW t]
+    ring
+  · unfold ThetaCalvo calvoKappa
+    have hα : α ≠ 0 := hα0.ne'
+    have hd' : 1 + θ * omega ≠ 0 := by rwa [mul_comm]
+    field_simp
+    ring
+
+end PriceDispersion
+
+namespace ApproxTheory
+
+open Filter Topology Asymptotics
+open OneParamTaylor
+variable {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
+
+/-- Woodford (2003), eq. (1.2), p. 385: the quadratic approximation
+`Ū + U_z z + ½ z′U_zz z` to `U(z̄ + z)` with coefficients u0, `L`, `B`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def quadApprox (u0 : ℝ) (L : F →L[ℝ] ℝ) (B : F →L[ℝ] F →L[ℝ] ℝ) (z : F) : ℝ :=
+  u0 + L z + 1 / 2 * B z z
+
+/-- Woodford (2003), eq. (1.2), p. 385 (analytic core): if `U` has first and second derivatives
+`U1`, U2 along the segment `[z̄, z̄ + z]` and `‖U2(z̄ + s z) − U2 z̄‖ ≤ C` there, then
+`|U(z̄ + z) − (Ū + U_z z + ½ z′U_zz z)| ≤ C ‖z‖²`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem taylor2_multivar_segment_le {U : F → ℝ} {U1 : F → F →L[ℝ] ℝ}
+    {U2 : F → F →L[ℝ] F →L[ℝ] ℝ} {zbar z : F} {C : ℝ}
+    (hU : ∀ s : ℝ, |s| ≤ 1 → HasFDerivAt U (U1 (zbar + s • z)) (zbar + s • z))
+    (hU1 : ∀ s : ℝ, |s| ≤ 1 → HasFDerivAt U1 (U2 (zbar + s • z)) (zbar + s • z))
+    (hC : ∀ s : ℝ, |s| ≤ 1 → ‖U2 (zbar + s • z) - U2 zbar‖ ≤ C) :
+    |U (zbar + z) - quadApprox (U zbar) (U1 zbar) (U2 zbar) z| ≤ C * ‖z‖ ^ 2 := by
+  have hpath : ∀ s : ℝ, HasDerivAt (fun s : ℝ => zbar + s • z) z s := fun s => by
+    simpa using ((hasDerivAt_id s).smul_const z).const_add zbar
+  have key := taylor2_remainder_le (r := 1) (C := C * ‖z‖ ^ 2) (ε := 1)
+    (f := fun s => U (zbar + s • z)) (f1 := fun s => U1 (zbar + s • z) z)
+    (f2 := fun s => U2 (zbar + s • z) z z)
+    (fun s hs => ?_) (fun s hs => ?_) (fun s hs => ?_) (by simp)
+  · simpa [quadApprox] using key
+  · have hs' : |s| ≤ 1 := by simpa using hs
+    exact (hU s hs').comp_hasDerivAt s (hpath s)
+  · have hs' : |s| ≤ 1 := by simpa using hs
+    have h1 : HasDerivAt (fun s : ℝ => U1 (zbar + s • z)) (U2 (zbar + s • z) z) s :=
+      (hU1 s hs').comp_hasDerivAt s (hpath s)
+    have h2 := HasDerivAt.clm_apply (c := fun s : ℝ => U1 (zbar + s • z)) (u := fun _ => z) h1
+      (hasDerivAt_const s z)
+    refine h2.congr_deriv ?_
+    simp
+  · have hs' : |s| ≤ 1 := by simpa using hs
+    have e : U2 (zbar + s • z) z z - U2 (zbar + (0 : ℝ) • z) z z =
+        (U2 (zbar + s • z) - U2 zbar) z z := by simp
+    rw [e]
+    calc |(U2 (zbar + s • z) - U2 zbar) z z|
+        ≤ ‖U2 (zbar + s • z) - U2 zbar‖ * ‖z‖ * ‖z‖ := by
+          simpa [Real.norm_eq_abs] using
+            ContinuousLinearMap.le_opNorm₂ (U2 (zbar + s • z) - U2 zbar) z z
+      _ ≤ C * ‖z‖ * ‖z‖ := by gcongr; exact hC s hs'
+      _ = C * ‖z‖ ^ 2 := by ring
+
+/-- Woodford (2003), eq. (1.2), p. 385, with a Lipschitz Hessian: if on the ball `B(z̄, δ)`
+`U` has derivatives `U1`, U2 with `‖U2 w − U2 z̄‖ ≤ K ‖w − z̄‖` (`K ≥ 0`), then for
+`‖z‖ < δ`, `|U(z̄ + z) − (Ū + U_z z + ½ z′U_zz z)| ≤ K ‖z‖³`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem taylor2_multivar_bound {U : F → ℝ} {U1 : F → F →L[ℝ] ℝ}
+    {U2 : F → F →L[ℝ] F →L[ℝ] ℝ} {zbar : F} {δ K : ℝ} (hK0 : 0 ≤ K)
+    (hU : ∀ w ∈ Metric.ball zbar δ, HasFDerivAt U (U1 w) w)
+    (hU1 : ∀ w ∈ Metric.ball zbar δ, HasFDerivAt U1 (U2 w) w)
+    (hK : ∀ w ∈ Metric.ball zbar δ, ‖U2 w - U2 zbar‖ ≤ K * ‖w - zbar‖)
+    {z : F} (hz : ‖z‖ < δ) :
+    |U (zbar + z) - quadApprox (U zbar) (U1 zbar) (U2 zbar) z| ≤ K * ‖z‖ ^ 3 := by
+  have hmem : ∀ s : ℝ, |s| ≤ 1 → zbar + s • z ∈ Metric.ball zbar δ := fun s hs => by
+    rw [Metric.mem_ball, dist_eq_norm, add_sub_cancel_left, norm_smul, Real.norm_eq_abs]
+    calc |s| * ‖z‖ ≤ 1 * ‖z‖ := by gcongr
+      _ < δ := by simpa using hz
+  have key := taylor2_multivar_segment_le (C := K * ‖z‖)
+    (fun s hs => hU _ (hmem s hs)) (fun s hs => hU1 _ (hmem s hs)) (fun s hs => ?_)
+  · calc _ ≤ K * ‖z‖ * ‖z‖ ^ 2 := key
+      _ = K * ‖z‖ ^ 3 := by ring
+  · calc ‖U2 (zbar + s • z) - U2 zbar‖ ≤ K * ‖zbar + s • z - zbar‖ := hK _ (hmem s hs)
+      _ = K * (|s| * ‖z‖) := by rw [add_sub_cancel_left, norm_smul, Real.norm_eq_abs]
+      _ ≤ K * (1 * ‖z‖) := by gcongr
+      _ = K * ‖z‖ := by ring
+
+/-- Woodford (2003), eq. (1.2), p. 385, for `C³` welfare: the second-order Taylor remainder
+`U(z̄ + z) − (Ū + U_z z + ½ z′U_zz z)` is `O(‖z‖³)` as `z → 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem taylor2_multivar_isBigO_of_contDiff {U : F → ℝ} (hU : ContDiff ℝ 3 U) (zbar : F) :
+    (fun z => U (zbar + z) - quadApprox (U zbar) (fderiv ℝ U zbar)
+      (fderiv ℝ (fderiv ℝ U) zbar) z) =O[𝓝 0] (fun z => ‖z‖ ^ 3) := by
+  have h1 : ContDiff ℝ 2 (fderiv ℝ U) := hU.fderiv_right (by norm_num)
+  have h2 : ContDiff ℝ 1 (fderiv ℝ (fderiv ℝ U)) := h1.fderiv_right (by norm_num)
+  obtain ⟨K, t, ht, hK⟩ := h2.contDiffAt.exists_lipschitzOnWith (x := zbar)
+  obtain ⟨δ, hδ, hball⟩ := Metric.mem_nhds_iff.1 ht
+  refine IsBigO.of_bound K ?_
+  filter_upwards [Metric.ball_mem_nhds (0 : F) hδ] with z hz
+  have hz' : ‖z‖ < δ := by simpa using hz
+  have key := taylor2_multivar_bound (U1 := fderiv ℝ U) (U2 := fderiv ℝ (fderiv ℝ U))
+    (zbar := zbar) (δ := δ) K.coe_nonneg
+    (fun w _ => (hU.differentiable (by norm_num) w).hasFDerivAt)
+    (fun w _ => (h1.differentiable (by norm_num) w).hasFDerivAt) (fun w hw => ?_) hz'
+  · rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_pow, abs_norm]
+    exact key
+  · have := hK.dist_le_mul w (hball hw) zbar (hball (Metric.mem_ball_self hδ))
+    simpa [dist_eq_norm] using this
+
+variable {Ω : Type*} [Fintype Ω]
+
+variable {X Ξ : Type*} [NormedAddCommGroup X] [NormedSpace ℝ X]
+  [NormedAddCommGroup Ξ] [NormedSpace ℝ Ξ]
+
+/-- Woodford (2003), eq. (1.4), p. 386: the linear approximation `x̃⁽¹⁾ = x̃⁰ + A ξ`, paired
+with the disturbance: `z⁽¹⁾ = (x̃⁰ + A ξ, ξ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+def linSol (x0 : X) (A : Ξ →L[ℝ] X) (ξ : Ω → Ξ) (ω : Ω) : X × Ξ := (x0 + A (ξ ω), ξ ω)
+
+/-- Woodford (2003), p. 386, CORRECTED: `U⁽¹⁾` is the expected quadratic approximation evaluated
+at the linear solution, `E[Ū + U_z z⁽¹⁾ + ½ z⁽¹⁾′U_zz z⁽¹⁾]`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def U1 (p : Ω → ℝ) (u0 : ℝ) (L : X × Ξ →L[ℝ] ℝ)
+    (B : X × Ξ →L[ℝ] X × Ξ →L[ℝ] ℝ) (x0 : X) (A : Ξ →L[ℝ] X) (ξ : Ω → Ξ) : ℝ :=
+  expect p (fun ω => quadApprox u0 L B (linSol x0 A ξ ω))
+
+end ApproxTheory
+
+namespace TwoSectorWelfare
+
+open Filter Topology
+open SeqW
+open ExpLogCES (crossMean crossVar crossVar_eq cesMoment cesMoment_pos cesIndex log_cesIndex_exp
+    cumulant)
+open Moments (mean_quadratic sum_sq_eq calvoKappa)
+open Prop61 (Tu Tv xStarLin)
+variable {ι : Type*} [Fintype ι]
+
+/-- Woodford (2003), App. E.6, p. 704: (E.29) integrated over a sector, in terms of the
+sectoral mean `m = E_iʲ ŷ` and variance `V = var_iʲ ŷ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def TvSec (ω Phi q m V : ℝ) : ℝ :=
+  (1 - Phi) * m + (1 + ω) / 2 * (m ^ 2 + V) - ω * q * m
+
+/-- Woodford (2003), App. E.6, p. 704 ("integrating (E.29) over the goods `i` belonging to
+sector `j`"): `∑ w_i Tv(ŷ_i) = TvSec(E ŷ, var ŷ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem sum_Tv {w : ι → ℝ} (hw : ∑ i, w i = 1) (ω Phi q : ℝ) (y : ι → ℝ) :
+    ∑ i, w i * Tv Phi ω q (y i) = TvSec ω Phi q (crossMean w y) (crossVar w y) := by
+  have h : ∀ i, w i * Tv Phi ω q (y i) =
+      w i * ((1 - Phi - ω * q) * y i + (1 + ω) / 2 * y i ^ 2) := fun i => by unfold Tv; ring
+  simp only [h, mean_quadratic hw]
+  unfold TvSec; ring
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+end TwoSectorWelfare
+
+namespace Links
+
+open Filter Topology Asymptotics MeasureTheory
+open SeqW (Bdd)
+namespace CES
+
+variable {ι : Type*} [Fintype ι]
+
+/-- Woodford (2003), eq. (E.5), p. 694: the CES atom
+`r_C = E_i ŷ − [Ŷ − ½(1 − θ⁻¹) var_i ŷ]`, where `Ŷ = log(Y/Ȳ)` is the log of the Dixit–Stiglitz
+index (exponent `1 − θ⁻¹`) of `y(i)/Ȳ = e^{ŷ(i)}`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def cesAtom (w : ι → ℝ) (θ : ℝ) (yh : ι → ℝ) : ℝ :=
+  ExpLogCES.crossMean w yh -
+    (Real.log (ExpLogCES.cesIndex w (1 - θ⁻¹) (fun i => Real.exp (yh i))) -
+      (1 - θ⁻¹) / 2 * ExpLogCES.crossVar w yh)
+
+/-- Woodford (2003), eq. (E.5), p. 694 (exact, by definition of the atom):
+`E_i ŷ = Ŷ − ½(1 − θ⁻¹) var_i ŷ + r_C`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem ces_relation (w : ι → ℝ) (θ : ℝ) (yh : ι → ℝ) :
+    ExpLogCES.crossMean w yh =
+      Real.log (ExpLogCES.cesIndex w (1 - θ⁻¹) (fun i => Real.exp (yh i))) -
+        (1 - θ⁻¹) / 2 * ExpLogCES.crossVar w yh + cesAtom w θ yh := by
+  unfold cesAtom; ring
+
+/-- Woodford (2003), eq. (E.5), p. 694 (the "O(‖ŷ‖³)" of the CES expansion): the atom r_C is
+of third order, from `ExpLogCES.log_outputIndex_expansion`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem cesAtom_isBigO {w : ι → ℝ} (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1) {θ : ℝ}
+    (hθ1 : θ ≠ 1) : cesAtom w θ =O[𝓝 0] fun yh => ‖yh‖ ^ 3 :=
+  (ExpLogCES.log_outputIndex_expansion hw hw1 hθ1).neg_left.congr_left fun yh => by
+    unfold cesAtom; ring
+
+end CES
+
+variable {G : Type*} [MeasurableSpace G]
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+end Links
+
+end Woodford.GainsFromCommitment.TidyR6WelfBase
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Chapter 6 welfare machinery for Chapter 7 (II): the Calvo bridge
+
+Woodford (2003), *Interest and Prices*, Chapter 6, §§1–2 and §4.1 (pp. 383–405, 420–426) and
+Appendix E.1–E.4 (pp. 692–699): the second-order welfare machinery that Chapter 7 uses
+("the approximation to welfare of Chapter 6", Woodford (2003), p. 471, fn. 6), restated from
+the Woodford Chapter 6 StabilizationWelfare project with the namespace renamed (the original
+module names are kept as nested namespaces; that project's Sequences is SeqW here).
+Only the declarations needed by the Chapter 7 welfare bridge are copied; proofs are verbatim.
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR6WelfBridge
+
+open Woodford.GainsFromCommitment.TidyR6WelfBase
+
+namespace BridgeCore
+
+open Filter Topology Asymptotics
+open ExpLogCES (crossMean crossVar cumulant cesIndex expRem)
+open Prop61 (Tu Tv Ru Rv natLin xStarLin tipA R3 lossQ sigmaInvEl omegaEl gShock qShock)
+variable {α : Type*} {l : Filter α} {s : α → ℝ}
+
+/-- Woodford (2003), (2.11), p. 395 (bookkeeping of orders): `sᵇ = O(sᵃ)` for `a ≤ b` when
+`s → 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem pow_isBigO_pow (hs : Tendsto s l (𝓝 0)) {a b : ℕ} (hab : a ≤ b) :
+    (fun x => s x ^ b) =O[l] (fun x => s x ^ a) := by
+  obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le hab
+  have h1 : (fun x => s x ^ k) =O[l] (fun _ => (1 : ℝ)) := (hs.pow k).isBigO_one ℝ
+  exact ((isBigO_refl (fun x => s x ^ a) l).mul h1).congr (fun x => by ring) (fun x => by ring)
+
+/-- Woodford (2003), (2.11), p. 395: orders multiply, `O(sᵃ) · O(sᵇ) = O(sᶜ)` for
+`a + b = c`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem isBigO_pow_mul {f g : α → ℝ} {a b c : ℕ} (hf : f =O[l] fun x => s x ^ a)
+    (hg : g =O[l] fun x => s x ^ b) (habc : a + b = c) :
+    (fun x => f x * g x) =O[l] fun x => s x ^ c :=
+  (hf.mul hg).congr_right fun x => by rw [← habc, pow_add]
+
+/-- Woodford (2003), App. E (`(a + O(2))² = a² + O(3)`, the lemma L-square of the survey): if
+`f − s f₁ = O(s²)` with `f₁` bounded, then `f² − s² f₁² = O(s³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem sq_sub_sq_isBigO (hs : Tendsto s l (𝓝 0)) {f f1 : α → ℝ}
+    (h : (fun x => f x - s x * f1 x) =O[l] fun x => s x ^ 2)
+    (h1 : f1 =O[l] fun _ => (1 : ℝ)) :
+    (fun x => f x ^ 2 - s x ^ 2 * f1 x ^ 2) =O[l] fun x => s x ^ 3 := by
+  have hs1 : (fun x => s x * f1 x) =O[l] fun x => s x ^ 1 :=
+    ((isBigO_refl s l).mul h1).congr (fun x => rfl) (fun x => by ring)
+  have hsum : (fun x => f x + s x * f1 x) =O[l] fun x => s x ^ 1 :=
+    ((h.trans (pow_isBigO_pow hs (by norm_num : 1 ≤ 2))).add (hs1.const_mul_left 2)).congr_left
+      fun x => by ring
+  exact (isBigO_pow_mul h hsum (by norm_num : 2 + 1 = 3)).congr_left fun x => by ring
+
+/-- Woodford (2003), App. E.1, p. 693 (T2): along any family with `Y = O(s)`, the remainder of
+`e^Y = 1 + Y + Y²/2 + expRem Y` is `O(s³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem expRem_isBigO (hs : Tendsto s l (𝓝 0)) {Y : α → ℝ} (hY : Y =O[l] s) :
+    (fun x => expRem (Y x)) =O[l] fun x => s x ^ 3 := by
+  have hYt : Tendsto Y l (𝓝 0) := hY.trans_tendsto hs
+  have h := ExpLogCES.exp_taylor2_isBigO.comp_tendsto hYt
+  refine (h.trans (hY.pow 3)).congr_left fun x => ?_
+  simp only [Function.comp, expRem]
+  ring
+
+/-- Woodford (2003), App. E.1, p. 693: `e^Y − 1 = O(Y)`, so `Y = O(s)` gives `e^Y − 1 = O(s)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem exp_sub_one_isBigO (hs : Tendsto s l (𝓝 0)) {Y : α → ℝ} (hY : Y =O[l] s) :
+    (fun x => Real.exp (Y x) - 1) =O[l] s := by
+  have hYt : Tendsto Y l (𝓝 0) := hY.trans_tendsto hs
+  have h := (Real.hasDerivAt_exp 0).isBigO_sub.comp_tendsto hYt
+  refine (h.trans (hY.congr_left fun x => by simp)).congr_left fun x => ?_
+  simp
+
+/-- Woodford (2003), App. E.2, p. 695 (survey error 25): the filter "uniformly in the date `t`,
+as the amplitude `ε → 0`", `⊤ ×ˢ 𝓝 0` on `ℕ × ℝ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+abbrev unif : Filter (ℕ × ℝ) := (⊤ : Filter ℕ) ×ˢ 𝓝 (0 : ℝ)
+
+/-- Woodford (2003), App. E.2, p. 695: the amplitude tends to zero along `unif`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem tendsto_unif : Tendsto (fun p : ℕ × ℝ => p.2) unif (𝓝 0) := tendsto_snd
+
+/-- Woodford (2003), App. E.2, p. 695 and survey error 25 (**what the uniformity hypothesis
+says**): `f =O[unif] g` iff there is one constant `C` with `‖f t ε‖ ≤ C ‖g ε‖` for every date `t`
+and every small `ε`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem isBigO_unif_iff {E : Type*} [Norm E] {f : ℕ → ℝ → E} {g : ℝ → ℝ} :
+    (fun p : ℕ × ℝ => f p.1 p.2) =O[unif] (fun p => g p.2) ↔
+      ∃ C, ∀ᶠ ε in 𝓝 0, ∀ t, ‖f t ε‖ ≤ C * ‖g ε‖ := by
+  constructor
+  · intro h
+    obtain ⟨C, hC⟩ := h.bound
+    refine ⟨C, ?_⟩
+    obtain ⟨pa, hpa, pb, hpb, hab⟩ := Filter.eventually_prod_iff.1 hC
+    rw [eventually_top] at hpa
+    filter_upwards [hpb] with ε hε t
+    exact hab (hpa t) hε
+  · rintro ⟨C, hC⟩
+    exact IsBigO.of_bound C ((hC.prod_inr _).mono fun p hp => hp p.1)
+
+/-- Woodford (2003), App. E.2, p. 695: a bound uniform in `t` holds at each fixed date.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem isBigO_of_unif {E : Type*} [Norm E] {f : ℕ → ℝ → E} {g : ℝ → ℝ}
+    (h : (fun p : ℕ × ℝ => f p.1 p.2) =O[unif] (fun p => g p.2)) (t : ℕ) :
+    (fun ε => f t ε) =O[𝓝 0] g := by
+  obtain ⟨C, hC⟩ := isBigO_unif_iff.1 h
+  exact IsBigO.of_bound C (hC.mono fun ε hε => hε t)
+
+/-- Woodford (2003), App. E.3, p. 697: a sequence that is `O(g)` uniformly in `t` is a bounded
+sequence for every small `ε`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem bdd_of_unif {f : ℕ → ℝ → ℝ} {g : ℝ → ℝ}
+    (h : (fun p : ℕ × ℝ => f p.1 p.2) =O[unif] (fun p => g p.2)) :
+    ∀ᶠ ε in 𝓝 0, SeqW.Bdd (fun t => f t ε) := by
+  obtain ⟨C, hC⟩ := isBigO_unif_iff.1 h
+  filter_upwards [hC] with ε hε
+  exact ⟨C * ‖g ε‖, fun t => by simpa [Real.norm_eq_abs] using hε t⟩
+
+/-- Woodford (2003), (2.21), p. 400, and survey error 25 (**discounted sums of uniformly small
+remainders**): if `f t ε = O(εⁿ)` uniformly in `t` and `0 ≤ β < 1`, then
+`∑ βᵗ f t ε = O(εⁿ)`, with constant `C/(1 − β)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem tsum_isBigO_of_unif {f : ℕ → ℝ → ℝ} {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {n : ℕ}
+    (hf : (fun p : ℕ × ℝ => f p.1 p.2) =O[unif] (fun p => p.2 ^ n)) :
+    (fun ε => ∑' t, β ^ t * f t ε) =O[𝓝 0] (fun ε => ε ^ n) := by
+  obtain ⟨C, hC⟩ := (isBigO_unif_iff (g := fun ε => ε ^ n)).1 hf
+  refine IsBigO.of_bound (C / (1 - β)) ?_
+  filter_upwards [hC] with ε hε
+  have h := SeqW.abs_tsum_le (f := fun t => f t ε) (B := C * ‖ε ^ n‖)
+    (fun t => by simpa [Real.norm_eq_abs] using hε t) hβ0 hβ1
+  rw [Real.norm_eq_abs]
+  calc _ ≤ C * ‖ε ^ n‖ / (1 - β) := h
+    _ = C / (1 - β) * ‖ε ^ n‖ := by ring
+
+/-- Woodford (2003), §1, pp. 386–389 and §2 (the use of the quadratic losses): if welfare under
+policies `A` and `B` satisfies `W_X ε = tip ε − (ε²/2) k L_X + O(ε³)` with the SAME
+policy-independent part tip (any function of `ε`), `k > 0` and `L_A < L_B`, then `A` is
+strictly better for all small `ε > 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem ranking_of_tip {WA WB tip : ℝ → ℝ} {k LA LB : ℝ} (hk : 0 < k)
+    (hA : (fun ε => WA ε - (tip ε + ε ^ 2 / 2 * (-(k * LA)))) =O[𝓝 0] (fun ε => ε ^ 3))
+    (hB : (fun ε => WB ε - (tip ε + ε ^ 2 / 2 * (-(k * LB)))) =O[𝓝 0] (fun ε => ε ^ 3))
+    (hL : LA < LB) : ∀ᶠ ε in 𝓝[>] 0, WB ε < WA ε := by
+  have h := OneParamTaylor.welfare_ranking_of_loss (WA := fun ε => WA ε - tip ε)
+    (WB := fun ε => WB ε - tip ε) (w0 := 0) (w1 := 0) hk
+    (hA.congr_left fun ε => by ring) (hB.congr_left fun ε => by ring) hL
+  filter_upwards [h] with ε hε
+  linarith
+
+/-- Woodford (2003), App. E.2 (matching Taylor coefficients): if `ε² c = O(ε³)` then `c = 0`;
+the `ε²` coefficient of an expansion with cubic remainder is unique.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem coeff_two_unique {c : ℝ} (h : (fun ε : ℝ => ε ^ 2 * c) =O[𝓝 0] (fun ε => ε ^ 3)) :
+    c = 0 := by
+  by_contra hc
+  apply OneParamTaylor.sq_not_isBigO_cube
+  refine (h.const_mul_left c⁻¹).congr_left fun ε => ?_
+  field_simp
+
+/-- Woodford (2003), §1, p. 385 (expected welfare over a finite state space): if in every state
+`ω` welfare is `W ω ε = T ω ε − (ε²/2) k L ω + O(ε³)`, then expected welfare is
+`E W = E T − (ε²/2) k E L + O(ε³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem expect_bridge {Ω : Type*} [Fintype Ω] (p : Ω → ℝ) {W T : Ω → ℝ → ℝ} {L : Ω → ℝ}
+    {k : ℝ}
+    (h : ∀ ω, (fun ε => W ω ε - (T ω ε + ε ^ 2 / 2 * (-(k * L ω)))) =O[𝓝 0]
+      (fun ε => ε ^ 3)) :
+    (fun ε => OneParamTaylor.expect p (fun ω => W ω ε) -
+      (OneParamTaylor.expect p (fun ω => T ω ε) +
+        ε ^ 2 / 2 * (-(k * OneParamTaylor.expect p L)))) =O[𝓝 0] (fun ε => ε ^ 3) := by
+  refine (OneParamTaylor.isBigO_expect p h).congr_left fun ε => ?_
+  have e : ∀ ω, p ω * (W ω ε - (T ω ε + ε ^ 2 / 2 * (-(k * L ω)))) =
+      p ω * W ω ε - p ω * T ω ε + ε ^ 2 / 2 * k * (p ω * L ω) := fun ω => by ring
+  simp only [OneParamTaylor.expect, smul_eq_mul, e, Finset.sum_add_distrib,
+    Finset.sum_sub_distrib, ← Finset.mul_sum]
+  ring
+
+variable {Ξ : Type*} [NormedAddCommGroup Ξ] [NormedSpace ℝ Ξ]
+
+/-- Woodford (2003), (E.2), p. 692: the gradient `DU(ȳ, 0)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def D1 (U : ℝ × Ξ → ℝ) (yb : ℝ) : ℝ × Ξ →L[ℝ] ℝ := fderiv ℝ U (yb, 0)
+
+/-- Woodford (2003), (E.2), p. 692: the Hessian `D²U(ȳ, 0)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def D2 (U : ℝ × Ξ → ℝ) (yb : ℝ) : ℝ × Ξ →L[ℝ] ℝ × Ξ →L[ℝ] ℝ :=
+  fderiv ℝ (fderiv ℝ U) (yb, 0)
+
+/-- Woodford (2003), (E.2), p. 692: `u_c = U_y(ȳ, 0)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def slope (U : ℝ × Ξ → ℝ) (yb : ℝ) : ℝ := D1 U yb (1, 0)
+
+/-- Woodford (2003), (E.2), p. 692: `u_cc = U_yy(ȳ, 0)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def curv (U : ℝ × Ξ → ℝ) (yb : ℝ) : ℝ := D2 U yb (1, 0) (1, 0)
+
+/-- Woodford (2003), (E.2), p. 692: `u_ξ ξ = U_ξ(ȳ, 0) ξ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def lin (U : ℝ × Ξ → ℝ) (yb : ℝ) (ξ : Ξ) : ℝ := D1 U yb (0, ξ)
+
+/-- Woodford (2003), (E.2), p. 692: `u_cξ ξ`, the (symmetrised) mixed second derivative.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def cross (U : ℝ × Ξ → ℝ) (yb : ℝ) (ξ : Ξ) : ℝ :=
+  (D2 U yb (1, 0) (0, ξ) + D2 U yb (0, ξ) (1, 0)) / 2
+
+/-- Woodford (2003), (E.2), p. 692: `ξ′ u_ξξ ξ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def quad (U : ℝ × Ξ → ℝ) (yb : ℝ) (ξ : Ξ) : ℝ := D2 U yb (0, ξ) (0, ξ)
+
+/-- Woodford (2003), (E.2), p. 692: the terms of the expansion independent of policy,
+`Ū + u_ξ ξ + ½ ξ′u_ξξ ξ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def tip0 (U : ℝ × Ξ → ℝ) (yb : ℝ) (ξ : Ξ) : ℝ :=
+  U (yb, 0) + lin U yb ξ + quad U yb ξ / 2
+
+/-- Woodford (2003), eq. (1.2), p. 385 and (E.2), p. 692: the quadratic approximation of
+`U` at `(ȳ, 0)` in the direction `(a, ξ)` is the polynomial `Prop61.uTaylor` of (E.2) with
+coefficients `slope`, `curv`, `lin`, `cross`, `quad`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem quadApprox_pair (U : ℝ × Ξ → ℝ) (yb a : ℝ) (ξ : Ξ) :
+    ApproxTheory.quadApprox (U (yb, 0)) (fderiv ℝ U (yb, 0)) (fderiv ℝ (fderiv ℝ U) (yb, 0))
+        (a, ξ) =
+      Prop61.uTaylor (U (yb, 0)) (slope U yb) (curv U yb) (lin U yb ξ) (cross U yb ξ)
+        (quad U yb ξ) a := by
+  have hz : ((a, ξ) : ℝ × Ξ) = a • ((1 : ℝ), (0 : Ξ)) + ((0 : ℝ), ξ) := by
+    ext <;> simp
+  rw [hz]
+  unfold ApproxTheory.quadApprox Prop61.uTaylor slope curv lin cross quad D1 D2
+  simp only [map_add, map_smul, add_apply, smul_apply,
+    smul_eq_mul]
+  ring
+
+omit [NormedSpace ℝ Ξ] in
+/-- Woodford (2003), App. E: `‖(0, ξ)‖ = ‖ξ‖`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem norm_inr (ξ : Ξ) : ‖((0 : ℝ), ξ)‖ = ‖ξ‖ := by
+  rw [Prod.norm_def]
+  simp
+
+omit [NormedSpace ℝ Ξ] in
+/-- Woodford (2003), App. E: `‖(1, 0)‖ = 1`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem norm_inl_one : ‖((1 : ℝ), (0 : Ξ))‖ = 1 := by
+  rw [Prod.norm_def]
+  simp
+
+/-- Woodford (2003), (E.2): `|u_ξ ξ| ≤ ‖DU‖ ‖ξ‖`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem abs_lin_le (U : ℝ × Ξ → ℝ) (yb : ℝ) (ξ : Ξ) : |lin U yb ξ| ≤ ‖D1 U yb‖ * ‖ξ‖ := by
+  have h := (D1 U yb).le_opNorm ((0 : ℝ), ξ)
+  rwa [norm_inr, Real.norm_eq_abs] at h
+
+/-- Woodford (2003), (E.2): `|u_cξ ξ| ≤ ‖D²U‖ ‖ξ‖`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem abs_cross_le (U : ℝ × Ξ → ℝ) (yb : ℝ) (ξ : Ξ) :
+    |cross U yb ξ| ≤ ‖D2 U yb‖ * ‖ξ‖ := by
+  have h1 := (D2 U yb).le_opNorm₂ ((1 : ℝ), (0 : Ξ)) ((0 : ℝ), ξ)
+  have h2 := (D2 U yb).le_opNorm₂ ((0 : ℝ), ξ) ((1 : ℝ), (0 : Ξ))
+  rw [norm_inr, norm_inl_one, Real.norm_eq_abs] at h1 h2
+  have h3 := abs_add_le (D2 U yb (1, 0) (0, ξ)) (D2 U yb (0, ξ) (1, 0))
+  unfold cross
+  rw [abs_div, abs_two]
+  have e1 : ‖D2 U yb‖ * 1 * ‖ξ‖ = ‖D2 U yb‖ * ‖ξ‖ := by ring
+  have e2 : ‖D2 U yb‖ * ‖ξ‖ * 1 = ‖D2 U yb‖ * ‖ξ‖ := by ring
+  rw [e1] at h1
+  rw [e2] at h2
+  linarith
+
+/-- Woodford (2003), (E.2): `|ξ′u_ξξ ξ| ≤ ‖D²U‖ ‖ξ‖²`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem abs_quad_le (U : ℝ × Ξ → ℝ) (yb : ℝ) (ξ : Ξ) : |quad U yb ξ| ≤ ‖D2 U yb‖ * ‖ξ‖ ^ 2 := by
+  have h := (D2 U yb).le_opNorm₂ ((0 : ℝ), ξ) ((0 : ℝ), ξ)
+  rw [norm_inr, Real.norm_eq_abs] at h
+  unfold quad
+  calc _ ≤ _ := h
+    _ = _ := by ring
+
+/-- Woodford (2003), (E.2): `u_ξ (r ξ) = r u_ξ ξ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem lin_smul (U : ℝ × Ξ → ℝ) (yb r : ℝ) (ξ : Ξ) : lin U yb (r • ξ) = r * lin U yb ξ := by
+  unfold lin
+  rw [show ((0 : ℝ), r • ξ) = r • ((0 : ℝ), ξ) by simp, map_smul, smul_eq_mul]
+
+/-- Woodford (2003), (E.2): `u_cξ (r ξ) = r u_cξ ξ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem cross_smul (U : ℝ × Ξ → ℝ) (yb r : ℝ) (ξ : Ξ) :
+    cross U yb (r • ξ) = r * cross U yb ξ := by
+  unfold cross
+  rw [show ((0 : ℝ), r • ξ) = r • ((0 : ℝ), ξ) by simp]
+  simp only [map_smul, smul_apply, smul_eq_mul]
+  ring
+
+/-- Woodford (2003), (E.2): `(r ξ)′u_ξξ (r ξ) = r² ξ′u_ξξ ξ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem quad_smul (U : ℝ × Ξ → ℝ) (yb r : ℝ) (ξ : Ξ) :
+    quad U yb (r • ξ) = r ^ 2 * quad U yb ξ := by
+  unfold quad
+  rw [show ((0 : ℝ), r • ξ) = r • ((0 : ℝ), ξ) by simp]
+  simp only [map_smul, smul_apply, smul_eq_mul]
+  ring
+
+/-- Woodford (2003), (E.2): `u_ξ ξ = O(ξ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem lin_isBigO (U : ℝ × Ξ → ℝ) (yb : ℝ) {g : α → ℝ} {ξ : α → Ξ} (hξ : ξ =O[l] g) :
+    (fun x => lin U yb (ξ x)) =O[l] g :=
+  (IsBigO.of_bound ‖D1 U yb‖ (Eventually.of_forall fun x => by
+    rw [Real.norm_eq_abs]; exact abs_lin_le U yb (ξ x))).trans hξ
+
+/-- Woodford (2003), (E.2): `u_cξ ξ = O(ξ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem cross_isBigO (U : ℝ × Ξ → ℝ) (yb : ℝ) {g : α → ℝ} {ξ : α → Ξ} (hξ : ξ =O[l] g) :
+    (fun x => cross U yb (ξ x)) =O[l] g :=
+  (IsBigO.of_bound ‖D2 U yb‖ (Eventually.of_forall fun x => by
+    rw [Real.norm_eq_abs]; exact abs_cross_le U yb (ξ x))).trans hξ
+
+/-- Woodford (2003), (E.2): `ξ′u_ξξ ξ = O(ξ²)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem quad_isBigO (U : ℝ × Ξ → ℝ) (yb : ℝ) {g : α → ℝ} {ξ : α → Ξ} (hξ : ξ =O[l] g) :
+    (fun x => quad U yb (ξ x)) =O[l] fun x => g x ^ 2 := by
+  have h : (fun x => quad U yb (ξ x)) =O[l] fun x => ‖ξ x‖ ^ 2 :=
+    IsBigO.of_bound ‖D2 U yb‖ (Eventually.of_forall fun x => by
+      rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_pow, abs_norm]
+      exact abs_quad_le U yb (ξ x))
+  exact h.trans (hξ.norm_left.pow 2)
+
+/-- Woodford (2003), eq. (1.2), p. 385, and (E.2)–(E.3) (**the Taylor step along any family**):
+for `C³` `U`, if the level deviation `c` and the disturbance `ξ` are `O(s)` with `s → 0`, then
+`U(ȳ + c, ξ) = uTaylor(…)(c) + O(s³)`, the polynomial having the coefficients of (E.2).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem taylor_pair {U : ℝ × Ξ → ℝ} (hU : ContDiff ℝ 3 U) (yb : ℝ) (hs : Tendsto s l (𝓝 0))
+    {c : α → ℝ} {ξ : α → Ξ} (hc : c =O[l] s) (hξ : ξ =O[l] s) :
+    (fun x => U (yb + c x, ξ x) - Prop61.uTaylor (U (yb, 0)) (slope U yb) (curv U yb)
+      (lin U yb (ξ x)) (cross U yb (ξ x)) (quad U yb (ξ x)) (c x)) =O[l] fun x => s x ^ 3 := by
+  have hT := ApproxTheory.taylor2_multivar_isBigO_of_contDiff hU ((yb, 0) : ℝ × Ξ)
+  have hz : (fun x => ((c x, ξ x) : ℝ × Ξ)) =O[l] s := hc.prod_left hξ
+  have h1 := hT.comp_tendsto (hz.trans_tendsto hs)
+  refine (h1.trans (hz.norm_left.pow 3)).congr_left fun _ => ?_
+  simp only [Function.comp_apply, Prod.mk_add_mk, zero_add, quadApprox_pair]
+
+/-- Woodford (2003), (E.2)–(E.3), p. 693 (**the Taylor step in log deviations**): with
+`Y = ȳ e^{Ŷ}` and `Ŷ, ξ = O(s)`, `U(Y, ξ) = uTaylor(…)(Y − ȳ) + O(s³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem level_taylor {U : ℝ × Ξ → ℝ} (hU : ContDiff ℝ 3 U) (yb : ℝ) (hs : Tendsto s l (𝓝 0))
+    {Y : α → ℝ} {ξ : α → Ξ} (hY : Y =O[l] s) (hξ : ξ =O[l] s) :
+    (fun x => U (yb * Real.exp (Y x), ξ x) - Prop61.uTaylor (U (yb, 0)) (slope U yb)
+      (curv U yb) (lin U yb (ξ x)) (cross U yb (ξ x)) (quad U yb (ξ x))
+      (yb * Real.exp (Y x) - yb)) =O[l] fun x => s x ^ 3 := by
+  have hc : (fun x => yb * Real.exp (Y x) - yb) =O[l] s :=
+    ((exp_sub_one_isBigO hs hY).const_mul_left yb).congr_left fun x => by ring
+  refine (taylor_pair hU yb hs hc hξ).congr_left fun x => ?_
+  rw [show yb + (yb * Real.exp (Y x) - yb) = yb * Real.exp (Y x) by ring]
+
+/-- Woodford (2003), (2.11), p. 395 (bookkeeping): `f = O(s)` gives `f = O(s¹)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem isBigO_pow_one {f : α → ℝ} (h : f =O[l] s) : f =O[l] fun x => s x ^ 1 :=
+  h.congr_right fun _ => (pow_one _).symm
+
+/-- Woodford (2003), (E.2), p. 692 (**the remainder Ru is `O(s³)`**): with `g, Ŷ = O(s)` and
+the exponential remainder `r = O(s³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem Ru_isBigO (hs : Tendsto s l (𝓝 0)) (sinv : ℝ) {g Y r : α → ℝ} (hg : g =O[l] s)
+    (hY : Y =O[l] s) (hr : r =O[l] fun x => s x ^ 3) :
+    (fun x => Ru sinv (g x) (Y x) (r x)) =O[l] fun x => s x ^ 3 := by
+  have hY1 := isBigO_pow_one hY
+  have hW : (fun x => Y x ^ 2 / 2 + r x) =O[l] fun x => s x ^ 2 :=
+    (((isBigO_pow_mul hY1 hY1 (by norm_num : 1 + 1 = 2)).const_mul_left (1 / 2)).add
+      (hr.trans (pow_isBigO_pow hs (by norm_num : 2 ≤ 3)))).congr_left fun x => by ring
+  have h2 : (fun x => 2 * Y x + (Y x ^ 2 / 2 + r x)) =O[l] fun x => s x ^ 1 :=
+    (hY1.const_mul_left 2).add (hW.trans (pow_isBigO_pow hs (by norm_num : 1 ≤ 2)))
+  have t1 := isBigO_pow_mul hW h2 (by norm_num : 2 + 1 = 3)
+  have t2 := isBigO_pow_mul (isBigO_pow_one hg) hW (by norm_num : 1 + 2 = 3)
+  refine (hr.add ((t1.const_mul_left (-(sinv / 2))).add (t2.const_mul_left sinv))).congr_left
+    fun x => ?_
+  unfold Ru
+  ring
+
+/-- Woodford (2003), (E.3), p. 693 (**the remainder Rv at `Φ = 0` is `O(s³)`**): with
+`q, ŷ = O(s)` and the exponential remainder `r = O(s³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem Rv_isBigO (hs : Tendsto s l (𝓝 0)) (omega : ℝ) {q y r : α → ℝ} (hq : q =O[l] s)
+    (hy : y =O[l] s) (hr : r =O[l] fun x => s x ^ 3) :
+    (fun x => Rv 0 omega (q x) (y x) (r x)) =O[l] fun x => s x ^ 3 := by
+  have hy1 := isBigO_pow_one hy
+  have hW : (fun x => y x ^ 2 / 2 + r x) =O[l] fun x => s x ^ 2 :=
+    (((isBigO_pow_mul hy1 hy1 (by norm_num : 1 + 1 = 2)).const_mul_left (1 / 2)).add
+      (hr.trans (pow_isBigO_pow hs (by norm_num : 2 ≤ 3)))).congr_left fun x => by ring
+  have h2 : (fun x => 2 * y x + (y x ^ 2 / 2 + r x)) =O[l] fun x => s x ^ 1 :=
+    (hy1.const_mul_left 2).add (hW.trans (pow_isBigO_pow hs (by norm_num : 1 ≤ 2)))
+  have t1 := isBigO_pow_mul hW h2 (by norm_num : 2 + 1 = 3)
+  have t2 := isBigO_pow_mul (isBigO_pow_one hq) hW (by norm_num : 1 + 2 = 3)
+  refine (hr.add ((t1.const_mul_left (omega / 2)).add
+    (t2.const_mul_left (-omega)))).congr_left fun x => ?_
+  unfold Rv
+  ring
+
+variable {ι : Type*} [Fintype ι]
+
+/-- Woodford (2003), App. E, p. 693: one good's log output is bounded by the sup norm, so a
+cross-section that is `O(s)` is `O(s)` good by good.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem coord_isBigO {g : α → ℝ} {yh : α → ι → ℝ} (hy : yh =O[l] g) (i : ι) :
+    (fun x => yh x i) =O[l] g :=
+  (IsBigO.of_bound 1 (Eventually.of_forall fun x => by
+    rw [one_mul]; exact norm_le_pi_norm (yh x) i)).trans hy
+
+/-- Woodford (2003), App. E.1, eq. (E.5), p. 694 (**the orders of the CES objects**): if the
+cross-section `ŷ` is `O(s)`, then `E_i ŷ = O(s)`, `var_i ŷ = O(s²)`, the (E.5) error
+`Ŷ − E_i ŷ − (r/2) var_i ŷ = O(s³)` and `Ŷ = (1/r) log E_i e^{r ŷ} = O(s)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem ces_orders {w : ι → ℝ} (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1) {r : ℝ} (hr : r ≠ 0)
+    (hs : Tendsto s l (𝓝 0)) {yh : α → ι → ℝ} (hy : yh =O[l] s) :
+    ((fun x => crossMean w (yh x)) =O[l] s) ∧
+      ((fun x => crossVar w (yh x)) =O[l] fun x => s x ^ 2) ∧
+      ((fun x => cumulant w r (yh x) - (crossMean w (yh x) + r / 2 * crossVar w (yh x)))
+        =O[l] fun x => s x ^ 3) ∧
+      ((fun x => cumulant w r (yh x)) =O[l] s) := by
+  have hm : (fun x => crossMean w (yh x)) =O[l] s :=
+    (IsBigO.of_bound 1 (Eventually.of_forall fun x => by
+      rw [one_mul, Real.norm_eq_abs]; exact ExpLogCES.abs_crossMean_le hw hw1 (yh x))).trans hy
+  have hV : (fun x => crossVar w (yh x)) =O[l] fun x => s x ^ 2 := by
+    have h : (fun x => crossVar w (yh x)) =O[l] fun x => ‖yh x‖ ^ 2 :=
+      IsBigO.of_bound 1 (Eventually.of_forall fun x => by
+        have h := ExpLogCES.crossVar_le hw hw1 (yh x)
+        rw [one_mul, Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg h.1,
+          abs_of_nonneg (by positivity)]
+        exact h.2)
+    exact h.trans (hy.norm_left.pow 2)
+  have he := ((ExpLogCES.cumulant_expansion hw hw1 hr).comp_tendsto
+    (hy.trans_tendsto hs)).trans (hy.norm_left.pow 3)
+  refine ⟨hm, hV, he, ?_⟩
+  have h3 := he.trans (pow_isBigO_pow hs (by norm_num : 1 ≤ 3))
+  have h2 := hV.trans (pow_isBigO_pow hs (by norm_num : 1 ≤ 2))
+  refine ((h3.add (isBigO_pow_one hm)).add (h2.const_mul_left (r / 2))).congr
+    (fun x => ?_) (fun x => pow_one _)
+  simp only [Function.comp_apply]
+  ring
+
+/-- Woodford (2003), App. E: E_i commutes with differences.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem crossMean_sub' (w a b : ι → ℝ) :
+    crossMean w (a - b) = crossMean w a - crossMean w b := by
+  simp [ExpLogCES.crossMean, mul_sub, Finset.sum_sub_distrib]
+
+/-- Woodford (2003), (E.1), p. 692 (**the remainder R3 of Theorem A1 at `Φ = 0` is
+`O(s³)`**), with the natural-rate and efficient-gap errors zero: if `q, Ŷ = O(s)`,
+`var_i ŷ = O(s²)` and the (E.5) error `e = O(s³)` (no condition on `g`, which enters R3 only
+through the vanishing error terms).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem R3_zero_isBigO (hs : Tendsto s l (𝓝 0)) (sinv omega θ : ℝ) {g q Y V e : α → ℝ}
+    (hq : q =O[l] s) (hY : Y =O[l] s) (hV : V =O[l] fun x => s x ^ 2)
+    (he : e =O[l] fun x => s x ^ 3) :
+    (fun x => R3 sinv omega θ (g x) (q x) 0 (Y x) (V x) (e x) 0 0) =O[l] fun x => s x ^ 3 := by
+  have hW : (fun x => (1 - θ⁻¹) / 2 * V x + e x) =O[l] fun x => s x ^ 2 :=
+    (hV.const_mul_left _).add (he.trans (pow_isBigO_pow hs (by norm_num : 2 ≤ 3)))
+  have h2 : (fun x => ((1 - θ⁻¹) / 2 * V x + e x) - 2 * Y x) =O[l] fun x => s x ^ 1 :=
+    (hW.trans (pow_isBigO_pow hs (by norm_num : 1 ≤ 2))).sub
+      ((isBigO_pow_one hY).const_mul_left 2)
+  have t1 := isBigO_pow_mul hW h2 (by norm_num : 2 + 1 = 3)
+  have t2 := isBigO_pow_mul (isBigO_pow_one hq) hW (by norm_num : 1 + 2 = 3)
+  refine (he.add ((t1.const_mul_left (-((1 + omega) / 2))).add
+    (t2.const_mul_left (-omega)))).congr_left fun x => ?_
+  unfold R3
+  ring
+
+/-- Woodford (2003), (E.6), p. 694: the first-order natural rate
+`Ŷⁿ = (σ⁻¹g + ωq)/(σ⁻¹ + ω)` is `O(s)` when `g, q` are.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem natLin_isBigO (sinv omega : ℝ) {g q : α → ℝ} {k : α → ℝ} (hg : g =O[l] k)
+    (hq : q =O[l] k) : (fun x => natLin sinv omega (g x) (q x)) =O[l] k := by
+  refine (((hg.const_mul_left sinv).add (hq.const_mul_left omega)).const_mul_left
+    (sinv + omega)⁻¹).congr_left fun x => ?_
+  unfold natLin
+  ring
+
+/-- Woodford (2003), (E.6), p. 694: `Ŷⁿ` is linear in the disturbances.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem natLin_smul (sinv omega r g q : ℝ) :
+    natLin sinv omega (r * g) (r * q) = r * natLin sinv omega g q := by
+  unfold natLin
+  ring
+
+/-- Woodford (2003), App. E (one-parameter families): if `ŷ − s y₁ = O(s²)` with `y₁` bounded
+and `s → 0`, then `ŷ = O(s)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem family_isBigO {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
+    (hs : Tendsto s l (𝓝 0)) {yh y1 : α → F}
+    (h : (fun x => yh x - s x • y1 x) =O[l] fun x => s x ^ 2)
+    (h1 : y1 =O[l] fun _ => (1 : ℝ)) : yh =O[l] s := by
+  have hsy : (fun x => s x • y1 x) =O[l] s :=
+    ((isBigO_refl s l).smul h1).congr_right fun x => by ring
+  have h2 : (fun x => yh x - s x • y1 x) =O[l] s :=
+    (h.trans (pow_isBigO_pow hs (by norm_num : 1 ≤ 2))).congr_right fun x => pow_one _
+  exact (h2.add hsy).congr_left fun x => by abel
+
+/-- Woodford (2003), App. E (`(1/r) log E_i e^{r ŷ}` and the CES index): for probability weights,
+`Ȳ · CES(e^{ŷ}) = Ȳ e^{Ŷ}` with `Ŷ = (1/r) log E_i e^{r ŷ}` (and the index is positive).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem cesIndex_exp_eq {w : ι → ℝ} (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1) (r : ℝ)
+    (yh : ι → ℝ) : cesIndex w r (fun i => Real.exp (yh i)) = Real.exp (cumulant w r yh) := by
+  have hpos : 0 < cesIndex w r (fun i => Real.exp (yh i)) := by
+    have e : ∑ i, w i * Real.exp (yh i) ^ r = ExpLogCES.cesMoment w r yh := by
+      unfold ExpLogCES.cesMoment
+      refine Finset.sum_congr rfl fun i _ => ?_
+      rw [← Real.exp_mul, mul_comm (yh i) r]
+    unfold ExpLogCES.cesIndex
+    rw [e]
+    exact Real.rpow_pos_of_pos (ExpLogCES.cesMoment_pos hw hw1 r yh) _
+  rw [← ExpLogCES.log_cesIndex_exp hw hw1, Real.exp_log hpos]
+
+/-- Woodford (2003), (E.2), p. 692 (**the utility side**): for `C³` `U` with `U_y ≠ 0`,
+`U_yy ≠ 0` at `(ȳ, 0)` and `Ŷ, ξ = O(s)`,
+`U(ȳ e^{Ŷ}; ξ) = tip0 + ȳ U_y · Tu(σ⁻¹, g, Ŷ) + O(s³)` with `Tu = Ŷ + ½(1 − σ⁻¹)Ŷ² + σ⁻¹gŶ`,
+`σ⁻¹ = −ȳ U_yy/U_y`, `g = −U_yξ ξ/(ȳ U_yy)` (via `Prop61.uTaylor_eq`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem uside_gen {U : ℝ × Ξ → ℝ} (hU : ContDiff ℝ 3 U) {yb : ℝ} (hyb : yb ≠ 0)
+    (huc : slope U yb ≠ 0) (hucc : curv U yb ≠ 0) (hs : Tendsto s l (𝓝 0)) {Y : α → ℝ}
+    {ξ : α → Ξ} (hY : Y =O[l] s) (hξ : ξ =O[l] s) :
+    (fun x => U (yb * Real.exp (Y x), ξ x) - (tip0 U yb (ξ x) + yb * slope U yb *
+      Tu (sigmaInvEl yb (slope U yb) (curv U yb)) (gShock yb (curv U yb) (cross U yb (ξ x)))
+        (Y x))) =O[l] fun x => s x ^ 3 := by
+  have h1 := level_taylor hU yb hs hY hξ
+  have hg : (fun x => gShock yb (curv U yb) (cross U yb (ξ x))) =O[l] s :=
+    ((cross_isBigO U yb hξ).const_mul_left (-(yb * curv U yb)⁻¹)).congr_left fun x => by
+      unfold gShock; ring
+  have h2 := Ru_isBigO hs (sigmaInvEl yb (slope U yb) (curv U yb)) hg hY (expRem_isBigO hs hY)
+  refine (h1.add (h2.const_mul_left (yb * slope U yb))).congr_left fun x => ?_
+  rw [Prop61.levelDev_eq, Prop61.uTaylor_eq hyb huc hucc]
+  unfold tip0
+  ring
+
+/-- Woodford (2003), (E.3)–(E.4), pp. 693–694 (**the disutility side, integrated over goods**):
+for `C³` `V` with `V_y ≠ 0`, `V_yy ≠ 0` at `(ȳ, 0)`, probability weights and `ŷ, ξ = O(s)`,
+`E_i V(ȳ e^{ŷ(i)}; ξ) = tip0 + ȳ V_y [E_i ŷ + ½(1 + ω)(var_i ŷ + (E_i ŷ)²) − ω q E_i ŷ] + O(s³)`,
+`ω = ȳ V_yy/V_y`, `q = −V_yξ ξ/(ȳ V_yy)` (via `Prop61.vTaylor_eq` at `Φ = 0`, normalised by
+`ȳ V_y`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem vside_gen {V : ℝ × Ξ → ℝ} (hV : ContDiff ℝ 3 V) {yb : ℝ} (hyb : yb ≠ 0)
+    (hvy : slope V yb ≠ 0) (hvyy : curv V yb ≠ 0) {w : ι → ℝ} (hw1 : ∑ i, w i = 1)
+    (hs : Tendsto s l (𝓝 0)) {yh : α → ι → ℝ} {ξ : α → Ξ} (hy : yh =O[l] s)
+    (hξ : ξ =O[l] s) :
+    (fun x => ∑ i, w i * V (yb * Real.exp (yh x i), ξ x) - (tip0 V yb (ξ x) + yb * slope V yb *
+      (crossMean w (yh x) + (1 + omegaEl yb (slope V yb) (curv V yb)) / 2 *
+        (crossVar w (yh x) + crossMean w (yh x) ^ 2) -
+        omegaEl yb (slope V yb) (curv V yb) * qShock yb (curv V yb) (cross V yb (ξ x)) *
+          crossMean w (yh x)))) =O[l] fun x => s x ^ 3 := by
+  have hq : (fun x => qShock yb (curv V yb) (cross V yb (ξ x))) =O[l] s :=
+    ((cross_isBigO V yb hξ).const_mul_left (-(yb * curv V yb)⁻¹)).congr_left fun x => by
+      unfold qShock; ring
+  have hi : ∀ i, (fun x => V (yb * Real.exp (yh x i), ξ x) - (tip0 V yb (ξ x) +
+      yb * slope V yb * Tv 0 (omegaEl yb (slope V yb) (curv V yb))
+        (qShock yb (curv V yb) (cross V yb (ξ x))) (yh x i))) =O[l] fun x => s x ^ 3 := by
+    intro i
+    have hyi := coord_isBigO hy i
+    have h1 := level_taylor hV yb hs hyi hξ
+    have h2 := Rv_isBigO hs (omegaEl yb (slope V yb) (curv V yb)) hq hyi (expRem_isBigO hs hyi)
+    refine (h1.add (h2.const_mul_left (yb * slope V yb))).congr_left fun x => ?_
+    have e := Prop61.vTaylor_eq (vbar := V (yb, 0)) (Lv := lin V yb (ξ x))
+      (Cv := cross V yb (ξ x)) (Qv := quad V yb (ξ x)) (Φ := 0) (uc := slope V yb)
+      (y := yh x i) (r := expRem (yh x i)) hyb (by ring) hvy hvyy
+    have e2 : Prop61.uTaylor (V (yb, 0)) (slope V yb) (curv V yb) (lin V yb (ξ x))
+        (cross V yb (ξ x)) (quad V yb (ξ x)) (yb * Real.exp (yh x i) - yb) =
+        Prop61.vTaylor (V (yb, 0)) (slope V yb) (curv V yb) (lin V yb (ξ x))
+        (cross V yb (ξ x)) (quad V yb (ξ x))
+          (yb * (yh x i + yh x i ^ 2 / 2 + expRem (yh x i))) := by
+      rw [Prop61.levelDev_eq]
+      rfl
+    rw [e2, e]
+    unfold tip0
+    ring
+  have hsum := IsBigO.sum (s := Finset.univ) fun i _ => (hi i).const_mul_left (w i)
+  refine hsum.congr_left fun x => ?_
+  have e : ∀ i, w i * (V (yb * Real.exp (yh x i), ξ x) - (tip0 V yb (ξ x) +
+      yb * slope V yb * Tv 0 (omegaEl yb (slope V yb) (curv V yb))
+        (qShock yb (curv V yb) (cross V yb (ξ x))) (yh x i))) =
+      w i * V (yb * Real.exp (yh x i), ξ x) - tip0 V yb (ξ x) * w i -
+        yb * slope V yb * (1 - omegaEl yb (slope V yb) (curv V yb) *
+          qShock yb (curv V yb) (cross V yb (ξ x))) * (w i * yh x i) -
+        yb * slope V yb * ((1 + omegaEl yb (slope V yb) (curv V yb)) / 2) *
+          (w i * yh x i ^ 2) := fun i => by
+    unfold Tv
+    ring
+  simp only [Finset.sum_apply]
+  rw [Finset.sum_congr rfl fun i _ => e i]
+  simp only [Finset.sum_sub_distrib, ← Finset.mul_sum, hw1]
+  rw [Moments.sum_sq_eq hw1]
+  unfold ExpLogCES.crossMean
+  ring
+
+/-- Woodford (2003), App. E: `E_i(r y) = r E_i y`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem crossMean_smul' (w : ι → ℝ) (r : ℝ) (y : ι → ℝ) :
+    crossMean w (r • y) = r * crossMean w y :=
+  ExpLogCES.crossMean_mul w r y
+
+/-- Woodford (2003), App. E: `E_i z = O(‖z‖)` along any family.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem crossMean_isBigO {w : ι → ℝ} (hw : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1) {g : α → ℝ}
+    {z : α → ι → ℝ} (hz : z =O[l] g) : (fun x => crossMean w (z x)) =O[l] g :=
+  (IsBigO.of_bound 1 (Eventually.of_forall fun x => by
+    rw [one_mul, Real.norm_eq_abs]; exact ExpLogCES.abs_crossMean_le hw hw1 (z x))).trans hz
+
+/-- Woodford (2003), (2.10), p. 394 (C² families satisfy the first-order hypothesis): if every
+good's log output `ε ↦ ŷ(ε)(i)` is `C²` with `ŷ(0) = 0`, then `ŷ(ε) − ε y₁ = O(ε²)` with the
+first-order solution `y₁(i) = ŷ′(0)(i)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem family_of_contDiff {yh : ℝ → ι → ℝ} (hc : ∀ i, ContDiff ℝ 2 (fun ε => yh ε i))
+    (h0 : yh 0 = 0) :
+    (fun ε => yh ε - ε • (fun i => deriv (fun ε => yh ε i) 0)) =O[𝓝 0] fun ε => ε ^ 2 := by
+  refine isBigO_pi.2 fun i => ?_
+  refine (OneParamTaylor.taylor_one_bigO (hc i).contDiffAt).congr (fun ε => ?_) (fun ε => ?_)
+  · simp [h0, mul_comm]
+  · simp
+
+/-- Woodford (2003), (2.9), p. 394 and (2.10) (**Woodford's gap versus the gap from the efficient
+level**): with `Ȳ(Φ)` the distorted steady state, `x = log(Y/Ȳ) − Ŷⁿ` and
+`x* = log(Y*/Ȳ)`, the welfare-relevant gap is `x − x* = log(Y/Y*) − Ŷⁿ`: expanding around the
+efficient `Y*` measures exactly `x − x*`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem gap_eq_woodford {Y Ystar Ybar Yn : ℝ} (hY : 0 < Y) (hs : 0 < Ystar) (hb : 0 < Ybar) :
+    Real.log (Y / Ystar) - Yn = (Real.log (Y / Ybar) - Yn) - Real.log (Ystar / Ybar) := by
+  rw [Real.log_div hY.ne' hs.ne', Real.log_div hY.ne' hb.ne', Real.log_div hs.ne' hb.ne']
+  ring
+
+/-- Woodford (2003), (2.9)/(2.17), p. 394 (**the first-order efficient gap along `Φ = εΦ₁`**):
+if `F(Φ) = log(Ȳ(Φ)/Y*)` has derivative `−1/(ω + σ⁻¹)` at `0` (Prop61.steadyState_family),
+then `x*(ε) = log(Y*/Ȳ(εΦ₁)) = −F(εΦ₁)` has derivative `Φ₁/(σ⁻¹ + ω) = xStarLin σ⁻¹ ω Φ₁` at
+`ε = 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem xstar_hasDerivAt {F : ℝ → ℝ} {sinv omega Φ1 : ℝ}
+    (hF : HasDerivAt F (-(omega + sinv)⁻¹) 0) :
+    HasDerivAt (fun ε => -F (ε * Φ1)) (xStarLin sinv omega Φ1) 0 := by
+  have h1 : HasDerivAt (fun ε : ℝ => ε * Φ1) Φ1 0 := by
+    simpa using (hasDerivAt_id (0 : ℝ)).mul_const Φ1
+  have h2 : HasDerivAt F (-(omega + sinv)⁻¹) ((0 : ℝ) * Φ1) := by simpa using hF
+  have h3 : HasDerivAt (fun ε => -F (ε * Φ1)) (-(-(omega + sinv)⁻¹ * Φ1)) 0 :=
+    (h2.comp (0 : ℝ) h1).neg
+  unfold xStarLin
+  convert h3 using 1
+  rw [add_comm omega sinv]
+  ring
+
+/-- Woodford (2003), App. E.3, p. 697 (survey error 25): a sequence bounded by one constant for
+all `t` is `O(1)` uniformly in `t`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem unif_of_bounded {E : Type*} [Norm E] {f : ℕ → E} (hf : ∃ C, ∀ t, ‖f t‖ ≤ C) :
+    (fun p : ℕ × ℝ => f p.1) =O[unif] fun _ => (1 : ℝ) := by
+  obtain ⟨C, hC⟩ := hf
+  exact IsBigO.of_bound C (Eventually.of_forall fun p => by simpa using hC p.1)
+
+variable (ι Ξ)
+
+/-- Woodford (2003), (2.3)–(2.6), pp. 392–393: the primitives of the period utility
+`U_t = ũ(Y_t; ξ_t) − ∫ ṽ(y_t(i); ξ_t) di` for a finite weighted cross-section of goods: the
+utility `ũ` of aggregate output, the disutility `ṽ` of supplying one good, the steady state
+`Ȳ` (the expansion point), the elasticity `θ` of the Dixit–Stiglitz aggregate and the weights.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+structure Econ where
+  /-- `ũ(Y; ξ)`, (2.4): utility of output `Y` (consumption `Y − G`) given disturbances `ξ`. -/
+  u : ℝ × Ξ → ℝ
+  /-- `ṽ(y; ξ)`, (2.5): the disutility of supplying the quantity `y` of one good. -/
+  v : ℝ × Ξ → ℝ
+  /-- The steady-state output `Ȳ` (the expansion point). -/
+  Yb : ℝ
+  /-- The elasticity of substitution `θ` of the Dixit–Stiglitz aggregate (2.6). -/
+  θ : ℝ
+  /-- The weights of the goods (a probability vector). -/
+  w : ι → ℝ
+
+variable {ι Ξ}
+
+namespace Econ
+
+variable (M : Econ Ξ ι)
+
+/-- Woodford (2003), App. E.1, p. 692: `u_c = ũ_Y(Ȳ; 0)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def uc : ℝ := slope M.u M.Yb
+
+/-- Woodford (2003), App. E.1, p. 692: `u_cc = ũ_YY(Ȳ; 0)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def ucc : ℝ := curv M.u M.Yb
+
+/-- Woodford (2003), App. E.1, p. 693: `ṽ_y(Ȳ; 0)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def vy : ℝ := slope M.v M.Yb
+
+/-- Woodford (2003), App. E.1, p. 693: `ṽ_yy(Ȳ; 0)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def vyy : ℝ := curv M.v M.Yb
+
+/-- Woodford (2003), p. 393: `σ⁻¹ = −Ȳ u_cc/u_c`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def sig : ℝ := sigmaInvEl M.Yb M.uc M.ucc
+
+/-- Woodford (2003), p. 393: `ω = Ȳ ṽ_yy/ṽ_y`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def omg : ℝ := omegaEl M.Yb M.vy M.vyy
+
+/-- Woodford (2003), App. E.1, p. 693: the demand disturbance `g = −u_cξ ξ/(Ȳ u_cc)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def gS (ξ : Ξ) : ℝ := gShock M.Yb M.ucc (cross M.u M.Yb ξ)
+
+/-- Woodford (2003), App. E.1, p. 693: the supply disturbance `q = −ṽ_yξ ξ/(Ȳ ṽ_yy)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def qS (ξ : Ξ) : ℝ := qShock M.Yb M.vyy (cross M.v M.Yb ξ)
+
+/-- Woodford (2003), eq. (2.6), p. 393: log aggregate output `Ŷ = log(Y/Ȳ)` of the cross-section
+of log outputs `ŷ`, `Ŷ = (1/r) log E_i e^{r ŷ}` with `r = 1 − θ⁻¹`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def Yagg (yh : ι → ℝ) : ℝ := cumulant M.w (1 - M.θ⁻¹) yh
+
+/-- Woodford (2003), eqs. (2.3)–(2.6), pp. 392–393 (**the actual period utility**): with
+`y(i) = Ȳ e^{ŷ(i)}` and `Y` the Dixit–Stiglitz aggregate,
+`U = ũ(Ȳ · CES(e^{ŷ}); ξ) − E_i ṽ(Ȳ e^{ŷ(i)}; ξ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def Ustate (yh : ι → ℝ) (ξ : Ξ) : ℝ :=
+  M.u (M.Yb * cesIndex M.w (1 - M.θ⁻¹) (fun i => Real.exp (yh i)), ξ) -
+    ∑ i, M.w i * M.v (M.Yb * Real.exp (yh i), ξ)
+
+/-- Woodford (2003), (2.10)/(E.1), p. 394: the terms independent of policy,
+`(ū + u_ξξ + ½ξ′u_ξξξ) − (v̄ + v_ξξ + ½ξ′v_ξξξ) + Ȳu_c · ½(σ⁻¹ + ω)(Ŷⁿ)²` (a function of the
+disturbances only).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def tipState (ξ : Ξ) : ℝ :=
+  tip0 M.u M.Yb ξ - tip0 M.v M.Yb ξ + M.Yb * M.uc * tipA M.sig M.omg (M.gS ξ) (M.qS ξ) 0
+
+/-- Woodford (2003), eq. (2.10), p. 394 (**the loss in Woodford's variables**):
+`(σ⁻¹ + ω)(Ŷ − Ŷⁿ)² + (θ⁻¹ + ω) var_i ŷ`, with `Ŷ` the CES aggregate.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def lossW (yh : ι → ℝ) (ξ : Ξ) : ℝ :=
+  lossQ M.sig M.omg M.θ (M.Yagg yh - natLin M.sig M.omg (M.gS ξ) (M.qS ξ)) (crossVar M.w yh)
+
+/-- Woodford (2003), eq. (2.10), p. 394 (**the loss as a quadratic form**): the same with `Ŷ`
+replaced by `E_i ŷ` (equal to second order, (E.5)): a homogeneous quadratic in `(ŷ, ξ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def lossB (yh : ι → ℝ) (ξ : Ξ) : ℝ :=
+  lossQ M.sig M.omg M.θ (crossMean M.w yh - natLin M.sig M.omg (M.gS ξ) (M.qS ξ))
+    (crossVar M.w yh)
+
+/-- Woodford (2003), §2.1, pp. 392–394 (**the maintained assumptions, made explicit**): `ũ`, `ṽ`
+are `C³` (survey error 19), `Ȳ > 0`, probability weights, `θ ≠ 1`, `u_c > 0`, `u_cc ≠ 0`,
+`ṽ_yy ≠ 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+structure Std where
+  /-- `ũ` is `C³`. -/
+  contDiff_u : ContDiff ℝ 3 M.u
+  /-- `ṽ` is `C³`. -/
+  contDiff_v : ContDiff ℝ 3 M.v
+  /-- `Ȳ > 0`. -/
+  Yb_pos : 0 < M.Yb
+  /-- The weights are nonnegative. -/
+  w_nonneg : ∀ i, 0 ≤ M.w i
+  /-- The weights sum to one. -/
+  w_sum : ∑ i, M.w i = 1
+  /-- `θ ≠ 1`. -/
+  θ_ne_one : M.θ ≠ 1
+  /-- `u_c > 0`. -/
+  uc_pos : 0 < M.uc
+  /-- `u_cc ≠ 0`. -/
+  ucc_ne : M.ucc ≠ 0
+  /-- `ṽ_yy ≠ 0`. -/
+  vyy_ne : M.vyy ≠ 0
+
+variable {M}
+
+/-- Woodford (2003), (2.6): `r = 1 − θ⁻¹ ≠ 0` for `θ ≠ 1`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem r_ne (hM : M.Std) : 1 - M.θ⁻¹ ≠ 0 := by
+  intro h
+  apply hM.θ_ne_one
+  have : M.θ⁻¹ = 1 := by linarith
+  simpa using congrArg (·⁻¹) this
+
+/-- Woodford (2003), (2.6): the actual utility with the aggregate written as `Ȳ e^{Ŷ}`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem Ustate_eq (hM : M.Std) (yh : ι → ℝ) (ξ : Ξ) :
+    M.Ustate yh ξ = M.u (M.Yb * Real.exp (M.Yagg yh), ξ) -
+      ∑ i, M.w i * M.v (M.Yb * Real.exp (yh i), ξ) := by
+  unfold Ustate Yagg
+  rw [cesIndex_exp_eq hM.w_nonneg hM.w_sum]
+
+omit [Fintype ι] in
+/-- Woodford (2003), App. E.1: `g` is linear in the disturbances, `g(rξ) = r g(ξ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem gS_smul (r : ℝ) (ξ : Ξ) : M.gS (r • ξ) = r * M.gS ξ := by
+  unfold gS gShock
+  rw [cross_smul]
+  ring
+
+omit [Fintype ι] in
+/-- Woodford (2003), App. E.1: `q` is linear in the disturbances, `q(rξ) = r q(ξ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem qS_smul (r : ℝ) (ξ : Ξ) : M.qS (r • ξ) = r * M.qS ξ := by
+  unfold qS qShock
+  rw [cross_smul]
+  ring
+
+omit [Fintype ι] in
+/-- Woodford (2003), App. E.1: `g = O(ξ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem gS_isBigO {k : α → ℝ} {ξ : α → Ξ} (hξ : ξ =O[l] k) :
+    (fun x => M.gS (ξ x)) =O[l] k :=
+  ((cross_isBigO M.u M.Yb hξ).const_mul_left (-(M.Yb * M.ucc)⁻¹)).congr_left fun x => by
+    unfold gS gShock
+    ring
+
+omit [Fintype ι] in
+/-- Woodford (2003), App. E.1: `q = O(ξ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem qS_isBigO {k : α → ℝ} {ξ : α → Ξ} (hξ : ξ =O[l] k) :
+    (fun x => M.qS (ξ x)) =O[l] k :=
+  ((cross_isBigO M.v M.Yb hξ).const_mul_left (-(M.Yb * M.vyy)⁻¹)).congr_left fun x => by
+    unfold qS qShock
+    ring
+
+/-- Woodford (2003), **Proposition 6.1, eq. (2.10)/(E.1), p. 394 (Layer B, in the state
+variables)**. Expand around the EFFICIENT steady state (`ṽ_y = u_c`, i.e. `Φ = 0`; the distortion
+enters only through the allocation, see `gap_eq_woodford`). Along any family of states with the
+cross-section `ŷ = O(s)` and the disturbances `ξ = O(s)`, `s → 0`, the actual utility satisfies
+`U = t.i.p.(ξ) − (Ȳu_c/2)[(σ⁻¹ + ω)(Ŷ − Ŷⁿ)² + (θ⁻¹ + ω) var_i ŷ] + O(s³)`, with `Ŷ` the CES
+aggregate and t.i.p. `tipState ξ`. The proof is the exact Layer-A identity `Prop61.thmA1`
+(at `Φ = 0`) plus the Taylor remainders (`uside_gen`, `vside_gen`, `ces_orders`,
+`R3_zero_isBigO`). With `l = 𝓝 0` on the state space and `s = ‖·‖` this is the book's
+`O(‖ŷ, ξ‖³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem prop61_state (hM : M.Std) (heff : M.vy = M.uc) (hden : M.sig + M.omg ≠ 0)
+    (hs : Tendsto s l (𝓝 0)) {yh : α → ι → ℝ} {ξ : α → Ξ} (hy : yh =O[l] s)
+    (hξ : ξ =O[l] s) :
+    (fun x => M.Ustate (yh x) (ξ x) -
+      (M.tipState (ξ x) - M.Yb * M.uc / 2 * M.lossW (yh x) (ξ x))) =O[l] fun x => s x ^ 3 := by
+  have hyb : M.Yb ≠ 0 := hM.Yb_pos.ne'
+  have huc : slope M.u M.Yb ≠ 0 := hM.uc_pos.ne'
+  have heff' : slope M.v M.Yb = slope M.u M.Yb := heff
+  have hvy : slope M.v M.Yb ≠ 0 := by rw [heff']; exact huc
+  obtain ⟨-, hV, he, hY⟩ := ces_orders hM.w_nonneg hM.w_sum (r_ne hM) hs hy
+  have hu := uside_gen hM.contDiff_u hyb huc hM.ucc_ne hs hY hξ
+  have hv := vside_gen hM.contDiff_v hyb hvy hM.vyy_ne hM.w_sum hs hy hξ
+  have hR := R3_zero_isBigO hs M.sig M.omg M.θ (g := fun x => M.gS (ξ x)) (M.qS_isBigO hξ) hY
+    hV he
+  refine ((hu.sub hv).add (hR.const_mul_left (M.Yb * M.uc))).congr_left fun x => ?_
+  have hA := Prop61.thmA1 (sinv := M.sig) (omega := M.omg) (θ := M.θ) (g := M.gS (ξ x))
+    (q := M.qS (ξ x)) (Φ := 0) (Y := M.Yagg (yh x)) (V := crossVar M.w (yh x))
+    (e := M.Yagg (yh x) - (crossMean M.w (yh x) + (1 - M.θ⁻¹) / 2 * crossVar M.w (yh x)))
+    (n := 0) (k := 0) hden
+  rw [Ustate_eq hM]
+  simp only [tipState, lossW, lossQ, tipA, xStarLin, Yagg] at hA ⊢
+  unfold sig omg gS qS uc ucc vy vyy at hA ⊢
+  set σ := sigmaInvEl M.Yb (slope M.u M.Yb) (curv M.u M.Yb)
+  set ω := omegaEl M.Yb (slope M.v M.Yb) (curv M.v M.Yb)
+  rw [heff']
+  linear_combination (-(M.Yb * slope M.u M.Yb)) * hA
+
+/-- Woodford (2003), (E.5), p. 694: replacing the CES aggregate `Ŷ` by `E_i ŷ` in the gap changes
+the loss by `O(s³)` (`Ŷ − E_i ŷ = O(s²)` multiplies a first-order term).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem lossW_sub_lossB (hM : M.Std) (hs : Tendsto s l (𝓝 0)) {yh : α → ι → ℝ}
+    {ξ : α → Ξ} (hy : yh =O[l] s) (hξ : ξ =O[l] s) :
+    (fun x => M.lossW (yh x) (ξ x) - M.lossB (yh x) (ξ x)) =O[l] fun x => s x ^ 3 := by
+  obtain ⟨hm, hV, he, hY⟩ := ces_orders hM.w_nonneg hM.w_sum (r_ne hM) hs hy
+  have hN := natLin_isBigO M.sig M.omg (M.gS_isBigO hξ) (M.qS_isBigO hξ)
+  have hd : (fun x => cumulant M.w (1 - M.θ⁻¹) (yh x) - crossMean M.w (yh x)) =O[l]
+      fun x => s x ^ 2 :=
+    ((he.trans (pow_isBigO_pow hs (by norm_num : 2 ≤ 3))).add
+      (hV.const_mul_left ((1 - M.θ⁻¹) / 2))).congr_left fun x => by ring
+  have hsum : (fun x => (cumulant M.w (1 - M.θ⁻¹) (yh x) -
+      natLin M.sig M.omg (M.gS (ξ x)) (M.qS (ξ x))) +
+      (crossMean M.w (yh x) - natLin M.sig M.omg (M.gS (ξ x)) (M.qS (ξ x)))) =O[l]
+      fun x => s x ^ 1 :=
+    isBigO_pow_one (((hY.sub hN).add (hm.sub hN)))
+  refine ((isBigO_pow_mul hd hsum (by norm_num : 2 + 1 = 3)).const_mul_left
+    (M.sig + M.omg)).congr_left fun x => ?_
+  unfold lossW lossB lossQ Yagg
+  ring
+
+/-- Woodford (2003), **Proposition 6.1, (2.10), p. 394 (Layer B, state variables, quadratic-form
+version)**: as `prop61_state`, with the gap measured by `E_i ŷ` (the loss `lossB` is a
+homogeneous quadratic form in `(ŷ, ξ)`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem prop61_state_poly (hM : M.Std) (heff : M.vy = M.uc) (hden : M.sig + M.omg ≠ 0)
+    (hs : Tendsto s l (𝓝 0)) {yh : α → ι → ℝ} {ξ : α → Ξ} (hy : yh =O[l] s)
+    (hξ : ξ =O[l] s) :
+    (fun x => M.Ustate (yh x) (ξ x) -
+      (M.tipState (ξ x) - M.Yb * M.uc / 2 * M.lossB (yh x) (ξ x))) =O[l] fun x => s x ^ 3 :=
+  ((prop61_state hM heff hden hs hy hξ).sub
+    ((lossW_sub_lossB hM hs hy hξ).const_mul_left (M.Yb * M.uc / 2))).congr_left fun x => by
+      ring
+
+omit [Fintype ι] in
+/-- Woodford (2003), (2.10)/(E.1) (**the t.i.p. along `ε ξ₁` is an explicit polynomial in `ε`
+whose coefficients depend on `ξ₁` only**). -/
+theorem tipState_smul (r : ℝ) (ξ : Ξ) :
+    M.tipState (r • ξ) = M.tipState 0 + r * (lin M.u M.Yb ξ - lin M.v M.Yb ξ) +
+      r ^ 2 * (quad M.u M.Yb ξ / 2 - quad M.v M.Yb ξ / 2 +
+        M.Yb * M.uc * tipA M.sig M.omg (M.gS ξ) (M.qS ξ) 0) := by
+  have h0 : (0 : Ξ) = (0 : ℝ) • ξ := (zero_smul ℝ ξ).symm
+  unfold tipState tip0
+  rw [h0, lin_smul, lin_smul, quad_smul, quad_smul, M.gS_smul, M.qS_smul, lin_smul, lin_smul,
+    quad_smul, quad_smul, M.gS_smul, M.qS_smul]
+  unfold tipA natLin xStarLin
+  ring
+
+omit [Fintype ι] in
+/-- Woodford (2003), (2.10)/(E.1): the t.i.p. along `ε ξ₁_t` is bounded uniformly in `t` (for
+bounded `ξ₁_t`). -/
+theorem tipState_unif {ξ1 : ℕ → Ξ} (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C) :
+    (fun p : ℕ × ℝ => M.tipState (p.2 • ξ1 p.1)) =O[unif] fun _ => (1 : ℝ) := by
+  have hx := unif_of_bounded hξ1
+  have he : (fun p : ℕ × ℝ => p.2) =O[unif] fun _ => (1 : ℝ) := tendsto_unif.isBigO_one ℝ
+  have h1 : (fun p : ℕ × ℝ => lin M.u M.Yb (ξ1 p.1) - lin M.v M.Yb (ξ1 p.1)) =O[unif]
+      fun _ => (1 : ℝ) := (lin_isBigO M.u M.Yb hx).sub (lin_isBigO M.v M.Yb hx)
+  have hq1 := (quad_isBigO M.u M.Yb hx).congr_right fun _ => one_pow 2
+  have hq2 := (quad_isBigO M.v M.Yb hx).congr_right fun _ => one_pow 2
+  have hN := natLin_isBigO M.sig M.omg (M.gS_isBigO hx) (M.qS_isBigO hx)
+  have hA : (fun p : ℕ × ℝ => tipA M.sig M.omg (M.gS (ξ1 p.1)) (M.qS (ξ1 p.1)) 0) =O[unif]
+      fun _ => (1 : ℝ) :=
+    (((hN.add (isBigO_const_const (xStarLin M.sig M.omg 0) one_ne_zero unif)).pow 2).const_mul_left
+      ((M.sig + M.omg) / 2)).congr (fun p => by unfold tipA; ring) (fun p => one_pow 2)
+  have h2 : (fun p : ℕ × ℝ => quad M.u M.Yb (ξ1 p.1) / 2 - quad M.v M.Yb (ξ1 p.1) / 2 +
+      M.Yb * M.uc * tipA M.sig M.omg (M.gS (ξ1 p.1)) (M.qS (ξ1 p.1)) 0) =O[unif]
+      fun _ => (1 : ℝ) :=
+    (((hq1.const_mul_left (1 / 2)).sub (hq2.const_mul_left (1 / 2))).add
+      (hA.const_mul_left (M.Yb * M.uc))).congr_left fun p => by ring
+  have t1 : (fun p : ℕ × ℝ => p.2 * (lin M.u M.Yb (ξ1 p.1) - lin M.v M.Yb (ξ1 p.1))) =O[unif]
+      fun _ => (1 : ℝ) := (he.mul h1).congr_right fun _ => mul_one 1
+  have t2 : (fun p : ℕ × ℝ => p.2 ^ 2 * (quad M.u M.Yb (ξ1 p.1) / 2 - quad M.v M.Yb (ξ1 p.1) / 2 +
+      M.Yb * M.uc * tipA M.sig M.omg (M.gS (ξ1 p.1)) (M.qS (ξ1 p.1)) 0)) =O[unif]
+      fun _ => (1 : ℝ) := ((he.pow 2).mul h2).congr_right fun _ => by ring
+  refine (((isBigO_const_const (M.tipState 0) one_ne_zero unif).add t1).add t2).congr_left
+    fun p => ?_
+  rw [tipState_smul]
+
+end Econ
+
+/-- Woodford (2003), App. E.3 (survey error 25): a `t`-sequence that is `O(1)` uniformly is
+bounded by one constant.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem bounded_of_unif {f : ℕ → ℝ} (h : (fun p : ℕ × ℝ => f p.1) =O[unif] fun _ => (1 : ℝ)) :
+    ∃ C, ∀ t, |f t| ≤ C := by
+  obtain ⟨C, hC⟩ := (isBigO_unif_iff (f := fun t _ => f t) (g := fun _ => (1 : ℝ))).1 h
+  obtain ⟨ε, hε⟩ := hC.exists
+  exact ⟨C, fun t => by simpa using hε t⟩
+
+/-- Woodford (2003), App. E.2 (dating conventions): a bound uniform in `t` survives the shift
+`t ↦ t + 1`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem unif_shift {f : ℕ → ℝ → ℝ} {g : ℝ → ℝ}
+    (h : (fun p : ℕ × ℝ => f p.1 p.2) =O[unif] fun p => g p.2) :
+    (fun p : ℕ × ℝ => f (p.1 + 1) p.2) =O[unif] fun p => g p.2 := by
+  obtain ⟨C, hC⟩ := isBigO_unif_iff.1 h
+  exact isBigO_unif_iff (f := fun t ε => f (t + 1) ε).2 ⟨C, hC.mono fun ε hε t => hε (t + 1)⟩
+
+namespace Econ
+
+variable (M : Econ Ξ ι)
+
+/-- Woodford (2003), (2.10), p. 394: the output gap `x = E_i ŷ − Ŷⁿ` entering the loss
+(`lossB yh ξ = (σ⁻¹ + ω) gap² + (θ⁻¹ + ω) var_i ŷ`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def gap (yh : ι → ℝ) (ξ : Ξ) : ℝ :=
+  crossMean M.w yh - natLin M.sig M.omg (M.gS ξ) (M.qS ξ)
+
+variable {M}
+
+/-- Woodford (2003), (2.10): the gap along `(ŷ, r ξ₁)` minus `r` times the first-order gap is the
+mean of `ŷ − r y₁`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem gap_smul_sub (yh y1 : ι → ℝ) (r : ℝ) (ξ1 : Ξ) :
+    M.gap yh (r • ξ1) - r * M.gap y1 ξ1 = crossMean M.w (yh - r • y1) := by
+  unfold gap
+  rw [crossMean_sub', crossMean_smul', M.gS_smul, M.qS_smul, natLin_smul]
+  ring
+
+/-- Woodford (2003), **Propositions 6.4–6.5, (2.21)–(2.25), pp. 400–402 (Layer B, generic Calvo
+form)**. Period utility is the actual `Ustate` of the cross-section `ŷ_t(ε)` with disturbances
+`ε ξ₁_t`, and
+* `ŷ_t(ε) − ε y₁_t = O(ε²)` UNIFORMLY in `t`, `y₁_t`, `ξ₁_t` bounded (survey error 25);
+* (2.12): `var_i ŷ_t(ε) = θ² Δ_t(ε)` (Moments.crossVar_demand; `D ε (t+1) = Δ_t`,
+  `D ε 0 = Δ_{−1}`);
+* the exact dispersion recursion `Δ_t = α Δ_{t−1} + (α/(1−α)) q_t² + R_t` (Layer A:
+  PriceDispersion.prop63_layerA with `q_t = π_t`, index_layerA with `q_t = π_t − γπ_{t−1}`),
+  with `q_t(ε) − ε q₁_t = O(ε²)` and `R_t(ε) = O(ε³)` uniformly in `t`
+  (PriceDispersion.prop63_uniform), `q₁_t` bounded.
+Then, at the efficient steady state,
+`∑ βᵗ U_t(ε) = TIP(ε) − (ε²/2) Ȳu_c · 2Θ ∑ βᵗ (q₁_t² + (κ/θ) x₁_t²) + O(ε³)`,
+`TIP(ε) = ∑ βᵗ tipState(ε ξ₁_t) − Ȳu_c ½θ(1 + ωθ) α Δ_{−1}(ε)/(1 − αβ)` (exogenous terms and
+the initial dispersion), `Θ = ThetaCalvo`, `κ` of (2.19), `x₁_t = gap(y₁_t, ξ₁_t)`. The
+Layer-A identity used is `PriceDispersion.calvo_welfare_sum`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem calvo_bridge (hM : M.Std) (heff : M.vy = M.uc) (hden : M.sig + M.omg ≠ 0)
+    (hθ : M.θ ≠ 0) (hd : 1 + M.omg * M.θ ≠ 0) {α β : ℝ} (hα0 : 0 < α) (hα1 : α < 1)
+    (hβ0 : 0 ≤ β) (hβ1 : β < 1) {yh : ℕ → ℝ → ι → ℝ} {y1 : ℕ → ι → ℝ} {ξ1 : ℕ → Ξ}
+    (h : (fun p : ℕ × ℝ => yh p.1 p.2 - p.2 • y1 p.1) =O[unif] fun p => p.2 ^ 2)
+    (hy1 : ∃ C, ∀ t, ‖y1 t‖ ≤ C) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C) {D qd R : ℝ → ℕ → ℝ}
+    {q1 : ℕ → ℝ} (hdem : ∀ ε t, crossVar M.w (yh t ε) = M.θ ^ 2 * D ε (t + 1))
+    (hrec : ∀ ε t, D ε (t + 1) = α * D ε t + α / (1 - α) * qd ε t ^ 2 + R ε t)
+    (hq : (fun p : ℕ × ℝ => qd p.2 p.1 - p.2 * q1 p.1) =O[unif] fun p => p.2 ^ 2)
+    (hq1 : ∃ C, ∀ t, |q1 t| ≤ C)
+    (hR : (fun p : ℕ × ℝ => R p.2 p.1) =O[unif] fun p => p.2 ^ 3) :
+    (fun ε => ∑' t, β ^ t * M.Ustate (yh t ε) (ε • ξ1 t) -
+      ((∑' t, β ^ t * M.tipState (ε • ξ1 t) -
+          M.Yb * M.uc * (M.θ * (1 + M.omg * M.θ) / 2 * (α * D ε 0 / (1 - α * β)))) +
+        ε ^ 2 / 2 * (-(M.Yb * M.uc * (2 * PriceDispersion.ThetaCalvo α β M.θ M.omg) *
+          ∑' t, β ^ t * (q1 t ^ 2 + Moments.calvoKappa α β M.omg M.θ M.sig / M.θ *
+            M.gap (y1 t) (ξ1 t) ^ 2))))) =O[𝓝 0] fun ε => ε ^ 3 := by
+  have hYb0 : M.Yb ≠ 0 := hM.Yb_pos.ne'
+  have huc0 : M.uc ≠ 0 := hM.uc_pos.ne'
+  -- uniform orders
+  have hyu : (fun p : ℕ × ℝ => yh p.1 p.2) =O[unif] fun p => p.2 :=
+    family_isBigO (s := fun p : ℕ × ℝ => p.2) tendsto_unif h (unif_of_bounded hy1)
+  have hx1 : (fun p : ℕ × ℝ => ξ1 p.1) =O[unif] fun _ => (1 : ℝ) := unif_of_bounded hξ1
+  have hξu : (fun p : ℕ × ℝ => p.2 • ξ1 p.1) =O[unif] fun p => p.2 :=
+    ((isBigO_refl (fun p : ℕ × ℝ => p.2) unif).smul hx1).congr_right fun _ => mul_one _
+  have hρ := prop61_state_poly (l := unif) (s := fun p : ℕ × ℝ => p.2)
+    (yh := fun p : ℕ × ℝ => yh p.1 p.2) (ξ := fun p : ℕ × ℝ => p.2 • ξ1 p.1) hM heff hden
+    tendsto_unif hyu hξu
+  have hX1 : (fun p : ℕ × ℝ => M.gap (y1 p.1) (ξ1 p.1)) =O[unif] fun _ => (1 : ℝ) :=
+    (crossMean_isBigO hM.w_nonneg hM.w_sum (unif_of_bounded hy1)).sub
+      (natLin_isBigO M.sig M.omg (M.gS_isBigO hx1) (M.qS_isBigO hx1))
+  have hXd : (fun p : ℕ × ℝ => M.gap (yh p.1 p.2) (p.2 • ξ1 p.1) -
+      p.2 * M.gap (y1 p.1) (ξ1 p.1)) =O[unif] fun p => p.2 ^ 2 :=
+    (crossMean_isBigO hM.w_nonneg hM.w_sum h).congr_left fun p => (gap_smul_sub _ _ _ _).symm
+  have hX2 := sq_sub_sq_isBigO tendsto_unif hXd hX1
+  have hq1u : (fun p : ℕ × ℝ => q1 p.1) =O[unif] fun _ => (1 : ℝ) := unif_of_bounded
+    (by obtain ⟨C, hC⟩ := hq1; exact ⟨C, fun t => by simpa using hC t⟩)
+  have hq2 := sq_sub_sq_isBigO tendsto_unif hq hq1u
+  -- the three remainders
+  have S1 := tsum_isBigO_of_unif (f := fun t ε => (qd ε t ^ 2 - ε ^ 2 * q1 t ^ 2) +
+    Moments.calvoKappa α β M.omg M.θ M.sig / M.θ *
+      (M.gap (yh t ε) (ε • ξ1 t) ^ 2 - ε ^ 2 * M.gap (y1 t) (ξ1 t) ^ 2)) hβ0 hβ1
+    (hq2.add (hX2.const_mul_left _))
+  have S2 := tsum_isBigO_of_unif (f := fun t ε => M.Ustate (yh t ε) (ε • ξ1 t) -
+    (M.tipState (ε • ξ1 t) - M.Yb * M.uc / 2 * M.lossB (yh t ε) (ε • ξ1 t))) hβ0 hβ1 hρ
+  have S3 := tsum_isBigO_of_unif (f := fun t ε => R ε t) hβ0 hβ1 hR
+  -- boundedness for each small `ε`
+  have one : (fun p : ℕ × ℝ => p.2) =O[unif] fun _ => (1 : ℝ) := tendsto_unif.isBigO_one ℝ
+  have b2 : ∀ {n : ℕ}, (fun p : ℕ × ℝ => p.2 ^ n) =O[unif] fun _ => (1 : ℝ) := fun {n} =>
+    (one.pow n).congr_right fun _ => one_pow n
+  have hqb : (fun p : ℕ × ℝ => qd p.2 p.1) =O[unif] fun _ => (1 : ℝ) :=
+    ((hq.trans b2).add ((one.mul hq1u).congr_right fun _ => mul_one 1)).congr_left
+      fun p => by ring
+  have hXb : (fun p : ℕ × ℝ => M.gap (yh p.1 p.2) (p.2 • ξ1 p.1)) =O[unif]
+      fun _ => (1 : ℝ) :=
+    ((hXd.trans b2).add ((one.mul hX1).congr_right fun _ => mul_one 1)).congr_left
+      fun p => by ring
+  have hX1b := bounded_of_unif (f := fun t => M.gap (y1 t) (ξ1 t)) hX1
+  obtain ⟨Cq, hCq⟩ := hq1
+  have hq1b : SeqW.Bdd q1 := ⟨Cq, hCq⟩
+  have hBb : SeqW.Bdd (fun t => q1 t ^ 2 + Moments.calvoKappa α β M.omg M.θ M.sig / M.θ *
+      M.gap (y1 t) (ξ1 t) ^ 2) :=
+    (hq1b.pow 2).add ((SeqW.Bdd.const _).mul ((show SeqW.Bdd
+      (fun t => M.gap (y1 t) (ξ1 t)) from hX1b).pow 2))
+  have hcomb := ((S1.const_mul_left (-(M.Yb * M.uc * PriceDispersion.ThetaCalvo α β M.θ M.omg))).add
+    S2).sub (S3.const_mul_left (M.Yb * M.uc * (M.θ * (1 + M.omg * M.θ) / 2 / (1 - α * β))))
+  refine hcomb.congr' ?_ EventuallyEq.rfl
+  filter_upwards [bdd_of_unif (f := fun t ε => qd ε t) (g := fun _ => (1 : ℝ)) hqb,
+    bdd_of_unif (f := fun t ε => M.gap (yh t ε) (ε • ξ1 t)) (g := fun _ => (1 : ℝ)) hXb,
+    bdd_of_unif (f := fun t ε => R ε t) (g := fun _ => (1 : ℝ)) (hR.trans b2),
+    bdd_of_unif (f := fun t ε => M.tipState (ε • ξ1 t)) (g := fun _ => (1 : ℝ))
+      (tipState_unif hξ1),
+    bdd_of_unif (f := fun t ε => M.Ustate (yh t ε) (ε • ξ1 t) -
+      (M.tipState (ε • ξ1 t) - M.Yb * M.uc / 2 * M.lossB (yh t ε) (ε • ξ1 t)))
+      (g := fun _ => (1 : ℝ)) (hρ.trans b2)]
+    with ε bq bX bR bT bρ
+  obtain ⟨M1, hM1, hb1⟩ := bq.nonneg_bound
+  obtain ⟨M2, hM2, hb2⟩ := bX.nonneg_bound
+  obtain ⟨M3, hM3, hb3⟩ := bR.nonneg_bound
+  obtain ⟨M4, hM4, hb4⟩ := (bT.div_const (M.Yb * M.uc)).nonneg_bound
+  obtain ⟨M5, hM5, hb5⟩ := (bρ.div_const (M.Yb * M.uc)).nonneg_bound
+  have hW : ∀ t, M.Ustate (yh t ε) (ε • ξ1 t) / (M.Yb * M.uc) = -(1 / 2) * ((M.sig + M.omg) *
+      M.gap (yh t ε) (ε • ξ1 t) ^ 2 + M.θ * (1 + M.omg * M.θ) * D ε (t + 1)) +
+      M.tipState (ε • ξ1 t) / (M.Yb * M.uc) + (M.Ustate (yh t ε) (ε • ξ1 t) -
+        (M.tipState (ε • ξ1 t) - M.Yb * M.uc / 2 * M.lossB (yh t ε) (ε • ξ1 t))) /
+          (M.Yb * M.uc) := fun t => by
+    have hl : M.lossB (yh t ε) (ε • ξ1 t) = (M.sig + M.omg) * M.gap (yh t ε) (ε • ξ1 t) ^ 2 +
+        M.θ * (1 + M.omg * M.θ) * D ε (t + 1) := by
+      unfold lossB
+      rw [hdem, Prop61.lossQ_disp hθ]
+      rfl
+    rw [hl]
+    field_simp
+    ring
+  have hV := PriceDispersion.calvo_welfare_sum (M := M1 + M2 + M3 + M4 + M5) hα0 hα1 hβ0 hβ1
+    hθ hd (hrec ε) hW (fun t => by linarith [hb1 t]) (fun t => by linarith [hb2 t])
+    (fun t => by linarith [hb3 t]) (fun t => by linarith [hb4 t]) (fun t => by linarith [hb5 t])
+  have e1 : ∑' t, β ^ t * M.Ustate (yh t ε) (ε • ξ1 t) =
+      M.Yb * M.uc * ∑' t, β ^ t * (M.Ustate (yh t ε) (ε • ξ1 t) / (M.Yb * M.uc)) := by
+    rw [← tsum_mul_left]
+    exact tsum_congr fun t => by field_simp
+  have e2 : M.Yb * M.uc * ∑' t, β ^ t * (M.tipState (ε • ξ1 t) / (M.Yb * M.uc)) =
+      ∑' t, β ^ t * M.tipState (ε • ξ1 t) := by
+    rw [← tsum_mul_left]
+    exact tsum_congr fun t => by field_simp
+  have e3 : M.Yb * M.uc * ∑' t, β ^ t * ((M.Ustate (yh t ε) (ε • ξ1 t) -
+      (M.tipState (ε • ξ1 t) - M.Yb * M.uc / 2 * M.lossB (yh t ε) (ε • ξ1 t))) /
+        (M.Yb * M.uc)) =
+      ∑' t, β ^ t * (M.Ustate (yh t ε) (ε • ξ1 t) -
+        (M.tipState (ε • ξ1 t) - M.Yb * M.uc / 2 * M.lossB (yh t ε) (ε • ξ1 t))) := by
+    rw [← tsum_mul_left]
+    exact tsum_congr fun t => by field_simp
+  have hAb : SeqW.Bdd (fun t => qd ε t ^ 2 +
+      Moments.calvoKappa α β M.omg M.θ M.sig / M.θ * M.gap (yh t ε) (ε • ξ1 t) ^ 2) :=
+    (bq.pow 2).add ((SeqW.Bdd.const _).mul (bX.pow 2))
+  have e4 : ∑' t, β ^ t * ((qd ε t ^ 2 - ε ^ 2 * q1 t ^ 2) +
+      Moments.calvoKappa α β M.omg M.θ M.sig / M.θ *
+        (M.gap (yh t ε) (ε • ξ1 t) ^ 2 - ε ^ 2 * M.gap (y1 t) (ξ1 t) ^ 2)) =
+      ∑' t, β ^ t * (qd ε t ^ 2 +
+        Moments.calvoKappa α β M.omg M.θ M.sig / M.θ * M.gap (yh t ε) (ε • ξ1 t) ^ 2) -
+        ε ^ 2 * ∑' t, β ^ t * (q1 t ^ 2 + Moments.calvoKappa α β M.omg M.θ M.sig / M.θ *
+          M.gap (y1 t) (ξ1 t) ^ 2) := by
+    rw [← tsum_mul_left, ← (hAb.summable hβ0 hβ1).tsum_sub
+      ((hBb.summable hβ0 hβ1).mul_left _)]
+    exact tsum_congr fun t => by ring
+  rw [e1, hV.tsum_eq, e4]
+  linear_combination -(e2 + e3)
+
+/-- Woodford (2003), **Proposition 6.4, eqs. (2.21)–(2.22), p. 400 (Layer B)**. Calvo pricing
+without indexation (`infl ε (t+1) = π_t`, `infl ε 0 = π_{−1}`): under the hypotheses of
+`calvo_bridge` with `q_t = π_t`, and `π_t(ε) − ε π₁_t = O(ε²)` uniformly in `t`,
+`∑ βᵗ U_t(ε) = TIP(ε) − (ε²/2) Ȳu_c · 2Θ ∑ βᵗ (π₁_t² + λ x₁_t²) + O(ε³)`, `λ = κ/θ` with `κ`
+of (2.19).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem prop64_bridge (hM : M.Std) (heff : M.vy = M.uc) (hden : M.sig + M.omg ≠ 0)
+    (hθ : M.θ ≠ 0) (hd : 1 + M.omg * M.θ ≠ 0) {α β : ℝ} (hα0 : 0 < α) (hα1 : α < 1)
+    (hβ0 : 0 ≤ β) (hβ1 : β < 1) {yh : ℕ → ℝ → ι → ℝ} {y1 : ℕ → ι → ℝ} {ξ1 : ℕ → Ξ}
+    (h : (fun p : ℕ × ℝ => yh p.1 p.2 - p.2 • y1 p.1) =O[unif] fun p => p.2 ^ 2)
+    (hy1 : ∃ C, ∀ t, ‖y1 t‖ ≤ C) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C) {D infl R : ℝ → ℕ → ℝ}
+    {π1 : ℕ → ℝ} (hdem : ∀ ε t, crossVar M.w (yh t ε) = M.θ ^ 2 * D ε (t + 1))
+    (hrec : ∀ ε t, D ε (t + 1) = α * D ε t + α / (1 - α) * infl ε (t + 1) ^ 2 + R ε t)
+    (hπ : (fun p : ℕ × ℝ => infl p.2 p.1 - p.2 * π1 p.1) =O[unif] fun p => p.2 ^ 2)
+    (hπ1 : ∃ C, ∀ t, |π1 t| ≤ C)
+    (hR : (fun p : ℕ × ℝ => R p.2 p.1) =O[unif] fun p => p.2 ^ 3) :
+    (fun ε => ∑' t, β ^ t * M.Ustate (yh t ε) (ε • ξ1 t) -
+      ((∑' t, β ^ t * M.tipState (ε • ξ1 t) -
+          M.Yb * M.uc * (M.θ * (1 + M.omg * M.θ) / 2 * (α * D ε 0 / (1 - α * β)))) +
+        ε ^ 2 / 2 * (-(M.Yb * M.uc * (2 * PriceDispersion.ThetaCalvo α β M.θ M.omg) *
+          ∑' t, β ^ t * (π1 (t + 1) ^ 2 + Moments.calvoKappa α β M.omg M.θ M.sig / M.θ *
+            M.gap (y1 t) (ξ1 t) ^ 2))))) =O[𝓝 0] fun ε => ε ^ 3 := by
+  obtain ⟨C, hC⟩ := hπ1
+  exact calvo_bridge (qd := fun ε t => infl ε (t + 1)) (q1 := fun t => π1 (t + 1)) hM heff hden
+    hθ hd hα0 hα1 hβ0 hβ1 h hy1 hξ1 hdem hrec
+    (unif_shift (f := fun t ε => infl ε t - ε * π1 t) (g := fun ε => ε ^ 2) hπ)
+    ⟨C, fun t => hC (t + 1)⟩ hR
+
+/-- Woodford (2003), **Proposition 6.5, eq. (2.25), p. 402 (Layer B)**. Calvo pricing with
+indexation to lagged inflation (`q_t = π_t − γπ_{t−1}`, (2.23)–(2.24),
+PriceDispersion.index_layerA): with `π_t(ε) − ε π₁_t = O(ε²)` uniformly in `t` (all dates
+including `π_{−1}`),
+`∑ βᵗ U_t(ε) = TIP(ε) − (ε²/2) Ȳu_c · 2Θ ∑ βᵗ ((π₁_t − γπ₁_{t−1})² + λ x₁_t²) + O(ε³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem prop65_bridge (hM : M.Std) (heff : M.vy = M.uc) (hden : M.sig + M.omg ≠ 0)
+    (hθ : M.θ ≠ 0) (hd : 1 + M.omg * M.θ ≠ 0) {α β γ : ℝ} (hα0 : 0 < α) (hα1 : α < 1)
+    (hβ0 : 0 ≤ β) (hβ1 : β < 1) {yh : ℕ → ℝ → ι → ℝ} {y1 : ℕ → ι → ℝ} {ξ1 : ℕ → Ξ}
+    (h : (fun p : ℕ × ℝ => yh p.1 p.2 - p.2 • y1 p.1) =O[unif] fun p => p.2 ^ 2)
+    (hy1 : ∃ C, ∀ t, ‖y1 t‖ ≤ C) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C) {D infl R : ℝ → ℕ → ℝ}
+    {π1 : ℕ → ℝ} (hdem : ∀ ε t, crossVar M.w (yh t ε) = M.θ ^ 2 * D ε (t + 1))
+    (hrec : ∀ ε t, D ε (t + 1) =
+      α * D ε t + α / (1 - α) * (infl ε (t + 1) - γ * infl ε t) ^ 2 + R ε t)
+    (hπ : (fun p : ℕ × ℝ => infl p.2 p.1 - p.2 * π1 p.1) =O[unif] fun p => p.2 ^ 2)
+    (hπ1 : ∃ C, ∀ t, |π1 t| ≤ C)
+    (hR : (fun p : ℕ × ℝ => R p.2 p.1) =O[unif] fun p => p.2 ^ 3) :
+    (fun ε => ∑' t, β ^ t * M.Ustate (yh t ε) (ε • ξ1 t) -
+      ((∑' t, β ^ t * M.tipState (ε • ξ1 t) -
+          M.Yb * M.uc * (M.θ * (1 + M.omg * M.θ) / 2 * (α * D ε 0 / (1 - α * β)))) +
+        ε ^ 2 / 2 * (-(M.Yb * M.uc * (2 * PriceDispersion.ThetaCalvo α β M.θ M.omg) *
+          ∑' t, β ^ t * ((π1 (t + 1) - γ * π1 t) ^ 2 +
+            Moments.calvoKappa α β M.omg M.θ M.sig / M.θ * M.gap (y1 t) (ξ1 t) ^ 2))))) =O[𝓝 0]
+      fun ε => ε ^ 3 := by
+  obtain ⟨C, hC⟩ := hπ1
+  have hs := unif_shift (f := fun t ε => infl ε t - ε * π1 t) (g := fun ε => ε ^ 2) hπ
+  have hq : (fun p : ℕ × ℝ => (infl p.2 (p.1 + 1) - γ * infl p.2 p.1) -
+      p.2 * (π1 (p.1 + 1) - γ * π1 p.1)) =O[unif] fun p => p.2 ^ 2 :=
+    (hs.sub (hπ.const_mul_left γ)).congr_left fun p => by ring
+  refine calvo_bridge (qd := fun ε t => infl ε (t + 1) - γ * infl ε t)
+    (q1 := fun t => π1 (t + 1) - γ * π1 t) hM heff hden hθ hd hα0 hα1 hβ0 hβ1 h hy1 hξ1 hdem
+    hrec hq ⟨C + |γ| * C, fun t => ?_⟩ hR
+  have h1 := hC (t + 1)
+  have h2 := hC t
+  calc |π1 (t + 1) - γ * π1 t| ≤ |π1 (t + 1)| + |γ * π1 t| := abs_sub _ _
+    _ ≤ C + |γ| * C := by
+      rw [abs_mul]
+      gcongr
+
+/-- Woodford (2003), §2.2, Prop. 6.4, p. 400 (**welfare ranking by the discounted Calvo loss**):
+two policies `A`, `B` with the same disturbances `ε ξ₁_t` and the same initial dispersion
+`Δ_{−1}(ε)`, each satisfying the hypotheses of `prop64_bridge`; if the discounted first-order loss
+`∑ βᵗ (π₁_t² + λ x₁_t²)` of `A` is smaller, `A` is strictly better for all small `ε > 0`
+(`θ > 0`, `1 + ωθ > 0`, `β < 1`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem prop64_ranking (hM : M.Std) (heff : M.vy = M.uc) (hden : M.sig + M.omg ≠ 0)
+    (hθ : 0 < M.θ) (hd : 0 < 1 + M.omg * M.θ) {α β : ℝ} (hα0 : 0 < α) (hα1 : α < 1)
+    (hβ0 : 0 ≤ β) (hβ1 : β < 1) {ξ1 : ℕ → Ξ} (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C)
+    {yA yB : ℕ → ℝ → ι → ℝ} {yA1 yB1 : ℕ → ι → ℝ}
+    (hA : (fun p : ℕ × ℝ => yA p.1 p.2 - p.2 • yA1 p.1) =O[unif] fun p => p.2 ^ 2)
+    (hB : (fun p : ℕ × ℝ => yB p.1 p.2 - p.2 • yB1 p.1) =O[unif] fun p => p.2 ^ 2)
+    (hyA : ∃ C, ∀ t, ‖yA1 t‖ ≤ C) (hyB : ∃ C, ∀ t, ‖yB1 t‖ ≤ C)
+    {DA DB iA iB RA RB : ℝ → ℕ → ℝ} {πA πB : ℕ → ℝ}
+    (hdA : ∀ ε t, crossVar M.w (yA t ε) = M.θ ^ 2 * DA ε (t + 1))
+    (hdB : ∀ ε t, crossVar M.w (yB t ε) = M.θ ^ 2 * DB ε (t + 1))
+    (hD0 : ∀ ε, DA ε 0 = DB ε 0)
+    (hrA : ∀ ε t, DA ε (t + 1) = α * DA ε t + α / (1 - α) * iA ε (t + 1) ^ 2 + RA ε t)
+    (hrB : ∀ ε t, DB ε (t + 1) = α * DB ε t + α / (1 - α) * iB ε (t + 1) ^ 2 + RB ε t)
+    (hπA : (fun p : ℕ × ℝ => iA p.2 p.1 - p.2 * πA p.1) =O[unif] fun p => p.2 ^ 2)
+    (hπB : (fun p : ℕ × ℝ => iB p.2 p.1 - p.2 * πB p.1) =O[unif] fun p => p.2 ^ 2)
+    (hπA1 : ∃ C, ∀ t, |πA t| ≤ C) (hπB1 : ∃ C, ∀ t, |πB t| ≤ C)
+    (hRA : (fun p : ℕ × ℝ => RA p.2 p.1) =O[unif] fun p => p.2 ^ 3)
+    (hRB : (fun p : ℕ × ℝ => RB p.2 p.1) =O[unif] fun p => p.2 ^ 3)
+    (hL : ∑' t, β ^ t * (πA (t + 1) ^ 2 + Moments.calvoKappa α β M.omg M.θ M.sig / M.θ *
+        M.gap (yA1 t) (ξ1 t) ^ 2) <
+      ∑' t, β ^ t * (πB (t + 1) ^ 2 + Moments.calvoKappa α β M.omg M.θ M.sig / M.θ *
+        M.gap (yB1 t) (ξ1 t) ^ 2)) :
+    ∀ᶠ ε in 𝓝[>] 0, ∑' t, β ^ t * M.Ustate (yB t ε) (ε • ξ1 t) <
+      ∑' t, β ^ t * M.Ustate (yA t ε) (ε • ξ1 t) := by
+  have hk : 0 < M.Yb * M.uc * (2 * PriceDispersion.ThetaCalvo α β M.θ M.omg) :=
+    mul_pos (mul_pos hM.Yb_pos hM.uc_pos)
+      (mul_pos two_pos (PriceDispersion.ThetaCalvo_pos hα0 hα1 hβ1 hθ hd))
+  have bA := prop64_bridge hM heff hden hθ.ne' hd.ne' hα0 hα1 hβ0 hβ1 hA hyA hξ1 hdA hrA hπA
+    hπA1 hRA
+  have bB := prop64_bridge hM heff hden hθ.ne' hd.ne' hα0 hα1 hβ0 hβ1 hB hyB hξ1 hdB hrB hπB
+    hπB1 hRB
+  simp only [hD0] at bA
+  exact ranking_of_tip hk bA bB hL
+
+/-- Woodford (2003), §2.2, Prop. 6.5, p. 402 (**welfare ranking with indexation**): as
+`prop64_ranking`, with the quasi-differenced inflation `π₁_t − γπ₁_{t−1}` in the loss.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem prop65_ranking (hM : M.Std) (heff : M.vy = M.uc) (hden : M.sig + M.omg ≠ 0)
+    (hθ : 0 < M.θ) (hd : 0 < 1 + M.omg * M.θ) {α β γ : ℝ} (hα0 : 0 < α) (hα1 : α < 1)
+    (hβ0 : 0 ≤ β) (hβ1 : β < 1) {ξ1 : ℕ → Ξ} (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C)
+    {yA yB : ℕ → ℝ → ι → ℝ} {yA1 yB1 : ℕ → ι → ℝ}
+    (hA : (fun p : ℕ × ℝ => yA p.1 p.2 - p.2 • yA1 p.1) =O[unif] fun p => p.2 ^ 2)
+    (hB : (fun p : ℕ × ℝ => yB p.1 p.2 - p.2 • yB1 p.1) =O[unif] fun p => p.2 ^ 2)
+    (hyA : ∃ C, ∀ t, ‖yA1 t‖ ≤ C) (hyB : ∃ C, ∀ t, ‖yB1 t‖ ≤ C)
+    {DA DB iA iB RA RB : ℝ → ℕ → ℝ} {πA πB : ℕ → ℝ}
+    (hdA : ∀ ε t, crossVar M.w (yA t ε) = M.θ ^ 2 * DA ε (t + 1))
+    (hdB : ∀ ε t, crossVar M.w (yB t ε) = M.θ ^ 2 * DB ε (t + 1))
+    (hD0 : ∀ ε, DA ε 0 = DB ε 0)
+    (hrA : ∀ ε t, DA ε (t + 1) =
+      α * DA ε t + α / (1 - α) * (iA ε (t + 1) - γ * iA ε t) ^ 2 + RA ε t)
+    (hrB : ∀ ε t, DB ε (t + 1) =
+      α * DB ε t + α / (1 - α) * (iB ε (t + 1) - γ * iB ε t) ^ 2 + RB ε t)
+    (hπA : (fun p : ℕ × ℝ => iA p.2 p.1 - p.2 * πA p.1) =O[unif] fun p => p.2 ^ 2)
+    (hπB : (fun p : ℕ × ℝ => iB p.2 p.1 - p.2 * πB p.1) =O[unif] fun p => p.2 ^ 2)
+    (hπA1 : ∃ C, ∀ t, |πA t| ≤ C) (hπB1 : ∃ C, ∀ t, |πB t| ≤ C)
+    (hRA : (fun p : ℕ × ℝ => RA p.2 p.1) =O[unif] fun p => p.2 ^ 3)
+    (hRB : (fun p : ℕ × ℝ => RB p.2 p.1) =O[unif] fun p => p.2 ^ 3)
+    (hL : ∑' t, β ^ t * ((πA (t + 1) - γ * πA t) ^ 2 +
+        Moments.calvoKappa α β M.omg M.θ M.sig / M.θ * M.gap (yA1 t) (ξ1 t) ^ 2) <
+      ∑' t, β ^ t * ((πB (t + 1) - γ * πB t) ^ 2 +
+        Moments.calvoKappa α β M.omg M.θ M.sig / M.θ * M.gap (yB1 t) (ξ1 t) ^ 2)) :
+    ∀ᶠ ε in 𝓝[>] 0, ∑' t, β ^ t * M.Ustate (yB t ε) (ε • ξ1 t) <
+      ∑' t, β ^ t * M.Ustate (yA t ε) (ε • ξ1 t) := by
+  have hk : 0 < M.Yb * M.uc * (2 * PriceDispersion.ThetaCalvo α β M.θ M.omg) :=
+    mul_pos (mul_pos hM.Yb_pos hM.uc_pos)
+      (mul_pos two_pos (PriceDispersion.ThetaCalvo_pos hα0 hα1 hβ1 hθ hd))
+  have bA := prop65_bridge hM heff hden hθ.ne' hd.ne' hα0 hα1 hβ0 hβ1 hA hyA hξ1 hdA hrA hπA
+    hπA1 hRA
+  have bB := prop65_bridge hM heff hden hθ.ne' hd.ne' hα0 hα1 hβ0 hβ1 hB hyB hξ1 hdB hrB hπB
+    hπB1 hRB
+  simp only [hD0] at bA
+  exact ranking_of_tip hk bA bB hL
+
+end Econ
+
+end BridgeCore
+
+end Woodford.GainsFromCommitment.TidyR6WelfBridge
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Welfare to `O(ε³)` for Chapter 7: the Calvo bridge uniform in the state
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §1.1, p. 471 (footnote 6: welfare is
+decreasing in (1.2) "neglecting terms independent of policy and a residual of only third
+order"), and the approximation qualifiers "up to an error of order `O(‖·‖²)`" of
+Propositions 7.1–7.5 (pp. 471–487) and 7.15 (p. 523), which rest on the Chapter 6 welfare
+approximation (Chapter 6, Propositions 6.4–6.5, pp. 400–402, and Appendix E.2–E.3).
+
+This module supplies the tools that turn the Chapter 6 Layer-B bridge (restated in
+TidyR6WelfBridge) into statements about the welfare rankings of Chapter 7.
+
+## Main results
+
+* **Ranking engine** (deterministic and uniform in a state space): `WeaklyBetter`
+  (`W_B ≤ W_A + O(ε³)`), `weaklyBetter_of_loss_le`, `eventually_lt_of_loss_lt` (strictly
+  better for every small `ε ≠ 0`), and the converse `loss_le_of_weaklyBetter`: a policy that is
+  at least as good as another up to `O(ε³)` has a first-order loss no larger. The uniform
+  versions `UWeaklyBetter`, `uweaklyBetter_of_loss_le`, `ueventually_lt_of_loss_lt`,
+  `loss_le_of_uweaklyBetter` hold state by state with one constant for all states.
+* **The Calvo bridge uniform in the state** (`calvo_bridge_unif`): Propositions 6.4–6.5 of
+  Chapter 6 with every hypothesis uniform in the date AND the state, and the conclusion
+  `∑βᵗU_t = TIP − (ε²/2)Ȳu_c·2Θ∑βᵗ(q₁_t² + (κ/θ)x₁_t²) + O(ε³)` with ONE constant for all
+  states. `calvo_identity` is the exact identity along one path.
+* **Expected welfare** (`SCalvoFamily.bridge`): for any `ExpectationSystem`, E_0 of the
+  discounted utility of every path satisfies the same expansion uniformly in the date-`0` state.
+* **`λ = κ/θ` derived** (`kap`, `lamW`, `lamW_eq`, `kap_pos`, `lamW_pos`): the weight on the
+  output gap in the loss produced by the bridge is the Calvo slope `κ` of (2.19) divided by `θ`;
+  it is not assumed.
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR6WelfCalvo
+
+open Filter Topology Asymptotics
+open Woodford.GainsFromCommitment.TidyR6WelfBase Woodford.GainsFromCommitment.TidyR6WelfBridge
+
+/-! ### The ranking engine -/
+
+/-- Woodford (2003), p. 471, fn. 6 (**welfare ranking up to third order**): policy `A` is at
+least as good as policy `B` up to `O(ε³)`, `W_B(ε) ≤ W_A(ε) + C|ε|³` for all small `ε`. -/
+def WeaklyBetter (WA WB : ℝ → ℝ) : Prop := ∃ C, ∀ᶠ ε in 𝓝 (0 : ℝ), WB ε ≤ WA ε + C * |ε| ^ 3
+
+/-- Woodford (2003), p. 471, fn. 6 (tool): unpacking a cubic remainder. -/
+theorem cubic_bound {f : ℝ → ℝ} (h : f =O[𝓝 0] fun ε => ε ^ 3) :
+    ∃ C, ∀ᶠ ε in 𝓝 (0 : ℝ), |f ε| ≤ C * |ε| ^ 3 := by
+  obtain ⟨C, hC⟩ := h.bound
+  exact ⟨C, hC.mono fun ε hε => by simpa [Real.norm_eq_abs, abs_pow] using hε⟩
+
+/-- Woodford (2003), p. 471, fn. 6 and Ch. 6, §1, pp. 386–389: if `W_X = T − (ε²/2)k L_X + O(ε³)`
+with the same policy-independent `T`, `k ≥ 0` and `L_A ≤ L_B`, then `A` is at least as good as
+`B` up to `O(ε³)`. -/
+theorem weaklyBetter_of_loss_le {WA WB T : ℝ → ℝ} {k LA LB : ℝ} (hk : 0 ≤ k)
+    (hA : (fun ε => WA ε - (T ε - ε ^ 2 / 2 * (k * LA))) =O[𝓝 0] fun ε => ε ^ 3)
+    (hB : (fun ε => WB ε - (T ε - ε ^ 2 / 2 * (k * LB))) =O[𝓝 0] fun ε => ε ^ 3)
+    (hL : LA ≤ LB) : WeaklyBetter WA WB := by
+  obtain ⟨C, hC⟩ := cubic_bound (hB.sub hA)
+  refine ⟨C, hC.mono fun ε hε => ?_⟩
+  have h1 := (abs_le.mp hε).2
+  have h2 : 0 ≤ ε ^ 2 / 2 * k * (LB - LA) :=
+    mul_nonneg (mul_nonneg (by positivity) hk) (by linarith)
+  nlinarith
+
+/-- Woodford (2003), Ch. 6, §1, pp. 386–389 (**strict ranking**): with `k > 0` and `L_A < L_B`,
+`W_B(ε) < W_A(ε)` for every small `ε ≠ 0`. -/
+theorem eventually_lt_of_loss_lt {WA WB T : ℝ → ℝ} {k LA LB : ℝ} (hk : 0 < k)
+    (hA : (fun ε => WA ε - (T ε - ε ^ 2 / 2 * (k * LA))) =O[𝓝 0] fun ε => ε ^ 3)
+    (hB : (fun ε => WB ε - (T ε - ε ^ 2 / 2 * (k * LB))) =O[𝓝 0] fun ε => ε ^ 3)
+    (hL : LA < LB) : ∀ᶠ ε in 𝓝[≠] (0 : ℝ), WB ε < WA ε := by
+  obtain ⟨C, hC⟩ := cubic_bound (hB.sub hA)
+  set g := k * (LB - LA) / 2 with hg
+  have hgpos : 0 < g := by rw [hg]; have := mul_pos hk (sub_pos.mpr hL); linarith
+  have hball : ∀ᶠ ε in 𝓝 (0 : ℝ), |ε| * (|C| + 1) < g := by
+    have hc : Tendsto (fun ε : ℝ => |ε| * (|C| + 1)) (𝓝 0) (𝓝 (|(0 : ℝ)| * (|C| + 1))) :=
+      (continuous_abs.tendsto 0).mul_const _
+    simp only [abs_zero, zero_mul] at hc
+    exact hc.eventually (gt_mem_nhds hgpos)
+  filter_upwards [nhdsWithin_le_nhds hC, nhdsWithin_le_nhds hball, self_mem_nhdsWithin]
+    with ε hε hb hne
+  have hε0 : 0 < |ε| := abs_pos.mpr hne
+  have h1 := (abs_le.mp hε).2
+  have hsq : ε ^ 2 = |ε| ^ 2 := (sq_abs ε).symm
+  have hcube : C * |ε| ^ 3 < g * |ε| ^ 2 := by
+    have : |ε| ^ 2 * (|ε| * (|C| + 1)) < |ε| ^ 2 * g :=
+      mul_lt_mul_of_pos_left hb (by positivity)
+    nlinarith [le_abs_self C, abs_nonneg C, sq_nonneg ε, pow_pos hε0 2, pow_pos hε0 3]
+  have : WB ε - WA ε ≤ C * |ε| ^ 3 - g * ε ^ 2 := by rw [hg]; nlinarith
+  rw [hsq] at this
+  linarith
+
+/-- Woodford (2003), Propositions 7.1–7.5 and 7.15 ("up to an error of order `O(‖·‖²)`", the
+**converse**): if `A` is at least as good as `B` up to `O(ε³)` and both have Layer-B
+expansions with the same `T` and `k > 0`, then `L_A ≤ L_B`. -/
+theorem loss_le_of_weaklyBetter {WA WB T : ℝ → ℝ} {k LA LB : ℝ} (hk : 0 < k)
+    (hA : (fun ε => WA ε - (T ε - ε ^ 2 / 2 * (k * LA))) =O[𝓝 0] fun ε => ε ^ 3)
+    (hB : (fun ε => WB ε - (T ε - ε ^ 2 / 2 * (k * LB))) =O[𝓝 0] fun ε => ε ^ 3)
+    (h : WeaklyBetter WA WB) : LA ≤ LB := by
+  by_contra hlt
+  push Not at hlt
+  obtain ⟨C, hC⟩ := h
+  obtain ⟨D, hD⟩ := cubic_bound (hA.sub hB)
+  set g := k * (LA - LB) / 2 with hg
+  have hgpos : 0 < g := by rw [hg]; have := mul_pos hk (sub_pos.mpr hlt); linarith
+  have hball : ∀ᶠ ε in 𝓝 (0 : ℝ), |ε| * (|C| + |D| + 1) < g := by
+    have hc : Tendsto (fun ε : ℝ => |ε| * (|C| + |D| + 1)) (𝓝 0)
+        (𝓝 (|(0 : ℝ)| * (|C| + |D| + 1))) := (continuous_abs.tendsto 0).mul_const _
+    simp only [abs_zero, zero_mul] at hc
+    exact hc.eventually (gt_mem_nhds hgpos)
+  have hev : ∀ᶠ ε in 𝓝[≠] (0 : ℝ), False := by
+    filter_upwards [nhdsWithin_le_nhds hC, nhdsWithin_le_nhds hD, nhdsWithin_le_nhds hball,
+      self_mem_nhdsWithin] with ε h1 h2 hb hne
+    have hε0 : 0 < |ε| := abs_pos.mpr hne
+    have h3 := (abs_le.mp h2).2
+    have hsq : ε ^ 2 = |ε| ^ 2 := (sq_abs ε).symm
+    have hkey : g * |ε| ^ 2 ≤ (C + D) * |ε| ^ 3 := by
+      have : WA ε - WB ε - ε ^ 2 / 2 * (k * (LB - LA)) ≤ D * |ε| ^ 3 := by nlinarith
+      rw [hg]; nlinarith
+    have : |ε| ^ 2 * (|ε| * (|C| + |D| + 1)) < |ε| ^ 2 * g :=
+      mul_lt_mul_of_pos_left hb (by positivity)
+    nlinarith [le_abs_self C, le_abs_self D, abs_nonneg C, abs_nonneg D, pow_pos hε0 3]
+  have hne : (𝓝[≠] (0 : ℝ)).NeBot := inferInstance
+  exact (hev.exists).elim fun _ h => h
+
+/-! ### The ranking engine uniformly in a state space -/
+
+/-- Woodford (2003), p. 471, fn. 6, under uncertainty: `A` is at least as good as `B` up to
+`O(ε³)` in every state `ω` (conditional on date-`t₀` information), with one constant `C` for all
+states: `W_B(ε, ω) ≤ W_A(ε, ω) + C|ε|³`. -/
+def UWeaklyBetter {Ω : Type*} (WA WB : ℝ → Ω → ℝ) : Prop :=
+  ∃ C, ∀ᶠ ε in 𝓝 (0 : ℝ), ∀ ω, WB ε ω ≤ WA ε ω + C * |ε| ^ 3
+
+/-- Woodford (2003), App. E.2, p. 695 (uniformity in the state): a family of functions of `ε`
+is `O(ε³)` with one constant for all states. -/
+def UCubic {Ω : Type*} (f : ℝ → Ω → ℝ) : Prop :=
+  ∃ C, ∀ᶠ ε in 𝓝 (0 : ℝ), ∀ ω, |f ε ω| ≤ C * |ε| ^ 3
+
+/-- Woodford (2003), p. 471, fn. 6, under uncertainty: the uniform version of
+`weaklyBetter_of_loss_le`, state by state. -/
+theorem uweaklyBetter_of_loss_le {Ω : Type*} {WA WB T : ℝ → Ω → ℝ} {k : ℝ} {LA LB : Ω → ℝ}
+    (hk : 0 ≤ k) (hA : UCubic fun ε ω => WA ε ω - (T ε ω - ε ^ 2 / 2 * (k * LA ω)))
+    (hB : UCubic fun ε ω => WB ε ω - (T ε ω - ε ^ 2 / 2 * (k * LB ω)))
+    (hL : ∀ ω, LA ω ≤ LB ω) : UWeaklyBetter WA WB := by
+  obtain ⟨C1, h1⟩ := hA
+  obtain ⟨C2, h2⟩ := hB
+  refine ⟨C1 + C2, (h1.and h2).mono fun ε ⟨e1, e2⟩ ω => ?_⟩
+  have a1 := (abs_le.mp (e1 ω)).1
+  have a2 := (abs_le.mp (e2 ω)).2
+  have h3 : 0 ≤ ε ^ 2 / 2 * k * (LB ω - LA ω) :=
+    mul_nonneg (mul_nonneg (by positivity) hk) (by linarith [hL ω])
+  nlinarith
+
+/-- Woodford (2003), Ch. 6, §1, under uncertainty (**strict ranking in a given state**): if
+`L_A(ω) < L_B(ω)` then `W_B(ε, ω) < W_A(ε, ω)` for every small `ε ≠ 0`. -/
+theorem ueventually_lt_of_loss_lt {Ω : Type*} {WA WB T : ℝ → Ω → ℝ} {k : ℝ} {LA LB : Ω → ℝ}
+    (hk : 0 < k) (hA : UCubic fun ε ω => WA ε ω - (T ε ω - ε ^ 2 / 2 * (k * LA ω)))
+    (hB : UCubic fun ε ω => WB ε ω - (T ε ω - ε ^ 2 / 2 * (k * LB ω))) (ω : Ω)
+    (hL : LA ω < LB ω) : ∀ᶠ ε in 𝓝[≠] (0 : ℝ), WB ε ω < WA ε ω := by
+  obtain ⟨C1, h1⟩ := hA
+  obtain ⟨C2, h2⟩ := hB
+  have hA' : (fun ε => WA ε ω - (T ε ω - ε ^ 2 / 2 * (k * LA ω))) =O[𝓝 0] fun ε => ε ^ 3 :=
+    IsBigO.of_bound C1 (h1.mono fun ε h => by simpa [Real.norm_eq_abs, abs_pow] using h ω)
+  have hB' : (fun ε => WB ε ω - (T ε ω - ε ^ 2 / 2 * (k * LB ω))) =O[𝓝 0] fun ε => ε ^ 3 :=
+    IsBigO.of_bound C2 (h2.mono fun ε h => by simpa [Real.norm_eq_abs, abs_pow] using h ω)
+  exact eventually_lt_of_loss_lt (T := fun ε => T ε ω) hk hA' hB' hL
+
+/-- Woodford (2003), Propositions 7.5 and 7.15 under uncertainty (the **converse**, state by
+state): if `A` is at least as good as `B` up to `O(ε³)` uniformly in the state, then
+`L_A ≤ L_B` in every state. -/
+theorem loss_le_of_uweaklyBetter {Ω : Type*} {WA WB T : ℝ → Ω → ℝ} {k : ℝ} {LA LB : Ω → ℝ}
+    (hk : 0 < k) (hA : UCubic fun ε ω => WA ε ω - (T ε ω - ε ^ 2 / 2 * (k * LA ω)))
+    (hB : UCubic fun ε ω => WB ε ω - (T ε ω - ε ^ 2 / 2 * (k * LB ω)))
+    (h : UWeaklyBetter WA WB) (ω : Ω) : LA ω ≤ LB ω := by
+  obtain ⟨C1, h1⟩ := hA
+  obtain ⟨C2, h2⟩ := hB
+  obtain ⟨C, hC⟩ := h
+  have hA' : (fun ε => WA ε ω - (T ε ω - ε ^ 2 / 2 * (k * LA ω))) =O[𝓝 0] fun ε => ε ^ 3 :=
+    IsBigO.of_bound C1 (h1.mono fun ε h => by simpa [Real.norm_eq_abs, abs_pow] using h ω)
+  have hB' : (fun ε => WB ε ω - (T ε ω - ε ^ 2 / 2 * (k * LB ω))) =O[𝓝 0] fun ε => ε ^ 3 :=
+    IsBigO.of_bound C2 (h2.mono fun ε h => by simpa [Real.norm_eq_abs, abs_pow] using h ω)
+  exact loss_le_of_weaklyBetter (T := fun ε => T ε ω) hk hA' hB' ⟨C, hC.mono fun ε h => h ω⟩
+
+/-! ### The Calvo bridge uniformly in the date and the state -/
+
+/-- Woodford (2003), App. E.2, p. 695, under uncertainty: the filter "uniformly in the state
+`j` and the date `t`, as the amplitude `ε → 0`", `⊤ ×ˢ 𝓝 0` on `(J × ℕ) × ℝ`. -/
+abbrev uF (J : Type*) : Filter ((J × ℕ) × ℝ) := (⊤ : Filter (J × ℕ)) ×ˢ 𝓝 (0 : ℝ)
+
+/-- Woodford (2003), App. E.2, p. 695: the amplitude tends to zero along `uF J`. -/
+theorem tendsto_uF (J : Type*) : Tendsto (fun p : (J × ℕ) × ℝ => p.2) (uF J) (𝓝 0) :=
+  tendsto_snd
+
+/-- Woodford (2003), App. E.2, p. 695 (**what uniformity in the state and the date says**):
+`f =O[uF J] g` iff one constant `C` gives `‖f j t ε‖ ≤ C‖g ε‖` for all `j`, `t` and small `ε`. -/
+theorem isBigO_uF_iff {J E : Type*} [Norm E] {f : J → ℕ → ℝ → E} {g : ℝ → ℝ} :
+    (fun p : (J × ℕ) × ℝ => f p.1.1 p.1.2 p.2) =O[uF J] (fun p => g p.2) ↔
+      ∃ C, ∀ᶠ ε in 𝓝 0, ∀ j t, ‖f j t ε‖ ≤ C * ‖g ε‖ := by
+  constructor
+  · intro h
+    obtain ⟨C, hC⟩ := h.bound
+    refine ⟨C, ?_⟩
+    obtain ⟨pa, hpa, pb, hpb, hab⟩ := Filter.eventually_prod_iff.1 hC
+    rw [eventually_top] at hpa
+    filter_upwards [hpb] with ε hε j t
+    exact hab (hpa (j, t)) hε
+  · rintro ⟨C, hC⟩
+    exact IsBigO.of_bound C ((hC.prod_inr _).mono fun p hp => hp p.1.1 p.1.2)
+
+/-- Woodford (2003), App. E.3, p. 697, under uncertainty: a family bounded by one constant for
+all states and dates is `O(1)` along `uF J`. -/
+theorem uF_of_bounded {J E : Type*} [Norm E] {f : J → ℕ → E} (hf : ∃ C, ∀ j t, ‖f j t‖ ≤ C) :
+    (fun p : (J × ℕ) × ℝ => f p.1.1 p.1.2) =O[uF J] fun _ => (1 : ℝ) := by
+  obtain ⟨C, hC⟩ := hf
+  exact IsBigO.of_bound C (Eventually.of_forall fun p => by simpa using hC p.1.1 p.1.2)
+
+/-- Woodford (2003), (2.21), p. 400, under uncertainty (**discounted sums of remainders uniform in
+the state**): if `f j t ε = O(εⁿ)` uniformly in `j`, `t`, then for all small `ε` and every `j`,
+`|∑ βᵗ f j t ε| ≤ C|ε|ⁿ`. -/
+theorem tsum_bound_uF {J : Type*} {f : J → ℕ → ℝ → ℝ} {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    {n : ℕ} (hf : (fun p : (J × ℕ) × ℝ => f p.1.1 p.1.2 p.2) =O[uF J] (fun p => p.2 ^ n)) :
+    ∃ C, ∀ᶠ ε in 𝓝 (0 : ℝ), ∀ j, |∑' t, β ^ t * f j t ε| ≤ C * |ε| ^ n := by
+  obtain ⟨C, hC⟩ := (isBigO_uF_iff (g := fun ε => ε ^ n)).1 hf
+  refine ⟨C / (1 - β), hC.mono fun ε hε j => ?_⟩
+  have h := SeqW.abs_tsum_le (f := fun t => f j t ε) (B := C * ‖ε ^ n‖)
+    (fun t => by simpa [Real.norm_eq_abs] using hε j t) hβ0 hβ1
+  rw [Real.norm_eq_abs, abs_pow] at h
+  calc _ ≤ C * |ε| ^ n / (1 - β) := h
+    _ = C / (1 - β) * |ε| ^ n := by ring
+
+/-- Woodford (2003), App. E.3, p. 697, under uncertainty: a family that is `O(1)` uniformly in
+`j`, `t` is, for all small `ε`, bounded by one constant for every `j` and `t`. -/
+theorem bdd_uF {J : Type*} {f : J → ℕ → ℝ → ℝ}
+    (hf : (fun p : (J × ℕ) × ℝ => f p.1.1 p.1.2 p.2) =O[uF J] (fun _ => (1 : ℝ))) :
+    ∃ C, ∀ᶠ ε in 𝓝 (0 : ℝ), ∀ j t, |f j t ε| ≤ C := by
+  obtain ⟨C, hC⟩ := (isBigO_uF_iff (g := fun _ => (1 : ℝ))).1 hf
+  exact ⟨C, hC.mono fun ε hε j t => by simpa using hε j t⟩
+
+/-- Woodford (2003), App. E.2, p. 695: `εᵏ = O(1)` along `uF J`. -/
+theorem pow_uF_one (J : Type*) (k : ℕ) :
+    (fun p : (J × ℕ) × ℝ => p.2 ^ k) =O[uF J] fun _ => (1 : ℝ) :=
+  (((tendsto_uF J).isBigO_one ℝ).pow k).congr_right fun _ => one_pow k
+
+variable {Ξ : Type*} [NormedAddCommGroup Ξ] [NormedSpace ℝ Ξ] {ι : Type*} [Fintype ι]
+
+omit [Fintype ι] in
+/-- Woodford (2003), (2.10)/(E.1), under uncertainty: the t.i.p. along `ε ξ₁` is bounded uniformly
+in the state and the date for disturbances `ξ₁` bounded uniformly in both. -/
+theorem tipState_uF (M : BridgeCore.Econ Ξ ι) {J : Type*} {ξ1 : J → ℕ → Ξ}
+    (hξ1 : ∃ C, ∀ j t, ‖ξ1 j t‖ ≤ C) :
+    (fun p : (J × ℕ) × ℝ => M.tipState (p.2 • ξ1 p.1.1 p.1.2)) =O[uF J]
+      fun _ => (1 : ℝ) := by
+  have hx := uF_of_bounded hξ1
+  have he : (fun p : (J × ℕ) × ℝ => p.2) =O[uF J] fun _ => (1 : ℝ) :=
+    (tendsto_uF J).isBigO_one ℝ
+  have h1 : (fun p : (J × ℕ) × ℝ => BridgeCore.lin M.u M.Yb (ξ1 p.1.1 p.1.2) -
+      BridgeCore.lin M.v M.Yb (ξ1 p.1.1 p.1.2)) =O[uF J] fun _ => (1 : ℝ) :=
+    (BridgeCore.lin_isBigO M.u M.Yb hx).sub (BridgeCore.lin_isBigO M.v M.Yb hx)
+  have hq1 := (BridgeCore.quad_isBigO M.u M.Yb hx).congr_right fun _ => one_pow 2
+  have hq2 := (BridgeCore.quad_isBigO M.v M.Yb hx).congr_right fun _ => one_pow 2
+  have hN := BridgeCore.natLin_isBigO M.sig M.omg (M.gS_isBigO hx) (M.qS_isBigO hx)
+  have hA : (fun p : (J × ℕ) × ℝ => Prop61.tipA M.sig M.omg (M.gS (ξ1 p.1.1 p.1.2))
+      (M.qS (ξ1 p.1.1 p.1.2)) 0) =O[uF J] fun _ => (1 : ℝ) :=
+    (((hN.add (isBigO_const_const (Prop61.xStarLin M.sig M.omg 0) one_ne_zero
+      (uF J))).pow 2).const_mul_left ((M.sig + M.omg) / 2)).congr
+        (fun p => by unfold Prop61.tipA; ring) (fun p => one_pow 2)
+  have h2 : (fun p : (J × ℕ) × ℝ => BridgeCore.quad M.u M.Yb (ξ1 p.1.1 p.1.2) / 2 -
+      BridgeCore.quad M.v M.Yb (ξ1 p.1.1 p.1.2) / 2 + M.Yb * M.uc *
+        Prop61.tipA M.sig M.omg (M.gS (ξ1 p.1.1 p.1.2)) (M.qS (ξ1 p.1.1 p.1.2)) 0) =O[uF J]
+      fun _ => (1 : ℝ) :=
+    (((hq1.const_mul_left (1 / 2)).sub (hq2.const_mul_left (1 / 2))).add
+      (hA.const_mul_left (M.Yb * M.uc))).congr_left fun p => by ring
+  have t1 : (fun p : (J × ℕ) × ℝ => p.2 * (BridgeCore.lin M.u M.Yb (ξ1 p.1.1 p.1.2) -
+      BridgeCore.lin M.v M.Yb (ξ1 p.1.1 p.1.2))) =O[uF J] fun _ => (1 : ℝ) :=
+    (he.mul h1).congr_right fun _ => mul_one 1
+  have t2 : (fun p : (J × ℕ) × ℝ => p.2 ^ 2 * (BridgeCore.quad M.u M.Yb (ξ1 p.1.1 p.1.2) / 2 -
+      BridgeCore.quad M.v M.Yb (ξ1 p.1.1 p.1.2) / 2 + M.Yb * M.uc *
+        Prop61.tipA M.sig M.omg (M.gS (ξ1 p.1.1 p.1.2)) (M.qS (ξ1 p.1.1 p.1.2)) 0)) =O[uF J]
+      fun _ => (1 : ℝ) := ((he.pow 2).mul h2).congr_right fun _ => by ring
+  refine (((isBigO_const_const (M.tipState 0) one_ne_zero (uF J)).add t1).add t2).congr_left
+    fun p => ?_
+  rw [BridgeCore.Econ.tipState_smul]
+
+/-- Woodford (2003), **Propositions 6.4–6.5, (2.21)–(2.25), pp. 400–402, along ONE path (the
+exact identity)**: if `var_i ŷ_t = θ²Δ_t` and `Δ_t = αΔ_{t−1} + α/(1 − α)q_t² + R_t`, and the
+sequences `q`, the gap, `R`, the t.i.p. and the remainder `ρ_t = U_t − (tip_t − (Ȳu_c/2)L_t)`
+of Proposition 6.1 are bounded, then `∑βᵗU_t = ∑βᵗtip_t − Ȳu_c·θ(1 + ωθ)/2·αΔ_{−1}/(1 − αβ)
+− Ȳu_cΘ∑βᵗ(q_t² + (κ/θ)x_t²) + ∑βᵗρ_t − Ȳu_c·θ(1 + ωθ)/(2(1 − αβ))∑βᵗR_t`, all sums genuine.
+(The algebra of the Chapter 6 project's `BridgeCore.Econ.calvo_bridge`, isolated.) -/
+theorem calvo_identity (M : BridgeCore.Econ Ξ ι) (hM : M.Std) (hθ : M.θ ≠ 0)
+    (hd : 1 + M.omg * M.θ ≠ 0) {α β : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 ≤ β)
+    (hβ1 : β < 1) {yh : ℕ → ι → ℝ} {ξ : ℕ → Ξ} {D qd R : ℕ → ℝ} {B : ℝ}
+    (hdem : ∀ t, ExpLogCES.crossVar M.w (yh t) = M.θ ^ 2 * D (t + 1))
+    (hrec : ∀ t, D (t + 1) = α * D t + α / (1 - α) * qd t ^ 2 + R t)
+    (hqb : ∀ t, |qd t| ≤ B) (hXb : ∀ t, |M.gap (yh t) (ξ t)| ≤ B) (hRb : ∀ t, |R t| ≤ B)
+    (hTb : ∀ t, |M.tipState (ξ t)| ≤ B)
+    (hρb : ∀ t, |M.Ustate (yh t) (ξ t) -
+      (M.tipState (ξ t) - M.Yb * M.uc / 2 * M.lossB (yh t) (ξ t))| ≤ B) :
+    ∑' t, β ^ t * M.Ustate (yh t) (ξ t) =
+      ∑' t, β ^ t * M.tipState (ξ t) -
+        M.Yb * M.uc * (M.θ * (1 + M.omg * M.θ) / 2 * (α * D 0 / (1 - α * β))) -
+        M.Yb * M.uc * PriceDispersion.ThetaCalvo α β M.θ M.omg *
+          ∑' t, β ^ t * (qd t ^ 2 + Moments.calvoKappa α β M.omg M.θ M.sig / M.θ *
+            M.gap (yh t) (ξ t) ^ 2) +
+        ∑' t, β ^ t * (M.Ustate (yh t) (ξ t) -
+          (M.tipState (ξ t) - M.Yb * M.uc / 2 * M.lossB (yh t) (ξ t))) -
+        M.Yb * M.uc * (M.θ * (1 + M.omg * M.θ) / 2 / (1 - α * β)) * ∑' t, β ^ t * R t := by
+  have hYb0 : M.Yb ≠ 0 := hM.Yb_pos.ne'
+  have huc0 : M.uc ≠ 0 := hM.uc_pos.ne'
+  have hYb : 0 < M.Yb * M.uc := mul_pos hM.Yb_pos hM.uc_pos
+  have hT' : ∀ t, |M.tipState (ξ t) / (M.Yb * M.uc)| ≤ B / (M.Yb * M.uc) := fun t => by
+    rw [abs_div, abs_of_pos hYb]; exact div_le_div_of_nonneg_right (hTb t) hYb.le
+  have hρ' : ∀ t, |(M.Ustate (yh t) (ξ t) - (M.tipState (ξ t) - M.Yb * M.uc / 2 *
+      M.lossB (yh t) (ξ t))) / (M.Yb * M.uc)| ≤ B / (M.Yb * M.uc) := fun t => by
+    rw [abs_div, abs_of_pos hYb]; exact div_le_div_of_nonneg_right (hρb t) hYb.le
+  have hB0 : 0 ≤ B := (abs_nonneg _).trans (hqb 0)
+  set B' := B + B / (M.Yb * M.uc) with hB'
+  have hBB : B ≤ B' := by rw [hB']; have := div_nonneg hB0 hYb.le; linarith
+  have hBB' : B / (M.Yb * M.uc) ≤ B' := by rw [hB']; linarith
+  have hW : ∀ t, M.Ustate (yh t) (ξ t) / (M.Yb * M.uc) = -(1 / 2) * ((M.sig + M.omg) *
+      M.gap (yh t) (ξ t) ^ 2 + M.θ * (1 + M.omg * M.θ) * D (t + 1)) +
+      M.tipState (ξ t) / (M.Yb * M.uc) + (M.Ustate (yh t) (ξ t) -
+        (M.tipState (ξ t) - M.Yb * M.uc / 2 * M.lossB (yh t) (ξ t))) / (M.Yb * M.uc) :=
+    fun t => by
+    have hl : M.lossB (yh t) (ξ t) = (M.sig + M.omg) * M.gap (yh t) (ξ t) ^ 2 +
+        M.θ * (1 + M.omg * M.θ) * D (t + 1) := by
+      unfold BridgeCore.Econ.lossB
+      rw [hdem, Prop61.lossQ_disp hθ]
+      rfl
+    rw [hl]
+    field_simp
+    ring
+  have hV := PriceDispersion.calvo_welfare_sum (M := B') hα0 hα1 hβ0 hβ1 hθ hd hrec hW
+    (fun t => (hqb t).trans hBB) (fun t => (hXb t).trans hBB) (fun t => (hRb t).trans hBB)
+    (fun t => (hT' t).trans hBB') (fun t => (hρ' t).trans hBB')
+  have e1 : ∑' t, β ^ t * M.Ustate (yh t) (ξ t) =
+      M.Yb * M.uc * ∑' t, β ^ t * (M.Ustate (yh t) (ξ t) / (M.Yb * M.uc)) := by
+    rw [← tsum_mul_left]
+    exact tsum_congr fun t => by field_simp
+  have e2 : M.Yb * M.uc * ∑' t, β ^ t * (M.tipState (ξ t) / (M.Yb * M.uc)) =
+      ∑' t, β ^ t * M.tipState (ξ t) := by
+    rw [← tsum_mul_left]
+    exact tsum_congr fun t => by field_simp
+  have e3 : M.Yb * M.uc * ∑' t, β ^ t * ((M.Ustate (yh t) (ξ t) -
+      (M.tipState (ξ t) - M.Yb * M.uc / 2 * M.lossB (yh t) (ξ t))) / (M.Yb * M.uc)) =
+      ∑' t, β ^ t * (M.Ustate (yh t) (ξ t) -
+        (M.tipState (ξ t) - M.Yb * M.uc / 2 * M.lossB (yh t) (ξ t))) := by
+    rw [← tsum_mul_left]
+    exact tsum_congr fun t => by field_simp
+  rw [e1, hV.tsum_eq]
+  linear_combination e2 + e3
+
+set_option maxHeartbeats 1600000 in
+-- many uniform `IsBigO` estimates are combined in one proof
+/-- Woodford (2003), **Propositions 6.4–6.5, (2.21)–(2.25), pp. 400–402, uniformly in the
+state** (the Layer-B bridge of Chapter 6 under uncertainty): for a family of paths indexed by
+states `j` (the realised histories), with the cross-section `ŷ(ε)`, the disturbances `ε ξ₁` and
+the dispersion recursion as in the Chapter 6 project's `BridgeCore.Econ.calvo_bridge` and every
+order hypothesis UNIFORM in the state and the date, the discounted utility of every path
+satisfies `∑βᵗU_t = TIP − (ε²/2)Ȳu_c·2Θ∑βᵗ(q₁_t² + (κ/θ)x₁_t²) + O(ε³)` with ONE constant for
+all states (`UCubic`), `κ` the Calvo slope (2.19). -/
+theorem calvo_bridge_unif (M : BridgeCore.Econ Ξ ι) (hM : M.Std) (heff : M.vy = M.uc)
+    (hden : M.sig + M.omg ≠ 0) (hθ : M.θ ≠ 0) (hd : 1 + M.omg * M.θ ≠ 0) {α β : ℝ}
+    (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 ≤ β) (hβ1 : β < 1) {J : Type*}
+    {yh : J → ℕ → ℝ → ι → ℝ} {y1 : J → ℕ → ι → ℝ} {ξ1 : J → ℕ → Ξ}
+    (h : (fun p : (J × ℕ) × ℝ => yh p.1.1 p.1.2 p.2 - p.2 • y1 p.1.1 p.1.2) =O[uF J]
+      fun p => p.2 ^ 2)
+    (hy1 : ∃ C, ∀ j t, ‖y1 j t‖ ≤ C) (hξ1 : ∃ C, ∀ j t, ‖ξ1 j t‖ ≤ C)
+    {D qd R : J → ℝ → ℕ → ℝ} {q1 : J → ℕ → ℝ}
+    (hdem : ∀ j ε t, ExpLogCES.crossVar M.w (yh j t ε) = M.θ ^ 2 * D j ε (t + 1))
+    (hrec : ∀ j ε t, D j ε (t + 1) = α * D j ε t + α / (1 - α) * qd j ε t ^ 2 + R j ε t)
+    (hq : (fun p : (J × ℕ) × ℝ => qd p.1.1 p.2 p.1.2 - p.2 * q1 p.1.1 p.1.2) =O[uF J]
+      fun p => p.2 ^ 2)
+    (hq1 : ∃ C, ∀ j t, |q1 j t| ≤ C)
+    (hR : (fun p : (J × ℕ) × ℝ => R p.1.1 p.2 p.1.2) =O[uF J] fun p => p.2 ^ 3) :
+    UCubic fun ε j => ∑' t, β ^ t * M.Ustate (yh j t ε) (ε • ξ1 j t) -
+      ((∑' t, β ^ t * M.tipState (ε • ξ1 j t) -
+          M.Yb * M.uc * (M.θ * (1 + M.omg * M.θ) / 2 * (α * D j ε 0 / (1 - α * β)))) -
+        ε ^ 2 / 2 * (M.Yb * M.uc * (2 * PriceDispersion.ThetaCalvo α β M.θ M.omg) *
+          ∑' t, β ^ t * (q1 j t ^ 2 + Moments.calvoKappa α β M.omg M.θ M.sig / M.θ *
+            M.gap (y1 j t) (ξ1 j t) ^ 2))) := by
+  have hs := tendsto_uF J
+  set kk := Moments.calvoKappa α β M.omg M.θ M.sig / M.θ with hkk
+  set Th := PriceDispersion.ThetaCalvo α β M.θ M.omg with hTh
+  set c3 := M.Yb * M.uc * (M.θ * (1 + M.omg * M.θ) / 2 / (1 - α * β)) with hc3
+  have hyu : (fun p : (J × ℕ) × ℝ => yh p.1.1 p.1.2 p.2) =O[uF J] fun p => p.2 :=
+    BridgeCore.family_isBigO (s := fun p : (J × ℕ) × ℝ => p.2) hs h (uF_of_bounded hy1)
+  have hx1 : (fun p : (J × ℕ) × ℝ => ξ1 p.1.1 p.1.2) =O[uF J] fun _ => (1 : ℝ) :=
+    uF_of_bounded hξ1
+  have hξu : (fun p : (J × ℕ) × ℝ => p.2 • ξ1 p.1.1 p.1.2) =O[uF J] fun p => p.2 :=
+    ((isBigO_refl (fun p : (J × ℕ) × ℝ => p.2) (uF J)).smul hx1).congr_right
+      fun _ => mul_one _
+  have hρ := BridgeCore.Econ.prop61_state_poly (l := uF J) (s := fun p : (J × ℕ) × ℝ => p.2)
+    (yh := fun p : (J × ℕ) × ℝ => yh p.1.1 p.1.2 p.2)
+    (ξ := fun p : (J × ℕ) × ℝ => p.2 • ξ1 p.1.1 p.1.2) hM heff hden hs hyu hξu
+  have hX1 : (fun p : (J × ℕ) × ℝ => M.gap (y1 p.1.1 p.1.2) (ξ1 p.1.1 p.1.2)) =O[uF J]
+      fun _ => (1 : ℝ) :=
+    (BridgeCore.crossMean_isBigO hM.w_nonneg hM.w_sum (uF_of_bounded hy1)).sub
+      (BridgeCore.natLin_isBigO M.sig M.omg (M.gS_isBigO hx1) (M.qS_isBigO hx1))
+  have hXd : (fun p : (J × ℕ) × ℝ => M.gap (yh p.1.1 p.1.2 p.2) (p.2 • ξ1 p.1.1 p.1.2) -
+      p.2 * M.gap (y1 p.1.1 p.1.2) (ξ1 p.1.1 p.1.2)) =O[uF J] fun p => p.2 ^ 2 :=
+    (BridgeCore.crossMean_isBigO hM.w_nonneg hM.w_sum h).congr_left
+      fun p => (BridgeCore.Econ.gap_smul_sub _ _ _ _).symm
+  have hX2 := BridgeCore.sq_sub_sq_isBigO hs hXd hX1
+  have hq1u : (fun p : (J × ℕ) × ℝ => q1 p.1.1 p.1.2) =O[uF J] fun _ => (1 : ℝ) := by
+    obtain ⟨C, hC⟩ := hq1
+    exact uF_of_bounded ⟨C, fun j t => by simpa using hC j t⟩
+  have hq2 := BridgeCore.sq_sub_sq_isBigO hs hq hq1u
+  have hcomb := hq2.add (hX2.const_mul_left kk)
+  obtain ⟨C1, S1⟩ := tsum_bound_uF (f := fun j t ε => (qd j ε t ^ 2 - ε ^ 2 * q1 j t ^ 2) +
+    kk * (M.gap (yh j t ε) (ε • ξ1 j t) ^ 2 - ε ^ 2 * M.gap (y1 j t) (ξ1 j t) ^ 2))
+    hβ0 hβ1 hcomb
+  obtain ⟨C2, S2⟩ := tsum_bound_uF (f := fun j t ε => M.Ustate (yh j t ε) (ε • ξ1 j t) -
+    (M.tipState (ε • ξ1 j t) - M.Yb * M.uc / 2 * M.lossB (yh j t ε) (ε • ξ1 j t))) hβ0 hβ1 hρ
+  obtain ⟨C3, S3⟩ := tsum_bound_uF (f := fun j t ε => R j ε t) hβ0 hβ1 hR
+  -- boundedness for small `ε`, uniformly in the state
+  have one : (fun p : (J × ℕ) × ℝ => p.2) =O[uF J] fun _ => (1 : ℝ) :=
+    hs.isBigO_one ℝ
+  obtain ⟨K1, bq⟩ := bdd_uF (f := fun j t ε => qd j ε t)
+    (((hq.trans (pow_uF_one J 2)).add ((one.mul hq1u).congr_right fun _ => mul_one 1)).congr_left
+      fun p => by ring)
+  obtain ⟨K2, bX⟩ := bdd_uF (f := fun j t ε => M.gap (yh j t ε) (ε • ξ1 j t))
+    (((hXd.trans (pow_uF_one J 2)).add ((one.mul hX1).congr_right fun _ => mul_one 1)).congr_left
+      fun p => by ring)
+  obtain ⟨K3, bR⟩ := bdd_uF (f := fun j t ε => R j ε t) (hR.trans (pow_uF_one J 3))
+  obtain ⟨K4, bT⟩ := bdd_uF (f := fun j t ε => M.tipState (ε • ξ1 j t)) (tipState_uF M hξ1)
+  obtain ⟨K5, bρ⟩ := bdd_uF (f := fun j t ε => M.Ustate (yh j t ε) (ε • ξ1 j t) -
+    (M.tipState (ε • ξ1 j t) - M.Yb * M.uc / 2 * M.lossB (yh j t ε) (ε • ξ1 j t)))
+    (hρ.trans (pow_uF_one J 3))
+  obtain ⟨K6, hBq1⟩ := hq1
+  obtain ⟨K7, bX1⟩ := bdd_uF (f := fun j t (_ : ℝ) => M.gap (y1 j t) (ξ1 j t)) hX1
+  obtain ⟨ε0, hε0⟩ := bX1.exists
+  refine ⟨C2 + |c3| * C3 + |M.Yb * M.uc * Th| * C1, ?_⟩
+  filter_upwards [S1, S2, S3, bq, bX, bR, bT, bρ] with ε s1 s2 s3 hb1 hb2 hb3 hb4 hb5 j
+  have n1 := abs_nonneg K1
+  have n2 := abs_nonneg K2
+  have n3 := abs_nonneg K3
+  have n4 := abs_nonneg K4
+  have n5 := abs_nonneg K5
+  have l1 : K1 ≤ |K1| + |K2| + |K3| + |K4| + |K5| := by linarith [le_abs_self K1]
+  have l2 : K2 ≤ |K1| + |K2| + |K3| + |K4| + |K5| := by linarith [le_abs_self K2]
+  have l3 : K3 ≤ |K1| + |K2| + |K3| + |K4| + |K5| := by linarith [le_abs_self K3]
+  have l4 : K4 ≤ |K1| + |K2| + |K3| + |K4| + |K5| := by linarith [le_abs_self K4]
+  have l5 : K5 ≤ |K1| + |K2| + |K3| + |K4| + |K5| := by linarith [le_abs_self K5]
+  have hid := calvo_identity M hM hθ hd hα0 hα1 hβ0 hβ1 (yh := fun t => yh j t ε)
+    (ξ := fun t => ε • ξ1 j t) (D := D j ε) (qd := qd j ε) (R := R j ε)
+    (B := |K1| + |K2| + |K3| + |K4| + |K5|) (fun t => hdem j ε t) (fun t => hrec j ε t)
+    (fun t => (hb1 j t).trans l1) (fun t => (hb2 j t).trans l2) (fun t => (hb3 j t).trans l3)
+    (fun t => (hb4 j t).trans l4) (fun t => (hb5 j t).trans l5)
+  have hA : SeqW.Bdd (fun t => qd j ε t ^ 2 + kk * M.gap (yh j t ε) (ε • ξ1 j t) ^ 2) :=
+    ⟨K1 ^ 2 + |kk| * K2 ^ 2, fun t => by
+      have a1 : qd j ε t ^ 2 ≤ K1 ^ 2 := sq_le_sq' (abs_le.mp (hb1 j t)).1 (abs_le.mp (hb1 j t)).2
+      have a2 : M.gap (yh j t ε) (ε • ξ1 j t) ^ 2 ≤ K2 ^ 2 :=
+        sq_le_sq' (abs_le.mp (hb2 j t)).1 (abs_le.mp (hb2 j t)).2
+      rw [abs_le]
+      constructor <;> nlinarith [abs_nonneg kk, neg_abs_le kk, le_abs_self kk,
+        sq_nonneg (qd j ε t), sq_nonneg (M.gap (yh j t ε) (ε • ξ1 j t))]⟩
+  have hB : SeqW.Bdd (fun t => q1 j t ^ 2 + kk * M.gap (y1 j t) (ξ1 j t) ^ 2) :=
+    ⟨K6 ^ 2 + |kk| * K7 ^ 2, fun t => by
+      have a1 : q1 j t ^ 2 ≤ K6 ^ 2 := sq_le_sq' (abs_le.mp (hBq1 j t)).1 (abs_le.mp (hBq1 j t)).2
+      have a2 : M.gap (y1 j t) (ξ1 j t) ^ 2 ≤ K7 ^ 2 :=
+        sq_le_sq' (abs_le.mp (hε0 j t)).1 (abs_le.mp (hε0 j t)).2
+      rw [abs_le]
+      constructor <;> nlinarith [abs_nonneg kk, neg_abs_le kk, le_abs_self kk,
+        sq_nonneg (q1 j t), sq_nonneg (M.gap (y1 j t) (ξ1 j t))]⟩
+  have e4 : ∑' t, β ^ t * ((qd j ε t ^ 2 - ε ^ 2 * q1 j t ^ 2) +
+      kk * (M.gap (yh j t ε) (ε • ξ1 j t) ^ 2 - ε ^ 2 * M.gap (y1 j t) (ξ1 j t) ^ 2)) =
+      ∑' t, β ^ t * (qd j ε t ^ 2 + kk * M.gap (yh j t ε) (ε • ξ1 j t) ^ 2) -
+        ε ^ 2 * ∑' t, β ^ t * (q1 j t ^ 2 + kk * M.gap (y1 j t) (ξ1 j t) ^ 2) := by
+    rw [← tsum_mul_left, ← (hA.summable hβ0 hβ1).tsum_sub ((hB.summable hβ0 hβ1).mul_left _)]
+    exact tsum_congr fun t => by ring
+  have key : ∑' t, β ^ t * M.Ustate (yh j t ε) (ε • ξ1 j t) -
+      ((∑' t, β ^ t * M.tipState (ε • ξ1 j t) -
+          M.Yb * M.uc * (M.θ * (1 + M.omg * M.θ) / 2 * (α * D j ε 0 / (1 - α * β)))) -
+        ε ^ 2 / 2 * (M.Yb * M.uc * (2 * Th) *
+          ∑' t, β ^ t * (q1 j t ^ 2 + kk * M.gap (y1 j t) (ξ1 j t) ^ 2))) =
+      ∑' t, β ^ t * (M.Ustate (yh j t ε) (ε • ξ1 j t) -
+          (M.tipState (ε • ξ1 j t) - M.Yb * M.uc / 2 * M.lossB (yh j t ε) (ε • ξ1 j t))) -
+        c3 * ∑' t, β ^ t * R j ε t -
+        M.Yb * M.uc * Th * ∑' t, β ^ t * ((qd j ε t ^ 2 - ε ^ 2 * q1 j t ^ 2) +
+          kk * (M.gap (yh j t ε) (ε • ξ1 j t) ^ 2 - ε ^ 2 * M.gap (y1 j t) (ξ1 j t) ^ 2)) := by
+    rw [e4, hid]
+    ring
+  rw [key]
+  have t1 := s2 j
+  have t2 : |c3 * ∑' t, β ^ t * R j ε t| ≤ |c3| * (C3 * |ε| ^ 3) := by
+    rw [abs_mul]; exact mul_le_mul_of_nonneg_left (s3 j) (abs_nonneg _)
+  have t3 : |M.Yb * M.uc * Th * ∑' t, β ^ t * ((qd j ε t ^ 2 - ε ^ 2 * q1 j t ^ 2) +
+      kk * (M.gap (yh j t ε) (ε • ξ1 j t) ^ 2 - ε ^ 2 * M.gap (y1 j t) (ξ1 j t) ^ 2))| ≤
+      |M.Yb * M.uc * Th| * (C1 * |ε| ^ 3) := by
+    rw [abs_mul]; exact mul_le_mul_of_nonneg_left (s1 j) (abs_nonneg _)
+  have tri : ∀ a b c : ℝ, |a - b - c| ≤ |a| + |b| + |c| := fun a b c => by
+    calc |a - b - c| ≤ |a - b| + |c| := abs_sub _ _
+      _ ≤ |a| + |b| + |c| := by linarith [abs_sub a b]
+  refine (tri _ _ _).trans ?_
+  nlinarith [t1, t2, t3]
+
+/-! ### Expected welfare -/
+
+omit [NormedSpace ℝ Ξ] [Fintype ι] in
+/-- Woodford (2003), §1, p. 385 (expected welfare `E_{t₀}`): a remainder that is `O(ε³)`
+uniformly in the state stays `O(ε³)` uniformly after taking E_0 (for any expectation system,
+by monotonicity and `E_0 c = c`). -/
+theorem ucubic_E {Ω : Type} (𝔼 : ExpectationSystem Ω) {f : ℝ → Ω → ℝ} (h : UCubic f) :
+    UCubic fun ε ω0 => 𝔼.E 0 (f ε) ω0 := by
+  obtain ⟨C, hC⟩ := h
+  exact ⟨C, hC.mono fun ε hε ω0 => 𝔼.abs_E_le (fun ω => hε ω) 0 ω0⟩
+
+/-! ### `λ = κ/θ` derived -/
+
+/-- Woodford (2003), Ch. 3, eq. (2.19), p. 187, restated in Ch. 6, p. 400: the slope of the
+Calvo aggregate-supply relation, `κ = (1 − α)(1 − αβ)/α · (ω + σ⁻¹)/(1 + ωθ)`, computed from the
+primitives of the economy `M` (`σ⁻¹ = M.sig`, `ω = M.omg`, `θ = M.θ`). -/
+noncomputable def kap (M : BridgeCore.Econ Ξ ι) (α β : ℝ) : ℝ :=
+  Moments.calvoKappa α β M.omg M.θ M.sig
+
+/-- Woodford (2003), Ch. 6, eq. (2.22), p. 400, used in Ch. 7, (1.2), p. 469 (**the loss
+weight produced by the welfare approximation**): `λ = κ/θ`. This is the weight on the squared
+output gap in the second-order expansion of actual utility (`CalvoFamily.bridge`,
+`SCalvoFamily.bridge`); it is derived, not assumed. -/
+noncomputable def lamW (M : BridgeCore.Econ Ξ ι) (α β : ℝ) : ℝ := kap M α β / M.θ
+
+omit [Fintype ι] in
+/-- Woodford (2003), Ch. 6, (2.22), p. 400: `λ = κ/θ` (definitional). -/
+theorem lamW_eq (M : BridgeCore.Econ Ξ ι) (α β : ℝ) : lamW M α β = kap M α β / M.θ := rfl
+
+omit [Fintype ι] in
+/-- Woodford (2003), Ch. 3, (2.19): `κ > 0` for `0 < α < 1`, `β < 1`, `σ⁻¹ + ω > 0`,
+`1 + ωθ > 0`. -/
+theorem kap_pos {M : BridgeCore.Econ Ξ ι} {α β : ℝ} (hα0 : 0 < α) (hα1 : α < 1)
+    (hβ1 : β < 1) (hs : 0 < M.sig + M.omg) (hd : 0 < 1 + M.omg * M.θ) : 0 < kap M α β := by
+  unfold kap Moments.calvoKappa
+  have h1 : 0 < 1 - α := by linarith
+  have h2 : 0 < 1 - α * β := by nlinarith
+  have h3 : 0 < M.omg + M.sig := by linarith
+  positivity
+
+omit [Fintype ι] in
+/-- Woodford (2003), Ch. 6, (2.22): `λ = κ/θ > 0` for `θ > 0`. -/
+theorem lamW_pos {M : BridgeCore.Econ Ξ ι} {α β : ℝ} (hα0 : 0 < α) (hα1 : α < 1)
+    (hβ1 : β < 1) (hs : 0 < M.sig + M.omg) (hd : 0 < 1 + M.omg * M.θ)
+    (hθ : 0 < M.θ) : 0 < lamW M α β :=
+  div_pos (kap_pos hα0 hα1 hβ1 hs hd) hθ
+
+/-- Woodford (2003), Ch. 6, (2.21), p. 400: the factor `Ȳu_c · 2Θ` multiplying `ε²/2` times
+the loss in the welfare expansion, `Θ = ½θ(1 + ωθ)α/((1 − α)(1 − αβ))`. -/
+noncomputable def bK (M : BridgeCore.Econ Ξ ι) (α β : ℝ) : ℝ :=
+  M.Yb * M.uc * (2 * PriceDispersion.ThetaCalvo α β M.θ M.omg)
+
+/-- Woodford (2003), Ch. 6, (2.21): `Ȳu_c · 2Θ > 0`. -/
+theorem bK_pos {M : BridgeCore.Econ Ξ ι} (hM : M.Std) {α β : ℝ} (hα0 : 0 < α) (hα1 : α < 1)
+    (hβ1 : β < 1) (hθ : 0 < M.θ) (hd : 0 < 1 + M.omg * M.θ) : 0 < bK M α β :=
+  mul_pos (mul_pos hM.Yb_pos hM.uc_pos)
+    (mul_pos two_pos (PriceDispersion.ThetaCalvo_pos hα0 hα1 hβ1 hθ hd))
+
+/-! ### Calvo families: deterministic -/
+
+variable (M : BridgeCore.Econ Ξ ι) (α γ : ℝ) (ξ1 : ℕ → Ξ) (D0 : ℝ → ℝ)
+
+/-- Woodford (2003), Ch. 7, §1, pp. 468–485, and Ch. 6, §2.2, pp. 399–402 (**a one-parameter
+family of Calvo economies**, the object to which every `O(‖·‖²)` qualifier of Chapter 7
+refers): the cross-section of log outputs `ŷ_t(ε)` with first-order solution `y₁_t`, the price
+dispersion `D ε (t+1) = Δ_t` (`D ε 0 = Δ_{−1}(ε) = D0 ε`, common to all policies), index
+inflation `fl ε (t+1) = π_t` (`fl ε 0 = π_{−1}`) with first-order solution `π₁`, satisfying
+Dixit–Stiglitz demand (2.12) and the exact Calvo dispersion law with indexation `γ` (`γ = 0`:
+none) with an `O(ε³)` remainder, all uniformly in the date; the disturbances are `ε ξ₁_t`. -/
+structure CalvoFamily where
+  /-- The cross-section of log outputs `ŷ_t(ε)(i)`. -/
+  yh : ℕ → ℝ → ι → ℝ
+  /-- Its first-order solution `y₁_t`. -/
+  y1 : ℕ → ι → ℝ
+  /-- Price dispersion: `D ε (t + 1) = Δ_t`, `D ε 0 = Δ_{−1}`. -/
+  D : ℝ → ℕ → ℝ
+  /-- Index inflation: `fl ε (t + 1) = π_t`, `fl ε 0 = π_{−1}`. -/
+  fl : ℝ → ℕ → ℝ
+  /-- The remainder of the dispersion law. -/
+  R : ℝ → ℕ → ℝ
+  /-- The first-order solution of inflation. -/
+  π1 : ℕ → ℝ
+  /-- `ŷ_t(ε) − εy₁_t = O(ε²)` uniformly in `t`. -/
+  fam : (fun p : ℕ × ℝ => yh p.1 p.2 - p.2 • y1 p.1) =O[BridgeCore.unif] fun p => p.2 ^ 2
+  /-- `y₁` is bounded. -/
+  y1_bdd : ∃ C, ∀ t, ‖y1 t‖ ≤ C
+  /-- Dixit–Stiglitz demand (2.12): `var_i ŷ_t = θ²Δ_t`. -/
+  dem : ∀ ε t, ExpLogCES.crossVar M.w (yh t ε) = M.θ ^ 2 * D ε (t + 1)
+  /-- The initial dispersion `Δ_{−1}(ε)` is the given `D0 ε`. -/
+  init : ∀ ε, D ε 0 = D0 ε
+  /-- The Calvo dispersion law (2.20)/(2.24) with remainder `R`. -/
+  recur : ∀ ε t, D ε (t + 1) = α * D ε t + α / (1 - α) * (fl ε (t + 1) - γ * fl ε t) ^ 2 + R ε t
+  /-- `π_t(ε) − επ₁_t = O(ε²)` uniformly in `t` (including `π_{−1}`). -/
+  fl_fo : (fun p : ℕ × ℝ => fl p.2 p.1 - p.2 * π1 p.1) =O[BridgeCore.unif] fun p => p.2 ^ 2
+  /-- `π₁` is bounded. -/
+  π1_bdd : ∃ C, ∀ t, |π1 t| ≤ C
+  /-- The remainder is `O(ε³)` uniformly in `t`. -/
+  rem : (fun p : ℕ × ℝ => R p.2 p.1) =O[BridgeCore.unif] fun p => p.2 ^ 3
+
+/-- Woodford (2003), Ch. 6, (2.21)–(2.25): the terms independent of policy, a function of the
+disturbances `ξ₁` and the initial dispersion only. -/
+noncomputable def tipC (β ε : ℝ) : ℝ :=
+  ∑' t, β ^ t * M.tipState (ε • ξ1 t) -
+    M.Yb * M.uc * (M.θ * (1 + M.omg * M.θ) / 2 * (α * D0 ε / (1 - α * β)))
+
+namespace CalvoFamily
+
+variable {M α γ D0}
+
+/-- Woodford (2003), Ch. 7, (1.2), p. 469 (actual welfare): the discounted actual utility
+`∑βᵗU_t(ε)` of the family. -/
+noncomputable def W (F : CalvoFamily M α γ D0) (β ε : ℝ) : ℝ :=
+  ∑' t, β ^ t * M.Ustate (F.yh t ε) (ε • ξ1 t)
+
+/-- Woodford (2003), Ch. 7, (1.2) and (1.22), pp. 469 and 481: the discounted quadratic loss of
+the first-order solution, `∑βᵗ[(π₁_t − γπ₁_{t−1})² + (κ/θ)(x₁_t)²]`, with the output gap measured
+from the efficient level (Woodford's `x − x*`). -/
+noncomputable def L (F : CalvoFamily M α γ D0) (β : ℝ) : ℝ :=
+  ∑' t, β ^ t * ((F.π1 (t + 1) - γ * F.π1 t) ^ 2 + lamW M α β * M.gap (F.y1 t) (ξ1 t) ^ 2)
+
+/-- Woodford (2003), Ch. 6, **Propositions 6.4–6.5** for the family (actual welfare to
+`O(ε³)`): `∑βᵗU_t(ε) = TIP(ε) − (ε²/2)·Ȳu_c2Θ·L + O(ε³)` with `L` the loss of the first-order
+solution with weight `λ = κ/θ` (`lamW`), from the Chapter 6 bridge
+(`BridgeCore.Econ.prop65_bridge`). -/
+theorem bridge (F : CalvoFamily M α γ D0) (hM : M.Std) (heff : M.vy = M.uc)
+    (hden : M.sig + M.omg ≠ 0) (hθ : M.θ ≠ 0) (hd : 1 + M.omg * M.θ ≠ 0) {β : ℝ}
+    (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C) :
+    (fun ε => F.W ξ1 β ε - (tipC M α ξ1 D0 β ε - ε ^ 2 / 2 * (bK M α β * F.L ξ1 β))) =O[𝓝 0]
+      fun ε => ε ^ 3 := by
+  have h := BridgeCore.Econ.prop65_bridge hM heff hden hθ hd hα0 hα1 hβ0 hβ1 F.fam F.y1_bdd hξ1
+    F.dem F.recur F.fl_fo F.π1_bdd F.rem
+  refine h.congr_left fun ε => ?_
+  simp only [W, L, tipC, bK, lamW, kap, F.init]
+  ring
+
+end CalvoFamily
+
+/-! ### Calvo families under uncertainty -/
+
+variable {Ω : Type} (ξS : Ω → ℕ → Ξ) (DS0 : Ω → ℝ → ℝ)
+
+/-- Woodford (2003), Ch. 7, §2, pp. 485–501, and Ch. 6, §2.2 (**a one-parameter family of Calvo
+economies under uncertainty**): for every state `ω` (the realised history) a path as in
+`CalvoFamily` (no indexation), with every order hypothesis uniform in the state AND the date
+(the "bounded fluctuations" of Ch. 6, §2, p. 394). The disturbances along state `ω` are
+`ε ξS ω t` and the initial dispersion `DS0 ω ε`. -/
+structure SCalvoFamily where
+  /-- The cross-section of log outputs in each state. -/
+  yh : Ω → ℕ → ℝ → ι → ℝ
+  /-- Its first-order solution. -/
+  y1 : Ω → ℕ → ι → ℝ
+  /-- Price dispersion in each state: `D ω ε (t + 1) = Δ_t`. -/
+  D : Ω → ℝ → ℕ → ℝ
+  /-- Index inflation in each state: `fl ω ε (t + 1) = π_t`. -/
+  fl : Ω → ℝ → ℕ → ℝ
+  /-- The remainder of the dispersion law. -/
+  R : Ω → ℝ → ℕ → ℝ
+  /-- The first-order solution of inflation in each state. -/
+  π1 : Ω → ℕ → ℝ
+  /-- `ŷ − εy₁ = O(ε²)` uniformly in the state and the date. -/
+  fam : (fun p : (Ω × ℕ) × ℝ => yh p.1.1 p.1.2 p.2 - p.2 • y1 p.1.1 p.1.2) =O[uF Ω] fun p => p.2 ^ 2
+  /-- `y₁` is bounded uniformly. -/
+  y1_bdd : ∃ C, ∀ ω t, ‖y1 ω t‖ ≤ C
+  /-- Dixit–Stiglitz demand (2.12) in each state. -/
+  dem : ∀ ω ε t, ExpLogCES.crossVar M.w (yh ω t ε) = M.θ ^ 2 * D ω ε (t + 1)
+  /-- The initial dispersion is the given DS0. -/
+  init : ∀ ω ε, D ω ε 0 = DS0 ω ε
+  /-- The Calvo dispersion law (2.20) with remainder `R`. -/
+  recur : ∀ ω ε t, D ω ε (t + 1) = α * D ω ε t + α / (1 - α) * fl ω ε (t + 1) ^ 2 + R ω ε t
+  /-- `π − επ₁ = O(ε²)` uniformly in the state and the date. -/
+  fo : (fun p : (Ω × ℕ) × ℝ => fl p.1.1 p.2 p.1.2 - p.2 * π1 p.1.1 p.1.2) =O[uF Ω] fun p => p.2 ^ 2
+  /-- `π₁` is bounded uniformly. -/
+  π1_bdd : ∃ C, ∀ ω t, |π1 ω t| ≤ C
+  /-- The remainder is `O(ε³)` uniformly in the state and the date. -/
+  rem : (fun p : (Ω × ℕ) × ℝ => R p.1.1 p.2 p.1.2) =O[uF Ω] fun p => p.2 ^ 3
+
+/-- Woodford (2003), Ch. 6, (2.21): the terms independent of policy along state `ω`. -/
+noncomputable def tipS (β ε : ℝ) (ω : Ω) : ℝ :=
+  ∑' t, β ^ t * M.tipState (ε • ξS ω t) -
+    M.Yb * M.uc * (M.θ * (1 + M.omg * M.θ) / 2 * (α * DS0 ω ε / (1 - α * β)))
+
+/-- Woodford (2003), App. E.2, p. 695 (shifting the date): uniformity in the state and the date
+is preserved by `t ↦ t + 1`. -/
+theorem uF_shift {J : Type*} {f : J → ℕ → ℝ → ℝ} {g : ℝ → ℝ}
+    (h : (fun p : (J × ℕ) × ℝ => f p.1.1 p.1.2 p.2) =O[uF J] fun p => g p.2) :
+    (fun p : (J × ℕ) × ℝ => f p.1.1 (p.1.2 + 1) p.2) =O[uF J] fun p => g p.2 := by
+  obtain ⟨C, hC⟩ := isBigO_uF_iff.1 h
+  exact isBigO_uF_iff (f := fun j t ε => f j (t + 1) ε).2
+    ⟨C, hC.mono fun ε hε j t => hε j (t + 1)⟩
+
+namespace SCalvoFamily
+
+variable {M α DS0}
+
+/-- Woodford (2003), Ch. 7, (1.2), p. 469, along state `ω`: the discounted actual utility of the
+realised path. -/
+noncomputable def Wp (F : SCalvoFamily M α DS0) (β ε : ℝ) (ω : Ω) : ℝ :=
+  ∑' t, β ^ t * M.Ustate (F.yh ω t ε) (ε • ξS ω t)
+
+/-- Woodford (2003), Ch. 7, (1.2), p. 469, along state `ω`: the discounted loss of the
+first-order solution with `λ = κ/θ`. -/
+noncomputable def Lp (F : SCalvoFamily M α DS0) (β : ℝ) (ω : Ω) : ℝ :=
+  ∑' t, β ^ t * (F.π1 ω (t + 1) ^ 2 + lamW M α β * M.gap (F.y1 ω t) (ξS ω t) ^ 2)
+
+/-- Woodford (2003), Ch. 6, Proposition 6.4 along every state, uniformly (`calvo_bridge_unif`):
+`∑βᵗU_t(ω, ε) = TIP(ω, ε) − (ε²/2)Ȳu_c2Θ L(ω) + O(ε³)`, one constant for all states. -/
+theorem bridge_path (F : SCalvoFamily M α DS0) (hM : M.Std) (heff : M.vy = M.uc)
+    (hden : M.sig + M.omg ≠ 0) (hθ : M.θ ≠ 0) (hd : 1 + M.omg * M.θ ≠ 0) {β : ℝ}
+    (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C) :
+    UCubic fun ε ω => F.Wp ξS β ε ω -
+      (tipS M α ξS DS0 β ε ω - ε ^ 2 / 2 * (bK M α β * F.Lp ξS β ω)) := by
+  obtain ⟨C, hC⟩ := F.π1_bdd
+  have h := calvo_bridge_unif M hM heff hden hθ hd hα0 hα1 hβ0 hβ1 F.fam F.y1_bdd hξ
+    (qd := fun ω ε t => F.fl ω ε (t + 1)) (q1 := fun ω t => F.π1 ω (t + 1)) F.dem F.recur
+    (uF_shift (f := fun ω t ε => F.fl ω ε t - ε * F.π1 ω t) (g := fun ε => ε ^ 2) F.fo)
+    ⟨C, fun ω t => hC ω (t + 1)⟩ F.rem
+  obtain ⟨K, hK⟩ := h
+  refine ⟨K, hK.mono fun ε hε ω => ?_⟩
+  convert hε ω using 3
+  simp only [Wp, Lp, tipS, bK, lamW, kap, F.init]
+
+/-- Woodford (2003), Ch. 7, §2.1, p. 488 (**expected welfare** `E_{t₀}∑βᵗU_t`): the conditional
+expectation at date `0` of the discounted actual utility. -/
+noncomputable def EW (𝔼 : ExpectationSystem Ω) (F : SCalvoFamily M α DS0) (β ε : ℝ)
+    (ω0 : Ω) : ℝ :=
+  𝔼.E 0 (F.Wp ξS β ε) ω0
+
+/-- Woodford (2003), Ch. 7, (1.2) and §2.1, p. 488: the conditional expectation at date `0` of
+the discounted loss of the first-order solution. -/
+noncomputable def EL (𝔼 : ExpectationSystem Ω) (F : SCalvoFamily M α DS0) (β : ℝ)
+    (ω0 : Ω) : ℝ :=
+  𝔼.E 0 (F.Lp ξS β) ω0
+
+/-- Woodford (2003), Ch. 6, Proposition 6.4, and Ch. 7, §2.1 (**expected welfare to `O(ε³)`**):
+for any expectation system, `E_0∑βᵗU_t = E_0 TIP − (ε²/2)Ȳu_c2Θ E_0 L + O(ε³)`, uniformly in the
+date-`0` state. -/
+theorem bridge (𝔼 : ExpectationSystem Ω) (F : SCalvoFamily M α DS0) (hM : M.Std)
+    (heff : M.vy = M.uc) (hden : M.sig + M.omg ≠ 0) (hθ : M.θ ≠ 0)
+    (hd : 1 + M.omg * M.θ ≠ 0) {β : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 ≤ β)
+    (hβ1 : β < 1) (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C) :
+    UCubic fun ε ω0 => EW ξS 𝔼 F β ε ω0 -
+      (𝔼.E 0 (tipS M α ξS DS0 β ε) ω0 - ε ^ 2 / 2 * (bK M α β * EL ξS 𝔼 F β ω0)) := by
+  have h := ucubic_E 𝔼 (F.bridge_path ξS hM heff hden hθ hd hα0 hα1 hβ0 hβ1 hξ)
+  obtain ⟨K, hK⟩ := h
+  refine ⟨K, hK.mono fun ε hε ω0 => ?_⟩
+  have e : (fun ω => F.Wp ξS β ε ω -
+      (tipS M α ξS DS0 β ε ω - ε ^ 2 / 2 * (bK M α β * F.Lp ξS β ω))) =
+      F.Wp ξS β ε - (tipS M α ξS DS0 β ε - (ε ^ 2 / 2 * bK M α β) • F.Lp ξS β) := by
+    funext ω
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hε' := hε ω0
+  beta_reduce at hε'
+  rw [e, map_sub, map_sub, map_smul] at hε'
+  simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul] at hε'
+  simp only [EW, EL]
+  convert hε' using 2
+  ring
+
+end SCalvoFamily
+
+end Woodford.GainsFromCommitment.TidyR6WelfCalvo
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Chapter 6 welfare machinery for Chapter 7 (III): transactions frictions
+
+Woodford (2003), *Interest and Prices*, Chapter 6, §§1–2 and §4.1 (pp. 383–405, 420–426) and
+Appendix E.1–E.4 (pp. 692–699): the second-order welfare machinery that Chapter 7 uses
+("the approximation to welfare of Chapter 6", Woodford (2003), p. 471, fn. 6), restated from
+the Woodford Chapter 6 StabilizationWelfare project with the namespace renamed (the original
+module names are kept as nested namespaces; that project's Sequences is SeqW here).
+Only the declarations needed by the Chapter 7 welfare bridge are copied; proofs are verbatim.
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR6WelfFrictions
+
+open Woodford.GainsFromCommitment.TidyR6WelfBase
+open Woodford.GainsFromCommitment.TidyR6WelfBridge
+
+namespace Transactions
+
+open Filter Topology Asymptotics
+open Moments (calvoK)
+/-- Woodford (2003), Assumption 6.1, p. 422: satiation in real balances at the finite level
+`m̄ > 0` (for output `Ȳ`); the second partial derivatives have finite limits as `m → m̄` from
+below, and the limit of u_mm from below is negative. `um m` is `u_m(Ȳ, m)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+structure Assumption61 where
+  /-- The satiation level of real balances `m̄`. -/
+  mbar : ℝ
+  /-- `u_m(Ȳ, m)` as a function of `m`. -/
+  um : ℝ → ℝ
+  /-- `u_mm(Ȳ, m)` for `m < m̄`. -/
+  umm : ℝ → ℝ
+  /-- The left limit `u_mm(m̄−)`. -/
+  ummL : ℝ
+  /-- `u_cm(Ȳ, m)` for `m < m̄`. -/
+  ucm : ℝ → ℝ
+  /-- The left limit `u_cm(m̄−)`. -/
+  ucmL : ℝ
+  /-- The marginal utility of expenditure at satiation. -/
+  uc : ℝ
+  /-- `m̄ > 0`. -/
+  mbar_pos : 0 < mbar
+  /-- `u_c > 0`. -/
+  uc_pos : 0 < uc
+  /-- Below satiation, money has positive marginal utility. -/
+  um_pos : ∀ m, m < mbar → 0 < um m
+  /-- At and above satiation, `u_m = 0`. -/
+  um_sat : ∀ m, mbar ≤ m → um m = 0
+  /-- u_m is continuous at `m̄` from below. -/
+  um_cont : ContinuousWithinAt um (Set.Iic mbar) mbar
+  /-- u_mm is the derivative of u_m below satiation. -/
+  hasDerivAt_um : ∀ m, m < mbar → HasDerivAt um (umm m) m
+  /-- The finite left limit of u_mm. -/
+  umm_tendsto : Tendsto umm (𝓝[<] mbar) (𝓝 ummL)
+  /-- The finite left limit of u_cm. -/
+  ucm_tendsto : Tendsto ucm (𝓝[<] mbar) (𝓝 ucmL)
+  /-- `u_mm(m̄−) < 0`. -/
+  ummL_neg : ummL < 0
+
+namespace Assumption61
+
+variable (A : Assumption61)
+
+/-- Woodford (2003), p. 422: the limiting interest semi-elasticity of money demand,
+`η_i = −u_c/(m̄ u_mm)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def etaI : ℝ := -A.uc / (A.mbar * A.ummL)
+
+end Assumption61
+
+/-- Woodford (2003), §4.1 and App. E.4: the structural coefficients entering (4.1)–(4.9):
+`σ⁻¹`, `ω`, `θ⁻¹`, `χ = m̄u_cm/u_c`, `η_i`, `v̄ = Ȳ/m̄` and the money-demand income elasticity
+`η_y`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+structure TxParams where
+  /-- `σ⁻¹`. -/
+  sigInv : ℝ
+  /-- `ω`, the elasticity of real marginal cost with respect to own output. -/
+  omega : ℝ
+  /-- `θ⁻¹`, the inverse elasticity of substitution between goods. -/
+  thetaInv : ℝ
+  /-- `χ = m̄ u_cm / u_c`. -/
+  chi : ℝ
+  /-- `η_i`, the interest semi-elasticity of money demand. -/
+  etaI : ℝ
+  /-- `v̄ = Ȳ/m̄`, steady-state velocity. -/
+  vbar : ℝ
+  /-- `η_y`, the income elasticity of money demand. -/
+  etaY : ℝ
+
+/-- Woodford (2003), App. E.4: a point of the expansion: the endogenous variables `Ŷ`,
+`d = î − îᵐ`, `V = var_i ŷ(i)`, the money-demand residual `r` of (4.1) (footnote 4, p. 700: of
+second order), the exogenous `g`, `q`, `ε^m`, the distortions `Φ_y`, `Δ̄`, and the coefficient
+gaps `e₂ = s_mσ_m⁻¹ − (η_i v̄)⁻¹`, `e₃ = η_y − χη_i v̄` (both `O(Δ̄)` by (E.16)).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+structure TxPoint where
+  /-- `Ŷ_t`. -/
+  Y : ℝ
+  /-- `î_t − î_tᵐ`. -/
+  d : ℝ
+  /-- g_t. -/
+  g : ℝ
+  /-- q_t. -/
+  q : ℝ
+  /-- `ε_tᵐ`. -/
+  eps : ℝ
+  /-- `Φ_y`. -/
+  Phi : ℝ
+  /-- `Δ̄`. -/
+  Delta : ℝ
+  /-- `var_i ŷ_t(i)`. -/
+  V : ℝ
+  /-- The residual of the log-linear money demand (4.1). -/
+  r : ℝ
+  /-- `e₂ = s_m σ_m⁻¹ − (η_i v̄)⁻¹`. -/
+  e2 : ℝ
+  /-- `e₃ = η_y − χ η_i v̄`. -/
+  e3 : ℝ
+
+variable (P : TxParams)
+
+/-- Woodford (2003), eq. (4.3), p. 420: `Ω_mc = σ⁻¹ + ω − χ η_y`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+def omegaMC : ℝ := P.sigInv + P.omega - P.chi * P.etaY
+
+/-- Woodford (2003), eq. (4.5), p. 420: `Ŷⁿ = (σ⁻¹g + ωq + χ εᵐ)/Ω_mc`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def natRate (g q eps : ℝ) : ℝ :=
+  (P.sigInv * g + P.omega * q + P.chi * eps) / omegaMC P
+
+/-- Woodford (2003), (E.15) p. 699 with the consistent normalisation (survey error 20):
+`s_m = Δ̄/v̄`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def sM (Δ : ℝ) : ℝ := Δ / P.vbar
+
+/-- Woodford (2003), eq. (4.6), p. 421: `x* = (Φ_y + s_m η_y)/Ω_mc`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def xStar (Φ Δ : ℝ) : ℝ := (Φ + sM P Δ * P.etaY) / omegaMC P
+
+/-- Woodford (2003), eq. (4.1), p. 420: `m̂ = η_y Ŷ − η_i(î − îᵐ) + εᵐ` plus the residual `r`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+def mHat (x : TxPoint) : ℝ := P.etaY * x.Y - P.etaI * x.d + x.eps + x.r
+
+/-- Woodford (2003), (E.5) p. 694: `E_i ŷ = Ŷ − ½(1 − θ⁻¹) var_i ŷ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def mOne (x : TxPoint) : ℝ := x.Y - (1 - P.thetaInv) / 2 * x.V
+
+/-- Woodford (2003), p. 700: `s_m σ_m⁻¹ = (η_i v̄)⁻¹ + e₂`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def smSig (x : TxPoint) : ℝ := 1 / (P.etaI * P.vbar) + x.e2
+
+/-- Woodford (2003), eq. (E.15), p. 699: the second-order expansion of `u(Y, m; ξ)` (divided
+by `Ȳu_c`, policy-independent terms omitted).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def uTaylor (x : TxPoint) : ℝ :=
+  x.Y + (1 - P.sigInv) / 2 * x.Y ^ 2 + P.sigInv * x.g * x.Y + sM P x.Delta * mHat P x +
+    (sM P x.Delta - smSig P x) / 2 * mHat P x ^ 2 + P.chi * mHat P x * x.Y +
+    sM P x.Delta * P.sigInv * x.g * mHat P x +
+    (sM P x.Delta * P.chi + smSig P x) * x.eps * mHat P x
+
+/-- Woodford (2003), eq. (E.17), p. 700.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def uE17 (x : TxPoint) : ℝ :=
+  x.Y + (1 - P.sigInv) / 2 * x.Y ^ 2 + P.sigInv * x.g * x.Y + sM P x.Delta * mHat P x +
+    P.chi * mHat P x * x.Y - 1 / (P.etaI * P.vbar) / 2 * (mHat P x - x.eps) ^ 2
+
+/-- Woodford (2003), eq. (E.18), p. 700.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def uE18 (x : TxPoint) : ℝ :=
+  x.Y + (1 - P.sigInv) / 2 * x.Y ^ 2 + P.sigInv * x.g * x.Y + sM P x.Delta * P.etaY * x.Y -
+    sM P x.Delta * P.etaI * x.d + P.chi * P.etaY / 2 * x.Y ^ 2 + P.chi * x.eps * x.Y -
+    P.etaI / P.vbar / 2 * x.d ^ 2
+
+/-- Woodford (2003), eqs. (E.3) integrated over goods, p. 694: the disutility of supply in
+terms of `E_i ŷ` and `E_i ŷ² = (E_i ŷ)² + var_i ŷ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def vTaylor (x : TxPoint) : ℝ :=
+  (1 - x.Phi) * mOne P x + (1 + P.omega) / 2 * (mOne P x ^ 2 + x.V) - P.omega * x.q * mOne P x
+
+/-- Woodford (2003), eq. (E.4), p. 694.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def vE4 (x : TxPoint) : ℝ :=
+  (1 - x.Phi) * x.Y + (1 + P.omega) / 2 * x.Y ^ 2 - P.omega * x.q * x.Y +
+    (P.thetaInv + P.omega) / 2 * x.V
+
+/-- Woodford (2003), eq. (4.9), p. 422 / (E.14): the quadratic form
+`Ω_mc (x − x*)² + v̄⁻¹η_i(î − îᵐ + Δ̄)² + (θ⁻¹ + ω) var_i ŷ` with `x = Ŷ − Ŷⁿ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def loss49 (x : TxPoint) : ℝ :=
+  omegaMC P * (x.Y - natRate P x.g x.q x.eps - xStar P x.Phi x.Delta) ^ 2 +
+    P.etaI / P.vbar * (x.d + x.Delta) ^ 2 + (P.thetaInv + P.omega) * x.V
+
+/-- Woodford (2003), (4.9): the terms independent of policy, an explicit function of the
+exogenous disturbances `g, q, εᵐ` and the distortions `Φ_y, Δ̄` only.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def tip (g q eps Φ Δ : ℝ) : ℝ :=
+  omegaMC P / 2 * (natRate P g q eps + xStar P Φ Δ) ^ 2 + P.etaI / P.vbar / 2 * Δ ^ 2 +
+    Δ / P.vbar * eps + eps ^ 2 / (2 * (P.etaI * P.vbar))
+
+/-- The s_m-terms dropped between (E.15) and (E.17), with the money residual scaled by `s`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def remA (s : ℝ) (x : TxPoint) : ℝ :=
+  x.Delta / P.vbar * ((P.etaY * x.Y - P.etaI * x.d + x.eps + s * x.r) ^ 2 / 2 +
+    P.sigInv * x.g * (P.etaY * x.Y - P.etaI * x.d + x.eps + s * x.r) +
+    P.chi * x.eps * (P.etaY * x.Y - P.etaI * x.d + x.eps + s * x.r))
+
+/-- The `e₂`-terms dropped between (E.15) and (E.17).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def remB (s : ℝ) (x : TxPoint) : ℝ :=
+  x.e2 * (x.eps * (P.etaY * x.Y - P.etaI * x.d + x.eps + s * x.r) -
+    (P.etaY * x.Y - P.etaI * x.d + x.eps + s * x.r) ^ 2 / 2)
+
+/-- The money-demand-residual terms produced in (E.18).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def remC (s : ℝ) (x : TxPoint) : ℝ :=
+  x.Delta / P.vbar * x.r + P.chi * x.r * x.Y -
+    1 / (P.etaI * P.vbar) * (P.etaY * x.Y - P.etaI * x.d) * x.r -
+    1 / (P.etaI * P.vbar) / 2 * s * x.r ^ 2
+
+/-- The `e₃`-terms produced by writing `χη_iv̄` for `η_y` in quadratic coefficients (p. 700).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def remD (x : TxPoint) : ℝ :=
+  x.e3 * (1 / (P.etaI * P.vbar) * P.etaI * x.d * x.Y -
+    1 / (P.etaI * P.vbar) / 2 * P.etaY * x.Y ^ 2)
+
+/-- The terms dropped between (E.3) and (E.4) (using (E.5)).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def remE (s : ℝ) (x : TxPoint) : ℝ :=
+  x.Phi * ((1 - P.thetaInv) / 2) * x.V - (1 + P.omega) * ((1 - P.thetaInv) / 2) * x.Y * x.V +
+    (1 + P.omega) / 2 * ((1 - P.thetaInv) / 2) ^ 2 * s * x.V ^ 2 +
+    P.omega * x.q * ((1 - P.thetaInv) / 2) * x.V
+
+/-- Woodford (2003), (4.9): the explicit remainder `O(‖Φ, ŷ, Δ̂, ξ̃‖³)`, written along the ray
+of scale `s` (`remainder P 1` is the remainder itself; see remainder_scale).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def remainder (s : ℝ) (x : TxPoint) : ℝ :=
+  remA P s x + remB P s x + remC P s x + remD P x - remE P s x
+
+/-- Woodford (2003), (E.15) ⟶ (E.17), pp. 699–700: dropping the `O(Δ̄)` quadratic coefficients
+leaves the explicit cubic terms `remA + remB` and the policy-independent `(εᵐ)²/(2η_iv̄)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem E15_to_E17 (hi : P.etaI ≠ 0) (hv : P.vbar ≠ 0) (x : TxPoint) :
+    uTaylor P x = uE17 P x + x.eps ^ 2 / (2 * (P.etaI * P.vbar)) + remA P 1 x + remB P 1 x := by
+  simp only [uTaylor, uE17, remA, remB, smSig, sM, mHat]
+  field_simp
+  ring
+
+/-- Woodford (2003), (E.17) ⟶ (E.18), p. 700: substituting the money demand (4.1); the
+`χ m̂ Ŷ` cross terms cancel exactly against those of `−½(η_iv̄)⁻¹(m̂ − εᵐ)²` once
+`η_y = χη_i v̄ + e₃`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem E17_to_E18 (hi : P.etaI ≠ 0) (hv : P.vbar ≠ 0) (x : TxPoint)
+    (he3 : P.etaY = P.chi * P.etaI * P.vbar + x.e3) :
+    uE17 P x = uE18 P x + x.Delta / P.vbar * x.eps + remC P 1 x + remD P x := by
+  simp only [uE17, uE18, remC, remD, sM, mHat]
+  rw [he3]
+  field_simp
+  ring
+
+/-- Woodford (2003), (E.3) ⟶ (E.4), p. 694: integrating over goods and using (E.5).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem E3_to_E4 (x : TxPoint) : vTaylor P x = vE4 P x + remE P 1 x := by
+  simp only [vTaylor, vE4, remE, mOne]
+  ring
+
+/-- Woodford (2003), App. E.4, last display p. 700: (E.18) minus (E.4) is EXACTLY
+`−½[Ω_mc(x − x*)² + v̄⁻¹η_i(î − îᵐ + Δ̄)² + (θ⁻¹+ω)var_i ŷ]` plus policy-independent terms,
+given the consistent normalisation `s_m = Δ̄/v̄`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem E18_minus_E4 (hΩ : omegaMC P ≠ 0) (hv : P.vbar ≠ 0) (x : TxPoint) :
+    uE18 P x - vE4 P x = -loss49 P x / 2 +
+      (omegaMC P / 2 * (natRate P x.g x.q x.eps + xStar P x.Phi x.Delta) ^ 2 +
+        P.etaI / P.vbar / 2 * x.Delta ^ 2) := by
+  have hs : P.sigInv = omegaMC P - P.omega + P.chi * P.etaY := by unfold omegaMC; ring
+  simp only [uE18, vE4, loss49, natRate, xStar, sM]
+  rw [hs]
+  field_simp
+  ring
+
+/-- Woodford (2003), Proposition 6.7, eq. (4.9), p. 422 (proof (E.15)–(E.18), pp. 698–700),
+Layer A: the period utility expansion (E.15) minus the disutility expansion (E.3) equals
+`−½ × (4.9)` plus terms independent of policy (`tip`, a function of `g, q, εᵐ, Φ_y, Δ̄` only)
+plus the explicit remainder `remainder P 1 x`, of weighted degree `≥ 3` (remainder_scale).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem prop_6_7_layerA (hΩ : omegaMC P ≠ 0) (hi : P.etaI ≠ 0) (hv : P.vbar ≠ 0)
+    (x : TxPoint) (he3 : P.etaY = P.chi * P.etaI * P.vbar + x.e3) :
+    uTaylor P x - vTaylor P x =
+      -loss49 P x / 2 + tip P x.g x.q x.eps x.Phi x.Delta + remainder P 1 x := by
+  rw [E15_to_E17 P hi hv, E17_to_E18 P hi hv x he3, E3_to_E4]
+  have h := E18_minus_E4 P hΩ hv x
+  simp only [tip, remainder]
+  linear_combination h
+
+/-- Woodford (2003), eq. (4.8), p. 421: `κ = (1−α)(1−αβ)/α · Ω_mc/(1+ωθ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def kappaCalvo (α β θ : ℝ) : ℝ :=
+  (1 - α) * (1 - α * β) / α * omegaMC P / (1 + P.omega * θ)
+
+/-- Woodford (2003), eq. (4.11), p. 423: `λ_x = κ/θ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def lambdaX (α β θ : ℝ) : ℝ := kappaCalvo P α β θ / θ
+
+/-- Woodford (2003), eq. (4.11), p. 423: `λ_i = η_i λ_x/(v̄ Ω_mc)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def lambdaI (lx : ℝ) : ℝ := P.etaI * lx / (P.vbar * omegaMC P)
+
+/-- Woodford (2003), eq. (4.10), p. 423: `L_t = π_t² + λ_x(x_t − x*)² + λ_i(î_t − îᵐ_t + Δ̄)²`;
+here `xg = x_t − x*` and `dd = î_t − îᵐ_t + Δ̄`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def loss410 (α β θ infl xg dd : ℝ) : ℝ :=
+  infl ^ 2 + lambdaX P α β θ * xg ^ 2 + lambdaI P (lambdaX P α β θ) * dd ^ 2
+
+/-- Woodford (2003), (4.11), p. 423: `λ_x > 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem lambdaX_pos {α β θ : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ1 : β < 1)
+    (hθ : 0 < θ) (hω : 0 ≤ P.omega) (hΩ : 0 < omegaMC P) : 0 < lambdaX P α β θ := by
+  unfold lambdaX kappaCalvo
+  have h1 : 0 < 1 - α * β := by nlinarith
+  have h2 : 0 < 1 + P.omega * θ := by nlinarith
+  have h3 : 0 < 1 - α := by linarith
+  positivity
+
+/-- Woodford (2003), Proposition 6.8, (4.10)–(4.11), p. 423, with genuine discounted sums.
+Given the discounted sums of the (expected) per-period terms `X2 t = (x_t − x*)²`,
+`I2 t = (î_t − îᵐ_t + Δ̄)²`, `P2 t = π_t²`, and the Calvo dispersion relation of Props. 6.3/6.4
+(restated as the hypothesis hV: `Σβᵗ var_i ŷ_t = θ²(ψ Σβᵗ π_t² + T₀)`, `T₀` independent of
+policy), the discounted sum of the bracket of (4.9) equals `Λ Σβᵗ L_t + t.i.p.` with
+`Λ = θ(1+ωθ)ψ > 0` and L_t the loss (4.10) with the weights (4.11).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem prop_6_8 {α β θ : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ1 : β < 1) (hθ : 0 < θ)
+    (hθi : P.thetaInv = 1 / θ) (hω : 0 ≤ P.omega) (hΩ : 0 < omegaMC P) (hv : P.vbar ≠ 0)
+    {X2 I2 P2 V : ℕ → ℝ} {A B Sπ T0 : ℝ} (hX : HasSum (fun t => β ^ t * X2 t) A)
+    (hI : HasSum (fun t => β ^ t * I2 t) B) (hP : HasSum (fun t => β ^ t * P2 t) Sπ)
+    (hV : HasSum (fun t => β ^ t * V t) (θ ^ 2 * (calvoK α β * Sπ + T0))) :
+    HasSum (fun t => β ^ t * (omegaMC P * X2 t + P.etaI / P.vbar * I2 t +
+        (P.thetaInv + P.omega) * V t))
+      (θ * (1 + P.omega * θ) * calvoK α β *
+          (Sπ + lambdaX P α β θ * A + lambdaI P (lambdaX P α β θ) * B) +
+        (P.thetaInv + P.omega) * θ ^ 2 * T0) ∧
+    HasSum (fun t => β ^ t * (P2 t + lambdaX P α β θ * X2 t +
+        lambdaI P (lambdaX P α β θ) * I2 t))
+      (Sπ + lambdaX P α β θ * A + lambdaI P (lambdaX P α β θ) * B) := by
+  have hαβ : α * β < 1 := by nlinarith
+  have h1 : (1 - α * β) ≠ 0 := by linarith
+  have h2 : (1 + P.omega * θ) ≠ 0 := by nlinarith
+  have h3 : (1 - α) ≠ 0 := by linarith
+  have hΩ' := hΩ.ne'
+  have hθ' := hθ.ne'
+  have hα' := hα0.ne'
+  have hsum := ((hX.mul_left (omegaMC P)).add (hI.mul_left (P.etaI / P.vbar))).add
+    (hV.mul_left (P.thetaInv + P.omega))
+  have hsum2 := (hP.add (hX.mul_left (lambdaX P α β θ))).add
+    (hI.mul_left (lambdaI P (lambdaX P α β θ)))
+  refine ⟨?_, ?_⟩
+  · convert hsum using 1
+    · funext t; ring
+    · simp only [lambdaI, lambdaX, kappaCalvo, calvoK]
+      rw [hθi]
+      field_simp
+      ring
+  · convert hsum2 using 1
+    funext t; ring
+
+end Transactions
+
+namespace BridgeExtensions
+
+open Filter Topology Asymptotics
+open ExpLogCES (crossMean crossVar expRem rlog)
+variable {B : Type*} {L : Filter B} {s : B → ℝ}
+
+/-- Woodford (2003), (2.11), p. 395 (orders along any filter): `O(sᵐ) · O(sⁿ) = O(sᵐ⁺ⁿ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem o_mul {f g : B → ℝ} {m n k : ℕ} (hf : f =O[L] fun b => s b ^ m)
+    (hg : g =O[L] fun b => s b ^ n) (hk : m + n = k) :
+    (fun b => f b * g b) =O[L] fun b => s b ^ k := by
+  subst hk
+  exact (hf.mul hg).congr_right fun b => by ring
+
+/-- Woodford (2003), (2.11), p. 395 (orders along any filter): `O(sⁿ) ⊆ O(sᵐ)` for `m ≤ n`
+when `s → 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem o_weaken (hs : Tendsto s L (𝓝 0)) {f : B → ℝ} {m n : ℕ} (hmn : m ≤ n)
+    (hf : f =O[L] fun b => s b ^ n) : f =O[L] fun b => s b ^ m := by
+  refine hf.trans ?_
+  obtain ⟨k, rfl⟩ := Nat.exists_eq_add_of_le hmn
+  have h1 : (fun b => s b ^ k) =O[L] (fun _ => (1 : ℝ)) := (hs.pow k).isBigO_one ℝ
+  have h2 := (isBigO_refl (fun b => s b ^ m) L).mul h1
+  refine h2.congr (fun b => by ring) (fun b => by ring)
+
+/-- Woodford (2003), p. 385: a first-order quantity tends to zero with the amplitude `s`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem tendsto_of_o_one (hs : Tendsto s L (𝓝 0)) {E : Type*} [NormedAddCommGroup E]
+    {f : B → E} (hf : f =O[L] fun b => s b ^ 1) : Tendsto f L (𝓝 0) :=
+  hf.trans_tendsto (by simpa using hs.pow 1)
+
+/-- Woodford (2003), App. E, p. 693: powers of a first-order quantity, `fⁿ = O(sⁿ)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem o_pow {f : B → ℝ} (hf : f =O[L] fun b => s b ^ 1) (n : ℕ) :
+    (fun b => f b ^ n) =O[L] fun b => s b ^ n :=
+  (hf.pow n).congr_right fun b => by ring
+
+/-- Woodford (2003), App. E, p. 693: the exponential atom `r₃(x) = eˣ − 1 − x − x²/2` of a
+first-order quantity is of third order.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem expRem_o (hs : Tendsto s L (𝓝 0)) {x : B → ℝ} (hx : x =O[L] fun b => s b ^ 1) :
+    (fun b => expRem (x b)) =O[L] fun b => s b ^ 3 := by
+  have h := ExpLogCES.exp_taylor2_isBigO.comp_tendsto (tendsto_of_o_one hs hx)
+  refine (h.trans (o_pow hx 3)).congr_left fun b => ?_
+  simp only [Function.comp, expRem]
+  ring
+
+variable {F : Type*} [NormedAddCommGroup F] [NormedSpace ℝ F]
+
+/-- Woodford (2003), eq. (1.2), p. 385, along a one-parameter family with a MOVING base point:
+if `U` is `C³`, the expansion points `z̄_b` converge to `z̄₀` and the deviations z_b are
+`O(s)`, then `U(z̄_b + z_b) − [U(z̄_b) + DU(z̄_b) z_b + ½ D²U(z̄_b)(z_b, z_b)] = O(s³)`. The
+constant is uniform because `D²U` is Lipschitz on a fixed ball around `z̄₀`. (A moving base
+point is the steady state of a distorted economy whose distortion shrinks with `s`.)
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem taylor_family_moving {U : F → ℝ} (hU : ContDiff ℝ 3 U) {z0 : F} {zb z : B → F}
+    (hzb : Tendsto zb L (𝓝 z0)) (hs : Tendsto s L (𝓝 0)) (hz : z =O[L] fun b => s b ^ 1) :
+    (fun b => U (zb b + z b) - ApproxTheory.quadApprox (U (zb b)) (fderiv ℝ U (zb b))
+      (fderiv ℝ (fderiv ℝ U) (zb b)) (z b)) =O[L] fun b => s b ^ 3 := by
+  have h1 : ContDiff ℝ 2 (fderiv ℝ U) := hU.fderiv_right (by norm_num)
+  have h2 : ContDiff ℝ 1 (fderiv ℝ (fderiv ℝ U)) := h1.fderiv_right (by norm_num)
+  obtain ⟨K, t, ht, hK⟩ := h2.contDiffAt.exists_lipschitzOnWith (x := z0)
+  obtain ⟨δ, hδ, hball⟩ := Metric.mem_nhds_iff.1 ht
+  have hδ2 : 0 < δ / 2 := half_pos hδ
+  have hz0 : Tendsto z L (𝓝 0) := tendsto_of_o_one hs hz
+  have hzn : (fun b => ‖z b‖ ^ 3) =O[L] fun b => s b ^ 3 :=
+    (hz.norm_left.pow 3).congr_right fun b => by ring
+  refine (IsBigO.of_bound K ?_).trans hzn
+  filter_upwards [hzb.eventually_mem (Metric.ball_mem_nhds z0 hδ2),
+    hz0.eventually_mem (Metric.ball_mem_nhds 0 hδ2)] with b hb hzb'
+  have hsub : Metric.ball (zb b) (δ / 2) ⊆ Metric.ball z0 δ := by
+    intro w hw
+    rw [Metric.mem_ball] at hw hb ⊢
+    calc dist w z0 ≤ dist w (zb b) + dist (zb b) z0 := dist_triangle _ _ _
+      _ < δ / 2 + δ / 2 := add_lt_add hw hb
+      _ = δ := by ring
+  have hzb0 : zb b ∈ Metric.ball z0 δ := hsub (Metric.mem_ball_self hδ2)
+  have key := ApproxTheory.taylor2_multivar_bound (U1 := fderiv ℝ U)
+    (U2 := fderiv ℝ (fderiv ℝ U)) (zbar := zb b) (δ := δ / 2) K.coe_nonneg
+    (fun w _ => (hU.differentiable (by norm_num) w).hasFDerivAt)
+    (fun w _ => (h1.differentiable (by norm_num) w).hasFDerivAt)
+    (fun w hw => by
+      have := hK.dist_le_mul w (hball (hsub hw)) (zb b) (hball hzb0)
+      simpa [dist_eq_norm] using this)
+    (by simpa using hzb')
+  rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_pow, abs_norm]
+  exact key
+
+/-- Woodford (2003), eq. (1.2), p. 385, along a one-parameter family with a fixed base point
+`z̄`: `U(z̄ + z_b) − [Ū + DU z_b + ½ D²U(z_b, z_b)] = O(s³)` when `z_b = O(s)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem taylor_family {U : F → ℝ} (hU : ContDiff ℝ 3 U) (zbar : F) (hs : Tendsto s L (𝓝 0))
+    {z : B → F} (hz : z =O[L] fun b => s b ^ 1) :
+    (fun b => U (zbar + z b) - ApproxTheory.quadApprox (U zbar) (fderiv ℝ U zbar)
+      (fderiv ℝ (fderiv ℝ U) zbar) (z b)) =O[L] fun b => s b ^ 3 :=
+  taylor_family_moving (zb := fun _ => zbar) hU tendsto_const_nhds hs hz
+
+/-- Woodford (2003), Assumption 6.1 and (E.15), p. 699 (ONE-SIDED expansion): if the actual
+utility `U` agrees on a set `S` (e.g. `m ≤ m̄`, the region below satiation) with a `C³`
+function `Ũ` (its smooth extension from that side), and the family eventually stays in `S`,
+then `U` has the second-order expansion of `Ũ` along the family, with the one-sided derivatives
+of `U` (those of `Ũ`) as coefficients.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem taylor_family_of_eqOn {U Ut : F → ℝ} (hU : ContDiff ℝ 3 Ut) {S : Set F}
+    (hEq : Set.EqOn U Ut S) (zbar : F) (hs : Tendsto s L (𝓝 0)) {z : B → F}
+    (hz : z =O[L] fun b => s b ^ 1) (hS : ∀ᶠ b in L, zbar + z b ∈ S) :
+    (fun b => U (zbar + z b) - ApproxTheory.quadApprox (Ut zbar) (fderiv ℝ Ut zbar)
+      (fderiv ℝ (fderiv ℝ Ut) zbar) (z b)) =O[L] fun b => s b ^ 3 := by
+  refine (taylor_family hU zbar hs hz).congr' ?_ (Eventually.of_forall fun _ => rfl)
+  filter_upwards [hS] with b hb
+  rw [hEq hb]
+
+variable {Ξ : Type*} [NormedAddCommGroup Ξ] [NormedSpace ℝ Ξ]
+
+/-- Woodford (2003), (E.2), p. 692: the marginal utility `u_c = ∂U/∂Y` at `z`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def dY (U : ℝ × Ξ → ℝ) (z : ℝ × Ξ) : ℝ := fderiv ℝ U z (1, 0)
+
+/-- Woodford (2003), (E.2), p. 692: the second derivative `u_cc = ∂²U/∂Y²` at `z`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def dYY (U : ℝ × Ξ → ℝ) (z : ℝ × Ξ) : ℝ := fderiv ℝ (fderiv ℝ U) z (1, 0) (1, 0)
+
+/-- Woodford (2003), (E.2), p. 692: the shock derivative `u_ξ ξ̃` at `z`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def dXi (U : ℝ × Ξ → ℝ) (z : ℝ × Ξ) (ξ : Ξ) : ℝ := fderiv ℝ U z (0, ξ)
+
+/-- Woodford (2003), (E.2), p. 692: the (symmetrised) cross derivative `u_cξ ξ̃` at `z`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def dYXi (U : ℝ × Ξ → ℝ) (z : ℝ × Ξ) (ξ : Ξ) : ℝ :=
+  (fderiv ℝ (fderiv ℝ U) z (1, 0) (0, ξ) + fderiv ℝ (fderiv ℝ U) z (0, ξ) (1, 0)) / 2
+
+/-- Woodford (2003), (E.2), p. 692: the shock quadratic form `ξ̃′u_ξξ ξ̃` at `z`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def dXiXi (U : ℝ × Ξ → ℝ) (z : ℝ × Ξ) (ξ : Ξ) : ℝ :=
+  fderiv ℝ (fderiv ℝ U) z (0, ξ) (0, ξ)
+
+/-- Woodford (2003), (E.2)–(E.3), pp. 692–693: on `ℝ × Ξ` the quadratic approximation of
+eq. (1.2) at `(Ȳ, 0)` is exactly the book's polynomial `Prop61.uTaylor` in the level deviation
+`Ỹ` with the derivatives u_c, u_cc, `u_ξξ̃`, `u_cξξ̃`, `ξ̃′u_ξξξ̃`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem quadApprox_prod (U : ℝ × Ξ → ℝ) (z : ℝ × Ξ) (a : ℝ) (ξ : Ξ) :
+    ApproxTheory.quadApprox (U z) (fderiv ℝ U z) (fderiv ℝ (fderiv ℝ U) z) (a, ξ) =
+      Prop61.uTaylor (U z) (dY U z) (dYY U z) (dXi U z ξ) (dYXi U z ξ) (dXiXi U z ξ) a := by
+  have e : ((a, ξ) : ℝ × Ξ) = a • ((1 : ℝ), (0 : Ξ)) + ((0 : ℝ), ξ) := by
+    ext <;> simp
+  rw [e]
+  simp only [ApproxTheory.quadApprox, Prop61.uTaylor, dY, dYY, dXi, dYXi, dXiXi, map_add,
+    map_smul, add_apply, smul_apply, smul_eq_mul]
+  ring
+
+/-- Woodford (2003), (E.2), p. 692, as an analytic statement: for `C³` utility `U(Y, ξ)` and a
+family with level deviation `Ỹ_b = O(s)` and disturbance `ξ_b = O(s)`,
+`U(Ȳ + Ỹ_b, ξ_b) − uTaylor(Ỹ_b) = O(s³)`, the coefficients being the actual derivatives.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem uTaylor_family {U : ℝ × Ξ → ℝ} (hU : ContDiff ℝ 3 U) (Ybar : ℝ)
+    (hs : Tendsto s L (𝓝 0)) {Yt : B → ℝ} {ξ : B → Ξ} (hY : Yt =O[L] fun b => s b ^ 1)
+    (hξ : ξ =O[L] fun b => s b ^ 1) :
+    (fun b => U (Ybar + Yt b, ξ b) - Prop61.uTaylor (U (Ybar, 0)) (dY U (Ybar, 0))
+      (dYY U (Ybar, 0)) (dXi U (Ybar, 0) (ξ b)) (dYXi U (Ybar, 0) (ξ b))
+      (dXiXi U (Ybar, 0) (ξ b)) (Yt b)) =O[L] fun b => s b ^ 3 := by
+  have h := taylor_family (z := fun b => (Yt b, ξ b)) hU (Ybar, 0) hs (hY.prod_left hξ)
+  refine h.congr_left fun b => ?_
+  rw [quadApprox_prod]
+  simp
+
+/-- Woodford (2003), (E.2), p. 692, in log deviations: with `Y = Ȳ e^{x}` and
+`Ỹ = Ȳ(x + x²/2 + r₃(x))` (`Prop61.levelDev_eq`), `U(Ȳe^{x_b}, ξ_b) − uTaylor(Ỹ_b) = O(s³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem uTaylor_family_exp {U : ℝ × Ξ → ℝ} (hU : ContDiff ℝ 3 U) (Ybar : ℝ)
+    (hs : Tendsto s L (𝓝 0)) {x : B → ℝ} {ξ : B → Ξ} (hx : x =O[L] fun b => s b ^ 1)
+    (hξ : ξ =O[L] fun b => s b ^ 1) :
+    (fun b => U (Ybar * Real.exp (x b), ξ b) - Prop61.uTaylor (U (Ybar, 0)) (dY U (Ybar, 0))
+      (dYY U (Ybar, 0)) (dXi U (Ybar, 0) (ξ b)) (dYXi U (Ybar, 0) (ξ b))
+      (dXiXi U (Ybar, 0) (ξ b)) (Ybar * (x b + x b ^ 2 / 2 + expRem (x b))))
+      =O[L] fun b => s b ^ 3 := by
+  have hYt : (fun b => Ybar * (Real.exp (x b) - 1)) =O[L] fun b => s b ^ 1 := by
+    have h2 := o_weaken hs (by norm_num : 1 ≤ 2) (o_pow hx 2)
+    have h3 := o_weaken hs (by norm_num : 1 ≤ 3) (expRem_o hs hx)
+    refine (((hx.add (h2.const_mul_left (1 / 2))).add h3).const_mul_left Ybar).congr_left
+      fun b => ?_
+    rw [ExpLogCES.exp_sub_one_eq]
+    ring
+  refine (uTaylor_family hU Ybar hs hYt hξ).congr_left fun b => ?_
+  have e1 : Ybar + Ybar * (Real.exp (x b) - 1) = Ybar * Real.exp (x b) := by ring
+  have e2 : Ybar * (Real.exp (x b) - 1) = Ybar * (x b + x b ^ 2 / 2 + expRem (x b)) := by
+    rw [ExpLogCES.exp_sub_one_eq]
+  rw [e1, e2]
+
+variable {ι : Type*} [Fintype ι]
+
+/-- Woodford (2003), eq. (2.6), p. 393: `Ŷ = log(Y/Ȳ)`, the log of the Dixit–Stiglitz index
+(elasticity `θ`) of the relative outputs `e^{ŷ(i)} = y(i)/Ȳ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def logYidx (w : ι → ℝ) (θ : ℝ) (yh : ι → ℝ) : ℝ :=
+  Real.log (ExpLogCES.cesIndex w (1 - θ⁻¹) (fun i => Real.exp (yh i)))
+
+/-- Woodford (2003), App. E, p. 693: each good's `ŷ(i)` is `O(s)` when the cross-section is
+`O(s)` in the sup norm.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem coord_o {yh : B → ι → ℝ} (hyh : yh =O[L] fun b => s b ^ 1) (i : ι) :
+    (fun b => yh b i) =O[L] fun b => s b ^ 1 :=
+  (IsBigO.of_bound 1 (Eventually.of_forall fun b => by
+    rw [one_mul]; exact norm_le_pi_norm (yh b) i)).trans hyh
+
+/-- Woodford (2003), App. E, p. 693: `E_i ŷ = O(s)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem crossMean_o {w : ι → ℝ} (hw0 : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1) {yh : B → ι → ℝ}
+    (hyh : yh =O[L] fun b => s b ^ 1) : (fun b => crossMean w (yh b)) =O[L] fun b => s b ^ 1 :=
+  (IsBigO.of_bound 1 (Eventually.of_forall fun b => by
+    rw [one_mul, Real.norm_eq_abs]; exact ExpLogCES.abs_crossMean_le hw0 hw1 (yh b))).trans hyh
+
+/-- Woodford (2003), App. E, p. 693: `var_i ŷ = O(s²)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem crossVar_o {w : ι → ℝ} (hw0 : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1) {yh : B → ι → ℝ}
+    (hyh : yh =O[L] fun b => s b ^ 1) : (fun b => crossVar w (yh b)) =O[L] fun b => s b ^ 2 := by
+  refine (IsBigO.of_bound 1 (Eventually.of_forall fun b => ?_)).trans
+    ((hyh.norm_left.pow 2).congr_right fun b => by ring)
+  have h := ExpLogCES.crossVar_le hw0 hw1 (yh b)
+  rw [one_mul, Real.norm_eq_abs, Real.norm_eq_abs, abs_of_nonneg h.1, abs_pow, abs_norm]
+  exact h.2
+
+/-- Woodford (2003), (E.5), p. 694: the log output index `Ŷ` of an `O(s)` cross-section is
+`O(s)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem logYidx_o (hs : Tendsto s L (𝓝 0)) {w : ι → ℝ} (hw0 : ∀ i, 0 ≤ w i)
+    (hw1 : ∑ i, w i = 1) {θ : ℝ} (hθ : θ ≠ 1) {yh : B → ι → ℝ}
+    (hyh : yh =O[L] fun b => s b ^ 1) :
+    (fun b => logYidx w θ (yh b)) =O[L] fun b => s b ^ 1 := by
+  have h := (ExpLogCES.log_outputIndex_expansion hw0 hw1 hθ).comp_tendsto
+    (tendsto_of_o_one hs hyh)
+  have h3 : (fun b => ‖yh b‖ ^ 3) =O[L] fun b => s b ^ 3 :=
+    (hyh.norm_left.pow 3).congr_right fun b => by ring
+  have hr := o_weaken hs (by norm_num : 1 ≤ 3) (h.trans h3)
+  have hm := crossMean_o hw0 hw1 hyh
+  have hv := o_weaken hs (by norm_num : 1 ≤ 2) (crossVar_o hw0 hw1 hyh)
+  refine ((hr.add hm).add (hv.const_mul_left (1 / 2 * (1 - θ⁻¹)))).congr_left fun b => ?_
+  simp only [Function.comp, logYidx]
+  ring
+
+/-- Woodford (2003), (E.5), p. 694: the CES atom r_C of an `O(s)` cross-section is `O(s³)`
+(`Links.CES.cesAtom_isBigO` along the family).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem cesAtom_o (hs : Tendsto s L (𝓝 0)) {w : ι → ℝ} (hw0 : ∀ i, 0 ≤ w i)
+    (hw1 : ∑ i, w i = 1) {θ : ℝ} (hθ : θ ≠ 1) {yh : B → ι → ℝ}
+    (hyh : yh =O[L] fun b => s b ^ 1) :
+    (fun b => Links.CES.cesAtom w θ (yh b)) =O[L] fun b => s b ^ 3 :=
+  ((Links.CES.cesAtom_isBigO hw0 hw1 hθ).comp_tendsto (tendsto_of_o_one hs hyh)).trans
+    ((hyh.norm_left.pow 3).congr_right fun b => by ring)
+
+/-- Woodford (2003), (E.3) with `Φ` absorbed in the coefficients (§5): the remainder
+`Rv 0` is `O(s³)` whenever `q, ŷ = O(s)` and its atom `r = O(s³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem Rv0_o (hs : Tendsto s L (𝓝 0)) (ω : ℝ) {q y r : B → ℝ}
+    (hq : q =O[L] fun b => s b ^ 1) (hy : y =O[L] fun b => s b ^ 1)
+    (hr : r =O[L] fun b => s b ^ 3) :
+    (fun b => Prop61.Rv 0 ω (q b) (y b) (r b)) =O[L] fun b => s b ^ 3 := by
+  have hA : (fun b => y b ^ 2 / 2 + r b) =O[L] fun b => s b ^ 2 :=
+    (((o_pow hy 2).const_mul_left (1 / 2)).add (o_weaken hs (by norm_num) hr)).congr_left
+      fun b => by ring
+  have hB : (fun b => 2 * y b + (y b ^ 2 / 2 + r b)) =O[L] fun b => s b ^ 1 :=
+    (hy.const_mul_left 2).add (o_weaken hs (by norm_num) hA)
+  have h1 := o_mul hA hB (by norm_num : 2 + 1 = 3)
+  have h2 := o_mul hq hA (by norm_num : 1 + 2 = 3)
+  refine ((hr.add (h1.const_mul_left (ω / 2))).sub (h2.const_mul_left ω)).congr_left
+    fun b => ?_
+  unfold Prop61.Rv
+  ring
+
+variable {A : Type*} {l : Filter A} {e : A → ℝ}
+
+/-- Woodford (2003), §2, p. 394: a uniform order bound gives ONE constant for every index.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem uniform_bound {J : Type*} {f : A × J → ℝ} {g : A → ℝ}
+    (h : f =O[l ×ˢ (⊤ : Filter J)] fun p => g p.1) :
+    ∃ C, ∀ᶠ a in l, ∀ j, |f (a, j)| ≤ C * |g a| := by
+  obtain ⟨C, hC⟩ := h.bound
+  refine ⟨C, ?_⟩
+  rw [Filter.prod_top, Filter.eventually_comap] at hC
+  filter_upwards [hC] with a ha j
+  simpa [Real.norm_eq_abs] using ha (a, j) rfl
+
+/-- Woodford (2003), §2, p. 394: the amplitude, viewed on `A × (ℕ × Ω)`, still tends to `0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem tendsto_amp {J : Type*} (he : Tendsto e l (𝓝 0)) :
+    Tendsto (fun p : A × J => e p.1) (l ×ˢ (⊤ : Filter J)) (𝓝 0) :=
+  he.comp tendsto_fst
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Woodford (2003), §1, pp. 386–389 (welfare ranking along any filter, with common
+policy-independent terms `T`): if `W_X = T − ε² k L_X + O(ε³)` for both policies, `k > 0`,
+`ε → 0`, `ε ≠ 0` eventually, and `L_A < L_B`, then `W_B < W_A` eventually.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem ranking_of_common (he : Tendsto e l (𝓝 0)) (hne : ∀ᶠ a in l, e a ≠ 0)
+    {WA WB T : A → ℝ} {k LA LB : ℝ} (hk : 0 < k)
+    (hA : (fun a => WA a - (T a - e a ^ 2 * (k * LA))) =O[l] fun a => e a ^ 3)
+    (hB : (fun a => WB a - (T a - e a ^ 2 * (k * LB))) =O[l] fun a => e a ^ 3)
+    (hL : LA < LB) : ∀ᶠ a in l, WB a < WA a := by
+  refine OneParamTaylor.eventually_lt_of_quadratic_gap (s := e)
+    (q := fun a => e a ^ 2 * (k * (LB - LA))) (c := k * (LB - LA)) he
+    (mul_pos hk (by linarith)) (Eventually.of_forall fun a => le_of_eq (by ring)) hne ?_
+  exact (hA.sub hB).congr_left fun a => by ring
+
+/-- Woodford (2003), App. E (first-order solutions): if `x = εx₁ + O(ε²)` with `x₁` bounded,
+then `x² = ε²x₁² + O(ε³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem sq_sub_o (hs : Tendsto s L (𝓝 0)) {x x1 : B → ℝ}
+    (hd : (fun b => x b - s b * x1 b) =O[L] fun b => s b ^ 2)
+    (h1 : x1 =O[L] fun _ => (1 : ℝ)) :
+    (fun b => x b ^ 2 - s b ^ 2 * x1 b ^ 2) =O[L] fun b => s b ^ 3 := by
+  have hsx : (fun b => s b * x1 b) =O[L] fun b => s b ^ 1 :=
+    ((isBigO_refl s L).mul h1).congr_right fun b => by ring
+  have hsum : (fun b => x b - s b * x1 b + 2 * (s b * x1 b)) =O[L] fun b => s b ^ 1 :=
+    (o_weaken hs (by norm_num : 1 ≤ 2) hd).add (hsx.const_mul_left 2)
+  exact (o_mul hd hsum (by norm_num : 2 + 1 = 3)).congr_left fun b => by ring
+
+/-- Woodford (2003), (E.15), p. 699: the first and second derivatives of `U(Y, m, ξ)` along the
+coordinate directions `e₁ = (1, 0, 0)`, `e₂ = (0, 1, 0)` and the disturbance `(0, 0, ξ)`
+give the quadratic approximation of eq. (1.2) on `ℝ × ℝ × Ξ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem quadApprox_triple (U : ℝ × ℝ × Ξ → ℝ) (z : ℝ × ℝ × Ξ) (a c : ℝ) (ξ : Ξ) :
+    ApproxTheory.quadApprox (U z) (fderiv ℝ U z) (fderiv ℝ (fderiv ℝ U) z) (a, c, ξ) =
+      U z + fderiv ℝ U z (1, 0, 0) * a + fderiv ℝ U z (0, 1, 0) * c + fderiv ℝ U z (0, 0, ξ) +
+        1 / 2 * (fderiv ℝ (fderiv ℝ U) z (1, 0, 0) (1, 0, 0) * a ^ 2 +
+          (fderiv ℝ (fderiv ℝ U) z (1, 0, 0) (0, 1, 0) +
+            fderiv ℝ (fderiv ℝ U) z (0, 1, 0) (1, 0, 0)) * (a * c) +
+          fderiv ℝ (fderiv ℝ U) z (0, 1, 0) (0, 1, 0) * c ^ 2 +
+          (fderiv ℝ (fderiv ℝ U) z (1, 0, 0) (0, 0, ξ) +
+            fderiv ℝ (fderiv ℝ U) z (0, 0, ξ) (1, 0, 0)) * a +
+          (fderiv ℝ (fderiv ℝ U) z (0, 1, 0) (0, 0, ξ) +
+            fderiv ℝ (fderiv ℝ U) z (0, 0, ξ) (0, 1, 0)) * c +
+          fderiv ℝ (fderiv ℝ U) z (0, 0, ξ) (0, 0, ξ)) := by
+  have e : ((a, c, ξ) : ℝ × ℝ × Ξ) =
+      a • ((1 : ℝ), (0 : ℝ), (0 : Ξ)) + c • ((0 : ℝ), (1 : ℝ), (0 : Ξ)) +
+        ((0 : ℝ), (0 : ℝ), ξ) := by
+    ext <;> simp
+  rw [e]
+  simp only [ApproxTheory.quadApprox, map_add, map_smul, add_apply, smul_apply, smul_eq_mul]
+  ring
+
+/-- Woodford (2003), (E.15)–(E.17), pp. 699–700: the cubic discrepancy between the utility
+expansion in LEVEL deviations `Ȳ(Ŷ + Ŷ²/2 + r₃)`, `m̄(m̂ + m̂²/2 + r₃)` at satiation (where
+`u_m = 0`) and the book's polynomial in `Ŷ`, `m̂` (`smS = s_mσ_m⁻¹ = (η_iv̄)⁻¹`).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def txAtom (σ χ smS g eps Y m rY rm : ℝ) : ℝ :=
+  ((Y + Y ^ 2 / 2 + rY) - σ / 2 * (Y + Y ^ 2 / 2 + rY) ^ 2 +
+      χ * (Y + Y ^ 2 / 2 + rY) * (m + m ^ 2 / 2 + rm) - smS / 2 * (m + m ^ 2 / 2 + rm) ^ 2 +
+      σ * g * (Y + Y ^ 2 / 2 + rY) + smS * eps * (m + m ^ 2 / 2 + rm)) -
+    (Y + (1 - σ) / 2 * Y ^ 2 + σ * g * Y - smS / 2 * m ^ 2 + χ * m * Y + smS * eps * m)
+
+/-- Woodford (2003), (E.15): `txAtom = O(s³)` for first-order `Ŷ, m̂, g, εᵐ` and third-order
+exponential atoms.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem txAtom_o (hs : Tendsto s L (𝓝 0)) (σ χ smS : ℝ) {g eps Y m rY rm : B → ℝ}
+    (hg : g =O[L] fun b => s b ^ 1) (heps : eps =O[L] fun b => s b ^ 1)
+    (hY : Y =O[L] fun b => s b ^ 1) (hm : m =O[L] fun b => s b ^ 1)
+    (hrY : rY =O[L] fun b => s b ^ 3) (hrm : rm =O[L] fun b => s b ^ 3) :
+    (fun b => txAtom σ χ smS (g b) (eps b) (Y b) (m b) (rY b) (rm b)) =O[L] fun b => s b ^ 3 := by
+  have hA : (fun b => Y b ^ 2 / 2 + rY b) =O[L] fun b => s b ^ 2 :=
+    (((o_pow hY 2).const_mul_left (1 / 2)).add (o_weaken hs (by norm_num) hrY)).congr_left
+      fun b => by ring
+  have hC : (fun b => m b ^ 2 / 2 + rm b) =O[L] fun b => s b ^ 2 :=
+    (((o_pow hm 2).const_mul_left (1 / 2)).add (o_weaken hs (by norm_num) hrm)).congr_left
+      fun b => by ring
+  have hA1 : (fun b => 2 * Y b + (Y b ^ 2 / 2 + rY b)) =O[L] fun b => s b ^ 1 :=
+    (hY.const_mul_left 2).add (o_weaken hs (by norm_num) hA)
+  have hC1 : (fun b => 2 * m b + (m b ^ 2 / 2 + rm b)) =O[L] fun b => s b ^ 1 :=
+    (hm.const_mul_left 2).add (o_weaken hs (by norm_num) hC)
+  have hm1 : (fun b => m b + (m b ^ 2 / 2 + rm b)) =O[L] fun b => s b ^ 1 :=
+    hm.add (o_weaken hs (by norm_num) hC)
+  have t1 := o_mul hA hA1 (by norm_num : 2 + 1 = 3)
+  have t2 := o_mul hA hm1 (by norm_num : 2 + 1 = 3)
+  have t3 := o_mul hY hC (by norm_num : 1 + 2 = 3)
+  have t4 := o_mul hC hC1 (by norm_num : 2 + 1 = 3)
+  have t5 := o_mul hg hA (by norm_num : 1 + 2 = 3)
+  have t6 := o_mul heps hC (by norm_num : 1 + 2 = 3)
+  refine (((((hrY.sub (t1.const_mul_left (σ / 2))).add ((t2.add t3).const_mul_left χ)).sub
+    (t4.const_mul_left (smS / 2))).add (t5.const_mul_left σ)).add
+    (t6.const_mul_left smS)).congr_left fun b => ?_
+  unfold txAtom
+  ring
+
+/-- Woodford (2003), (E.3)–(E.5), p. 694, at `Φ_y = 0`: the cubic discrepancy between the
+integrated disutility (exact mean `m₁ + r_C`, per-good remainders Rv) and the book's
+polynomial in `m₁ = Ŷ − ½(1 − θ⁻¹)var_i ŷ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def vAtom (ω q m1 rC Rvbar : ℝ) : ℝ :=
+  rC + (1 + ω) / 2 * (2 * m1 * rC + rC ^ 2) - ω * q * rC + Rvbar
+
+/-- Woodford (2003), (E.3)–(E.5): `vAtom = O(s³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem vAtom_o (hs : Tendsto s L (𝓝 0)) (ω : ℝ) {q m1 rC Rvbar : B → ℝ}
+    (hq : q =O[L] fun b => s b ^ 1) (hm1 : m1 =O[L] fun b => s b ^ 1)
+    (hrC : rC =O[L] fun b => s b ^ 3) (hRv : Rvbar =O[L] fun b => s b ^ 3) :
+    (fun b => vAtom ω (q b) (m1 b) (rC b) (Rvbar b)) =O[L] fun b => s b ^ 3 := by
+  have h1 := o_weaken hs (by norm_num : 3 ≤ 4) (o_mul hm1 hrC (by norm_num : 1 + 3 = 4))
+  have h2 := o_weaken hs (by norm_num : 3 ≤ 6) (o_mul hrC hrC (by norm_num : 3 + 3 = 6))
+  have h3 := o_weaken hs (by norm_num : 3 ≤ 4) (o_mul hq hrC (by norm_num : 1 + 3 = 4))
+  refine (((hrC.add (((h1.const_mul_left 2).add h2).const_mul_left ((1 + ω) / 2))).sub
+    (h3.const_mul_left ω)).add hRv).congr_left fun b => ?_
+  unfold vAtom
+  ring
+
+/-- Woodford (2003), (4.9) and (E.15)–(E.18): the explicit remainder `Transactions.remainder`
+is `O(s³)` along ANY family in which `Ŷ, î − îᵐ, g, q, εᵐ, Φ_y, Δ̄, e₂, e₃` are `O(s)` and
+`var_i ŷ`, the money-demand residual `r` are `O(s²)` (not only along weighted rays as in
+Transactions.remainder_isBigO).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem txRemainder_o (hs : Tendsto s L (𝓝 0)) (P : Transactions.TxParams)
+    {x : B → Transactions.TxPoint}
+    (hY : (fun b => (x b).Y) =O[L] fun b => s b ^ 1)
+    (hd : (fun b => (x b).d) =O[L] fun b => s b ^ 1)
+    (hg : (fun b => (x b).g) =O[L] fun b => s b ^ 1)
+    (hq : (fun b => (x b).q) =O[L] fun b => s b ^ 1)
+    (heps : (fun b => (x b).eps) =O[L] fun b => s b ^ 1)
+    (hPhi : (fun b => (x b).Phi) =O[L] fun b => s b ^ 1)
+    (hDel : (fun b => (x b).Delta) =O[L] fun b => s b ^ 1)
+    (hV : (fun b => (x b).V) =O[L] fun b => s b ^ 2)
+    (hr : (fun b => (x b).r) =O[L] fun b => s b ^ 2)
+    (he2 : (fun b => (x b).e2) =O[L] fun b => s b ^ 1)
+    (he3 : (fun b => (x b).e3) =O[L] fun b => s b ^ 1) :
+    (fun b => Transactions.remainder P 1 (x b)) =O[L] fun b => s b ^ 3 := by
+  have hr1 := o_weaken hs (by norm_num : 1 ≤ 2) hr
+  have hm : (fun b => P.etaY * (x b).Y - P.etaI * (x b).d + (x b).eps + 1 * (x b).r)
+      =O[L] fun b => s b ^ 1 :=
+    (((hY.const_mul_left P.etaY).sub (hd.const_mul_left P.etaI)).add heps).add
+      (hr1.const_mul_left 1)
+  have hm2 := o_mul hm hm (by norm_num : 1 + 1 = 2)
+  have hgm := o_mul hg hm (by norm_num : 1 + 1 = 2)
+  have hem := o_mul heps hm (by norm_num : 1 + 1 = 2)
+  have hA : (fun b => Transactions.remA P 1 (x b)) =O[L] fun b => s b ^ 3 :=
+    ((o_mul hDel (((hm2.const_mul_left (1 / 2)).add (hgm.const_mul_left P.sigInv)).add
+      (hem.const_mul_left P.chi)) (by norm_num : 1 + 2 = 3)).const_mul_left
+        P.vbar⁻¹).congr_left fun b => by unfold Transactions.remA; ring
+  have hB : (fun b => Transactions.remB P 1 (x b)) =O[L] fun b => s b ^ 3 :=
+    (o_mul he2 (hem.sub (hm2.const_mul_left (1 / 2))) (by norm_num : 1 + 2 = 3)).congr_left
+      fun b => by unfold Transactions.remB; ring
+  have hlin : (fun b => P.etaY * (x b).Y - P.etaI * (x b).d) =O[L] fun b => s b ^ 1 :=
+    (hY.const_mul_left P.etaY).sub (hd.const_mul_left P.etaI)
+  have hC : (fun b => Transactions.remC P 1 (x b)) =O[L] fun b => s b ^ 3 := by
+    have c1 := o_mul hDel hr (by norm_num : 1 + 2 = 3)
+    have c2 := o_mul hr hY (by norm_num : 2 + 1 = 3)
+    have c3 := o_mul hlin hr (by norm_num : 1 + 2 = 3)
+    have c4 := o_weaken hs (by norm_num : 3 ≤ 4) (o_mul hr hr (by norm_num : 2 + 2 = 4))
+    refine ((((c1.const_mul_left P.vbar⁻¹).add (c2.const_mul_left P.chi)).sub
+      (c3.const_mul_left (1 / (P.etaI * P.vbar)))).sub
+      (c4.const_mul_left (1 / (P.etaI * P.vbar) / 2))).congr_left fun b => ?_
+    unfold Transactions.remC
+    ring
+  have hD : (fun b => Transactions.remD P (x b)) =O[L] fun b => s b ^ 3 := by
+    have d1 := o_mul hd hY (by norm_num : 1 + 1 = 2)
+    have d2 := o_mul hY hY (by norm_num : 1 + 1 = 2)
+    refine (o_mul he3 ((d1.const_mul_left (1 / (P.etaI * P.vbar) * P.etaI)).sub
+      (d2.const_mul_left (1 / (P.etaI * P.vbar) / 2 * P.etaY))) (by norm_num : 1 + 2 = 3)
+      ).congr_left fun b => ?_
+    unfold Transactions.remD
+    ring
+  have hE : (fun b => Transactions.remE P 1 (x b)) =O[L] fun b => s b ^ 3 := by
+    have e1 := o_mul hPhi hV (by norm_num : 1 + 2 = 3)
+    have e2' := o_mul hY hV (by norm_num : 1 + 2 = 3)
+    have e3' := o_weaken hs (by norm_num : 3 ≤ 4) (o_mul hV hV (by norm_num : 2 + 2 = 4))
+    have e4 := o_mul hq hV (by norm_num : 1 + 2 = 3)
+    refine ((((e1.const_mul_left ((1 - P.thetaInv) / 2)).sub
+      (e2'.const_mul_left ((1 + P.omega) * ((1 - P.thetaInv) / 2)))).add
+      (e3'.const_mul_left ((1 + P.omega) / 2 * ((1 - P.thetaInv) / 2) ^ 2))).add
+      (e4.const_mul_left (P.omega * ((1 - P.thetaInv) / 2)))).congr_left fun b => ?_
+    unfold Transactions.remE
+    ring
+  exact ((((hA.add hB).add hC).add hD).sub hE).congr_left fun b => by
+    unfold Transactions.remainder; ring
+
+/-- Woodford (2003), §4.1, eq. (4.1)–(4.2), p. 420: the ACTUAL period utility with transactions
+frictions, `u(Y, m; ξ) − ∫v(y(i); ξ)di`, for outputs `y(i) = Ȳe^{ŷ(i)}`, the Dixit–Stiglitz
+aggregate `Y = Ȳe^{Ŷ}` and real balances `m = m̄e^{m̂}`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def periodUT (U : ℝ × ℝ × Ξ → ℝ) (v : ℝ × Ξ → ℝ) (w : ι → ℝ) (θ Ybar mbar : ℝ)
+    (yh : ι → ℝ) (mh : ℝ) (xu xv : Ξ) : ℝ :=
+  U (Ybar * Real.exp (logYidx w θ yh), mbar * Real.exp mh, xu) -
+    ∑ i, w i * v (Ybar * Real.exp (yh i), xv)
+
+/-- Woodford (2003), (E.15) and (E.3): the policy-independent terms of the expansion at the
+satiated steady state `(Ȳ, m̄, 0)` (functions of the disturbances only).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+noncomputable def tipT (Ut : ℝ × ℝ × Ξ → ℝ) (v : ℝ × Ξ → ℝ) (Ybar mbar : ℝ) (xu xv : Ξ) : ℝ :=
+  (Ut (Ybar, mbar, 0) + fderiv ℝ Ut (Ybar, mbar, 0) (0, 0, xu) +
+      fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 0, xu) (0, 0, xu) / 2) -
+    (v (Ybar, 0) + dXi v (Ybar, 0) xv + dXiXi v (Ybar, 0) xv / 2)
+
+/-- Woodford (2003), App. E.4: the expansion point of `Transactions.prop_6_7_layerA` at the
+satiated efficient steady state (`Φ_y = Δ̄ = e₂ = e₃ = 0`), with the money-demand residual
+`r` given by `m̂ = η_yŶ − η_i(î − îᵐ) + εᵐ + r` (eq. (4.1)).
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+def txSat (P : Transactions.TxParams) (Y d g q eps V m : ℝ) : Transactions.TxPoint :=
+  ⟨Y, d, g, q, eps, 0, 0, V, m - (P.etaY * Y - P.etaI * d + eps), 0, 0⟩
+
+/-- Woodford (2003), **Proposition 6.7**, eq. (4.9), p. 422, LAYER B from the ACTUAL utility,
+with the ONE-SIDED expansion at satiation (Assumption 6.1, (E.15)–(E.18)): the utility `U` of
+output, real balances and disturbances coincides for `m ≤ m̄` with a `C³` function `Ũ` (its
+extension from below satiation), `u_m(m̄) = 0`; `v` is `C³`; the coefficients at the
+efficient satiated steady state `(Ȳ, m̄, 0)` define `σ⁻¹`, `χ`, `s_mσ_m⁻¹ = (η_iv̄)⁻¹`, `ω` and
+the composite disturbances `g`, `εᵐ`, `q` (h11–hq); `η_y = χη_iv̄` there ((E.16)). Along any
+family with `ŷ(i), m̂, î − îᵐ, ξ = O(s)`, the money-demand residual `O(s²)` and real balances
+BELOW satiation (`m̂ ≤ 0`, i.e. `Δ̄ = εΔ₁ > 0`), the actual period utility is
+`t.i.p. + Ȳu_c[tip − ½(4.9)] + O(s³)`, with the quadratic form (4.9)
+`Ω_mc(Ŷ − Ŷⁿ)² + v̄⁻¹η_i(î − îᵐ)² + (θ⁻¹ + ω) var_i ŷ`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem prop67_actual (hs : Tendsto s L (𝓝 0)) {w : ι → ℝ} (hw0 : ∀ i, 0 ≤ w i)
+    (hw1 : ∑ i, w i = 1) {θ : ℝ} (hθ : θ ≠ 1) {U Ut : ℝ × ℝ × Ξ → ℝ} (hUt : ContDiff ℝ 3 Ut)
+    {mbar : ℝ} (hmbar : 0 < mbar) (hEq : Set.EqOn U Ut {z | z.2.1 ≤ mbar})
+    {v : ℝ × Ξ → ℝ} (hv : ContDiff ℝ 3 v) {Ybar : ℝ}
+    (P : Transactions.TxParams) (hθi : P.thetaInv = θ⁻¹)
+    (hey : P.etaY = P.chi * P.etaI * P.vbar) (hΩ : Transactions.omegaMC P ≠ 0)
+    (hi : P.etaI ≠ 0) (hvb : P.vbar ≠ 0)
+    (hsat : fderiv ℝ Ut (Ybar, mbar, 0) (0, 1, 0) = 0)
+    (h11 : fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (1, 0, 0) (1, 0, 0) =
+      -(P.sigInv * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / Ybar))
+    (h12 : fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (1, 0, 0) (0, 1, 0) +
+      fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 1, 0) (1, 0, 0) =
+        2 * (P.chi * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / mbar))
+    (h22 : fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 1, 0) (0, 1, 0) =
+      -(Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / (P.etaI * P.vbar) / mbar ^ 2))
+    (hvy : dY v (Ybar, 0) = fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0))
+    (hvyy : dYY v (Ybar, 0) = P.omega * dY v (Ybar, 0) / Ybar)
+    {yh : B → ι → ℝ} {mh d g q eps : B → ℝ} {xu xv : B → Ξ}
+    (hg : ∀ b, fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (1, 0, 0) (0, 0, xu b) +
+      fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 0, xu b) (1, 0, 0) =
+        2 * (P.sigInv * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) * g b))
+    (heps : ∀ b, fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 1, 0) (0, 0, xu b) +
+      fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 0, xu b) (0, 1, 0) =
+        2 * (Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / (P.etaI * P.vbar) / mbar * eps b))
+    (hq : ∀ b, dYXi v (Ybar, 0) (xv b) = -(P.omega * dY v (Ybar, 0) * q b))
+    (hyh : yh =O[L] fun b => s b ^ 1) (hmh : mh =O[L] fun b => s b ^ 1)
+    (hd : d =O[L] fun b => s b ^ 1) (hgO : g =O[L] fun b => s b ^ 1)
+    (hqO : q =O[L] fun b => s b ^ 1) (hepsO : eps =O[L] fun b => s b ^ 1)
+    (hxu : xu =O[L] fun b => s b ^ 1) (hxv : xv =O[L] fun b => s b ^ 1)
+    (hr : (fun b => mh b - (P.etaY * logYidx w θ (yh b) - P.etaI * d b + eps b))
+      =O[L] fun b => s b ^ 2)
+    (hleft : ∀ᶠ b in L, mh b ≤ 0) :
+    (fun b => periodUT U v w θ Ybar mbar (yh b) (mh b) (xu b) (xv b) -
+      (tipT Ut v Ybar mbar (xu b) (xv b) + Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) *
+        (Transactions.tip P (g b) (q b) (eps b) 0 0 - Transactions.loss49 P
+          (txSat P (logYidx w θ (yh b)) (d b) (g b) (q b) (eps b) (crossVar w (yh b)) (mh b)) /
+            2))) =O[L] fun b => s b ^ 3 := by
+  set z0 : ℝ × ℝ × Ξ := (Ybar, mbar, 0) with hz0
+  set uc := fderiv ℝ Ut z0 (1, 0, 0) with huc
+  set smS := 1 / (P.etaI * P.vbar) with hsmS
+  set Yh := fun b => logYidx w θ (yh b) with hYh
+  have hYO : Yh =O[L] fun b => s b ^ 1 := logYidx_o hs hw0 hw1 hθ hyh
+  have lev : ∀ (c : ℝ) (x : B → ℝ), x =O[L] (fun b => s b ^ 1) →
+      (fun b => c * (Real.exp (x b) - 1)) =O[L] fun b => s b ^ 1 := fun c x hx => by
+    have h2 := o_weaken hs (by norm_num : 1 ≤ 2) (o_pow hx 2)
+    have h3 := o_weaken hs (by norm_num : 1 ≤ 3) (expRem_o hs hx)
+    refine (((hx.add (h2.const_mul_left (1 / 2))).add h3).const_mul_left c).congr_left
+      fun b => ?_
+    rw [ExpLogCES.exp_sub_one_eq]
+    ring
+  -- (1) the one-sided Taylor expansion of `U` at satiation
+  have hU1 := taylor_family_of_eqOn hUt hEq z0 hs
+    (z := fun b => (Ybar * (Real.exp (Yh b) - 1), mbar * (Real.exp (mh b) - 1), xu b))
+    ((lev Ybar Yh hYO).prod_left ((lev mbar mh hmh).prod_left hxu)) (by
+      filter_upwards [hleft] with b hb
+      have h1 : Real.exp (mh b) ≤ 1 := Real.exp_le_one_iff.mpr hb
+      change (z0 + _).2.1 ≤ mbar
+      simp only [hz0, Prod.snd_add, Prod.fst_add]
+      nlinarith)
+  -- (2) the disutility, good by good
+  have hvs := IsBigO.fun_sum (s := Finset.univ) fun i _ =>
+    (uTaylor_family_exp hv Ybar hs (coord_o hyh i) hxv).const_mul_left (w i)
+  -- (3) the cubic atoms and the Layer-A remainder
+  have hRv : (fun b => ∑ i, w i * Prop61.Rv 0 P.omega (q b) (yh b i) (expRem (yh b i)))
+      =O[L] fun b => s b ^ 3 :=
+    IsBigO.fun_sum (s := Finset.univ) fun i _ =>
+      (Rv0_o hs P.omega hqO (coord_o hyh i) (expRem_o hs (coord_o hyh i))).const_mul_left (w i)
+  have hV := crossVar_o hw0 hw1 hyh
+  have hm1 : (fun b => Yh b - (1 - θ⁻¹) / 2 * crossVar w (yh b)) =O[L] fun b => s b ^ 1 :=
+    hYO.sub ((o_weaken hs (by norm_num : 1 ≤ 2) hV).const_mul_left _)
+  have hA1 := txAtom_o hs P.sigInv P.chi smS hgO hepsO hYO hmh (expRem_o hs hYO)
+    (expRem_o hs hmh)
+  have hA2 := vAtom_o hs P.omega hqO hm1 (cesAtom_o hs hw0 hw1 hθ hyh) hRv
+  have hzero : (fun _ : B => (0 : ℝ)) =O[L] fun b => s b ^ 1 := isBigO_zero _ _
+  have hA3 := txRemainder_o hs P
+    (x := fun b => txSat P (Yh b) (d b) (g b) (q b) (eps b) (crossVar w (yh b)) (mh b))
+    hYO hd hgO hqO hepsO hzero hzero hV hr hzero hzero
+  refine (((hU1.sub hvs).add (((hA1.sub hA2).add hA3).const_mul_left (Ybar * uc)))).congr_left
+    fun b => ?_
+  -- (4) the exact identity at `b`
+  have key := Transactions.prop_6_7_layerA P hΩ hi hvb
+    (txSat P (Yh b) (d b) (g b) (q b) (eps b) (crossVar w (yh b)) (mh b))
+    (by simp only [txSat]; rw [hey]; ring)
+  have eU : z0 + (Ybar * (Real.exp (Yh b) - 1), mbar * (Real.exp (mh b) - 1), xu b) =
+      (Ybar * Real.exp (Yh b), mbar * Real.exp (mh b), xu b) := by
+    simp only [hz0, Prod.mk_add_mk, zero_add]
+    congr 1 <;> [ring; (congr 1; ring)]
+  have eQ : ApproxTheory.quadApprox (Ut z0) (fderiv ℝ Ut z0) (fderiv ℝ (fderiv ℝ Ut) z0)
+      (Ybar * (Real.exp (Yh b) - 1), mbar * (Real.exp (mh b) - 1), xu b) =
+      (Ut z0 + fderiv ℝ Ut z0 (0, 0, xu b) +
+        fderiv ℝ (fderiv ℝ Ut) z0 (0, 0, xu b) (0, 0, xu b) / 2) +
+      Ybar * uc * (Transactions.uTaylor P
+        (txSat P (Yh b) (d b) (g b) (q b) (eps b) (crossVar w (yh b)) (mh b)) +
+        txAtom P.sigInv P.chi smS (g b) (eps b) (Yh b) (mh b) (expRem (Yh b))
+          (expRem (mh b))) := by
+    rw [quadApprox_triple, hsat, h11, h12, h22, hg b, heps b, ExpLogCES.exp_sub_one_eq,
+      ExpLogCES.exp_sub_one_eq]
+    simp only [Transactions.uTaylor, txAtom, txSat, Transactions.mHat, Transactions.sM,
+      Transactions.smSig, hsmS]
+    field_simp
+    ring
+  have eV : ∑ i, w i * Prop61.uTaylor (v (Ybar, 0)) (dY v (Ybar, 0)) (dYY v (Ybar, 0))
+      (dXi v (Ybar, 0) (xv b)) (dYXi v (Ybar, 0) (xv b)) (dXiXi v (Ybar, 0) (xv b))
+      (Ybar * (yh b i + yh b i ^ 2 / 2 + expRem (yh b i))) =
+      (v (Ybar, 0) + dXi v (Ybar, 0) (xv b) + dXiXi v (Ybar, 0) (xv b) / 2) +
+      Ybar * uc * (Transactions.vTaylor P
+        (txSat P (Yh b) (d b) (g b) (q b) (eps b) (crossVar w (yh b)) (mh b)) +
+        vAtom P.omega (q b) (Yh b - (1 - θ⁻¹) / 2 * crossVar w (yh b))
+          (Links.CES.cesAtom w θ (yh b))
+          (∑ i, w i * Prop61.Rv 0 P.omega (q b) (yh b i) (expRem (yh b i)))) := by
+    have hper : ∀ i, w i * Prop61.uTaylor (v (Ybar, 0)) (dY v (Ybar, 0)) (dYY v (Ybar, 0))
+        (dXi v (Ybar, 0) (xv b)) (dYXi v (Ybar, 0) (xv b)) (dXiXi v (Ybar, 0) (xv b))
+        (Ybar * (yh b i + yh b i ^ 2 / 2 + expRem (yh b i))) =
+        (v (Ybar, 0) + dXi v (Ybar, 0) (xv b) + dXiXi v (Ybar, 0) (xv b) / 2) * w i +
+          Ybar * uc * (w i * Prop61.Tv 0 P.omega (q b) (yh b i) +
+            w i * Prop61.Rv 0 P.omega (q b) (yh b i) (expRem (yh b i))) := by
+      intro i
+      rw [Prop61.uTaylor, hvyy, hq b, hvy]
+      unfold Prop61.Tv Prop61.Rv
+      field_simp
+      ring
+    rw [Finset.sum_congr rfl fun i _ => hper i]
+    simp only [Finset.sum_add_distrib, ← Finset.mul_sum, hw1]
+    rw [TwoSectorWelfare.sum_Tv hw1, Links.CES.ces_relation w θ (yh b)]
+    simp only [Transactions.vTaylor, Transactions.mOne, txSat, vAtom, TwoSectorWelfare.TvSec,
+      hθi, hYh, logYidx]
+    ring
+  have hsum : ∑ i, w i * (v (Ybar * Real.exp (yh b i), xv b) -
+      Prop61.uTaylor (v (Ybar, 0)) (dY v (Ybar, 0)) (dYY v (Ybar, 0)) (dXi v (Ybar, 0) (xv b))
+        (dYXi v (Ybar, 0) (xv b)) (dXiXi v (Ybar, 0) (xv b))
+        (Ybar * (yh b i + yh b i ^ 2 / 2 + expRem (yh b i)))) =
+      ∑ i, w i * v (Ybar * Real.exp (yh b i), xv b) -
+        ∑ i, w i * Prop61.uTaylor (v (Ybar, 0)) (dY v (Ybar, 0)) (dYY v (Ybar, 0))
+          (dXi v (Ybar, 0) (xv b)) (dYXi v (Ybar, 0) (xv b)) (dXiXi v (Ybar, 0) (xv b))
+          (Ybar * (yh b i + yh b i ^ 2 / 2 + expRem (yh b i))) := by
+    rw [← Finset.sum_sub_distrib]
+    exact Finset.sum_congr rfl fun i _ => by ring
+  have htip : Transactions.tip P
+      (txSat P (Yh b) (d b) (g b) (q b) (eps b) (crossVar w (yh b)) (mh b)).g
+      (txSat P (Yh b) (d b) (g b) (q b) (eps b) (crossVar w (yh b)) (mh b)).q
+      (txSat P (Yh b) (d b) (g b) (q b) (eps b) (crossVar w (yh b)) (mh b)).eps
+      (txSat P (Yh b) (d b) (g b) (q b) (eps b) (crossVar w (yh b)) (mh b)).Phi
+      (txSat P (Yh b) (d b) (g b) (q b) (eps b) (crossVar w (yh b)) (mh b)).Delta =
+      Transactions.tip P (g b) (q b) (eps b) 0 0 := rfl
+  rw [htip] at key
+  simp only [periodUT, tipT]
+  rw [← hz0, hsum, eV, eU, eQ]
+  linear_combination (-(Ybar * uc)) * key
+
+/-- Woodford (2003), App. E.1 (first-order solutions): if the cross-section is
+`ŷ = εŷ₁ + O(ε²)` with `ŷ₁` bounded, then `var_i ŷ = ε² var_i ŷ₁ + O(ε³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem crossVar_first_order (hs : Tendsto s L (𝓝 0)) {w : ι → ℝ} (hw0 : ∀ i, 0 ≤ w i)
+    (hw1 : ∑ i, w i = 1) {y y1 : B → ι → ℝ}
+    (hd : (fun b => y b - s b • y1 b) =O[L] fun b => s b ^ 2)
+    (h1 : y1 =O[L] fun _ => (1 : ℝ)) :
+    (fun b => crossVar w (y b) - s b ^ 2 * crossVar w (y1 b)) =O[L] fun b => s b ^ 3 := by
+  have hc : ∀ i, (fun b => (y b i - crossMean w (y b)) - s b * (y1 b i - crossMean w (y1 b)))
+      =O[L] fun b => s b ^ 2 := by
+    intro i
+    have hm : (fun b => crossMean w (y b - s b • y1 b)) =O[L] fun b => s b ^ 2 :=
+      (IsBigO.of_bound 1 (Eventually.of_forall fun b => by
+        rw [one_mul, Real.norm_eq_abs]
+        exact ExpLogCES.abs_crossMean_le hw0 hw1 _)).trans hd
+    have hi : (fun b => y b i - s b * y1 b i) =O[L] fun b => s b ^ 2 :=
+      (IsBigO.of_bound 1 (Eventually.of_forall fun b => by
+        rw [one_mul]
+        simpa using norm_le_pi_norm (y b - s b • y1 b) i)).trans hd
+    refine (hi.sub hm).congr_left fun b => ?_
+    simp only [crossMean, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    have : ∑ x, w x * (y b x - s b * y1 b x) = ∑ x, w x * y b x - s b * ∑ x, w x * y1 b x := by
+      rw [Finset.mul_sum, ← Finset.sum_sub_distrib]
+      exact Finset.sum_congr rfl fun x _ => by ring
+    rw [this]
+    ring
+  have h1c : ∀ i, (fun b => y1 b i - crossMean w (y1 b)) =O[L] fun _ => (1 : ℝ) := by
+    intro i
+    have hcoord : (fun b => y1 b i) =O[L] fun _ => (1 : ℝ) :=
+      (IsBigO.of_bound 1 (Eventually.of_forall fun b => by
+        rw [one_mul]; exact norm_le_pi_norm (y1 b) i)).trans h1
+    have hmean : (fun b => crossMean w (y1 b)) =O[L] fun _ => (1 : ℝ) :=
+      (IsBigO.of_bound 1 (Eventually.of_forall fun b => by
+        rw [one_mul, Real.norm_eq_abs]; exact ExpLogCES.abs_crossMean_le hw0 hw1 _)).trans h1
+    exact hcoord.sub hmean
+  refine (IsBigO.fun_sum (s := Finset.univ) fun i _ =>
+    (sq_sub_o hs (hc i) (h1c i)).const_mul_left (w i)).congr_left fun b => ?_
+  simp only [crossVar, Finset.mul_sum, ← Finset.sum_sub_distrib]
+  exact Finset.sum_congr rfl fun i _ => by ring
+
+/-- Woodford (2003), (4.9), p. 422: along a family with first-order solution
+`(Ŷ₁, (î − îᵐ)₁, g₁, q₁, εᵐ₁, var_i ŷ₁)` (each variable `= ε × first order + O(ε²)`, the variance
+`= ε² var₁ + O(ε³)`), the quadratic form (4.9) at the satiated point satisfies
+`(4.9)(ε) = ε²(4.9)(first-order solution) + O(ε³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem loss49_first_order (hs : Tendsto s L (𝓝 0)) (P : Transactions.TxParams)
+    {Y d g q eps V m Y1 d1 g1 q1 eps1 V1 m1 : B → ℝ}
+    (hY : (fun b => Y b - s b * Y1 b) =O[L] fun b => s b ^ 2)
+    (hd : (fun b => d b - s b * d1 b) =O[L] fun b => s b ^ 2)
+    (hg : (fun b => g b - s b * g1 b) =O[L] fun b => s b ^ 2)
+    (hq : (fun b => q b - s b * q1 b) =O[L] fun b => s b ^ 2)
+    (heps : (fun b => eps b - s b * eps1 b) =O[L] fun b => s b ^ 2)
+    (hV : (fun b => V b - s b ^ 2 * V1 b) =O[L] fun b => s b ^ 3)
+    (hY1 : Y1 =O[L] fun _ => (1 : ℝ)) (hd1 : d1 =O[L] fun _ => (1 : ℝ))
+    (hg1 : g1 =O[L] fun _ => (1 : ℝ)) (hq1 : q1 =O[L] fun _ => (1 : ℝ))
+    (heps1 : eps1 =O[L] fun _ => (1 : ℝ)) :
+    (fun b => Transactions.loss49 P (txSat P (Y b) (d b) (g b) (q b) (eps b) (V b) (m b)) -
+      s b ^ 2 * Transactions.loss49 P
+        (txSat P (Y1 b) (d1 b) (g1 b) (q1 b) (eps1 b) (V1 b) (m1 b))) =O[L] fun b => s b ^ 3 := by
+  set c1 := P.sigInv / Transactions.omegaMC P
+  set c2 := P.omega / Transactions.omegaMC P
+  set c3 := P.chi / Transactions.omegaMC P
+  have hG : (fun b => (Y b - (c1 * g b + c2 * q b + c3 * eps b)) -
+      s b * (Y1 b - (c1 * g1 b + c2 * q1 b + c3 * eps1 b))) =O[L] fun b => s b ^ 2 :=
+    (hY.sub (((hg.const_mul_left c1).add (hq.const_mul_left c2)).add
+      (heps.const_mul_left c3))).congr_left fun b => by ring
+  have hG1 : (fun b => Y1 b - (c1 * g1 b + c2 * q1 b + c3 * eps1 b)) =O[L] fun _ => (1 : ℝ) :=
+    hY1.sub (((hg1.const_mul_left c1).add (hq1.const_mul_left c2)).add (heps1.const_mul_left c3))
+  refine ((((sq_sub_o hs hG hG1).const_mul_left (Transactions.omegaMC P)).add
+    ((sq_sub_o hs hd hd1).const_mul_left (P.etaI / P.vbar))).add
+    (hV.const_mul_left (P.thetaInv + P.omega))).congr_left fun b => ?_
+  simp only [Transactions.loss49, txSat, Transactions.natRate, Transactions.xStar,
+    Transactions.sM, c1, c2, c3]
+  ring
+
+/-- Woodford (2003), §1 (survey §4, Layer B): the generic bridge. If the actual welfare is
+`T − (K/2) L(ε) + O(ε³)` (Layer A plus the Taylor step) and the loss satisfies
+`L(ε) = ε² L₁ + O(ε³)` (first-order solution), then `W = T − (ε²/2) K L₁ + O(ε³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem bridge_first_order {W T Lq L1 : B → ℝ} {K : ℝ}
+    (hW : (fun b => W b - (T b - K * Lq b / 2)) =O[L] fun b => s b ^ 3)
+    (hL : (fun b => Lq b - s b ^ 2 * L1 b) =O[L] fun b => s b ^ 3) :
+    (fun b => W b - (T b - s b ^ 2 / 2 * (K * L1 b))) =O[L] fun b => s b ^ 3 :=
+  (hW.sub (hL.const_mul_left (K / 2))).congr_left fun b => by ring
+
+/-- Woodford (2003), **Proposition 6.7**, eq. (4.9), p. 422, LAYER B: under the hypotheses of
+`prop67_actual`, if the family has the first-order solution
+`(ŷ₁(i), Ŷ₁, (î − îᵐ)₁, g₁, q₁, εᵐ₁)` (`ŷ = εŷ₁ + O(ε²)` etc., all first-order objects bounded),
+then the actual period utility is
+`W(ε) = t.i.p.(ε) − (ε²/2)·Ȳu_c·(4.9)(first-order solution) + O(ε³)`, where the t.i.p.
+`tipT + Ȳu_c·Transactions.tip` depends on the disturbances only.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem prop67_layerB (hs : Tendsto s L (𝓝 0)) {w : ι → ℝ} (hw0 : ∀ i, 0 ≤ w i)
+    (hw1 : ∑ i, w i = 1) {θ : ℝ} (hθ : θ ≠ 1) {U Ut : ℝ × ℝ × Ξ → ℝ} (hUt : ContDiff ℝ 3 Ut)
+    {mbar : ℝ} (hmbar : 0 < mbar) (hEq : Set.EqOn U Ut {z | z.2.1 ≤ mbar})
+    {v : ℝ × Ξ → ℝ} (hv : ContDiff ℝ 3 v) {Ybar : ℝ}
+    (P : Transactions.TxParams) (hθi : P.thetaInv = θ⁻¹)
+    (hey : P.etaY = P.chi * P.etaI * P.vbar) (hΩ : Transactions.omegaMC P ≠ 0)
+    (hi : P.etaI ≠ 0) (hvb : P.vbar ≠ 0)
+    (hsat : fderiv ℝ Ut (Ybar, mbar, 0) (0, 1, 0) = 0)
+    (h11 : fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (1, 0, 0) (1, 0, 0) =
+      -(P.sigInv * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / Ybar))
+    (h12 : fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (1, 0, 0) (0, 1, 0) +
+      fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 1, 0) (1, 0, 0) =
+        2 * (P.chi * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / mbar))
+    (h22 : fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 1, 0) (0, 1, 0) =
+      -(Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / (P.etaI * P.vbar) / mbar ^ 2))
+    (hvy : dY v (Ybar, 0) = fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0))
+    (hvyy : dYY v (Ybar, 0) = P.omega * dY v (Ybar, 0) / Ybar)
+    {yh y1 : B → ι → ℝ} {mh d g q eps Y1 d1 g1 q1 eps1 : B → ℝ} {xu xv : B → Ξ}
+    (hg : ∀ b, fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (1, 0, 0) (0, 0, xu b) +
+      fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 0, xu b) (1, 0, 0) =
+        2 * (P.sigInv * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) * g b))
+    (heps : ∀ b, fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 1, 0) (0, 0, xu b) +
+      fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 0, xu b) (0, 1, 0) =
+        2 * (Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / (P.etaI * P.vbar) / mbar * eps b))
+    (hq : ∀ b, dYXi v (Ybar, 0) (xv b) = -(P.omega * dY v (Ybar, 0) * q b))
+    (hyh : yh =O[L] fun b => s b ^ 1) (hmh : mh =O[L] fun b => s b ^ 1)
+    (hxu : xu =O[L] fun b => s b ^ 1) (hxv : xv =O[L] fun b => s b ^ 1)
+    (hr : (fun b => mh b - (P.etaY * logYidx w θ (yh b) - P.etaI * d b + eps b))
+      =O[L] fun b => s b ^ 2)
+    (hleft : ∀ᶠ b in L, mh b ≤ 0)
+    (hy1 : y1 =O[L] fun _ => (1 : ℝ)) (hY1 : Y1 =O[L] fun _ => (1 : ℝ))
+    (hd1 : d1 =O[L] fun _ => (1 : ℝ)) (hg1 : g1 =O[L] fun _ => (1 : ℝ))
+    (hq1 : q1 =O[L] fun _ => (1 : ℝ)) (heps1 : eps1 =O[L] fun _ => (1 : ℝ))
+    (hyd : (fun b => yh b - s b • y1 b) =O[L] fun b => s b ^ 2)
+    (hYd : (fun b => logYidx w θ (yh b) - s b * Y1 b) =O[L] fun b => s b ^ 2)
+    (hdd : (fun b => d b - s b * d1 b) =O[L] fun b => s b ^ 2)
+    (hgd : (fun b => g b - s b * g1 b) =O[L] fun b => s b ^ 2)
+    (hqd : (fun b => q b - s b * q1 b) =O[L] fun b => s b ^ 2)
+    (hepsd : (fun b => eps b - s b * eps1 b) =O[L] fun b => s b ^ 2) :
+    (fun b => periodUT U v w θ Ybar mbar (yh b) (mh b) (xu b) (xv b) -
+      ((tipT Ut v Ybar mbar (xu b) (xv b) + Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) *
+        Transactions.tip P (g b) (q b) (eps b) 0 0) -
+        s b ^ 2 / 2 * (Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) * Transactions.loss49 P
+          (txSat P (Y1 b) (d1 b) (g1 b) (q1 b) (eps1 b) (crossVar w (y1 b)) 0))))
+      =O[L] fun b => s b ^ 3 := by
+  have fo : ∀ (x x1 : B → ℝ), (fun b => x b - s b * x1 b) =O[L] (fun b => s b ^ 2) →
+      x1 =O[L] (fun _ => (1 : ℝ)) → x =O[L] fun b => s b ^ 1 := fun x x1 hd h1 =>
+    ((o_weaken hs (by norm_num : 1 ≤ 2) hd).add
+      (((isBigO_refl s L).mul h1).congr_right fun b => by ring)).congr_left fun b => by ring
+  have hW := prop67_actual hs hw0 hw1 hθ hUt hmbar hEq hv P hθi hey hΩ hi hvb hsat h11 h12 h22
+    hvy hvyy hg heps hq hyh hmh (fo d d1 hdd hd1) (fo g g1 hgd hg1) (fo q q1 hqd hq1)
+    (fo eps eps1 hepsd heps1) hxu hxv hr hleft
+  have hL := loss49_first_order hs P (m := mh) (m1 := fun _ => 0) hYd hdd hgd hqd hepsd
+    (crossVar_first_order hs hw0 hw1 hyd hy1) hY1 hd1 hg1 hq1 heps1
+  exact bridge_first_order (hW.congr_left fun b => by ring) hL
+
+/-- Woodford (2003), Propositions 6.7, 6.10 and 6.12 and §1, pp. 386–389 (the WELFARE
+RANKING): for two policies facing the same disturbances (same t.i.p.), each with a Layer-B
+expansion `W = T − (ε²/2)K L(first-order solution) + O(ε³)` (`prop67_layerB`,
+prop610_layerB, prop612_layerB) with `K = Ȳu_c > 0`, the policy whose first-order solution
+has the smaller quadratic loss is strictly better for every small `ε ≠ 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem ranking_layerB {A' : Type*} {l' : Filter A'} {e' : A' → ℝ}
+    (he : Tendsto e' l' (𝓝 0)) (hne : ∀ᶠ a in l', e' a ≠ 0) {K : ℝ} (hK : 0 < K)
+    {WA WB T : A' → ℝ} {LA LB : ℝ}
+    (hA : (fun a => WA a - (T a - e' a ^ 2 / 2 * (K * LA))) =O[l'] fun a => e' a ^ 3)
+    (hB : (fun a => WB a - (T a - e' a ^ 2 / 2 * (K * LB))) =O[l'] fun a => e' a ^ 3)
+    (hL : LA < LB) : ∀ᶠ a in l', WB a < WA a :=
+  ranking_of_common he hne (WA := WA) (WB := WB) (T := T) (k := K / 2) (by linarith)
+    (hA.congr_left fun a => by ring) (hB.congr_left fun a => by ring) hL
+
+/-- Woodford (2003), (4.10)–(4.11), p. 423 (uniform orders and discounting along a path): if
+`f_t = O(g)` uniformly in `t` and `0 ≤ β < 1`, then `∑βᵗf_t = O(g)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem tsum_o {β : ℝ} (hβ0 : 0 ≤ β) (hβ1 : β < 1) {f : A → ℕ → ℝ} {g : A → ℝ}
+    (h : (fun p : A × ℕ => f p.1 p.2) =O[l ×ˢ (⊤ : Filter ℕ)] fun p => g p.1) :
+    (fun a => ∑' t, β ^ t * f a t) =O[l] g := by
+  obtain ⟨C, hC⟩ := uniform_bound h
+  refine IsBigO.of_bound (C / (1 - β)) ?_
+  filter_upwards [hC] with a ha
+  have h1 := SeqW.abs_tsum_le (f := f a) (fun t => ha t) hβ0 hβ1
+  rw [Real.norm_eq_abs, Real.norm_eq_abs]
+  calc _ ≤ C * |g a| / (1 - β) := h1
+    _ = C / (1 - β) * |g a| := by ring
+
+/-- Woodford (2003), §2, p. 394: a sequence family that is uniformly `O(eᵏ)` is bounded for
+every amplitude close enough to `0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem seq_bdd_of_o (he : Tendsto e l (𝓝 0)) {f : A → ℕ → ℝ} {k : ℕ}
+    (h : (fun p : A × ℕ => f p.1 p.2) =O[l ×ˢ (⊤ : Filter ℕ)] fun p => e p.1 ^ k) :
+    ∀ᶠ a in l, SeqW.Bdd (f a) := by
+  obtain ⟨C, hC⟩ := uniform_bound (g := fun a => e a ^ k) h
+  have h1 : ∀ᶠ a in l, |e a| ≤ 1 := by
+    filter_upwards [he.eventually (Metric.closedBall_mem_nhds (0 : ℝ) one_pos)] with a ha
+    simpa [Real.dist_eq] using ha
+  filter_upwards [hC, h1] with a ha h1a
+  refine ⟨|C|, fun t => ?_⟩
+  have hp : |e a ^ k| ≤ 1 := by rw [abs_pow]; exact pow_le_one₀ (abs_nonneg _) h1a
+  calc |f a t| ≤ C * |e a ^ k| := ha t
+    _ ≤ |C| * |e a ^ k| := mul_le_mul_of_nonneg_right (le_abs_self C) (abs_nonneg _)
+    _ ≤ |C| * 1 := mul_le_mul_of_nonneg_left hp (abs_nonneg C)
+    _ = |C| := mul_one _
+
+/-- Woodford (2003), **Proposition 6.8**, (4.10)–(4.11), p. 423, LAYER B along a path: if the
+period utility has the expansion of `prop67_actual` (`W = τ − (K/2)(4.9) + O(ε³)`, `τ`
+policy-independent, `K = Ȳu_c`) UNIFORMLY in the date (that theorem applies verbatim on the
+filter `l ×ˢ ⊤`), the first-order variables are uniformly `O(ε)`, the
+mean-price inflation `π̄` satisfies `π̄ − π = O(ε²)` and the Calvo dispersion law
+`∑βᵗvar_i ŷ_t = θ²(ψ∑βᵗπ̄_t² + T₀)` holds (`T₀` policy-independent), then
+`∑βᵗW_t = ∑βᵗτ_t − (K/2)[Λ ∑βᵗL_t + (θ⁻¹ + ω)θ²T₀] + O(ε³)` with L_t the loss (4.10)
+evaluated at the actual path (with `π`, not `π̄`) and `Λ = θ(1 + ωθ)ψ > 0`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem prop68_layerB (P : Transactions.TxParams) {α β θ K : ℝ} (hα0 : 0 < α) (hα1 : α < 1)
+    (hβ0 : 0 ≤ β) (hβ1 : β < 1) (hθ : 0 < θ) (hθi : P.thetaInv = 1 / θ) (hω : 0 ≤ P.omega)
+    (hΩ : 0 < Transactions.omegaMC P) (hv : P.vbar ≠ 0) (he : Tendsto e l (𝓝 0))
+    {W τ Y d g q eps V pib infl : A → ℕ → ℝ} {T0 : A → ℝ} (hτ : ∀ a, SeqW.Bdd (τ a))
+    (hP : (fun p : A × ℕ => W p.1 p.2 - (τ p.1 p.2 - K * Transactions.loss49 P
+      (txSat P (Y p.1 p.2) (d p.1 p.2) (g p.1 p.2) (q p.1 p.2) (eps p.1 p.2) (V p.1 p.2) 0) / 2))
+      =O[l ×ˢ ⊤] fun p => e p.1 ^ 3)
+    (hY : (fun p : A × ℕ => Y p.1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 1)
+    (hd : (fun p : A × ℕ => d p.1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 1)
+    (hg : (fun p : A × ℕ => g p.1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 1)
+    (hq : (fun p : A × ℕ => q p.1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 1)
+    (heps : (fun p : A × ℕ => eps p.1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 1)
+    (hi : (fun p : A × ℕ => infl p.1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 1)
+    (hpO : (fun p : A × ℕ => pib p.1 p.2 - infl p.1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 2)
+    (hV : ∀ a, HasSum (fun t => β ^ t * V a t)
+      (θ ^ 2 * (Moments.calvoK α β * ∑' t, β ^ t * pib a t ^ 2 + T0 a))) :
+    (fun a => ∑' t, β ^ t * W a t - (∑' t, β ^ t * τ a t - K / 2 *
+      (θ * (1 + P.omega * θ) * Moments.calvoK α β * ∑' t, β ^ t * Transactions.loss410 P α β θ
+        (infl a t) (Y a t - Transactions.natRate P (g a t) (q a t) (eps a t)) (d a t) +
+        (P.thetaInv + P.omega) * θ ^ 2 * T0 a))) =O[l] fun a => e a ^ 3 := by
+  have hs := tendsto_amp (J := ℕ) he
+  set R : A → ℕ → ℝ := fun a t => W a t - (τ a t - K * Transactions.loss49 P
+    (txSat P (Y a t) (d a t) (g a t) (q a t) (eps a t) (V a t) 0) / 2) with hR
+  set X : A → ℕ → ℝ := fun a t => Y a t - Transactions.natRate P (g a t) (q a t) (eps a t)
+    with hX
+  have hXO : (fun p : A × ℕ => X p.1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 1 :=
+    (hY.sub ((((hg.const_mul_left P.sigInv).add (hq.const_mul_left P.omega)).add
+      (heps.const_mul_left P.chi)).const_mul_left (Transactions.omegaMC P)⁻¹)).congr_left
+        fun p => by simp only [hX, Transactions.natRate]; ring
+  have hpib : (fun p : A × ℕ => pib p.1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 1 :=
+    ((o_weaken hs (by norm_num : 1 ≤ 2) hpO).add hi).congr_left fun p => by ring
+  have hPO : (fun p : A × ℕ => pib p.1 p.2 ^ 2 - infl p.1 p.2 ^ 2)
+      =O[l ×ˢ ⊤] fun p => e p.1 ^ 3 :=
+    (o_mul hpO ((o_weaken hs (by norm_num : 1 ≤ 2) hpO).add (hi.const_mul_left 2))
+      (by norm_num : 2 + 1 = 3)).congr_left fun p => by ring
+  have bR := seq_bdd_of_o (f := R) he hP
+  have bX := seq_bdd_of_o (f := fun a t => X a t ^ 2) he (o_pow hXO 2)
+  have bI := seq_bdd_of_o (f := fun a t => d a t ^ 2) he (o_pow hd 2)
+  have bp := seq_bdd_of_o (f := fun a t => pib a t ^ 2) he (o_pow hpib 2)
+  have bi := seq_bdd_of_o (f := fun a t => infl a t ^ 2) he (o_pow hi 2)
+  have hev : ∀ᶠ a in l, ∑' t, β ^ t * W a t - (∑' t, β ^ t * τ a t - K / 2 *
+      (θ * (1 + P.omega * θ) * Moments.calvoK α β * ∑' t, β ^ t * Transactions.loss410 P α β θ
+        (infl a t) (X a t) (d a t) + (P.thetaInv + P.omega) * θ ^ 2 * T0 a)) =
+      ∑' t, β ^ t * R a t - K / 2 * (θ * (1 + P.omega * θ) * Moments.calvoK α β) *
+        ∑' t, β ^ t * (pib a t ^ 2 - infl a t ^ 2) := by
+    filter_upwards [bR, bX, bI, bp, bi] with a hRa hXa hIa hpa hia
+    have sR := (hRa.summable hβ0 hβ1).hasSum
+    have sX := (hXa.summable hβ0 hβ1).hasSum
+    have sI := (hIa.summable hβ0 hβ1).hasSum
+    have sP := (hpa.summable hβ0 hβ1).hasSum
+    have si := (hia.summable hβ0 hβ1).hasSum
+    have sτ := ((hτ a).summable hβ0 hβ1).hasSum
+    obtain ⟨h1, -⟩ := Transactions.prop_6_8 P hα0 hα1 hβ1 hθ hθi hω hΩ hv sX sI sP (hV a)
+    have hW : HasSum (fun t => β ^ t * W a t)
+        (∑' t, β ^ t * τ a t - K / 2 * (θ * (1 + P.omega * θ) * Moments.calvoK α β *
+          (∑' t, β ^ t * pib a t ^ 2 + Transactions.lambdaX P α β θ * ∑' t, β ^ t * X a t ^ 2 +
+            Transactions.lambdaI P (Transactions.lambdaX P α β θ) * ∑' t, β ^ t * d a t ^ 2) +
+          (P.thetaInv + P.omega) * θ ^ 2 * T0 a) + ∑' t, β ^ t * R a t) := by
+      refine ((sτ.sub (h1.mul_left (K / 2))).add sR).congr_fun fun t => ?_
+      simp only [hR, hX, Transactions.loss49, txSat, Transactions.xStar, Transactions.sM]
+      ring
+    have hL : HasSum (fun t => β ^ t * Transactions.loss410 P α β θ (infl a t) (X a t) (d a t))
+        (∑' t, β ^ t * infl a t ^ 2 + Transactions.lambdaX P α β θ * ∑' t, β ^ t * X a t ^ 2 +
+          Transactions.lambdaI P (Transactions.lambdaX P α β θ) * ∑' t, β ^ t * d a t ^ 2) := by
+      refine ((si.add (sX.mul_left (Transactions.lambdaX P α β θ))).add
+        (sI.mul_left (Transactions.lambdaI P (Transactions.lambdaX P α β θ)))).congr_fun
+          fun t => ?_
+      simp only [Transactions.loss410]
+      ring
+    have hD : HasSum (fun t => β ^ t * (pib a t ^ 2 - infl a t ^ 2))
+        (∑' t, β ^ t * pib a t ^ 2 - ∑' t, β ^ t * infl a t ^ 2) :=
+      (sP.sub si).congr_fun fun t => by ring
+    rw [hW.tsum_eq, hL.tsum_eq, hD.tsum_eq]
+    ring
+  exact ((tsum_o (f := R) hβ0 hβ1 hP).sub ((tsum_o hβ0 hβ1 hPO).const_mul_left
+    (K / 2 * (θ * (1 + P.omega * θ) * Moments.calvoK α β)))).congr'
+      (hev.mono fun a ha => ha.symm) (Eventually.of_forall fun _ => rfl)
+
+/-- Woodford (2003), (4.10), p. 423, with a first-order solution along a path: if
+`π = επ₁ + O(ε²)`, `x − x* = ε(x − x*)₁ + O(ε²)` and `î − îᵐ = ε(î − îᵐ)₁ + O(ε²)` uniformly
+(first-order sequences bounded), then `∑βᵗL_t = ε²∑βᵗL_t(first-order solution) + O(ε³)`.
+(Restated from the Woodford Chapter 6 StabilizationWelfare project.) -/
+theorem loss410_first_order (P : Transactions.TxParams) {α β θ : ℝ} (hβ0 : 0 ≤ β)
+    (hβ1 : β < 1) (he : Tendsto e l (𝓝 0)) {infl xg d : A → ℕ → ℝ} {infl1 xg1 d1 : ℕ → ℝ}
+    (hi1 : SeqW.Bdd infl1) (hx1 : SeqW.Bdd xg1) (hd1 : SeqW.Bdd d1)
+    (hid : (fun p : A × ℕ => infl p.1 p.2 - e p.1 * infl1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 2)
+    (hxd : (fun p : A × ℕ => xg p.1 p.2 - e p.1 * xg1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 2)
+    (hdd : (fun p : A × ℕ => d p.1 p.2 - e p.1 * d1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 2) :
+    (fun a => ∑' t, β ^ t * Transactions.loss410 P α β θ (infl a t) (xg a t) (d a t) -
+      e a ^ 2 * ∑' t, β ^ t * Transactions.loss410 P α β θ (infl1 t) (xg1 t) (d1 t))
+      =O[l] fun a => e a ^ 3 := by
+  have hs := tendsto_amp (J := ℕ) he
+  have b1 : ∀ {u : ℕ → ℝ}, SeqW.Bdd u →
+      (fun p : A × ℕ => u p.2) =O[l ×ˢ ⊤] fun _ => (1 : ℝ) := fun {u} hu => by
+    obtain ⟨M, hM⟩ := hu
+    exact IsBigO.of_bound M (Eventually.of_forall fun p => by
+      rw [Real.norm_eq_abs, norm_one, mul_one]; exact hM _)
+  have hD : (fun p : A × ℕ => Transactions.loss410 P α β θ (infl p.1 p.2) (xg p.1 p.2) (d p.1 p.2)
+      - e p.1 ^ 2 * Transactions.loss410 P α β θ (infl1 p.2) (xg1 p.2) (d1 p.2))
+      =O[l ×ˢ ⊤] fun p => e p.1 ^ 3 :=
+    (((sq_sub_o hs hid (b1 hi1)).add ((sq_sub_o hs hxd (b1 hx1)).const_mul_left
+      (Transactions.lambdaX P α β θ))).add ((sq_sub_o hs hdd (b1 hd1)).const_mul_left
+      (Transactions.lambdaI P (Transactions.lambdaX P α β θ)))).congr_left fun p => by
+        simp only [Transactions.loss410]; ring
+  have hfo : ∀ {x : A → ℕ → ℝ} {x1 : ℕ → ℝ}, SeqW.Bdd x1 →
+      (fun p : A × ℕ => x p.1 p.2 - e p.1 * x1 p.2) =O[l ×ˢ ⊤] (fun p => e p.1 ^ 2) →
+      (fun p : A × ℕ => x p.1 p.2) =O[l ×ˢ ⊤] fun p => e p.1 ^ 1 := fun {x} {x1} h1 hd =>
+    ((o_weaken hs (by norm_num : 1 ≤ 2) hd).add
+      (((isBigO_refl (fun p : A × ℕ => e p.1) _).mul (b1 h1)).congr_right fun p => by
+        ring)).congr_left fun p => by ring
+  have hL1 : SeqW.Bdd (fun t => Transactions.loss410 P α β θ (infl1 t) (xg1 t) (d1 t)) := by
+    obtain ⟨M1, hM1⟩ := hi1
+    obtain ⟨M2, hM2⟩ := hx1
+    obtain ⟨M3, hM3⟩ := hd1
+    refine ⟨M1 ^ 2 + |Transactions.lambdaX P α β θ| * M2 ^ 2 +
+      |Transactions.lambdaI P (Transactions.lambdaX P α β θ)| * M3 ^ 2, fun t => ?_⟩
+    have e1 : |infl1 t| ^ 2 ≤ M1 ^ 2 := pow_le_pow_left₀ (abs_nonneg _) (hM1 t) 2
+    have e2 : |xg1 t| ^ 2 ≤ M2 ^ 2 := pow_le_pow_left₀ (abs_nonneg _) (hM2 t) 2
+    have e3 : |d1 t| ^ 2 ≤ M3 ^ 2 := pow_le_pow_left₀ (abs_nonneg _) (hM3 t) 2
+    unfold Transactions.loss410
+    calc _ ≤ |infl1 t ^ 2| + |Transactions.lambdaX P α β θ * xg1 t ^ 2| +
+          |Transactions.lambdaI P (Transactions.lambdaX P α β θ) * d1 t ^ 2| :=
+          abs_add_three _ _ _
+      _ = |infl1 t| ^ 2 + |Transactions.lambdaX P α β θ| * |xg1 t| ^ 2 +
+          |Transactions.lambdaI P (Transactions.lambdaX P α β θ)| * |d1 t| ^ 2 := by
+          simp only [abs_mul, abs_pow]
+      _ ≤ _ := by gcongr
+  have bL := seq_bdd_of_o (f := fun a t => Transactions.loss410 P α β θ (infl a t) (xg a t)
+    (d a t)) he ((((o_mul (hfo hi1 hid) (hfo hi1 hid) (by norm_num : 1 + 1 = 2)).add
+      ((o_mul (hfo hx1 hxd) (hfo hx1 hxd) (by norm_num : 1 + 1 = 2)).const_mul_left
+        (Transactions.lambdaX P α β θ))).add
+      ((o_mul (hfo hd1 hdd) (hfo hd1 hdd) (by norm_num : 1 + 1 = 2)).const_mul_left
+        (Transactions.lambdaI P (Transactions.lambdaX P α β θ)))).congr_left fun p => by
+          simp only [Transactions.loss410]; ring)
+  have hev : ∀ᶠ a in l, ∑' t, β ^ t * (Transactions.loss410 P α β θ (infl a t) (xg a t) (d a t)
+      - e a ^ 2 * Transactions.loss410 P α β θ (infl1 t) (xg1 t) (d1 t)) =
+      ∑' t, β ^ t * Transactions.loss410 P α β θ (infl a t) (xg a t) (d a t) -
+        e a ^ 2 * ∑' t, β ^ t * Transactions.loss410 P α β θ (infl1 t) (xg1 t) (d1 t) := by
+    filter_upwards [bL] with a ha
+    have h1 := (ha.summable hβ0 hβ1).hasSum
+    have h2 := ((hL1.summable hβ0 hβ1).hasSum).mul_left (e a ^ 2)
+    exact ((h1.sub h2).congr_fun fun t => by ring).tsum_eq
+  exact (tsum_o hβ0 hβ1 hD).congr' hev (Eventually.of_forall fun _ => rfl)
+
+variable {J : Type*} [Fintype J]
+
+end BridgeExtensions
+
+end Woodford.GainsFromCommitment.TidyR6WelfFrictions
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Proposition 7.3 as a statement about actual welfare
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §1.2, Proposition 7.3, pp. 478–479: with
+transactions frictions "the quadratic approximation to welfare is given by (1.14)", and the
+timelessly optimal policy has constant inflation (1.19) "up to an error of order
+`O(‖Δ_{−1}^{1/2}, r̄ − iᵐ‖²)`"; the welfare approximation is Chapter 6, Propositions 6.7–6.8
+(§4.1, pp. 420–426), restated in TidyR6WelfFrictions.
+
+## Main results
+
+* `frictions_bridge`: actual discounted utility with transactions frictions (expansion at the
+  satiated efficient steady state, one-sided in real balances) along a family of Calvo economies
+  equals `TIP − (ε²/2)·Ȳu_cΛ·∑βᵗL_t(first-order plan) + O(ε³)`, with L_t the loss (1.14) and
+  weights `λ_x = κ/θ`, `λ_i = η_iλ_x/(v̄Ω_mc)` DERIVED (`κ` the Calvo slope with `Ω_mc`); it
+  combines the Chapter 6 results `BridgeExtensions.prop67_actual`,
+  `BridgeExtensions.prop68_layerB` and `BridgeExtensions.loss410_first_order`.
+* `loss410_eq_basic`: the first-order loss is `MonetaryFrictions.loss` of the basic model (1.1),
+  (1.14), (1.15) in Woodford's variables (`x = gap + x*`, `i = (i − iᵐ) + iᵐ`).
+* `prop_7_3_welfare`: a policy whose first-order plan is the constant plan (1.19) is at least as
+  good, up to `O(ε³)`, as every policy whose first-order plan satisfies (1.1), (1.15) and the
+  timeless initial constraints, and strictly better if that plan differs.
+* `prop_7_3_welfare_converse`: a constant first-order plan that is at least as good, up to
+  `O(ε³)`, as the policies whose first-order plans are its perturbations along the feasible test
+  deviation of p. 478 satisfies (1.19).
+* `bdd_quad_terms`, `bdd_tipT` (restated from the Chapter 6 project's BridgeLinks).
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR6WelfProp73
+
+open Filter Topology Asymptotics
+open Woodford.GainsFromCommitment.TidyR6WelfBase Woodford.GainsFromCommitment.TidyR6WelfBridge
+  Woodford.GainsFromCommitment.TidyR6WelfFrictions Woodford.GainsFromCommitment.TidyR6WelfCalvo
+
+variable {Ξ : Type*} [NormedAddCommGroup Ξ] [NormedSpace ℝ Ξ] {ι : Type*} [Fintype ι]
+
+/-- Woodford (2003), Ch. 6, (E.2)–(E.3), p. 692: the terms `c + Dξ + ½D²(ξ, ξ)` of an expansion
+are a bounded sequence when the disturbances are bounded (restated from the Woodford Chapter 6
+StabilizationWelfare project, BridgeLinks.bdd_quad_terms). -/
+theorem bdd_quad_terms {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] (c : ℝ)
+    (D1 : E →L[ℝ] ℝ) (D2 : E →L[ℝ] E →L[ℝ] ℝ) {u : ℕ → E} {M : ℝ} (hu : ∀ t, ‖u t‖ ≤ M) :
+    SeqW.Bdd (fun t => c + D1 (u t) + D2 (u t) (u t) / 2) := by
+  have hM : 0 ≤ M := (norm_nonneg _).trans (hu 0)
+  have b1 : SeqW.Bdd (fun t => D1 (u t)) := ⟨‖D1‖ * M, fun t => by
+    rw [← Real.norm_eq_abs]
+    exact (D1.le_opNorm _).trans (mul_le_mul_of_nonneg_left (hu t) (norm_nonneg _))⟩
+  have b2 : SeqW.Bdd (fun t => D2 (u t) (u t)) := ⟨‖D2‖ * M * M, fun t => by
+    rw [← Real.norm_eq_abs]
+    refine (D2.le_opNorm₂ _ _).trans ?_
+    gcongr <;> exact hu t⟩
+  exact ((SeqW.Bdd.const c).add b1).add (b2.div_const 2)
+
+omit [NormedSpace ℝ Ξ] in
+/-- Woodford (2003), Ch. 6, App. E.4: a disturbance in the last coordinate has the norm of the
+disturbance (restated from the Chapter 6 project). -/
+theorem norm_triple (x : Ξ) : ‖((0 : ℝ), (0 : ℝ), x)‖ = ‖x‖ := by
+  simp [Prod.norm_def]
+
+omit [NormedSpace ℝ Ξ] in
+/-- Woodford (2003), Ch. 6, App. E.1: a disturbance in the second coordinate has the norm of the
+disturbance (restated from the Chapter 6 project). -/
+theorem norm_pair (x : Ξ) : ‖((0 : ℝ), x)‖ = ‖x‖ := by
+  simp [Prod.norm_def]
+
+/-- Woodford (2003), Ch. 6, (4.9) and (E.15), p. 699: the t.i.p. of the transactions model is a
+bounded sequence when the disturbances are bounded (restated from the Woodford Chapter 6
+StabilizationWelfare project, BridgeLinks.bdd_tipT). -/
+theorem bdd_tipT (Ut : ℝ × ℝ × Ξ → ℝ) (v : ℝ × Ξ → ℝ) (Ybar mbar K : ℝ)
+    (P : Transactions.TxParams) {xu xv : ℕ → Ξ} {g q eps : ℕ → ℝ}
+    (hxu : ∃ M, ∀ t, ‖xu t‖ ≤ M) (hxv : ∃ M, ∀ t, ‖xv t‖ ≤ M) (hg : SeqW.Bdd g)
+    (hq : SeqW.Bdd q) (heps : SeqW.Bdd eps) :
+    SeqW.Bdd (fun t => BridgeExtensions.tipT Ut v Ybar mbar (xu t) (xv t) +
+      K * Transactions.tip P (g t) (q t) (eps t) 0 0) := by
+  obtain ⟨M1, h1⟩ := hxu
+  obtain ⟨M2, h2⟩ := hxv
+  have b1 := bdd_quad_terms (Ut (Ybar, mbar, 0)) (fderiv ℝ Ut (Ybar, mbar, 0))
+    (fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0)) (u := fun t => ((0 : ℝ), (0 : ℝ), xu t))
+    (M := M1) fun t => by rw [norm_triple]; exact h1 t
+  have b2 := bdd_quad_terms (v (Ybar, 0)) (fderiv ℝ v (Ybar, 0))
+    (fderiv ℝ (fderiv ℝ v) (Ybar, 0)) (u := fun t => ((0 : ℝ), xv t))
+    (M := M2) fun t => by rw [norm_pair]; exact h2 t
+  have b3 : SeqW.Bdd (fun t => Transactions.tip P (g t) (q t) (eps t) 0 0) := by
+    unfold Transactions.tip Transactions.natRate Transactions.xStar Transactions.sM
+    aesop (add safe apply [SeqW.Bdd.add, SeqW.Bdd.sub, SeqW.Bdd.mul,
+      SeqW.Bdd.neg, SeqW.Bdd.div_const, SeqW.Bdd.pow, SeqW.Bdd.const])
+  exact (b1.sub b2).add ((SeqW.Bdd.const K).mul b3)
+
+/-- Woodford (2003), Ch. 6, §4.1, (4.9)–(4.11), and Ch. 7, (1.14), p. 476 (**actual welfare with
+transactions frictions to `O(ε³)`**). Along a one-parameter family of Calvo economies with
+transactions frictions (output cross-section `ŷ`, real balances `m̂ ≤ 0` below satiation, the
+interest differential `d = î − îᵐ` (total), disturbances x_u, x_v with composite shocks
+`g`, `q`, `εᵐ`, index inflation `π` and mean-price inflation `π̄`, the Calvo dispersion law in
+discounted form with initial term `T₀`), every order hypothesis uniform in the date, and
+first-order solutions `(π₁, x₁, d₁)` of inflation, the gap from the natural rate and `d`:
+`∑βᵗU_t = TIP(ε) − (ε²/2)·Ȳu_cΛ·∑βᵗL_t(π₁, x₁, d₁) + O(ε³)` with L_t the loss (4.10)/(1.14),
+weights `λ_x = κ/θ` and `λ_i = η_iλ_x/(v̄Ω_mc)` (`Transactions.lambdaX`, `Transactions.lambdaI`,
+derived), `Λ = θ(1 + ωθ)α/((1 − α)(1 − αβ))`, and TIP depending on the disturbances and `T₀`
+only. -/
+theorem frictions_bridge {w : ι → ℝ} (hw0 : ∀ i, 0 ≤ w i) (hw1 : ∑ i, w i = 1) {θ : ℝ}
+    (hθ0 : 0 < θ) (hθ : θ ≠ 1) {U Ut : ℝ × ℝ × Ξ → ℝ} (hUt : ContDiff ℝ 3 Ut) {mbar : ℝ}
+    (hmbar : 0 < mbar) (hEq : Set.EqOn U Ut {z | z.2.1 ≤ mbar}) {v : ℝ × Ξ → ℝ}
+    (hv : ContDiff ℝ 3 v) {Ybar : ℝ} (P : Transactions.TxParams) (hθi : P.thetaInv = θ⁻¹)
+    (hey : P.etaY = P.chi * P.etaI * P.vbar) (hΩ : 0 < Transactions.omegaMC P)
+    (hω : 0 ≤ P.omega) (hi : P.etaI ≠ 0) (hvb : P.vbar ≠ 0)
+    (hsat : fderiv ℝ Ut (Ybar, mbar, 0) (0, 1, 0) = 0)
+    (h11 : fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (1, 0, 0) (1, 0, 0) =
+      -(P.sigInv * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / Ybar))
+    (h12 : fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (1, 0, 0) (0, 1, 0) +
+      fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 1, 0) (1, 0, 0) =
+        2 * (P.chi * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / mbar))
+    (h22 : fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 1, 0) (0, 1, 0) =
+      -(Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / (P.etaI * P.vbar) / mbar ^ 2))
+    (hvy : BridgeExtensions.dY v (Ybar, 0) = fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0))
+    (hvyy : BridgeExtensions.dYY v (Ybar, 0) = P.omega * BridgeExtensions.dY v (Ybar, 0) / Ybar)
+    {α β : ℝ} (hα0 : 0 < α) (hα1 : α < 1) (hβ0 : 0 ≤ β) (hβ1 : β < 1)
+    {yh : ℝ → ℕ → ι → ℝ} {mh d g q eps infl pib : ℝ → ℕ → ℝ} {xu xv : ℝ → ℕ → Ξ}
+    {T0 : ℝ → ℝ}
+    (hg : ∀ a t, fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (1, 0, 0) (0, 0, xu a t) +
+      fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 0, xu a t) (1, 0, 0) =
+        2 * (P.sigInv * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) * g a t))
+    (heps : ∀ a t, fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 1, 0) (0, 0, xu a t) +
+      fderiv ℝ (fderiv ℝ Ut) (Ybar, mbar, 0) (0, 0, xu a t) (0, 1, 0) =
+        2 * (Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / (P.etaI * P.vbar) / mbar *
+          eps a t))
+    (hq : ∀ a t, BridgeExtensions.dYXi v (Ybar, 0) (xv a t) =
+      -(P.omega * BridgeExtensions.dY v (Ybar, 0) * q a t))
+    (hyh : (fun p : ℝ × ℕ => yh p.1 p.2) =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 1)
+    (hmh : (fun p : ℝ × ℕ => mh p.1 p.2) =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 1)
+    (hgO : (fun p : ℝ × ℕ => g p.1 p.2) =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 1)
+    (hqO : (fun p : ℝ × ℕ => q p.1 p.2) =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 1)
+    (hepsO : (fun p : ℝ × ℕ => eps p.1 p.2) =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 1)
+    (hxu : (fun p : ℝ × ℕ => xu p.1 p.2) =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 1)
+    (hxv : (fun p : ℝ × ℕ => xv p.1 p.2) =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 1)
+    (hr : (fun p : ℝ × ℕ => mh p.1 p.2 - (P.etaY * BridgeExtensions.logYidx w θ (yh p.1 p.2) -
+      P.etaI * d p.1 p.2 + eps p.1 p.2)) =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 2)
+    (hleft : ∀ᶠ p in 𝓝 (0 : ℝ) ×ˢ (⊤ : Filter ℕ), mh p.1 p.2 ≤ 0)
+    (hxuB : ∀ a, ∃ M, ∀ t, ‖xu a t‖ ≤ M) (hxvB : ∀ a, ∃ M, ∀ t, ‖xv a t‖ ≤ M)
+    (hgB : ∀ a, SeqW.Bdd (g a)) (hqB : ∀ a, SeqW.Bdd (q a)) (hepsB : ∀ a, SeqW.Bdd (eps a))
+    (hpO : (fun p : ℝ × ℕ => pib p.1 p.2 - infl p.1 p.2) =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 2)
+    (hV : ∀ a, HasSum (fun t => β ^ t * ExpLogCES.crossVar w (yh a t))
+      (θ ^ 2 * (Moments.calvoK α β * ∑' t, β ^ t * pib a t ^ 2 + T0 a)))
+    {infl1 xg1 d1 : ℕ → ℝ} (hi1 : SeqW.Bdd infl1) (hx1 : SeqW.Bdd xg1) (hd1 : SeqW.Bdd d1)
+    (hid : (fun p : ℝ × ℕ => infl p.1 p.2 - p.1 * infl1 p.2) =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 2)
+    (hxd : (fun p : ℝ × ℕ => (BridgeExtensions.logYidx w θ (yh p.1 p.2) -
+      Transactions.natRate P (g p.1 p.2) (q p.1 p.2) (eps p.1 p.2)) - p.1 * xg1 p.2)
+      =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 2)
+    (hdd : (fun p : ℝ × ℕ => d p.1 p.2 - p.1 * d1 p.2) =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 2) :
+    (fun ε => ∑' t, β ^ t * BridgeExtensions.periodUT U v w θ Ybar mbar (yh ε t) (mh ε t)
+        (xu ε t) (xv ε t) -
+      ((∑' t, β ^ t * (BridgeExtensions.tipT Ut v Ybar mbar (xu ε t) (xv ε t) +
+          Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) *
+            Transactions.tip P (g ε t) (q ε t) (eps ε t) 0 0) -
+        Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / 2 *
+          ((P.thetaInv + P.omega) * θ ^ 2 * T0 ε)) -
+        ε ^ 2 / 2 * (Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) *
+          (θ * (1 + P.omega * θ) * Moments.calvoK α β) *
+          ∑' t, β ^ t * Transactions.loss410 P α β θ (infl1 t) (xg1 t) (d1 t))))
+      =O[𝓝 0] fun ε => ε ^ 3 := by
+  have he : Tendsto (fun ε : ℝ => ε) (𝓝 0) (𝓝 0) := tendsto_id
+  have hs := BridgeExtensions.tendsto_amp (J := ℕ) he
+  have b1 : ∀ {u : ℕ → ℝ}, SeqW.Bdd u →
+      (fun p : ℝ × ℕ => u p.2) =O[𝓝 0 ×ˢ ⊤] fun _ => (1 : ℝ) := fun {u} hu => by
+    obtain ⟨M, hM⟩ := hu
+    exact IsBigO.of_bound M (Eventually.of_forall fun p => by
+      rw [Real.norm_eq_abs, norm_one, mul_one]; exact hM _)
+  have fo : ∀ {x : ℝ → ℕ → ℝ} {x1 : ℕ → ℝ}, SeqW.Bdd x1 →
+      (fun p : ℝ × ℕ => x p.1 p.2 - p.1 * x1 p.2) =O[𝓝 0 ×ˢ ⊤] (fun p => p.1 ^ 2) →
+      (fun p : ℝ × ℕ => x p.1 p.2) =O[𝓝 0 ×ˢ ⊤] fun p => p.1 ^ 1 := fun {x} {x1} h1 hd =>
+    ((BridgeExtensions.o_weaken hs (by norm_num : 1 ≤ 2) hd).add
+      (((isBigO_refl (fun p : ℝ × ℕ => p.1) _).mul (b1 h1)).congr_right fun p => by
+        ring)).congr_left fun p => by ring
+  have hdO := fo hd1 hdd
+  have hiO := fo hi1 hid
+  have hYO := BridgeExtensions.logYidx_o hs hw0 hw1 hθ hyh
+  have hW := BridgeExtensions.prop67_actual hs hw0 hw1 hθ hUt hmbar hEq hv P hθi hey hΩ.ne' hi
+    hvb hsat h11 h12 h22 hvy hvyy (fun p => hg p.1 p.2) (fun p => heps p.1 p.2)
+    (fun p => hq p.1 p.2) hyh hmh hdO hgO hqO hepsO hxu hxv hr hleft
+  have h68 := BridgeExtensions.prop68_layerB P hα0 hα1 hβ0 hβ1 hθ0 (by rw [hθi, one_div]) hω
+    hΩ hvb he (K := Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0))
+    (W := fun a t => BridgeExtensions.periodUT U v w θ Ybar mbar (yh a t) (mh a t) (xu a t)
+      (xv a t))
+    (τ := fun a t => BridgeExtensions.tipT Ut v Ybar mbar (xu a t) (xv a t) +
+      Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) *
+        Transactions.tip P (g a t) (q a t) (eps a t) 0 0)
+    (Y := fun a t => BridgeExtensions.logYidx w θ (yh a t))
+    (V := fun a t => ExpLogCES.crossVar w (yh a t)) (pib := pib) (infl := infl) (T0 := T0)
+    (fun a => bdd_tipT Ut v Ybar mbar _ P (hxuB a) (hxvB a) (hgB a) (hqB a) (hepsB a))
+    (hW.congr_left fun p => by
+      simp only [Transactions.loss49, BridgeExtensions.txSat]; ring)
+    hYO hdO hgO hqO hepsO hiO hpO hV
+  have hL := BridgeExtensions.loss410_first_order P (α := α) (θ := θ) hβ0 hβ1 he
+    (xg := fun a t => BridgeExtensions.logYidx w θ (yh a t) -
+      Transactions.natRate P (g a t) (q a t) (eps a t)) hi1 hx1 hd1 hid hxd hdd
+  refine (h68.sub (hL.const_mul_left (Ybar * fderiv ℝ Ut (Ybar, mbar, 0) (1, 0, 0) / 2 *
+    (θ * (1 + P.omega * θ) * Moments.calvoK α β)))).congr_left fun ε => ?_
+  ring
+
+/-- Woodford (2003), (1.14), p. 476: the discounted first-order loss of the bridge is the loss
+`MonetaryFrictions.loss` of the basic model, with `λ_x = κ/θ`, `λ_i = η_iλ_x/(v̄Ω_mc)`, in
+Woodford's variables `x = x₁ + x*` (gap from the natural rate) and `i = d₁ + iᵐ`. -/
+theorem loss410_eq_basic (P : Transactions.TxParams) (α β θ σ rbar xs im : ℝ)
+    (infl1 xg1 d1 : ℕ → ℝ) :
+    ∑' t, β ^ t * Transactions.loss410 P α β θ (infl1 t) (xg1 t) (d1 t) =
+      MonetaryFrictions.loss (MonetaryFrictions.basic β (Transactions.kappaCalvo P α β θ) σ rbar
+        (Transactions.lambdaX P α β θ) (Transactions.lambdaI P (Transactions.lambdaX P α β θ))
+        xs im) infl1 (fun t => xg1 t + xs) (fun t => d1 t + im) := by
+  unfold MonetaryFrictions.loss MonetaryFrictions.dsum MonetaryFrictions.periodLoss
+  refine tsum_congr fun t => ?_
+  simp only [MonetaryFrictions.basic, Transactions.loss410]
+  ring
+
+/-- Woodford (2003), (4.11), p. 423: `λ_x = κ/θ` with `κ` the Calvo slope (definitional;
+`Transactions.lambdaX`). -/
+theorem lambdaX_eq (P : Transactions.TxParams) (α β θ : ℝ) :
+    Transactions.lambdaX P α β θ = Transactions.kappaCalvo P α β θ / θ := rfl
+
+/-- **Woodford (2003), Proposition 7.3, pp. 478–479, as a statement about actual welfare.** Let
+the actual welfare of two policies have the expansion of `frictions_bridge`,
+`W_X = T − (ε²/2)K L_X + O(ε³)` with the same `T` and `K > 0`, where L_X is the loss (1.14) of
+the first-order plan (`loss410_eq_basic`; `λ_x = κ/θ`, `λ_i > 0` derived). If the first-order plan
+of `F` is the constant plan (1.19), `π̄ = −λ_i(r̄ − iᵐ)/(λ_i + β)`, `ı̄ = r̄ + π̄`,
+`x̄ = (1 − β)π̄/κ`, and the first-order plan of `G` is bounded, satisfies (1.1) and (1.15) and the
+timeless initial constraints `π_0 = π̄`, `x_0 = x̄`, then `F` is at least as good as `G` up to
+`O(ε³)`, and strictly better for every small `ε ≠ 0` unless `G`'s plan is the constant plan. -/
+theorem prop_7_3_welfare {β κ σ rbar lamx lami xs im : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 < lamx) (hli : 0 < lami) {WF WG T : ℝ → ℝ} {K : ℝ}
+    (hK : 0 < K) {πb xb ib : ℝ} {π x i : ℕ → ℝ}
+    (hF : (fun ε => WF ε - (T ε - ε ^ 2 / 2 * (K * MonetaryFrictions.loss
+      (MonetaryFrictions.basic β κ σ rbar lamx lami xs im) (fun _ => πb) (fun _ => xb)
+        (fun _ => ib)))) =O[𝓝 0] fun ε => ε ^ 3)
+    (hG : (fun ε => WG ε - (T ε - ε ^ 2 / 2 * (K * MonetaryFrictions.loss
+      (MonetaryFrictions.basic β κ σ rbar lamx lami xs im) π x i))) =O[𝓝 0] fun ε => ε ^ 3)
+    (h119 : πb = -(lami / (lami + β)) * (rbar - im) ∧ ib = rbar + πb ∧ xb = (1 - β) * πb / κ)
+    (hπ : Sequences.Bdd π) (hx : Sequences.Bdd x) (hi : Sequences.Bdd i)
+    (hfeas : MonetaryFrictions.Feasible (MonetaryFrictions.basic β κ σ rbar lamx lami xs im)
+      π x i) (h0 : π 0 = πb) (h0' : x 0 = xb) :
+    WeaklyBetter WF WG ∧ (¬ (∀ t, π t = πb ∧ x t = xb ∧ i t = ib) →
+      ∀ᶠ ε in 𝓝[≠] (0 : ℝ), WG ε < WF ε) := by
+  have hopt := (MonetaryFrictions.prop_7_3 (xstar := xs) hβ0 hβ1 hκ hσ hlx.le hli.le πb xb
+    ib).mpr h119
+  have hle : MonetaryFrictions.loss (MonetaryFrictions.basic β κ σ rbar lamx lami xs im)
+      (fun _ => πb) (fun _ => xb) (fun _ => ib) ≤
+      MonetaryFrictions.loss (MonetaryFrictions.basic β κ σ rbar lamx lami xs im) π x i := by
+    have := hopt.2 0 π x i hπ hx hi (fun t _ => hfeas t) h0 (by simp [MonetaryFrictions.basic, h0'])
+    simpa using this
+  refine ⟨weaklyBetter_of_loss_le hK.le hF hG hle, fun hne => ?_⟩
+  refine eventually_lt_of_loss_lt hK hF hG (lt_of_le_of_ne hle fun heq => hne ?_)
+  have h := MonetaryFrictions.prop_7_3_unique hβ0 hβ1 hκ hσ hlx hli hopt 0 hπ hx hi
+    (fun t _ => hfeas t) h0 h0' (by simpa using heq.symm.le)
+  intro t
+  exact h t (Nat.zero_le t)
+
+/-- **Woodford (2003), Proposition 7.3, pp. 478–479, as a statement about actual welfare
+(necessity of (1.19) "up to an error of order `O(‖Δ_{−1}^{1/2}, r̄ − iᵐ‖²)`").** Let the first-order
+plan of `F` be a feasible constant plan `(π̄, x̄, ı̄)`, and suppose that for every `s ∈ ℝ` there is
+a policy G_s whose first-order plan is the constant plan perturbed by `s` times the feasible test
+deviation of p. 478 (`MonetaryFrictions.pertPi`, pertX, pertI, which preserves the initial
+constraints), with welfare expansion as in `frictions_bridge` (same `T`, `K > 0`). If `F` is at
+least as good as every G_s up to `O(ε³)`, then the plan of `F` is (1.19):
+`π̄ = −λ_i(r̄ − iᵐ)/(λ_i + β)`, `ı̄ = r̄ + π̄`, `x̄ = (1 − β)π̄/κ`. -/
+theorem prop_7_3_welfare_converse {β κ σ rbar lamx lami xs im : ℝ} (hβ0 : 0 < β) (hβ1 : β < 1)
+    (hκ : 0 < κ) (hσ : 0 < σ) (hlx : 0 ≤ lamx) (hli : 0 ≤ lami) {WF T : ℝ → ℝ} {K : ℝ}
+    (hK : 0 < K) {πb xb ib : ℝ}
+    (hFfeas : MonetaryFrictions.Feasible (MonetaryFrictions.basic β κ σ rbar lamx lami xs im)
+      (fun _ => πb) (fun _ => xb) (fun _ => ib))
+    (hF : (fun ε => WF ε - (T ε - ε ^ 2 / 2 * (K * MonetaryFrictions.loss
+      (MonetaryFrictions.basic β κ σ rbar lamx lami xs im) (fun _ => πb) (fun _ => xb)
+        (fun _ => ib)))) =O[𝓝 0] fun ε => ε ^ 3)
+    (hG : ∀ s : ℝ, ∃ WG : ℝ → ℝ, (fun ε => WG ε - (T ε - ε ^ 2 / 2 * (K *
+      MonetaryFrictions.loss (MonetaryFrictions.basic β κ σ rbar lamx lami xs im)
+        (fun t => πb + s * MonetaryFrictions.pertPi
+          (MonetaryFrictions.basic β κ σ rbar lamx lami xs im) t)
+        (fun t => xb + s * MonetaryFrictions.pertX
+          (MonetaryFrictions.basic β κ σ rbar lamx lami xs im) t)
+        (fun t => ib + s * MonetaryFrictions.pertI
+          (MonetaryFrictions.basic β κ σ rbar lamx lami xs im) t)))) =O[𝓝 0] (fun ε => ε ^ 3) ∧
+      WeaklyBetter WF WG) :
+    πb = -(lami / (lami + β)) * (rbar - im) ∧ ib = rbar + πb ∧ xb = (1 - β) * πb / κ := by
+  set Mb := MonetaryFrictions.basic β κ σ rbar lamx lami xs im with hMb
+  have hβ0' : 0 < Mb.β := hβ0
+  have hβ1' : Mb.β < 1 := hβ1
+  have hb0 := MonetaryFrictions.pert_zero_from Mb
+  have hbp : Sequences.Bdd (MonetaryFrictions.pertPi Mb) :=
+    Sequences.bdd_of_zero_from 4 (fun t ht => (hb0 t ht).1)
+  have hbx : Sequences.Bdd (MonetaryFrictions.pertX Mb) :=
+    Sequences.bdd_of_zero_from 4 (fun t ht => (hb0 t ht).2.1)
+  have hbi : Sequences.Bdd (MonetaryFrictions.pertI Mb) :=
+    Sequences.bdd_of_zero_from 4 (fun t ht => (hb0 t ht).2.2)
+  have hall : ∀ s : ℝ, 0 ≤ 2 * s * MonetaryFrictions.dsum Mb.β (fun t =>
+      πb * MonetaryFrictions.pertPi Mb t +
+        Mb.lamx * (xb - Mb.xstar) * MonetaryFrictions.pertX Mb t +
+        Mb.lami * (ib - Mb.im) * MonetaryFrictions.pertI Mb t) +
+      s ^ 2 * MonetaryFrictions.dsum Mb.β (MonetaryFrictions.quad Mb (MonetaryFrictions.pertPi Mb)
+        (MonetaryFrictions.pertX Mb) (MonetaryFrictions.pertI Mb)) := by
+    intro s
+    obtain ⟨WG, hWG, hwb⟩ := hG s
+    have hle := loss_le_of_weaklyBetter hK hF hWG hwb
+    rw [MonetaryFrictions.loss_expand hβ0' hβ1' s (Sequences.bdd_const πb)
+      (Sequences.bdd_const xb) (Sequences.bdd_const ib) hbp hbx hbi] at hle
+    linarith
+  have hGz := MonetaryFrictions.eq_zero_of_forall_nonneg hall
+  rw [MonetaryFrictions.dsum_pert] at hGz
+  have hne : Mb.β ^ 2 * Mb.κ ≠ 0 := mul_ne_zero (pow_ne_zero 2 hβ0.ne') hκ.ne'
+  have hc : MonetaryFrictions.TimelessCond Mb πb xb ib := by
+    have := (mul_eq_zero.mp hGz).resolve_left hne
+    unfold MonetaryFrictions.TimelessCond
+    linarith
+  have hopt := MonetaryFrictions.timelesslyOptimal_of_cond hβ0' hβ1' hlx hli hσ.ne' hκ.ne'
+    hFfeas hc
+  exact (MonetaryFrictions.prop_7_3 (xstar := xs) hβ0 hβ1 hκ hσ hlx hli πb xb ib).mp hopt
+
+end Woodford.GainsFromCommitment.TidyR6WelfProp73
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Propositions 7.1, 7.2 and 7.4 as statements about actual welfare
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §1.1–§1.2, pp. 468–485: Proposition 7.1
+(p. 471: discretion, "up to an error of order `O(‖Δ_{−1}^{1/2}, Δ_y, ξ̃‖²)`"), Proposition 7.2
+(p. 475: zero inflation is timelessly optimal, "up to an error of order `O(‖Δ_{−1}^{1/2}‖²)`")
+and Proposition 7.4 (p. 482: `π_t = γπ_{t−1}`, "up to an error of order
+`O(‖Δ_{−1}^{1/2}, π_{−1}‖²)`").
+
+The linear-quadratic content of these propositions is proved in InflationBias, Timeless and
+Indexation, with a general weight `λ`. Here they are proved about ACTUAL welfare, the
+discounted utility `∑βᵗU_t(ε)` of a one-parameter family of Calvo economies
+(`TidyR6WelfCalvo.CalvoFamily`), with the loss weight `λ = κ/θ` produced by the Chapter 6 welfare
+expansion (`TidyR6WelfCalvo.lamW`), not assumed. The amplitude `ε` scales the distortions,
+the initial dispersion `Δ_{−1}^{1/2}`, `π_{−1}` and the disturbances; the first-order solution of
+a family is its plan `(π_t, x_t) = (π₁_{t}, gap₁_t + x*)` in Woodford's variables.
+
+## What "optimal up to an error of order `O(‖·‖²)`" means here
+
+* **Sufficiency.** A family whose first-order plan solves the linear-quadratic problem is at
+  least as good as every other admissible family up to `O(ε³)` (`TidyR6WelfCalvo.WeaklyBetter`),
+  and strictly better for every small `ε ≠ 0` than every family whose first-order plan differs.
+* **Necessity.** A family that is at least as good, up to `O(ε³)`, as one family whose
+  first-order plan solves the linear-quadratic problem has itself a first-order plan that solves
+  it. Its inflation is therefore the book's expression up to `O(ε²)`: the error of order
+  `O(‖·‖²)`.
+
+## Main results
+
+* `prop_7_2_welfare`, `prop_7_2_welfare_unique`: Proposition 7.2.
+* `prop_7_1_welfare`, `prop_7_1_welfare_converse` (with `DiscWelfareOpt`): Proposition 7.1,
+  discretion as period-by-period optimisation of actual welfare against one-date deviations.
+* `prop_7_4_welfare`, `prop_7_4_welfare_converse`: Proposition 7.4 with indexation `γ`.
+* Tools: `Assm` (the maintained assumptions), `L_le_of_weaklyBetter`, `weaklyBetter_of_L_le`,
+  `lt_of_L_lt`, `qW`, `L_eq`, `gap_bdd`, `L_sub_of_deviation`.
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR6WelfProps
+
+open Filter Topology Asymptotics
+open Woodford.GainsFromCommitment.TidyR6WelfBase Woodford.GainsFromCommitment.TidyR6WelfBridge
+  Woodford.GainsFromCommitment.TidyR6WelfCalvo
+
+variable {Ξ : Type*} [NormedAddCommGroup Ξ] [NormedSpace ℝ Ξ] {ι : Type*} [Fintype ι]
+
+variable (M : BridgeCore.Econ Ξ ι) (α β : ℝ)
+
+/-- Woodford (2003), Ch. 6, §2, pp. 392–402, and Ch. 7, p. 471, fn. 6 (**the maintained
+assumptions**, explicit): the economy `M` satisfies the standing assumptions of Chapter 6, the
+expansion is at the efficient steady state (`ṽ_y = u_c`; distortions enter through `x*`),
+`σ⁻¹ + ω > 0`, `θ > 0`, `1 + ωθ > 0`, `0 < α < 1`, `0 < β < 1`. -/
+structure Assm where
+  /-- The standing assumptions of Chapter 6. -/
+  std : M.Std
+  /-- Expansion at the efficient steady state. -/
+  eff : M.vy = M.uc
+  /-- `σ⁻¹ + ω > 0`. -/
+  sig_omg : 0 < M.sig + M.omg
+  /-- `θ > 0`. -/
+  θ_pos : 0 < M.θ
+  /-- `1 + ωθ > 0`. -/
+  d_pos : 0 < 1 + M.omg * M.θ
+  /-- `α > 0`. -/
+  α_pos : 0 < α
+  /-- `α < 1`. -/
+  α_lt : α < 1
+  /-- `β > 0`. -/
+  β_pos : 0 < β
+  /-- `β < 1`. -/
+  β_lt : β < 1
+
+variable {M α β}
+
+/-- Woodford (2003), Ch. 3, (2.19): under `Assm`, `κ > 0`. -/
+theorem Assm.kap_pos (A : Assm M α β) : 0 < kap M α β :=
+  TidyR6WelfCalvo.kap_pos A.α_pos A.α_lt A.β_lt A.sig_omg A.d_pos
+
+/-- Woodford (2003), Ch. 6, (2.22): under `Assm`, `λ = κ/θ > 0`. -/
+theorem Assm.lam_pos (A : Assm M α β) : 0 < lamW M α β :=
+  TidyR6WelfCalvo.lamW_pos A.α_pos A.α_lt A.β_lt A.sig_omg A.d_pos A.θ_pos
+
+/-- Woodford (2003), Ch. 6, (2.21): under `Assm`, `Ȳu_c2Θ > 0`. -/
+theorem Assm.bK_pos (A : Assm M α β) : 0 < bK M α β :=
+  TidyR6WelfCalvo.bK_pos A.std A.α_pos A.α_lt A.β_lt A.θ_pos A.d_pos
+
+variable {γ : ℝ} {ξ1 : ℕ → Ξ} {D0 : ℝ → ℝ}
+
+/-! ### Welfare rankings from first-order losses -/
+
+/-- Woodford (2003), p. 471, fn. 6: if the first-order loss of `F` is no larger than that of `G`
+(same disturbances and initial dispersion), `F` is at least as good as `G` up to `O(ε³)`. -/
+theorem weaklyBetter_of_L_le (A : Assm M α β) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C)
+    (F G : CalvoFamily M α γ D0) (h : F.L ξ1 β ≤ G.L ξ1 β) :
+    WeaklyBetter (F.W ξ1 β) (G.W ξ1 β) :=
+  weaklyBetter_of_loss_le A.bK_pos.le
+    (F.bridge ξ1 A.std A.eff A.sig_omg.ne' A.θ_pos.ne' A.d_pos.ne' A.α_pos A.α_lt A.β_pos.le
+      A.β_lt hξ1)
+    (G.bridge ξ1 A.std A.eff A.sig_omg.ne' A.θ_pos.ne' A.d_pos.ne' A.α_pos A.α_lt A.β_pos.le
+      A.β_lt hξ1) h
+
+/-- Woodford (2003), p. 471, fn. 6 (strict): if the first-order loss of `F` is smaller, `F` is
+strictly better than `G` for every small `ε ≠ 0`. -/
+theorem lt_of_L_lt (A : Assm M α β) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C)
+    (F G : CalvoFamily M α γ D0) (h : F.L ξ1 β < G.L ξ1 β) :
+    ∀ᶠ ε in 𝓝[≠] (0 : ℝ), G.W ξ1 β ε < F.W ξ1 β ε :=
+  eventually_lt_of_loss_lt A.bK_pos
+    (F.bridge ξ1 A.std A.eff A.sig_omg.ne' A.θ_pos.ne' A.d_pos.ne' A.α_pos A.α_lt A.β_pos.le
+      A.β_lt hξ1)
+    (G.bridge ξ1 A.std A.eff A.sig_omg.ne' A.θ_pos.ne' A.d_pos.ne' A.α_pos A.α_lt A.β_pos.le
+      A.β_lt hξ1) h
+
+/-- Woodford (2003), Propositions 7.1–7.4 ("up to an error of order `O(‖·‖²)`", the converse):
+if `F` is at least as good as `G` up to `O(ε³)`, its first-order loss is no larger. -/
+theorem L_le_of_weaklyBetter (A : Assm M α β) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C)
+    (F G : CalvoFamily M α γ D0) (h : WeaklyBetter (F.W ξ1 β) (G.W ξ1 β)) :
+    F.L ξ1 β ≤ G.L ξ1 β :=
+  loss_le_of_weaklyBetter A.bK_pos
+    (F.bridge ξ1 A.std A.eff A.sig_omg.ne' A.θ_pos.ne' A.d_pos.ne' A.α_pos A.α_lt A.β_pos.le
+      A.β_lt hξ1)
+    (G.bridge ξ1 A.std A.eff A.sig_omg.ne' A.θ_pos.ne' A.d_pos.ne' A.α_pos A.α_lt A.β_pos.le
+      A.β_lt hξ1) h
+
+/-! ### The first-order plan in Woodford's variables -/
+
+/-- Woodford (2003), (1.21), p. 480: quasi-differenced first-order inflation
+`π_t − γπ_{t−1} = π₁_{t+1} − γπ₁_t` (Lean date `t + 1` is economic date `t`). -/
+def qW (F : CalvoFamily M α γ D0) (t : ℕ) : ℝ := F.π1 (t + 1) - γ * F.π1 t
+
+/-- Woodford (2003), (2.10) and (1.1): the first-order output gap (measured from the efficient
+level, i.e. Woodford's `x − x*`) is bounded for bounded disturbances. -/
+theorem gap_bdd (A : Assm M α β) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C) (F : CalvoFamily M α γ D0) :
+    Sequences.Bdd (fun t => M.gap (F.y1 t) (ξ1 t)) := by
+  have hx := BridgeCore.unif_of_bounded hξ1
+  have h := (BridgeCore.crossMean_isBigO A.std.w_nonneg A.std.w_sum
+    (BridgeCore.unif_of_bounded F.y1_bdd)).sub
+    (BridgeCore.natLin_isBigO M.sig M.omg (M.gS_isBigO hx) (M.qS_isBigO hx))
+  exact BridgeCore.bounded_of_unif (f := fun t => M.gap (F.y1 t) (ξ1 t)) h
+
+omit [NormedAddCommGroup Ξ] [NormedSpace ℝ Ξ] in
+/-- Woodford (2003), (1.21): the quasi-differenced first-order inflation is bounded. -/
+theorem qW_bdd (F : CalvoFamily M α γ D0) : Sequences.Bdd (qW F) := by
+  obtain ⟨C, hC⟩ := F.π1_bdd
+  refine ⟨C + |γ| * C, fun t => ?_⟩
+  unfold qW
+  calc |F.π1 (t + 1) - γ * F.π1 t| ≤ |F.π1 (t + 1)| + |γ * F.π1 t| := abs_sub _ _
+    _ ≤ C + |γ| * C := by rw [abs_mul]; gcongr <;> exact hC _
+
+/-- Woodford (2003), (1.2)/(1.22), p. 469/481: the first-order loss of a family is the book's
+discounted loss of its plan `(q_t, x_t) = (π_t − γπ_{t−1}, gap₁_t + x*)` with `λ = κ/θ`, for any
+`x*`. -/
+theorem L_eq (F : CalvoFamily M α γ D0) (xs : ℝ) :
+    F.L ξ1 β = MonetaryFrictions.dsum β (fun t => qW F t ^ 2 +
+      lamW M α β * ((M.gap (F.y1 t) (ξ1 t) + xs) - xs) ^ 2) := by
+  unfold CalvoFamily.L MonetaryFrictions.dsum qW
+  exact tsum_congr fun t => by ring
+
+/-! ### Proposition 7.2 -/
+
+/-- **Woodford (2003), Proposition 7.2, p. 475, as a statement about actual welfare.** In the
+cashless Calvo economy without real disturbances, let `F` be a family whose first-order plan is
+zero inflation with output at its natural level (`π₁ ≡ 0`, Woodford's `x ≡ 0`, i.e. the gap from
+the efficient level is `−x*`). Then for every family `G` whose first-order plan is feasible
+((1.1) with slope `κ`, the Calvo slope of `M`) and satisfies the timeless constraint `π₀ = 0`,
+`F` is at least as good as `G` up to `O(ε³)`; and if `G`'s first-order plan is not that of `F`,
+`F` is strictly better for every small `ε ≠ 0`. -/
+theorem prop_7_2_welfare (A : Assm M α β) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C) (xs : ℝ)
+    (F G : CalvoFamily M α 0 D0) (hFπ : ∀ t, F.π1 (t + 1) = 0)
+    (hFx : ∀ t, M.gap (F.y1 t) (ξ1 t) = -xs)
+    (hGas : ∀ t, G.π1 (t + 1) = kap M α β * (M.gap (G.y1 t) (ξ1 t) + xs) + β * G.π1 (t + 2))
+    (hG0 : G.π1 1 = 0) :
+    WeaklyBetter (F.W ξ1 β) (G.W ξ1 β) ∧
+      (¬ ((∀ t, G.π1 (t + 1) = 0) ∧ ∀ t, M.gap (G.y1 t) (ξ1 t) = -xs) →
+        ∀ᶠ ε in 𝓝[≠] (0 : ℝ), G.W ξ1 β ε < F.W ξ1 β ε) := by
+  have hβ0 := A.β_pos
+  have hβ1 := A.β_lt
+  have hκ := A.kap_pos
+  have hlam := A.lam_pos
+  have hLF : F.L ξ1 β = lamW M α β * xs ^ 2 / (1 - β) := by
+    rw [L_eq F xs]
+    have e : (fun t => qW F t ^ 2 + lamW M α β * ((M.gap (F.y1 t) (ξ1 t) + xs) - xs) ^ 2) =
+        fun _ => lamW M α β * xs ^ 2 := by
+      funext t
+      simp only [qW, hFπ, hFx, zero_mul, sub_zero]
+      ring
+    rw [e, MonetaryFrictions.dsum_const hβ0.le hβ1]
+  have hq : Sequences.Bdd (fun t => G.π1 (t + 1)) := by
+    obtain ⟨C, hC⟩ := qW_bdd G
+    exact ⟨C, fun t => by simpa [qW] using hC t⟩
+  have hx : Sequences.Bdd (fun t => M.gap (G.y1 t) (ξ1 t) + xs) :=
+    (gap_bdd A hξ1 G).add (Sequences.bdd_const xs)
+  have hLG : G.L ξ1 β = MonetaryFrictions.dsum β (fun t => G.π1 (t + 1) ^ 2 +
+      lamW M α β * ((M.gap (G.y1 t) (ξ1 t) + xs) - xs) ^ 2) := by
+    rw [L_eq G xs]
+    simp only [qW, zero_mul, sub_zero]
+  have hmin := Indexation.cashless_timeless_min (xstar := xs) hβ0 hβ1 hκ.ne' hlam.le hq hx
+    (fun t => hGas t) hG0
+  refine ⟨weaklyBetter_of_L_le A hξ1 F G (by rw [hLF, hLG]; exact hmin), fun hne => ?_⟩
+  refine lt_of_L_lt A hξ1 F G (lt_of_le_of_ne (by rw [hLF, hLG]; exact hmin) fun heq => hne ?_)
+  have hle : MonetaryFrictions.dsum β (fun t => G.π1 (t + 1) ^ 2 +
+      lamW M α β * ((M.gap (G.y1 t) (ξ1 t) + xs) - xs) ^ 2) ≤ lamW M α β * xs ^ 2 / (1 - β) := by
+    rw [← hLG, ← heq, hLF]
+  obtain ⟨h1, h2⟩ := Indexation.cashless_timeless_unique (xstar := xs) hβ0 hβ1 hκ.ne' hlam hq hx
+    (fun t => hGas t) hG0 hle
+  exact ⟨fun t => congrFun h1 t, fun t => by have := congrFun h2 t; simp at this; linarith⟩
+
+/-- **Woodford (2003), Proposition 7.2, p. 475 ("the unique policy with this property"), as a
+statement about actual welfare.** Let `F` be a family whose first-order plan is a constant
+inflation rate `π̄` satisfying (1.1), and `G` a family whose first-order plan solves the
+linear-quadratic problem with the constraint `π₀ = π̄` (`Timeless.IsOptimalGivenDet`, weight
+`λ = κ/θ`). If `F` is at least as good as `G` up to `O(ε³)` — i.e. the constant target `π̄` is
+optimal from a timeless perspective up to third order — then `π̄ = 0`. -/
+theorem prop_7_2_welfare_unique (A : Assm M α β) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C) (xs pbar : ℝ)
+    (F G : CalvoFamily M α 0 D0) (hFπ : ∀ t, F.π1 (t + 1) = pbar)
+    (hFas : ∀ t, F.π1 (t + 1) = kap M α β * (M.gap (F.y1 t) (ξ1 t) + xs) + β * F.π1 (t + 2))
+    (hGopt : Timeless.IsOptimalGivenDet β (kap M α β) (lamW M α β) xs pbar
+      (fun t => G.π1 (t + 1)) (fun t => M.gap (G.y1 t) (ξ1 t) + xs))
+    (h : WeaklyBetter (F.W ξ1 β) (G.W ξ1 β)) : pbar = 0 := by
+  have hle := L_le_of_weaklyBetter A hξ1 F G h
+  have hL : ∀ H : CalvoFamily M α 0 D0, H.L ξ1 β = DateZeroCommitment.detLoss β (lamW M α β) xs
+      (fun t => H.π1 (t + 1)) (fun t => M.gap (H.y1 t) (ξ1 t) + xs) := fun H => by
+    unfold CalvoFamily.L DateZeroCommitment.detLoss
+    exact tsum_congr fun t => by ring
+  rw [hL, hL] at hle
+  have hFopt : Timeless.IsOptimalGivenDet β (kap M α β) (lamW M α β) xs pbar
+      (fun _ => pbar) (fun t => M.gap (F.y1 t) (ξ1 t) + xs) := by
+    have hFπ' : (fun t => F.π1 (t + 1)) = fun _ => pbar := funext hFπ
+    rw [hFπ'] at hle
+    refine ⟨fun t => ?_, ⟨|pbar|, fun _ => le_rfl⟩, ?_, rfl, fun π' x' h1 h2 h3 h4 =>
+      hle.trans (hGopt.2.2.2.2 π' x' h1 h2 h3 h4)⟩
+    · have := hFas t
+      rw [hFπ, hFπ] at this
+      exact this
+    · obtain ⟨C, hC⟩ := (gap_bdd A hξ1 F).add (Sequences.bdd_const xs)
+      exact ⟨C, hC⟩
+  exact (Timeless.prop_7_2_det A.β_pos A.β_lt A.kap_pos A.lam_pos pbar).mp ⟨_, hFopt⟩
+
+/-! ### Proposition 7.1: discretion against one-date deviations -/
+
+/-- Woodford (2003), (1.2), p. 469: the period-`t` loss of the first-order plan of a family
+without indexation, `π_t² + (κ/θ)(x_t − x*)²` (gap from the efficient level). -/
+noncomputable def ell (ξ1 : ℕ → Ξ) (β : ℝ) (F : CalvoFamily M α 0 D0) (t : ℕ) : ℝ :=
+  F.π1 (t + 1) ^ 2 + lamW M α β * M.gap (F.y1 t) (ξ1 t) ^ 2
+
+/-- Woodford (2003), (1.2): the period loss of a family is bounded. -/
+theorem ell_bdd (A : Assm M α β) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C) (F : CalvoFamily M α 0 D0) :
+    Sequences.Bdd (ell ξ1 β F) := by
+  have hq : Sequences.Bdd (fun t => F.π1 (t + 1)) := by
+    obtain ⟨C, hC⟩ := qW_bdd F
+    exact ⟨C, fun t => by simpa [qW] using hC t⟩
+  exact hq.sq.add ((Sequences.bdd_const _).mul (gap_bdd A hξ1 F).sq)
+
+/-- Woodford (2003), (1.2): without indexation the first-order loss is `∑βᵗℓ_t`. -/
+theorem L_eq_ell (F : CalvoFamily M α 0 D0) : F.L ξ1 β = ∑' t, β ^ t * ell ξ1 β F t := by
+  unfold CalvoFamily.L ell
+  exact tsum_congr fun t => by ring
+
+/-- Woodford (2003), pp. 470–471 (a deviation at one date): if the first-order plans of `F` and
+`G` coincide at every date except `t`, then `L_G − L_F = βᵗ(ℓ_t(G) − ℓ_t(F))`. -/
+theorem L_sub_of_deviation (A : Assm M α β) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C)
+    (F G : CalvoFamily M α 0 D0) (t : ℕ)
+    (hdev : ∀ s, s ≠ t → G.π1 (s + 1) = F.π1 (s + 1) ∧
+      M.gap (G.y1 s) (ξ1 s) = M.gap (F.y1 s) (ξ1 s)) :
+    G.L ξ1 β - F.L ξ1 β = β ^ t * (ell ξ1 β G t - ell ξ1 β F t) := by
+  rw [L_eq_ell, L_eq_ell]
+  have sG := Sequences.summable_disc A.β_pos.le A.β_lt (ell_bdd A hξ1 G).choose_spec
+  have sF := Sequences.summable_disc A.β_pos.le A.β_lt (ell_bdd A hξ1 F).choose_spec
+  rw [← sG.tsum_sub sF]
+  rw [tsum_eq_single t fun s hs => by
+    obtain ⟨h1, h2⟩ := hdev s hs
+    simp only [ell, h1, h2, sub_self]]
+  ring
+
+/-- Woodford (2003), pp. 470–471 (**discretion as optimisation of actual welfare**): the family
+`F` is a discretionary optimum up to `O(ε³)` if at every date `t` it is at least as good, up to
+`O(ε³)`, as every family `G` that deviates from it only at date `t` (the bank cannot affect other
+dates, p. 470) and whose date-`t` first-order point lies on the perceived trade-off (1.3)
+`π_t = κx_t + βπᵉ`, with the private expectation `πᵉ = π_{t+1}` of `F`. -/
+def DiscWelfareOpt (ξ1 : ℕ → Ξ) (β xs : ℝ) (F : CalvoFamily M α 0 D0) : Prop :=
+  ∀ (t : ℕ) (G : CalvoFamily M α 0 D0),
+    (∀ s, s ≠ t → G.π1 (s + 1) = F.π1 (s + 1) ∧
+      M.gap (G.y1 s) (ξ1 s) = M.gap (F.y1 s) (ξ1 s)) →
+    G.π1 (t + 1) = kap M α β * (M.gap (G.y1 t) (ξ1 t) + xs) + β * F.π1 (t + 2) →
+      WeaklyBetter (F.W ξ1 β) (G.W ξ1 β)
+
+/-- **Woodford (2003), Proposition 7.1, pp. 471–472, as a statement about actual welfare
+(existence).** If the first-order plan of `F` is the Markov equilibrium of the linear-quadratic
+game — constant inflation (1.6) `πᵉ = κλx*/((1 − β)λ + κ²)` with `λ = κ/θ` and the output gap
+`(1 − β)πᵉ/κ` that (1.1) requires — then `F` is a discretionary optimum up to `O(ε³)`
+(`DiscWelfareOpt`), and every one-date deviation on the perceived trade-off with a different
+first-order point is strictly worse for every small `ε ≠ 0`. -/
+theorem prop_7_1_welfare (A : Assm M α β) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C) (xs : ℝ)
+    (F : CalvoFamily M α 0 D0)
+    (hFπ : ∀ t, F.π1 (t + 1) = InflationBias.discretionInflation β (kap M α β) (lamW M α β) xs)
+    (hFx : ∀ t, M.gap (F.y1 t) (ξ1 t) + xs = (1 - β) *
+      InflationBias.discretionInflation β (kap M α β) (lamW M α β) xs / kap M α β) :
+    DiscWelfareOpt ξ1 β xs F ∧
+      ∀ (t : ℕ) (G : CalvoFamily M α 0 D0),
+        (∀ s, s ≠ t → G.π1 (s + 1) = F.π1 (s + 1) ∧
+          M.gap (G.y1 s) (ξ1 s) = M.gap (F.y1 s) (ξ1 s)) →
+        G.π1 (t + 1) = kap M α β * (M.gap (G.y1 t) (ξ1 t) + xs) + β * F.π1 (t + 2) →
+        (G.π1 (t + 1) ≠ F.π1 (t + 1) ∨ M.gap (G.y1 t) (ξ1 t) ≠ M.gap (F.y1 t) (ξ1 t)) →
+          ∀ᶠ ε in 𝓝[≠] (0 : ℝ), G.W ξ1 β ε < F.W ξ1 β ε := by
+  set κ := kap M α β with hκdef
+  set lam := lamW M α β with hlamdef
+  set p := InflationBias.discretionInflation β κ lam xs with hp
+  have hκ : 0 < κ := A.kap_pos
+  have hlam : 0 < lam := A.lam_pos
+  obtain ⟨πe, hπe, hst⟩ := (InflationBias.prop_7_1 A.β_lt hκ hlam p ((1 - β) * p / κ)).mpr
+    ⟨rfl, rfl⟩
+  subst hπe
+  have hfoc := (InflationBias.static_foc_iff hκ.ne' hlam hst.1).mp hst
+  -- the period loss of a deviation exceeds that of `F` by `(κ² + λ)(x' − x̄)²`
+  have hdiff : ∀ (t : ℕ) (G : CalvoFamily M α 0 D0),
+      G.π1 (t + 1) = κ * (M.gap (G.y1 t) (ξ1 t) + xs) + β * F.π1 (t + 2) →
+      ell ξ1 β G t - ell ξ1 β F t =
+        (κ ^ 2 + lam) * ((M.gap (G.y1 t) (ξ1 t) + xs) - (1 - β) * p / κ) ^ 2 := by
+    intro t G hG
+    have hl := InflationBias.staticLoss_line β κ lam xs p ((1 - β) * p / κ)
+      (M.gap (G.y1 t) (ξ1 t) + xs)
+    rw [← hst.1] at hl
+    have e1 : ell ξ1 β G t = InflationBias.staticLoss lam xs
+        (κ * (M.gap (G.y1 t) (ξ1 t) + xs) + β * p) (M.gap (G.y1 t) (ξ1 t) + xs) := by
+      unfold ell InflationBias.staticLoss
+      rw [hG, hFπ]
+      ring
+    have e2 : ell ξ1 β F t = InflationBias.staticLoss lam xs p ((1 - β) * p / κ) := by
+      unfold ell InflationBias.staticLoss
+      rw [hFπ]
+      have := hFx t
+      have hx : M.gap (F.y1 t) (ξ1 t) = (1 - β) * p / κ - xs := by linarith
+      rw [hx]
+    rw [e1, e2, hl]
+    have hk : κ * p + lam * ((1 - β) * p / κ - xs) = 0 := by
+      have := hfoc
+      field_simp at this ⊢
+      linarith
+    rw [hk]
+    ring
+  refine ⟨fun t G hdev hG => ?_, fun t G hdev hG hne => ?_⟩
+  · refine weaklyBetter_of_L_le A hξ1 F G ?_
+    have h := L_sub_of_deviation A hξ1 F G t hdev
+    have := hdiff t G hG
+    have : 0 ≤ β ^ t * (ell ξ1 β G t - ell ξ1 β F t) := by
+      rw [this]; exact mul_nonneg (pow_nonneg A.β_pos.le t) (by positivity)
+    linarith
+  · refine lt_of_L_lt A hξ1 F G ?_
+    have h := L_sub_of_deviation A hξ1 F G t hdev
+    have hd := hdiff t G hG
+    have hxne : (M.gap (G.y1 t) (ξ1 t) + xs) - (1 - β) * p / κ ≠ 0 := by
+      intro h0
+      have hx : M.gap (G.y1 t) (ξ1 t) = M.gap (F.y1 t) (ξ1 t) := by
+        have := hFx t; linarith
+      have hπ' : G.π1 (t + 1) = F.π1 (t + 1) := by
+        have hgx : M.gap (G.y1 t) (ξ1 t) + xs = (1 - β) * p / κ := by linarith
+        rw [hG, hFπ, hFπ, hgx]
+        field_simp
+        ring
+      rcases hne with h1 | h1
+      · exact h1 hπ'
+      · exact h1 hx
+    have : 0 < β ^ t * (ell ξ1 β G t - ell ξ1 β F t) := by
+      rw [hd]; exact mul_pos (pow_pos A.β_pos t) (by positivity)
+    linarith
+
+/-- **Woodford (2003), Proposition 7.1, pp. 471–472, as a statement about actual welfare
+(uniqueness: "there is a unique Markov equilibrium ... up to an error of order
+`O(‖·‖²)`").** Let `F` have a constant first-order plan `(π̄, x̄)` (Woodford's gap) satisfying
+(1.1), and let `G` deviate from `F` only at one date `t`, where its first-order point is the
+optimum of the bank's static problem on the perceived trade-off with `πᵉ = π̄`. If `F` is at least
+as good as `G` up to `O(ε³)` (in particular if `F` is a discretionary optimum, `DiscWelfareOpt`),
+then `π̄` is (1.6) and `x̄ = (1 − β)π̄/κ`, with `λ = κ/θ`. -/
+theorem prop_7_1_welfare_converse (A : Assm M α β) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C)
+    (xs p xb : ℝ) (F G : CalvoFamily M α 0 D0) (t : ℕ) (hFπ : ∀ s, F.π1 (s + 1) = p)
+    (hFx : ∀ s, M.gap (F.y1 s) (ξ1 s) + xs = xb) (hFas : p = kap M α β * xb + β * p)
+    (hdev : ∀ s, s ≠ t → G.π1 (s + 1) = F.π1 (s + 1) ∧
+      M.gap (G.y1 s) (ξ1 s) = M.gap (F.y1 s) (ξ1 s))
+    (hGst : InflationBias.StaticOptimal β (kap M α β) (lamW M α β) xs p (G.π1 (t + 1))
+      (M.gap (G.y1 t) (ξ1 t) + xs))
+    (h : WeaklyBetter (F.W ξ1 β) (G.W ξ1 β)) :
+    p = InflationBias.discretionInflation β (kap M α β) (lamW M α β) xs ∧
+      xb = (1 - β) * p / kap M α β := by
+  have hle := L_le_of_weaklyBetter A hξ1 F G h
+  have hsub := L_sub_of_deviation A hξ1 F G t hdev
+  have hβt : 0 < β ^ t := pow_pos A.β_pos t
+  have hℓ : ell ξ1 β F t ≤ ell ξ1 β G t := by
+    have : 0 ≤ β ^ t * (ell ξ1 β G t - ell ξ1 β F t) := by linarith
+    have := (mul_nonneg_iff_of_pos_left hβt).mp this
+    linarith
+  have hst : InflationBias.StaticOptimal β (kap M α β) (lamW M α β) xs p p xb := by
+    refine ⟨hFas, fun x' => ?_⟩
+    have e1 : InflationBias.staticLoss (lamW M α β) xs p xb = ell ξ1 β F t := by
+      unfold ell InflationBias.staticLoss
+      rw [hFπ, ← hFx t]
+      ring
+    have e2 : ell ξ1 β G t = InflationBias.staticLoss (lamW M α β) xs (G.π1 (t + 1))
+        (M.gap (G.y1 t) (ξ1 t) + xs) := by
+      unfold ell InflationBias.staticLoss
+      ring
+    rw [e1]
+    exact hℓ.trans (e2 ▸ hGst.2 x')
+  exact (InflationBias.prop_7_1 A.β_lt A.kap_pos A.lam_pos p xb).mp ⟨p, rfl, hst⟩
+
+/-! ### Proposition 7.4 -/
+
+/-- **Woodford (2003), Proposition 7.4, pp. 482–483, as a statement about actual welfare.**
+With indexation `γ` (the dispersion law (2.24), loss (1.22) with `λ = κ/θ`), let `F` be a family
+whose first-order plan follows the rule (1.23) `π_t = γπ_{t−1}` with output at its natural level
+(`x ≡ 0`). For every family `G` (same `π_{−1}`-independent t.i.p.) whose first-order plan
+satisfies (1.21) and the timeless constraint that (1.23) hold at `t₀`, `F` is at least as good as
+`G` up to `O(ε³)`; if `G`'s plan does not follow (1.23) with `x ≡ 0`, `F` is strictly better for
+every small `ε ≠ 0`. -/
+theorem prop_7_4_welfare (A : Assm M α β) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C) (xs : ℝ)
+    (F G : CalvoFamily M α γ D0) (hFq : ∀ t, qW F t = 0) (hFx : ∀ t, M.gap (F.y1 t) (ξ1 t) = -xs)
+    (hGas : ∀ t, qW G t = kap M α β * (M.gap (G.y1 t) (ξ1 t) + xs) + β * qW G (t + 1))
+    (hG0 : qW G 0 = 0) :
+    WeaklyBetter (F.W ξ1 β) (G.W ξ1 β) ∧
+      (¬ ((∀ t, qW G t = 0) ∧ ∀ t, M.gap (G.y1 t) (ξ1 t) = -xs) →
+        ∀ᶠ ε in 𝓝[≠] (0 : ℝ), G.W ξ1 β ε < F.W ξ1 β ε) := by
+  have hβ0 := A.β_pos
+  have hβ1 := A.β_lt
+  have hκ := A.kap_pos
+  have hlam := A.lam_pos
+  have hLF : F.L ξ1 β = lamW M α β * xs ^ 2 / (1 - β) := by
+    rw [L_eq F xs]
+    have e : (fun t => qW F t ^ 2 + lamW M α β * ((M.gap (F.y1 t) (ξ1 t) + xs) - xs) ^ 2) =
+        fun _ => lamW M α β * xs ^ 2 := by
+      funext t
+      rw [hFq, hFx]
+      ring
+    rw [e, MonetaryFrictions.dsum_const hβ0.le hβ1]
+  have hx : Sequences.Bdd (fun t => M.gap (G.y1 t) (ξ1 t) + xs) :=
+    (gap_bdd A hξ1 G).add (Sequences.bdd_const xs)
+  have hmin := Indexation.cashless_timeless_min (xstar := xs) hβ0 hβ1 hκ.ne' hlam.le (qW_bdd G)
+    hx hGas hG0
+  refine ⟨weaklyBetter_of_L_le A hξ1 F G (by rw [hLF, L_eq G xs]; exact hmin), fun hne => ?_⟩
+  refine lt_of_L_lt A hξ1 F G (lt_of_le_of_ne (by rw [hLF, L_eq G xs]; exact hmin)
+    fun heq => hne ?_)
+  have hle : MonetaryFrictions.dsum β (fun t => qW G t ^ 2 +
+      lamW M α β * ((M.gap (G.y1 t) (ξ1 t) + xs) - xs) ^ 2) ≤ lamW M α β * xs ^ 2 / (1 - β) := by
+    rw [← L_eq G xs, ← heq, hLF]
+  obtain ⟨h1, h2⟩ := Indexation.cashless_timeless_unique (xstar := xs) hβ0 hβ1 hκ.ne' hlam
+    (qW_bdd G) hx hGas hG0 hle
+  exact ⟨fun t => congrFun h1 t, fun t => by have := congrFun h2 t; simp at this; linarith⟩
+
+/-- **Woodford (2003), Proposition 7.4, pp. 482–483 (the policy "involves a path of inflation
+along which (1.23) holds at each date ... up to an error of order `O(‖·‖²)`"), converse.** If
+`F`'s first-order plan satisfies (1.21) and the timeless constraint at `t₀`, and `F` is at least
+as good, up to `O(ε³)`, as a family `G` following (1.23) with `x ≡ 0`, then `F`'s first-order
+plan follows (1.23), `π_t = γπ_{t−1}`, with `x ≡ 0`, at every date. -/
+theorem prop_7_4_welfare_converse (A : Assm M α β) (hξ1 : ∃ C, ∀ t, ‖ξ1 t‖ ≤ C) (xs : ℝ)
+    (F G : CalvoFamily M α γ D0)
+    (hFas : ∀ t, qW F t = kap M α β * (M.gap (F.y1 t) (ξ1 t) + xs) + β * qW F (t + 1))
+    (hF0 : qW F 0 = 0) (hGq : ∀ t, qW G t = 0) (hGx : ∀ t, M.gap (G.y1 t) (ξ1 t) = -xs)
+    (h : WeaklyBetter (F.W ξ1 β) (G.W ξ1 β)) :
+    ∀ t, F.π1 (t + 1) = γ * F.π1 t ∧ M.gap (F.y1 t) (ξ1 t) + xs = 0 := by
+  have hβ0 := A.β_pos
+  have hβ1 := A.β_lt
+  have hle := L_le_of_weaklyBetter A hξ1 F G h
+  have hLG : G.L ξ1 β = lamW M α β * xs ^ 2 / (1 - β) := by
+    rw [L_eq G xs]
+    have e : (fun t => qW G t ^ 2 + lamW M α β * ((M.gap (G.y1 t) (ξ1 t) + xs) - xs) ^ 2) =
+        fun _ => lamW M α β * xs ^ 2 := by
+      funext t
+      rw [hGq, hGx]
+      ring
+    rw [e, MonetaryFrictions.dsum_const hβ0.le hβ1]
+  rw [hLG, L_eq F xs] at hle
+  have hx : Sequences.Bdd (fun t => M.gap (F.y1 t) (ξ1 t) + xs) :=
+    (gap_bdd A hξ1 F).add (Sequences.bdd_const xs)
+  obtain ⟨h1, h2⟩ := Indexation.cashless_timeless_unique (xstar := xs) hβ0 hβ1 A.kap_pos.ne'
+    A.lam_pos (qW_bdd F) hx hFas hF0 hle
+  intro t
+  have e1 := congrFun h1 t
+  have e2 := congrFun h2 t
+  simp only [qW, Pi.zero_apply] at e1 e2
+  exact ⟨by linarith, e2⟩
+
+end Woodford.GainsFromCommitment.TidyR6WelfProps
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Propositions 7.5 and 7.15 as statements about actual expected welfare
+
+Woodford (2003), *Interest and Prices*, Chapter 7, §2.1, Proposition 7.5 (p. 487: the
+discretionary equilibrium "evolves according to (2.3), up to an error of order
+`O(‖Δ_{−1}^{1/2}, Δ_y, ξ̃‖²)`") and §5.1, Proposition 7.15 (p. 523: commitment to (5.1) is optimal
+from a timeless perspective), whose welfare criterion is the expected value of (1.2).
+
+The welfare criterion here is ACTUAL expected utility `E_0∑βᵗU_t(ε)`, the conditional
+expectation at date `0` (any `ExpectationSystem`) of the discounted utility of the realised path
+of a one-parameter family of Calvo economies under uncertainty
+(`TidyR6WelfCalvo.SCalvoFamily`), with the loss weight `λ = κ/θ` derived by the Chapter 6
+expansion, uniformly in the date-`0` state.
+
+## Main results
+
+* `EL_eq_loss`: the expected first-order loss of a family is `TargetingRule.loss` of its plan.
+* `prop_7_15_welfare`: a family whose first-order plan is the equilibrium of the target
+  criterion (5.1) is at least as good, up to `O(ε³)` in every state, as every family whose
+  first-order plan is feasible with the timeless initial constraint (2.11), and strictly better
+  in every state where the losses differ; `prop_7_15_welfare_converse`: with a faithful E_0, a
+  family at least as good as that one has the (5.1) equilibrium as its first-order plan.
+* `prop_7_5_welfare` (with `DiscWelfareOptS`): the family whose first-order plan is (2.3) is a
+  discretionary optimum of actual expected welfare against one-date deviations;
+  `prop_7_5_welfare_converse`: with a faithful E_0, a family that is at least as good as a
+  one-date static-optimum deviation at every date has (2.3) as its first-order plan.
+-/
+
+namespace Woodford.GainsFromCommitment.TidyR6WelfPropsS
+
+open Filter Topology Asymptotics
+open Woodford.GainsFromCommitment.TidyR6WelfBase Woodford.GainsFromCommitment.TidyR6WelfBridge
+  Woodford.GainsFromCommitment.TidyR6WelfCalvo Woodford.GainsFromCommitment.TidyR6WelfProps
+
+variable {Ξ : Type*} [NormedAddCommGroup Ξ] [NormedSpace ℝ Ξ] {ι : Type*} [Fintype ι]
+variable {M : BridgeCore.Econ Ξ ι} {α β : ℝ} {Ω : Type} {ξS : Ω → ℕ → Ξ} {DS0 : Ω → ℝ → ℝ}
+
+/-- Woodford (2003), §2.1, p. 486: the first-order inflation process of a family,
+`π_t(ω) = π₁(ω)_{t+1}`. -/
+def πS (F : SCalvoFamily M α DS0) : ℕ → Ω → ℝ := fun t ω => F.π1 ω (t + 1)
+
+/-- Woodford (2003), §2.1, p. 486: the first-order output gap of a family in Woodford's units
+(measured from the natural level): `x_t(ω) = gap₁(ω)_t + x*`. -/
+noncomputable def xS (ξS : Ω → ℕ → Ξ) (xs : ℝ) (F : SCalvoFamily M α DS0) : ℕ → Ω → ℝ :=
+  fun t ω => M.gap (F.y1 ω t) (ξS ω t) + xs
+
+/-- Woodford (2003), (2.10): the first-order output gap is bounded uniformly in the state and the
+date. -/
+theorem gapS_bdd (A : Assm M α β) (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C) (F : SCalvoFamily M α DS0) :
+    ∃ C, ∀ ω t, |M.gap (F.y1 ω t) (ξS ω t)| ≤ C := by
+  have hx := uF_of_bounded hξ
+  have h := (BridgeCore.crossMean_isBigO A.std.w_nonneg A.std.w_sum
+    (uF_of_bounded F.y1_bdd)).sub
+    (BridgeCore.natLin_isBigO M.sig M.omg (M.gS_isBigO hx) (M.qS_isBigO hx))
+  obtain ⟨C, hC⟩ := bdd_uF (f := fun ω t (_ : ℝ) => M.gap (F.y1 ω t) (ξS ω t)) h
+  obtain ⟨ε, hε⟩ := hC.exists
+  exact ⟨C, hε⟩
+
+/-- Woodford (2003), (1.2): the period loss of the first-order plan is bounded uniformly. -/
+theorem periodLoss_bdd (A : Assm M α β) (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C) (xs : ℝ)
+    (F : SCalvoFamily M α DS0) :
+    ∃ B, ∀ t ω, |TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) t ω| ≤ B := by
+  obtain ⟨C1, h1⟩ := F.π1_bdd
+  obtain ⟨C2, h2⟩ := gapS_bdd A hξ F
+  refine ⟨C1 ^ 2 + |lamW M α β| * C2 ^ 2, fun t ω => ?_⟩
+  unfold TargetingRule.periodLoss πS xS
+  have a1 : F.π1 ω (t + 1) ^ 2 ≤ C1 ^ 2 :=
+    sq_le_sq' (abs_le.mp (h1 ω (t + 1))).1 (abs_le.mp (h1 ω (t + 1))).2
+  have a2 : M.gap (F.y1 ω t) (ξS ω t) ^ 2 ≤ C2 ^ 2 :=
+    sq_le_sq' (abs_le.mp (h2 ω t)).1 (abs_le.mp (h2 ω t)).2
+  have e : M.gap (F.y1 ω t) (ξS ω t) + xs - xs = M.gap (F.y1 ω t) (ξS ω t) := by ring
+  rw [e, abs_le]
+  constructor <;> nlinarith [abs_nonneg (lamW M α β), neg_abs_le (lamW M α β),
+    le_abs_self (lamW M α β), sq_nonneg (F.π1 ω (t + 1)), sq_nonneg (M.gap (F.y1 ω t) (ξS ω t))]
+
+/-- Woodford (2003), §2.1, p. 488 (`E_{t₀}∑βᵗ = ∑βᵗE_{t₀}` for bounded plans): the expected
+first-order loss of a family is the loss `TargetingRule.loss` (weight `λ = κ/θ`) of its plan. -/
+theorem EL_eq_loss (A : Assm M α β) (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C) (𝔼 : ExpectationSystem Ω)
+    (xs : ℝ) (F : SCalvoFamily M α DS0) (ω0 : Ω) :
+    SCalvoFamily.EL ξS 𝔼 F β ω0 =
+      TargetingRule.loss 𝔼 β (lamW M α β) xs (πS F) (xS ξS xs F) ω0 := by
+  obtain ⟨B, hB⟩ := periodLoss_bdd A hξ xs F
+  have hpl : ∀ ω, F.Lp ξS β ω = ∑' t, β ^ t *
+      TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) t ω := fun ω => by
+    unfold SCalvoFamily.Lp TargetingRule.periodLoss πS xS
+    exact tsum_congr fun t => by ring
+  unfold SCalvoFamily.EL TargetingRule.loss
+  have hfun : F.Lp ξS β = fun ω => ∑' t, β ^ t *
+      TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) t ω := funext hpl
+  rw [hfun, 𝔼.E_tsum A.β_pos.le A.β_lt (M := B) (fun k ω => by
+    rw [abs_mul, abs_of_nonneg (pow_nonneg A.β_pos.le k)]
+    exact mul_le_mul_of_nonneg_left (hB k ω) (pow_nonneg A.β_pos.le k)) 0 ω0]
+  refine tsum_congr fun t => ?_
+  have e : (fun ω => β ^ t * TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) t ω) =
+      β ^ t • TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) t := by
+    funext ω; simp [smul_eq_mul]
+  rw [e, map_smul]
+  rfl
+
+/-! ### Rankings of expected welfare -/
+
+/-- Woodford (2003), p. 471, fn. 6, under uncertainty: if the expected first-order loss of `F` is
+no larger than that of `G` in every date-`0` state, `F` is at least as good as `G` up to `O(ε³)`
+in every state. -/
+theorem uweaklyBetter_of_EL_le (A : Assm M α β) (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C)
+    (𝔼 : ExpectationSystem Ω) (F G : SCalvoFamily M α DS0)
+    (h : ∀ ω0, SCalvoFamily.EL ξS 𝔼 F β ω0 ≤ SCalvoFamily.EL ξS 𝔼 G β ω0) :
+    UWeaklyBetter (SCalvoFamily.EW ξS 𝔼 F β) (SCalvoFamily.EW ξS 𝔼 G β) :=
+  uweaklyBetter_of_loss_le (T := fun ε ω0 => 𝔼.E 0 (tipS M α ξS DS0 β ε) ω0) A.bK_pos.le
+    (F.bridge ξS 𝔼 A.std A.eff A.sig_omg.ne' A.θ_pos.ne' A.d_pos.ne' A.α_pos A.α_lt
+      A.β_pos.le A.β_lt hξ)
+    (G.bridge ξS 𝔼 A.std A.eff A.sig_omg.ne' A.θ_pos.ne' A.d_pos.ne' A.α_pos A.α_lt
+      A.β_pos.le A.β_lt hξ) h
+
+/-- Woodford (2003), p. 471, fn. 6, under uncertainty (strict, in a given state). -/
+theorem lt_of_EL_lt (A : Assm M α β) (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C)
+    (𝔼 : ExpectationSystem Ω) (F G : SCalvoFamily M α DS0) (ω0 : Ω)
+    (h : SCalvoFamily.EL ξS 𝔼 F β ω0 < SCalvoFamily.EL ξS 𝔼 G β ω0) :
+    ∀ᶠ ε in 𝓝[≠] (0 : ℝ), SCalvoFamily.EW ξS 𝔼 G β ε ω0 < SCalvoFamily.EW ξS 𝔼 F β ε ω0 :=
+  ueventually_lt_of_loss_lt (T := fun ε ω0 => 𝔼.E 0 (tipS M α ξS DS0 β ε) ω0) A.bK_pos
+    (F.bridge ξS 𝔼 A.std A.eff A.sig_omg.ne' A.θ_pos.ne' A.d_pos.ne' A.α_pos A.α_lt
+      A.β_pos.le A.β_lt hξ)
+    (G.bridge ξS 𝔼 A.std A.eff A.sig_omg.ne' A.θ_pos.ne' A.d_pos.ne' A.α_pos A.α_lt
+      A.β_pos.le A.β_lt hξ) ω0 h
+
+/-- Woodford (2003), Propositions 7.5 and 7.15 (the converse, under uncertainty): if `F` is at
+least as good as `G` up to `O(ε³)` uniformly in the state, its expected first-order loss is no
+larger in every state. -/
+theorem EL_le_of_uweaklyBetter (A : Assm M α β) (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C)
+    (𝔼 : ExpectationSystem Ω) (F G : SCalvoFamily M α DS0)
+    (h : UWeaklyBetter (SCalvoFamily.EW ξS 𝔼 F β) (SCalvoFamily.EW ξS 𝔼 G β)) (ω0 : Ω) :
+    SCalvoFamily.EL ξS 𝔼 F β ω0 ≤ SCalvoFamily.EL ξS 𝔼 G β ω0 :=
+  loss_le_of_uweaklyBetter (T := fun ε ω0 => 𝔼.E 0 (tipS M α ξS DS0 β ε) ω0) A.bK_pos
+    (F.bridge ξS 𝔼 A.std A.eff A.sig_omg.ne' A.θ_pos.ne' A.d_pos.ne' A.α_pos A.α_lt
+      A.β_pos.le A.β_lt hξ)
+    (G.bridge ξS 𝔼 A.std A.eff A.sig_omg.ne' A.θ_pos.ne' A.d_pos.ne' A.α_pos A.α_lt
+      A.β_pos.le A.β_lt hξ) h ω0
+
+/-! ### Proposition 7.15 -/
+
+/-- **Woodford (2003), Proposition 7.15, p. 523, as a statement about actual expected welfare.**
+Let `u` be a bounded adapted cost-push process (otherwise unrestricted), `x_{t₀−1}` known at
+`t₀`, and E_0 have the pull-out property. If the first-order plan of `F` is the equilibrium of
+(2.1) and the target criterion (5.1) (`TargetingRule.piStar`, `TargetingRule.xStar`, with
+`λ = κ/θ` and `κ` the Calvo slope), then for every family `G` whose first-order plan is feasible
+— bounded, adapted, (2.1) — and satisfies the timeless initial constraint (2.11), `F` is at least
+as good as `G` up to `O(ε³)` in every date-`0` state, and strictly better, for every small
+`ε ≠ 0`, in every state where the expected losses differ. -/
+theorem prop_7_15_welfare (A : Assm M α β) (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C)
+    (𝔼 : ExpectationSystem Ω) (hpo : 𝔼.PullOut) (xs : ℝ) {u : ℕ → Ω → ℝ}
+    (hu : BoundedProc u) (hua : 𝔼.Adapted u) {xm1 : Ω → ℝ} {K : ℝ} (hK : ∀ ω, |xm1 ω| ≤ K)
+    (hm0 : 𝔼.E 0 xm1 = xm1) (F G : SCalvoFamily M α DS0)
+    (hF : πS F = TargetingRule.piStar 𝔼 β (kap M α β) (lamW M α β) xm1 u ∧
+      xS ξS xs F = TargetingRule.xStar 𝔼 β (kap M α β) (lamW M α β) xm1 u)
+    (hG : TargetingRule.Feasible 𝔼 β (kap M α β) u
+      (TargetingRule.eq211 𝔼 β (kap M α β) (lamW M α β) u xm1) (πS G) (xS ξS xs G)) :
+    UWeaklyBetter (SCalvoFamily.EW ξS 𝔼 F β) (SCalvoFamily.EW ξS 𝔼 G β) ∧
+      ∀ ω0, SCalvoFamily.EL ξS 𝔼 F β ω0 < SCalvoFamily.EL ξS 𝔼 G β ω0 →
+        ∀ᶠ ε in 𝓝[≠] (0 : ℝ), SCalvoFamily.EW ξS 𝔼 G β ε ω0 <
+          SCalvoFamily.EW ξS 𝔼 F β ε ω0 := by
+  obtain ⟨⟨hAS, hC, hpb, hxb, hpa, hxa⟩, -⟩ :=
+    TargetingRule.prop_7_15 𝔼 A.β_pos A.kap_pos A.lam_pos hu hua hK hm0
+  have hopt := TargetingRule.crit_isConstrainedOpt 𝔼 A.β_pos A.β_lt A.kap_pos A.lam_pos hpo xs
+    hu hua hK hm0 hAS hC hpb hxb hpa hxa
+  refine ⟨uweaklyBetter_of_EL_le A hξ 𝔼 F G fun ω0 => ?_, fun ω0 h => lt_of_EL_lt A hξ 𝔼 F G ω0 h⟩
+  rw [EL_eq_loss A hξ 𝔼 xs F, EL_eq_loss A hξ 𝔼 xs G, hF.1, hF.2]
+  exact hopt.2 _ _ hG ω0
+
+/-- **Woodford (2003), Proposition 7.15, p. 523 (converse: "the equilibrium determined by this
+policy commitment is the same as the one characterized in Proposition 7.7", up to `O(‖·‖²)`).**
+With a faithful E_0 and the pull-out property: if `F`'s first-order plan is feasible with the
+timeless constraint (2.11), and `F` is at least as good, up to `O(ε³)` in every state, as a family
+`G` whose first-order plan is the (5.1) equilibrium, then `F`'s first-order plan IS the (5.1)
+equilibrium: it satisfies the target criterion (5.1) at every date. -/
+theorem prop_7_15_welfare_converse (A : Assm M α β) (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C)
+    (𝔼 : ExpectationSystem Ω) (hpo : 𝔼.PullOut) (hf : TargetingRule.Faithful 𝔼) (xs : ℝ)
+    {u : ℕ → Ω → ℝ} (hu : BoundedProc u) (hua : 𝔼.Adapted u) {xm1 : Ω → ℝ} {K : ℝ}
+    (hK : ∀ ω, |xm1 ω| ≤ K) (hm0 : 𝔼.E 0 xm1 = xm1) (F G : SCalvoFamily M α DS0)
+    (hFfeas : TargetingRule.Feasible 𝔼 β (kap M α β) u
+      (TargetingRule.eq211 𝔼 β (kap M α β) (lamW M α β) u xm1) (πS F) (xS ξS xs F))
+    (hG : πS G = TargetingRule.piStar 𝔼 β (kap M α β) (lamW M α β) xm1 u ∧
+      xS ξS xs G = TargetingRule.xStar 𝔼 β (kap M α β) (lamW M α β) xm1 u)
+    (h : UWeaklyBetter (SCalvoFamily.EW ξS 𝔼 F β) (SCalvoFamily.EW ξS 𝔼 G β)) :
+    πS F = TargetingRule.piStar 𝔼 β (kap M α β) (lamW M α β) xm1 u ∧
+      xS ξS xs F = TargetingRule.xStar 𝔼 β (kap M α β) (lamW M α β) xm1 u ∧
+      TargetingRule.Crit (lamW M α β) (kap M α β) xm1 (πS F) (xS ξS xs F) := by
+  obtain ⟨⟨hAS, hC, hpb, hxb, hpa, hxa⟩, -⟩ :=
+    TargetingRule.prop_7_15 𝔼 A.β_pos A.kap_pos A.lam_pos hu hua hK hm0
+  have hopt := TargetingRule.crit_isConstrainedOpt 𝔼 A.β_pos A.β_lt A.kap_pos A.lam_pos hpo xs
+    hu hua hK hm0 hAS hC hpb hxb hpa hxa
+  have hle : ∀ ω0, TargetingRule.loss 𝔼 β (lamW M α β) xs (πS F) (xS ξS xs F) ω0 ≤
+      TargetingRule.loss 𝔼 β (lamW M α β) xs (TargetingRule.piStar 𝔼 β (kap M α β) (lamW M α β)
+        xm1 u) (TargetingRule.xStar 𝔼 β (kap M α β) (lamW M α β) xm1 u) ω0 := fun ω0 => by
+    have := EL_le_of_uweaklyBetter A hξ 𝔼 F G h ω0
+    rwa [EL_eq_loss A hξ 𝔼 xs F, EL_eq_loss A hξ 𝔼 xs G, hG.1, hG.2] at this
+  have hFopt : TargetingRule.IsConstrainedOpt 𝔼 β (kap M α β) (lamW M α β) xs u
+      (TargetingRule.eq211 𝔼 β (kap M α β) (lamW M α β) u xm1) (πS F) (xS ξS xs F) :=
+    ⟨hFfeas, fun π' x' hF' ω => (hle ω).trans (hopt.2 π' x' hF' ω)⟩
+  obtain ⟨e1, e2⟩ := TargetingRule.eq_star_of_isConstrainedOpt 𝔼 A.β_pos A.β_lt A.kap_pos
+    A.lam_pos hpo hf hu hua hK hm0 hFopt
+  exact ⟨e1, e2, by rw [e1, e2]; exact hC⟩
+
+/-! ### Proposition 7.5 -/
+
+/-- Woodford (2003), p. 487 (a deviation at one date): the first-order plans of `F` and `G`
+coincide, in every state, at every date except `t`. -/
+def SDev (ξS : Ω → ℕ → Ξ) (xs : ℝ) (F G : SCalvoFamily M α DS0) (t : ℕ) : Prop :=
+  ∀ s, s ≠ t → πS G s = πS F s ∧ xS ξS xs G s = xS ξS xs F s
+
+/-- Woodford (2003), p. 487: for a one-date deviation the difference of expected losses is the
+discounted expected difference of the date-`t` period losses. -/
+theorem loss_sub_of_sdev (A : Assm M α β) (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C)
+    (𝔼 : ExpectationSystem Ω) (xs : ℝ) (F G : SCalvoFamily M α DS0) (t : ℕ)
+    (hdev : SDev ξS xs F G t) (ω0 : Ω) :
+    TargetingRule.loss 𝔼 β (lamW M α β) xs (πS G) (xS ξS xs G) ω0 -
+        TargetingRule.loss 𝔼 β (lamW M α β) xs (πS F) (xS ξS xs F) ω0 =
+      β ^ t * 𝔼.E 0 (TargetingRule.periodLoss (lamW M α β) xs (πS G) (xS ξS xs G) t -
+        TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) t) ω0 := by
+  obtain ⟨BG, hBG⟩ := periodLoss_bdd A hξ xs G
+  obtain ⟨BF, hBF⟩ := periodLoss_bdd A hξ xs F
+  have sG := Sequences.summable_disc A.β_pos.le A.β_lt
+    (fun s => 𝔼.abs_E_le (fun ω => hBG s ω) 0 ω0)
+  have sF := Sequences.summable_disc A.β_pos.le A.β_lt
+    (fun s => 𝔼.abs_E_le (fun ω => hBF s ω) 0 ω0)
+  unfold TargetingRule.loss
+  rw [← sG.tsum_sub sF, tsum_eq_single t fun s hs => by
+    obtain ⟨h1, h2⟩ := hdev s hs
+    have e : TargetingRule.periodLoss (lamW M α β) xs (πS G) (xS ξS xs G) s =
+        TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) s := by
+      unfold TargetingRule.periodLoss; rw [h1, h2]
+    rw [e, sub_self], map_sub]
+  simp only [Pi.sub_apply]
+  ring
+
+/-- Woodford (2003), p. 487 (**discretion as optimisation of actual expected welfare**): the
+family `F` is a discretionary optimum up to `O(ε³)` if, at every date `t`, it is at least as
+good, up to `O(ε³)` uniformly in the state, as every family that deviates from it only at date
+`t` and whose date-`t` first-order point lies, in every state, on the perceived trade-off (2.1)
+with the private expectation `E_tπ_{t+1}` of `F` taken as given. -/
+def DiscWelfareOptS (ξS : Ω → ℕ → Ξ) (𝔼 : ExpectationSystem Ω) (β xs : ℝ) (u : ℕ → Ω → ℝ)
+    (F : SCalvoFamily M α DS0) : Prop :=
+  ∀ (t : ℕ) (G : SCalvoFamily M α DS0), SDev ξS xs F G t →
+    (∀ ω, (πS G t ω, xS ξS xs G t ω) ∈
+      Discretion.staticSet β (kap M α β) (𝔼.E t (πS F (t + 1)) ω) (u t ω)) →
+    UWeaklyBetter (SCalvoFamily.EW ξS 𝔼 F β) (SCalvoFamily.EW ξS 𝔼 G β)
+
+/-- **Woodford (2003), Proposition 7.5, p. 487, as a statement about actual expected welfare
+(existence).** For a bounded adapted cost-push process `u`, if the first-order plan of `F` is the
+Markov process (2.3) with `x_t = x* − (κ/λ)π_t` (`λ = κ/θ`), then `F` is a discretionary optimum
+of actual expected welfare up to `O(ε³)` (`DiscWelfareOptS`). -/
+theorem prop_7_5_welfare (A : Assm M α β) (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C)
+    (𝔼 : ExpectationSystem Ω) (xs : ℝ) {u : ℕ → Ω → ℝ} {Mu : ℝ} (hu : ∀ t ω, |u t ω| ≤ Mu)
+    (hua : 𝔼.Adapted u) (F : SCalvoFamily M α DS0)
+    (hF : πS F = Discretion.infl23 𝔼 β (kap M α β) (lamW M α β) xs u ∧
+      xS ξS xs F = Discretion.gap23 𝔼 β (kap M α β) (lamW M α β) xs u) :
+    DiscWelfareOptS ξS 𝔼 β xs u F := by
+  intro t G hdev hon
+  have hD := Discretion.discretionEq_infl23 𝔼 (xs := xs) A.β_pos A.β_lt A.kap_pos A.lam_pos hu
+    hua
+  rw [← hF.1, ← hF.2] at hD
+  refine uweaklyBetter_of_EL_le A hξ 𝔼 F G fun ω0 => ?_
+  rw [EL_eq_loss A hξ 𝔼 xs F, EL_eq_loss A hξ 𝔼 xs G]
+  have hsub := loss_sub_of_sdev A hξ 𝔼 xs F G t hdev ω0
+  have hpt : (0 : Ω → ℝ) ≤
+      TargetingRule.periodLoss (lamW M α β) xs (πS G) (xS ξS xs G) t -
+        TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) t := fun ω => by
+    have hmin := (hD.2.2.2.2 t ω).2
+    have := isMinOn_iff.mp hmin _ (hon ω)
+    simp only [Pi.zero_apply, Pi.sub_apply, TargetingRule.periodLoss]
+    simp only [Discretion.periodLoss] at this
+    linarith
+  have hE := 𝔼.mono 0 hpt ω0
+  rw [map_zero] at hE
+  have : 0 ≤ β ^ t * 𝔼.E 0 (TargetingRule.periodLoss (lamW M α β) xs (πS G) (xS ξS xs G) t -
+      TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) t) ω0 :=
+    mul_nonneg (pow_nonneg A.β_pos.le t) hE
+  linarith
+
+/-- **Woodford (2003), Proposition 7.5, p. 487, as a statement about actual expected welfare
+(uniqueness: "there is a unique Markov equilibrium ... inflation evolves according to (2.3), up
+to an error of order `O(‖·‖²)`").** Let E_0 be faithful and `u` bounded and adapted. Let `F`
+have an adapted first-order plan satisfying (2.1), and suppose that at every date `t` there is a
+family deviating from `F` only at `t` whose date-`t` point is, in every state, the optimum of the
+bank's static problem on the perceived trade-off, and that `F` is at least as good as it up to
+`O(ε³)` uniformly in the state. Then `F`'s first-order plan is (2.3) with
+`x_t = x* − (κ/λ)π_t`, `λ = κ/θ`. -/
+theorem prop_7_5_welfare_converse (A : Assm M α β) (hξ : ∃ C, ∀ ω t, ‖ξS ω t‖ ≤ C)
+    (𝔼 : ExpectationSystem Ω) (hf : TargetingRule.Faithful 𝔼) (xs : ℝ) {u : ℕ → Ω → ℝ}
+    {Mu : ℝ} (hu : ∀ t ω, |u t ω| ≤ Mu) (hua : 𝔼.Adapted u) (F : SCalvoFamily M α DS0)
+    (hFa : 𝔼.Adapted (πS F) ∧ 𝔼.Adapted (xS ξS xs F))
+    (hFas : ∀ t ω, (πS F t ω, xS ξS xs F t ω) ∈
+      Discretion.staticSet β (kap M α β) (𝔼.E t (πS F (t + 1)) ω) (u t ω))
+    (hcomp : ∀ t, ∃ G : SCalvoFamily M α DS0, SDev ξS xs F G t ∧
+      (∀ ω, (πS G t ω, xS ξS xs G t ω) ∈
+          Discretion.staticSet β (kap M α β) (𝔼.E t (πS F (t + 1)) ω) (u t ω) ∧
+        IsMinOn (fun r : ℝ × ℝ => Discretion.periodLoss (lamW M α β) xs r.1 r.2)
+          (Discretion.staticSet β (kap M α β) (𝔼.E t (πS F (t + 1)) ω) (u t ω))
+          (πS G t ω, xS ξS xs G t ω)) ∧
+      UWeaklyBetter (SCalvoFamily.EW ξS 𝔼 F β) (SCalvoFamily.EW ξS 𝔼 G β)) :
+    πS F = Discretion.infl23 𝔼 β (kap M α β) (lamW M α β) xs u ∧
+      xS ξS xs F = Discretion.gap23 𝔼 β (kap M α β) (lamW M α β) xs u := by
+  have hopt : ∀ t ω, IsMinOn (fun r : ℝ × ℝ => Discretion.periodLoss (lamW M α β) xs r.1 r.2)
+      (Discretion.staticSet β (kap M α β) (𝔼.E t (πS F (t + 1)) ω) (u t ω))
+      (πS F t ω, xS ξS xs F t ω) := by
+    intro t
+    obtain ⟨G, hdev, hG, hW⟩ := hcomp t
+    set d := TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) t -
+      TargetingRule.periodLoss (lamW M α β) xs (πS G) (xS ξS xs G) t with hd
+    have hnn : (0 : Ω → ℝ) ≤ d := fun ω => by
+      have := isMinOn_iff.mp (hG ω).2 _ (hFas t ω)
+      simp only [Pi.zero_apply, hd, Pi.sub_apply, TargetingRule.periodLoss]
+      simp only [Discretion.periodLoss] at this
+      linarith
+    have hE0 : 𝔼.E 0 d = 0 := by
+      funext ω0
+      have h1 := EL_le_of_uweaklyBetter A hξ 𝔼 F G hW ω0
+      rw [EL_eq_loss A hξ 𝔼 xs F, EL_eq_loss A hξ 𝔼 xs G] at h1
+      have h2 := loss_sub_of_sdev A hξ 𝔼 xs F G t hdev ω0
+      have hneg : d = -(TargetingRule.periodLoss (lamW M α β) xs (πS G) (xS ξS xs G) t -
+          TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) t) := by
+        rw [hd]; abel
+      have h3 : 𝔼.E 0 d ω0 = -𝔼.E 0 (TargetingRule.periodLoss (lamW M α β) xs (πS G)
+          (xS ξS xs G) t - TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) t)
+          ω0 := by
+        rw [hneg, map_neg]; rfl
+      have h4 := 𝔼.mono 0 hnn ω0
+      rw [map_zero] at h4
+      have hβt := pow_pos A.β_pos t
+      have h5 : 0 ≤ 𝔼.E 0 (TargetingRule.periodLoss (lamW M α β) xs (πS G) (xS ξS xs G) t -
+          TargetingRule.periodLoss (lamW M α β) xs (πS F) (xS ξS xs F) t) ω0 := by
+        by_contra hc
+        push Not at hc
+        nlinarith
+      simp only [Pi.zero_apply] at h4 ⊢
+      linarith
+    have hz := hf d hnn hE0
+    intro ω
+    rw [isMinOn_iff]
+    intro q hq
+    have h1 := isMinOn_iff.mp (hG ω).2 q hq
+    have h2 := congrFun hz ω
+    simp only [hd, Pi.sub_apply, Pi.zero_apply, TargetingRule.periodLoss] at h2
+    simp only [Discretion.periodLoss] at h1 ⊢
+    linarith
+  have hb1 : BoundedProc (πS F) := by
+    obtain ⟨C, hC⟩ := F.π1_bdd
+    exact ⟨C, fun t ω => hC ω (t + 1)⟩
+  have hb2 : BoundedProc (xS ξS xs F) := by
+    obtain ⟨C, hC⟩ := gapS_bdd A hξ F
+    exact ⟨C + |xs|, fun t ω => (abs_add_le _ _).trans (by linarith [hC ω t])⟩
+  have hD : Discretion.DiscretionEq 𝔼 β (kap M α β) (lamW M α β) xs u (πS F) (xS ξS xs F) :=
+    ⟨hFa.1, hFa.2, hb1, hb2, fun t ω => ⟨hFas t ω, hopt t ω⟩⟩
+  exact (Discretion.prop_7_5 𝔼 A.β_pos A.β_lt A.kap_pos A.lam_pos hu hua _ _).mp hD
+
+end Woodford.GainsFromCommitment.TidyR6WelfPropsS
+
 set_option linter.style.longLine false
 #print axioms Woodford.GainsFromCommitment.SchurStable
 #print axioms Woodford.GainsFromCommitment.disc
@@ -22948,3 +39291,1049 @@ set_option linter.style.longLine false
 #print axioms Woodford.GainsFromCommitment.Links.timelessOpt114_iff_basic
 #print axioms Woodford.GainsFromCommitment.Links.instrumentPath_no_costPush
 #print axioms Woodford.GainsFromCommitment.Links.zero_gap_unique_faithful
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.mk
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.P
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.𝓕
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.μ
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddProc
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_add
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_sub
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_smul
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_const
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_zero
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_mono
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_tower
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.integrable_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_known
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_E_self
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_congr
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.integral_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_pullOut
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.abs_E_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.const
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.add
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.innov
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_innov
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.E_hasSum
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum_succ
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.discSum_rec
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.Solves
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.iterate_homog
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.forward_unique
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.solves_add
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.solves_zero
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.unique_iff
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.ELin
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.trivialFirst
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.sum_prob_condE
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeMeasure
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeMeasure_singleton
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeMeasure_univ
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeProb
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.integral_treeProb
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeFiltration
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iidProb
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iidSystem
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.shock
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.measurable_shock
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coordSigma
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.futureSigma
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coordSigma_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.futureSigma_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iIndep_coord
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.filtration_le_past
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.indep_future
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_future
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.measurable_future_fun
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.integral_shock_fun
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_fun
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_sq
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.shock_ae_bdd
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_zero
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.E_shock_sq_eq
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.condVar_shock
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.shock_not_ae_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.singleton_lt_one
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.exists_singleton_le
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_singleton
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_countable_null
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_not_finitely_supported
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_news
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_existsUnique_iff
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_sunspot
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1_succ
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1_adapted
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.ar1_bdd
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_ar1_E
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_ar1_condVar
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.iid_ar1_condVar_closed
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coinMeasure
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coinMeasure_univ
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.integral_coin
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_mean
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_var
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_bdd
+#print axioms Woodford.GainsFromCommitment.ExpectationsMeasureIID.coin_economy
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.bddRV
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.innov_eq
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.innov_bddRV
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.innov_meas
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MeasAR1Innov.E_u
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.const_eq_of_ae
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.E_known_mul_zero
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.E_cross_dev
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.condVar_plan2
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.plan1_eq_plan2
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.condVar_plan1
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.mLstab12
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.mLstab
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.sq_lt_one_of_abs
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_hasSum
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_eq
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab_hasSum
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab_eq
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MAS
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.MIS
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.E_plan2
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.E_plan1
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.affine_zero1
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.affine_zero2
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.plan_AS_iff
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.plan2_iff
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.prop_7_11_lstab
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.f4_lstab
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.filtration_stabilizes
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.finite_innov_degenerate
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.finite_ar1Innov_degenerate
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.tree_innov_degenerate
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.toCore_AR1Innov
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.toCore_VF_AR1Innov
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.toCore_nondeg1
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.toCore_nondeg2
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.mAS_iff_core
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.mIS_iff_core
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.condVar_eq_condCov
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_agree
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab_agree
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab12_link
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.lstab_link
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.Lstab_ar1_link
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.Lstab_two_shocks_link
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.prop_7_11_link
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasure.f4_link
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_measAR1Innov
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_lstab12
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_prop_7_11
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.coin_prop_7_11
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.fnShock
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn_succ
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.measurable_fnShock
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn_adapted
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.ar1fn_bdd
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.E_fnShock_mul
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.iid_measAR1Innov_fn
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.iid2_lstab
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.iid2_f4_lstab
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.quadMeasure
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.quadMeasure_univ
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.quad
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.integral_quad
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.coinA
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.coinB
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.measurable_coinA
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.measurable_coinB
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.coinA_bdd
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.coinB_bdd
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.quad_moments
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_economy
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_f4_lstab
+#print axioms Woodford.GainsFromCommitment.NoninertialMeasureIID.twoCoin_lstab
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.regA
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.regC
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.TaylorRegion
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylorB_tr
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylorB_det
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.schurStable_iff_region
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.delta_ne_zero_of_region
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.region_iff_taylorLHS
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.not_modelDet_of_delta_zero
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylor_determinate_iff_region
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.one_sub_mul_add_pos
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.detT_eq
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.detT_ne_zero_of_region
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.regA_ne_zero_of_region
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylor_eqm_plan2_of_ne
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylor_eqm_plan2_region
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.prop_7_12_optimal_region
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylorRule_recenter
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.taylor_determinate_iff_region_any
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.prop_7_12_region
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.oni_implementable_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.phiG_diag_ne
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.oni_implementable_diag_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.negative_rule_region
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.no_rule_region
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.negative_rule_implements
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.no_rule_implements
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyG
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyA
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyB
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.detGpoly
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyG_eval
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_eq_poly
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_zero_subset
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.detGpoly_zero_zero_pos
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_li_zero
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyG_ne_zero
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.polyA_ne_zero
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_continuous
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_zero_null
+#print axioms Woodford.GainsFromCommitment.TidyR5TaylorRegion.detG_zero_interior_empty
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.ScalarSolves
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.ScalarDet
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.companion
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.companion_row_zero
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.companion_row_succ
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.compForcing
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.stackP
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.stackP_fsolves
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fsolves_stack
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.scalar_of_fsolves
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.companion_eig
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.stackP_bounded
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.stackP_adapted
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.scalarDet_of_roots
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.roots_of_scalarDet
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.scalarDet_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcCoef
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcCoef_zero
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcCoef_sum
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcCoef_chiC
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcG
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.AS_forecast
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.forecastEqm_iff_scalar
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.fcG_bdd_adapted
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.forecast_determinate_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5ForecastHorizon.oni_forecast_determinate_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.bCov
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.regVar
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab12
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.bCov_good
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab_uniform
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab_eq_uniform
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab_version
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab12_uniform
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.regLstab12_version
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.oni_numeric
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.f4_numeric
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.weight_pos
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.prop_7_11_uniform
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.f4_uniform
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.lstab12_integral
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.lstab_integral
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.prop_7_11_integral
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.f4_integral
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.exists_stateToReal_injective
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.stateToReal
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.stateToReal_injective
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.badPlan
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.coinL
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.badVersion
+#print axioms Woodford.GainsFromCommitment.TidyR5UniformNull.versions_no_uniform_null
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.IndepInnov
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.IndepDisturbances
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.condCov_zero_of_indep
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.indepInnov_uncorrelated
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.lstab_eq_indep
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.f4_lstab_indep
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.f4_uniform_indep
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.coinFam
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.measurable_coinFam
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_eval
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.quad_apply
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.quad_coins_indep
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.finset_bool_cases
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_iIndepFun
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_indepInnov
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.coinSigma
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_indepDisturbances
+#print axioms Woodford.GainsFromCommitment.TidyR5Independence.twoCoin_f4_indep
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.restrictZ
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.extendN
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.restrict_extend
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.extendN_t0
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.exists_nat_of_le
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.feasible_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.loss_eq
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.isOptimal_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.isOptimal_free_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.rec27_plan_eq_star
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.prop_7_6_eq_star
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.prop_7_7_eq_star
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.prop_7_8_eq_star
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.dev
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.as_dev
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.foc_dev
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.lstab12_eq_loss_dev
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.inertial_lstab_gap
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.inertial_lstab_le
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.inertial_lstab_le_oni
+#print axioms Woodford.GainsFromCommitment.TidyR5PlanTranslation.prop_7_7_lstab_le_oni
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.pow_entry_bound
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_rvMul
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_add
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_sub
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_one
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.add_rvMul
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.sub_rvMul
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.neg_rvMul
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_apply
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_two
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Faithful
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.E_rvMul
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.FSolves
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.VAdapted
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.VBounded
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.fsolves_iterate
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.abs_rvMul_pow_le
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.fsolves_unique
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.fsolves_exists
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.det_scalar_sub_two
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.pow_bound_of_schurStable
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.inv2
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.inv2_mul
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.mul_inv2
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.vBounded_rvMul
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.vAdapted_rvMul
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.schurStable_of_factor
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.aG
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.bG
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.pR
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.palinPoly
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.eval_palinPoly
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_inv
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_inv_eq_zero_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_zero
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_factor
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.exists_sum_prod
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_split
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.palinPoly_eq_prod
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.palinPoly_roots
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.insideCard
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.ind
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.card_filter_cons
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Annulus
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.norm_pair
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.ind_pair_le
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.ind_pair_eq_one_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.annulus_pair
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_insideCard_le
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.palin_insideCard_eq_two_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.pGPoly
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG_ofReal
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Qs
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG_eq_Qs
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.nu_quad_eq_Qs
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.quad_ne_zero_of_re_nonpos
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.re_s_nonpos
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG_ne_zero_of_annulus
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.nu_re_pos
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.pG_insideCard_eq_two
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.pair_split
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.inside_root_unique
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.pair_root
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.conj_pair_root
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.pos_of_real_pair
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.exists_real_split
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.lagV
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Sys2
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.psiOf
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.E_rvMul_vec
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.sys2_step_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec_eq
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.rvMul_sum
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec_closed
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec_bounded
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.backRec_adapted
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.lagV_known
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.lagV_bounded
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.sys2_existsUnique
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.cpG
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.c1G
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.c2G
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.PmG
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.A1G
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.A2G
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.MphiG
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.det_Mphi
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.cross2
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_smul_add
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.coeff_match
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.tr2_inv2_mul
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_inv2_mul
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_neg
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.tr2_neg
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_scalar_sub
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.det2_mul
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.schurStable_scale
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.solvent_eq
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.mk
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.β
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.σ
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.κ
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.lx
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.li
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.xstar
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.istar
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Calib.Adm
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.lag
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.AS
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.IS
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.FOC3
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.FOC4
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.FOC5
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.rows_real
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Fphi
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.piOf
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.xOf
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.iOf
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.lag_known
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Fphi_adapted
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Fphi_bounded
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.sys_row
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.planOf_bounded
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.planOf_adapted
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.periodLoss
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Jloss
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.Feasible
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.FOC
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.OptimalGiven
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.tsum_telescope
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.summable_disc
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.periodLoss_bounded
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.lagrangian_identity
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.plan_optimal
+#print axioms Woodford.GainsFromCommitment.TidyR5KappaPosCore.unique_optimum
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.vecOf
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.vecH
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lag_vec0
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lag_vec1
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lagV_coords
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.plan_eq_of_foc
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.sys_of_foc
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.foc_of_sys
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.exists_solvent
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.foc_system_existsUnique
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.t0_optimal
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.timeless_optimal
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.optimum_unique
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.partial_adjustment
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.kloss
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.summable_kloss
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.kloss_midpoint
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.kappa0_unique_faithful
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.evalTrue
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lateInfo
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lateInfo_pullOut
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lateInfo_E_le
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.lateInfo_E_ge
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.devFalse
+#print axioms Woodford.GainsFromCommitment.TidyR5NaturalRateKappa.kappa0_not_unique
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dPi
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dX
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dI
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dPi_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dX_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dI_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.pert_AS
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.pert_IS
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.pert_feasible
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dPi
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dPi_succ
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dX
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dX_succ
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.dsum_dI
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.lagrI_zero
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.gradI
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.lossI_pert
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.gradI_eq
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.ss_ind_necessary
+#print axioms Woodford.GainsFromCommitment.TidyR5IndexationNecessity.ss_ind_timeless_iff
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.typeShock
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeInf
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.SummableFamily
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.typeShock_summable
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.typeShock_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeInf_summable
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeInf_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.extendPsi
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.extendEps
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.summableFamily_fin
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeShock_eq_inf
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.compositeInf_adapted
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.fwdU_composite
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.star_composite
+#print axioms Woodford.GainsFromCommitment.TidyR5CompositeShocks.targeting_rule_composite
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.cov
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.CovStationary
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.diff
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.diffN
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.IntegratedOfOrder
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.covStationary_congr_ae
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.diffN_congr_ae
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.integratedOfOrder_congr_ae
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.not_covStationary_of_var_ne
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.Pc
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.coord_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.coord_integrable
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.coord_mul_integrable
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.integral_coord
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.integral_coord_mul
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.lin
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.memLp_lin
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.integrable_sum
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.integral_lin
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.integral_sum_mul_sum
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.cov_lin
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationOrder.covStationary_lin_iff
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.Sc
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.forwardSol_shock
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.cov_const
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.cov_congr
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.sum_single
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.covStationary_single
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.phiB
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.phiB_succ
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.phiB_add
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.phiB_sq_sum
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.phiB_cov
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.phiL
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.phiL_succ
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.phiL_zero
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.OptLaw
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.DiscLaw
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.PriceLaw
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.phi_ae
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.cov_single
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.cov_walk
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.walk_succ
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.optimal_gamma0_I0
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.optimal_gamma1_I1
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.discretion_gamma0_I1
+#print axioms Woodford.GainsFromCommitment.TidyR6IntegrationPolicy.discretion_gamma1_I2
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.fm1_iff
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.FM
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.pReg
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.qReg
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.pReg'
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.qReg'
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.region_line_iff
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.exists_region_line_iff
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.iRF4_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.oni_implementable_iff_exists
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.oni_implementable_singular_iff
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.r_row_zero
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.not_implementable_r_row_zero
+#print axioms Woodford.GainsFromCommitment.TidyR6TaylorSingular.not_implementable_li_zero
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.OneParamTaylor.taylor2_remainder_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.OneParamTaylor.eventually_lt_of_quadratic_gap
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.OneParamTaylor.welfare_ranking
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.OneParamTaylor.welfare_ranking_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.OneParamTaylor.welfare_ranking_of_loss
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.OneParamTaylor.expect
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.OneParamTaylor.isBigO_expect
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.OneParamTaylor.pow_succ_isBigO_self
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.OneParamTaylor.sq_not_isBigO_cube
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.OneParamTaylor.taylor_one_bigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.abs_exp_sub_taylor2_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.expRem
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.exp_sub_one_eq
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.rlog
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.abs_rlog_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.exp_taylor2_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.abs_log_one_add_sub_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.log_taylor2_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.crossMean
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.crossVar
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.crossVar_eq
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.crossMean_mul
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.abs_crossMean_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.crossMean_sq_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.crossVar_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.cesMoment
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.cumulant
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.cesMoment_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.cumulant_expansion
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.cesIndex
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.log_cesIndex_exp
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ExpLogCES.log_outputIndex_expansion
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Moments.sum_sq_eq
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Moments.mean_quadratic
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Moments.calvoK
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Moments.calvoKappa
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.Bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.Bdd.const
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.Bdd.nonneg_bound
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.Bdd.add
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.Bdd.neg
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.Bdd.sub
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.Bdd.mul
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.Bdd.div_const
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.Bdd.pow
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.Bdd.lin
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.Bdd.comp
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.summable_geom_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.summable_norm_geom_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.Bdd.summable
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.abs_tsum_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.disp_integrated
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.SeqW.disp_discounted_hasSum
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.omegaEl
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.sigmaInvEl
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.gShock
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.qShock
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.lossQ
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.levelDev_eq
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.uTaylor
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.Tu
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.Ru
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.uTaylor_eq_of_coeffs
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.uTaylor_eq
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.vTaylor
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.Tv
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.Rv
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.vTaylor_eq_of_coeffs
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.vTaylor_eq
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.natLin
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.xStarLin
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.tipA
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.R3
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.thmA1
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Prop61.lossQ_disp
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.PriceDispersion.ThetaCalvo
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.PriceDispersion.ThetaCalvo_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.PriceDispersion.calvo_welfare_sum
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ApproxTheory.quadApprox
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ApproxTheory.taylor2_multivar_segment_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ApproxTheory.taylor2_multivar_bound
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ApproxTheory.taylor2_multivar_isBigO_of_contDiff
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ApproxTheory.linSol
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.ApproxTheory.U1
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.TwoSectorWelfare.TvSec
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.TwoSectorWelfare.sum_Tv
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Links.CES.cesAtom
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Links.CES.ces_relation
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBase.Links.CES.cesAtom_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.pow_isBigO_pow
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.isBigO_pow_mul
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.sq_sub_sq_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.expRem_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.exp_sub_one_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.unif
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.tendsto_unif
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.isBigO_unif_iff
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.isBigO_of_unif
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.bdd_of_unif
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.tsum_isBigO_of_unif
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.ranking_of_tip
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.coeff_two_unique
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.expect_bridge
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.D1
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.D2
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.slope
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.curv
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.lin
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.cross
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.quad
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.tip0
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.quadApprox_pair
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.norm_inr
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.norm_inl_one
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.abs_lin_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.abs_cross_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.abs_quad_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.lin_smul
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.cross_smul
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.quad_smul
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.lin_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.cross_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.quad_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.taylor_pair
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.level_taylor
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.isBigO_pow_one
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Ru_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Rv_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.coord_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.ces_orders
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.crossMean_sub'
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.R3_zero_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.natLin_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.natLin_smul
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.family_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.cesIndex_exp_eq
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.uside_gen
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.vside_gen
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.crossMean_smul'
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.crossMean_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.family_of_contDiff
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.gap_eq_woodford
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.xstar_hasDerivAt
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.unif_of_bounded
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.mk
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.u
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.v
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Yb
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.θ
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.w
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.uc
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.ucc
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.vy
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.vyy
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.sig
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.omg
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.gS
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.qS
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Yagg
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Ustate
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.tipState
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.lossW
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.lossB
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Std
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Std.mk
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Std.contDiff_u
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Std.contDiff_v
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Std.Yb_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Std.w_nonneg
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Std.w_sum
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Std.θ_ne_one
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Std.uc_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Std.ucc_ne
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Std.vyy_ne
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.r_ne
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.Ustate_eq
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.gS_smul
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.qS_smul
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.gS_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.qS_isBigO
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.prop61_state
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.lossW_sub_lossB
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.prop61_state_poly
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.tipState_smul
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.tipState_unif
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.bounded_of_unif
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.unif_shift
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.gap
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.gap_smul_sub
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.calvo_bridge
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.prop64_bridge
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.prop65_bridge
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.prop64_ranking
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfBridge.BridgeCore.Econ.prop65_ranking
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.WeaklyBetter
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.cubic_bound
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.weaklyBetter_of_loss_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.eventually_lt_of_loss_lt
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.loss_le_of_weaklyBetter
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.UWeaklyBetter
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.UCubic
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.uweaklyBetter_of_loss_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.ueventually_lt_of_loss_lt
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.loss_le_of_uweaklyBetter
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.uF
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.tendsto_uF
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.isBigO_uF_iff
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.uF_of_bounded
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.tsum_bound_uF
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.bdd_uF
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.pow_uF_one
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.tipState_uF
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.calvo_identity
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.calvo_bridge_unif
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.ucubic_E
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.kap
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.lamW
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.lamW_eq
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.kap_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.lamW_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.bK
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.bK_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.mk
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.yh
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.y1
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.D
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.fl
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.R
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.π1
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.fam
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.y1_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.dem
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.init
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.recur
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.fl_fo
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.π1_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.rem
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.tipC
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.W
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.L
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.CalvoFamily.bridge
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.mk
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.yh
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.y1
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.D
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.fl
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.R
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.π1
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.fam
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.y1_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.dem
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.init
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.recur
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.fo
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.π1_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.rem
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.tipS
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.uF_shift
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.Wp
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.Lp
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.bridge_path
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.EW
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.EL
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfCalvo.SCalvoFamily.bridge
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.mk
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.mbar
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.um
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.umm
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.ummL
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.ucm
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.ucmL
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.uc
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.mbar_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.uc_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.um_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.um_sat
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.um_cont
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.hasDerivAt_um
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.umm_tendsto
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.ucm_tendsto
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.ummL_neg
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.Assumption61.etaI
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxParams
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxParams.mk
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxParams.sigInv
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxParams.omega
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxParams.thetaInv
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxParams.chi
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxParams.etaI
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxParams.vbar
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxParams.etaY
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint.mk
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint.Y
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint.d
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint.g
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint.q
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint.eps
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint.Phi
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint.Delta
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint.V
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint.r
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint.e2
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.TxPoint.e3
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.omegaMC
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.natRate
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.sM
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.xStar
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.mHat
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.mOne
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.smSig
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.uTaylor
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.uE17
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.uE18
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.vTaylor
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.vE4
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.loss49
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.tip
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.remA
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.remB
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.remC
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.remD
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.remE
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.remainder
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.E15_to_E17
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.E17_to_E18
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.E3_to_E4
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.E18_minus_E4
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.prop_6_7_layerA
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.kappaCalvo
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.lambdaX
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.lambdaI
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.loss410
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.lambdaX_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.Transactions.prop_6_8
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.o_mul
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.o_weaken
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.tendsto_of_o_one
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.o_pow
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.expRem_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.taylor_family_moving
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.taylor_family
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.taylor_family_of_eqOn
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.dY
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.dYY
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.dXi
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.dYXi
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.dXiXi
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.quadApprox_prod
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.uTaylor_family
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.uTaylor_family_exp
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.logYidx
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.coord_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.crossMean_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.crossVar_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.logYidx_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.cesAtom_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.Rv0_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.uniform_bound
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.tendsto_amp
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.ranking_of_common
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.sq_sub_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.quadApprox_triple
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.txAtom
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.txAtom_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.vAtom
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.vAtom_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.txRemainder_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.periodUT
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.tipT
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.txSat
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.prop67_actual
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.crossVar_first_order
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.loss49_first_order
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.bridge_first_order
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.prop67_layerB
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.ranking_layerB
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.tsum_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.seq_bdd_of_o
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.prop68_layerB
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfFrictions.BridgeExtensions.loss410_first_order
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProp73.bdd_quad_terms
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProp73.norm_triple
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProp73.norm_pair
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProp73.bdd_tipT
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProp73.frictions_bridge
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProp73.loss410_eq_basic
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProp73.lambdaX_eq
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProp73.prop_7_3_welfare
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProp73.prop_7_3_welfare_converse
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.mk
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.std
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.eff
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.sig_omg
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.θ_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.d_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.α_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.α_lt
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.β_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.β_lt
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.kap_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.lam_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.Assm.bK_pos
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.weaklyBetter_of_L_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.lt_of_L_lt
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.L_le_of_weaklyBetter
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.qW
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.gap_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.qW_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.L_eq
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.prop_7_2_welfare
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.prop_7_2_welfare_unique
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.ell
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.ell_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.L_eq_ell
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.L_sub_of_deviation
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.DiscWelfareOpt
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.prop_7_1_welfare
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.prop_7_1_welfare_converse
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.prop_7_4_welfare
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfProps.prop_7_4_welfare_converse
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.πS
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.xS
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.gapS_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.periodLoss_bdd
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.EL_eq_loss
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.uweaklyBetter_of_EL_le
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.lt_of_EL_lt
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.EL_le_of_uweaklyBetter
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.prop_7_15_welfare
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.prop_7_15_welfare_converse
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.SDev
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.loss_sub_of_sdev
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.DiscWelfareOptS
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.prop_7_5_welfare
+#print axioms Woodford.GainsFromCommitment.TidyR6WelfPropsS.prop_7_5_welfare_converse

@@ -26,6 +26,20 @@ import Mathlib.Analysis.Normed.Ring.InfiniteSum
 import Mathlib.Analysis.InnerProductSpace.Projection.Basic
 import Mathlib.Analysis.InnerProductSpace.LinearMap
 import Mathlib.Analysis.InnerProductSpace.Orthogonal
+import Mathlib.MeasureTheory.Function.ConditionalExpectation.PullOut
+import Mathlib.MeasureTheory.Function.ConditionalExpectation.Real
+import Mathlib.MeasureTheory.Measure.ProbabilityMeasure
+import Mathlib.Probability.Process.Filtration
+import Mathlib.Probability.Process.Adapted
+import Mathlib.Probability.CondVar
+import Mathlib.Probability.ProductMeasure
+import Mathlib.Probability.Independence.InfinitePi
+import Mathlib.Probability.ConditionalExpectation
+import Mathlib.Analysis.InnerProductSpace.l2Space
+import Mathlib.RingTheory.PowerSeries.Basic
+import Mathlib.MeasureTheory.Function.L2Space
+import Mathlib.Probability.Distributions.Gaussian.IsGaussianProcess.Independence
+import Mathlib.Probability.Distributions.Gaussian.HasGaussianLaw.Independence
 set_option autoImplicit false
 
 /-
@@ -8687,6 +8701,7505 @@ theorem condDown_flow {𝔼I 𝔼Ω : ExpectationSystem Ω} {ρ : ℝ} {v r g s 
 
 end Cochrane.DebtDeficitsInflation.Links
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Measure-theoretic conditional expectations
+
+Cochrane (2023), Ch. 2, §2.3–2.4, pp. 29–30 (expectations `E_t`, the news operator
+`ΔE_{t+1} = E_{t+1} − E_t` of eq. (2.13), forward-looking present values) and §2.7, p. 42 (AR(1)
+surpluses). The core `ExpectationSystem` defines `E_t` on **all** functions `Ω → ℝ` with exact
+equalities; on a countable `Ω` this forces finitely supported forecasts (proved in the Woodford
+Chapter 2 project, `SGUStochasticMeasure.expectationSystem_finite_support`), so no genuine
+infinite-horizon model with nondegenerate shocks fits it. This module is an **additive bridge**:
+a probability space with a filtration and Mathlib's `condExp`, with every property stated in its
+almost-everywhere form. Existing core theorems are untouched.
+
+## How to use (API)
+
+* `MeasExpectationSystem Ω` (fields `P : ProbabilityMeasure Ω`, `𝓕 : Filtration ℕ _`);
+  `S.μ` the measure, `S.E t x = S.μ[x | S.𝓕 t]`.
+* Carriers: plain functions `Ω → ℝ` and processes `ℕ → Ω → ℝ`; `S.BddRV x` (a.e. measurable,
+  essentially bounded; closed under `add`, `sub`, `smul`, `mul`, `sq`, `E`; `.integrable`),
+  `S.BddProc x` (uniform essential bound), Mathlib's `StronglyAdapted S.𝓕 x` (adapted).
+* Axioms (a.e.): `E_add`, `E_sub`, `E_smul`, `E_const` (exact), `E_zero`, `E_mono`, `E_tower`,
+  `E_known` (exact), `E_E_self`, `E_of_stronglyMeasurable` (exact), `E_of_aestronglyMeasurable`,
+  `E_congr`, `E_pullOut`, `abs_E_le`, `integral_E`, `stronglyMeasurable_E`, `integrable_E`.
+* News: `innov t x = ΔE_{t+1} x`, `E_innov` (martingale difference), `E_mul_innov`,
+  `E_sub_E_eq_sum_innov`, `eq_E_add_innov`.
+* Series: `E_hasSum` (`E_t` through a dominated `tsum`).
+* Forward equation `z_t = a E_t z_{t+1} + u_t` (`Solves`): `forwardSol` (with `forwardSol_hasSum`:
+  it is `∑ aᵏ E_t u_{t+k}`), `forwardSol_solves`, `forward_unique`, `existsUnique_forward`;
+  for `|a| ≥ 1`: `sunspot`, `sunspot_solves`, `not_unique_of_one_le`, `sunspot_not_predictable`;
+  criteria `unique_iff`, `existsUnique_iff`.
+* AR(1) with martingale-difference shocks: `ar1_E`, `ar1_E_sq_dev`, `ar1_condVar`,
+  `ar1_condVar_closed`.
+* Bridges: `toExpectationSystem` (finite discrete full-support `Ω` → core system, with
+  `toExpectationSystem_E`, `toExpectationSystem_pullOut`) and `TreeBridge.treeSystem` (core
+  `FiniteTree` → measure system, `TreeBridge.treeSystem_E`: `E_t` equals the cell average at every
+  state, `TreeBridge.treeSystem_toExpectationSystem_E`: round trip).
+
+The genuine infinite-horizon instance (i.i.d. shocks on `ℕ → ℝ`) is `ExpectationsMeasureIID`.
+To copy into another project: rename the namespace prefix and the `import` of
+`ExpectationsFiniteTree`; the module uses the core only through `ExpectationSystem`,
+`ExpectationSystem.PullOut`, `ExpectationsFiniteTree.FiniteTree` and its `condE`,
+`condE_of_trivial`, `condE_tower`, `condE_congr`, `condE_of_const_on_cell`,
+`toExpectationSystem_E`, `finiteTree_pullOut`.
+-/
+
+namespace Cochrane.DebtDeficitsInflation.ExpectationsMeasure
+
+open MeasureTheory ProbabilityTheory Filter Topology
+
+variable (Ω : Type*) [mΩ : MeasurableSpace Ω]
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30 (the conditional expectations `E_t`): a probability space
+`(Ω, P)` with a filtration `𝓕 : ℕ → MeasurableSpace Ω`; `E_t x := P[x | 𝓕 t]`. -/
+structure MeasExpectationSystem where
+  /-- The probability measure. -/
+  P : ProbabilityMeasure Ω
+  /-- The information available at each date. -/
+  𝓕 : Filtration ℕ mΩ
+
+namespace MeasExpectationSystem
+
+variable {Ω} (S : MeasExpectationSystem Ω)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the probability measure as a measure. -/
+abbrev μ : Measure Ω := S.P
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x = μ[x | 𝓕 t]`, Mathlib's conditional expectation. -/
+noncomputable abbrev E (t : ℕ) (x : Ω → ℝ) : Ω → ℝ := S.μ[x | S.𝓕 t]
+
+/-- Cochrane (2023), Ch. 2, p. 29: a bounded random variable (a.e. strongly measurable and
+essentially bounded). -/
+def BddRV (x : Ω → ℝ) : Prop := AEStronglyMeasurable x S.μ ∧ ∃ M, ∀ᵐ ω ∂S.μ, |x ω| ≤ M
+
+/-- Cochrane (2023), Ch. 2, p. 29: a uniformly (essentially) bounded process. -/
+def BddProc (x : ℕ → Ω → ℝ) : Prop := ∃ M, ∀ t, ∀ᵐ ω ∂S.μ, |x t ω| ≤ M
+
+/-- Cochrane (2023), Ch. 2, p. 29: a bounded random variable is integrable. -/
+theorem BddRV.integrable {S : MeasExpectationSystem Ω}
+    {x : Ω → ℝ} (hx : S.BddRV x) : Integrable x S.μ := by
+  obtain ⟨hm, M, hM⟩ := hx
+  exact Integrable.of_bound hm M (hM.mono fun ω h => by rwa [Real.norm_eq_abs])
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is additive (a.e.). -/
+theorem E_add {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ) (t : ℕ) :
+    S.E t (x + y) =ᵐ[S.μ] S.E t x + S.E t y := condExp_add hx hy _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` commutes with differences (a.e.). -/
+theorem E_sub {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ) (t : ℕ) :
+    S.E t (x - y) =ᵐ[S.μ] S.E t x - S.E t y := condExp_sub hx hy _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is homogeneous (a.e.). -/
+theorem E_smul (c : ℝ) (x : Ω → ℝ) (t : ℕ) : S.E t (c • x) =ᵐ[S.μ] c • S.E t x :=
+  condExp_smul c x _
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: constants are known (exactly). -/
+theorem E_const (t : ℕ) (c : ℝ) : S.E t (fun _ => c) = fun _ => c :=
+  condExp_const (S.𝓕.le t) c
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t 0 = 0`. -/
+theorem E_zero (t : ℕ) : S.E t 0 = 0 := condExp_zero
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is monotone (a.e.). -/
+theorem E_mono {x y : Ω → ℝ} (hx : Integrable x S.μ) (hy : Integrable y S.μ)
+    (hxy : x ≤ᵐ[S.μ] y) (t : ℕ) : S.E t x ≤ᵐ[S.μ] S.E t y := condExp_mono hx hy hxy
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the law of iterated expectations `E_s E_t = E_s`, `s ≤ t`
+(a.e.). -/
+theorem E_tower {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E s (S.E t x) =ᵐ[S.μ] S.E s x :=
+  condExp_condExp_of_le (S.𝓕.mono hst) (S.𝓕.le t)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x` is `𝓕 t`-strongly measurable. -/
+theorem stronglyMeasurable_E (t : ℕ) (x : Ω → ℝ) : StronglyMeasurable[S.𝓕 t] (S.E t x) :=
+  stronglyMeasurable_condExp
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t x` is integrable. -/
+theorem integrable_E (t : ℕ) (x : Ω → ℝ) : Integrable (S.E t x) S.μ := integrable_condExp
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: what is known at `t` is its own forecast (exactly). -/
+theorem E_of_stronglyMeasurable {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 t] x)
+    (hi : Integrable x S.μ) : S.E t x = x :=
+  condExp_of_stronglyMeasurable (S.𝓕.le t) hx hi
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: what is a.e. known at `t` is a.e. its own forecast. -/
+theorem E_of_aestronglyMeasurable {t : ℕ} {x : Ω → ℝ} (hx : AEStronglyMeasurable[S.𝓕 t] x S.μ)
+    (hi : Integrable x S.μ) : S.E t x =ᵐ[S.μ] x :=
+  condExp_of_aestronglyMeasurable' (S.𝓕.le t) hx hi
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: earlier forecasts are known later, `E_t E_s = E_s` for
+`s ≤ t` (exactly). -/
+theorem E_known {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E t (S.E s x) = S.E s x :=
+  S.E_of_stronglyMeasurable ((S.stronglyMeasurable_E s x).mono (S.𝓕.mono hst))
+    (S.integrable_E s x)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` is idempotent (exactly). -/
+theorem E_E_self (t : ℕ) (x : Ω → ℝ) : S.E t (S.E t x) = S.E t x := S.E_known le_rfl x
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `E_t` respects a.e. equality. -/
+theorem E_congr {x y : Ω → ℝ} (h : x =ᵐ[S.μ] y) (t : ℕ) : S.E t x =ᵐ[S.μ] S.E t y :=
+  condExp_congr_ae h
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: the unconditional mean of a forecast is the mean. -/
+theorem integral_E (t : ℕ) (x : Ω → ℝ) : ∫ ω, S.E t x ω ∂S.μ = ∫ ω, x ω ∂S.μ :=
+  integral_condExp (S.𝓕.le t)
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: **pull-out** — a bounded factor known at `t` comes out of
+`E_t` (a.e.). -/
+theorem E_pullOut {t : ℕ} {f y : Ω → ℝ} (hf : StronglyMeasurable[S.𝓕 t] f) {C : ℝ}
+    (hfC : ∀ᵐ ω ∂S.μ, |f ω| ≤ C) (hy : Integrable y S.μ) :
+    S.E t (f * y) =ᵐ[S.μ] f * S.E t y := by
+  have hint : Integrable (f * y) S.μ :=
+    hy.bdd_mul (hf.mono (S.𝓕.le t)).aestronglyMeasurable
+      (hfC.mono fun ω h => by rwa [Real.norm_eq_abs])
+  exact condExp_mul_of_stronglyMeasurable_left hf hint hy
+
+/-- Cochrane (2023), Ch. 2, pp. 29–30: `|E_t x| ≤ M` a.e. whenever `|x| ≤ M` a.e. -/
+theorem abs_E_le {x : Ω → ℝ} {M : ℝ} (hx : ∀ᵐ ω ∂S.μ, |x ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, |S.E t x ω| ≤ M :=
+  ae_bdd_abs_condExp_of_ae_bdd_abs hx
+
+/-! ### Bounded random variables -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: a variable known at `t` with an a.e. bound is bounded. -/
+theorem BddRV.of_stronglyMeasurable {S : MeasExpectationSystem Ω}
+    {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 t] x)
+    {M : ℝ} (hM : ∀ᵐ ω ∂S.μ, |x ω| ≤ M) : S.BddRV x :=
+  ⟨(hx.mono (S.𝓕.le t)).aestronglyMeasurable, M, hM⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: constants are bounded. -/
+theorem BddRV.const {S : MeasExpectationSystem Ω} (c : ℝ) : S.BddRV (fun _ => c) :=
+  ⟨aestronglyMeasurable_const, |c|, Eventually.of_forall fun _ => le_rfl⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: sums of bounded variables are bounded. -/
+theorem BddRV.add {S : MeasExpectationSystem Ω}
+    {x y : Ω → ℝ} (hx : S.BddRV x) (hy : S.BddRV y) : S.BddRV (x + y) := by
+  obtain ⟨hxm, M, hM⟩ := hx
+  obtain ⟨hym, N, hN⟩ := hy
+  refine ⟨hxm.add hym, M + N, ?_⟩
+  filter_upwards [hM, hN] with ω h1 h2
+  exact (abs_add_le _ _).trans (add_le_add h1 h2)
+
+/-- Cochrane (2023), Ch. 2, p. 29: multiples of bounded variables are bounded. -/
+theorem BddRV.smul {S : MeasExpectationSystem Ω}
+    {x : Ω → ℝ} (hx : S.BddRV x) (c : ℝ) : S.BddRV (c • x) := by
+  obtain ⟨hxm, M, hM⟩ := hx
+  refine ⟨hxm.const_smul c, |c| * M, ?_⟩
+  filter_upwards [hM] with ω h1
+  rw [Pi.smul_apply, smul_eq_mul, abs_mul]
+  exact mul_le_mul_of_nonneg_left h1 (abs_nonneg c)
+
+/-- Cochrane (2023), Ch. 2, p. 29: differences of bounded variables are bounded. -/
+theorem BddRV.sub {S : MeasExpectationSystem Ω}
+    {x y : Ω → ℝ} (hx : S.BddRV x) (hy : S.BddRV y) : S.BddRV (x - y) := by
+  have h := hx.add (hy.smul (-1))
+  rwa [neg_one_smul, ← sub_eq_add_neg] at h
+
+/-- Cochrane (2023), Ch. 2, p. 29: products of bounded variables are bounded. -/
+theorem BddRV.mul {S : MeasExpectationSystem Ω}
+    {x y : Ω → ℝ} (hx : S.BddRV x) (hy : S.BddRV y) : S.BddRV (x * y) := by
+  obtain ⟨hxm, M, hM⟩ := hx
+  obtain ⟨hym, N, hN⟩ := hy
+  refine ⟨hxm.mul hym, M * N, ?_⟩
+  filter_upwards [hM, hN] with ω h1 h2
+  rw [Pi.mul_apply, abs_mul]
+  exact mul_le_mul h1 h2 (abs_nonneg _) ((abs_nonneg _).trans h1)
+
+/-- Cochrane (2023), Ch. 2, p. 29: forecasts of bounded variables are bounded. -/
+theorem BddRV.E {S : MeasExpectationSystem Ω}
+    {x : Ω → ℝ} (hx : S.BddRV x) (t : ℕ) : S.BddRV (S.E t x) := by
+  obtain ⟨-, M, hM⟩ := hx
+  exact ⟨(S.integrable_E t x).aestronglyMeasurable, M, S.abs_E_le hM t⟩
+
+/-! ### Innovations (news) -/
+
+/-- Cochrane (2023), eq. (2.13), p. 30: the innovation `ΔE_{t+1} x = E_{t+1} x − E_t x`. -/
+noncomputable def innov (t : ℕ) (x : Ω → ℝ) : Ω → ℝ := S.E (t + 1) x - S.E t x
+
+/-- Cochrane (2023), eq. (2.13), p. 30: the innovation is known at `t + 1`. -/
+theorem stronglyMeasurable_innov (t : ℕ) (x : Ω → ℝ) :
+    StronglyMeasurable[S.𝓕 (t + 1)] (S.innov t x) :=
+  (S.stronglyMeasurable_E (t + 1) x).sub
+    ((S.stronglyMeasurable_E t x).mono (S.𝓕.mono (Nat.le_succ t)))
+
+/-- Cochrane (2023), eq. (2.13), p. 30: **innovations are martingale differences**,
+`E_s ΔE_{t+1} x = 0` a.e. for every `s ≤ t`. -/
+theorem E_innov {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) : S.E s (S.innov t x) =ᵐ[S.μ] 0 := by
+  filter_upwards [S.E_sub (S.integrable_E (t + 1) x) (S.integrable_E t x) s,
+    S.E_tower (hst.trans (Nat.le_succ t)) x, S.E_tower hst x] with ω h1 h2 h3
+  rw [innov, h1, Pi.sub_apply, h2, h3, sub_self, Pi.zero_apply]
+
+/-- Cochrane (2023), eq. (2.13), p. 30: news is uncorrelated with anything known before it,
+`E_t (w ΔE_{t+1} x) = 0` for bounded `w` known at `t` and bounded `x`. -/
+theorem E_mul_innov {t : ℕ} {w : Ω → ℝ} (hw : StronglyMeasurable[S.𝓕 t] w) {C : ℝ}
+    (hwC : ∀ᵐ ω ∂S.μ, |w ω| ≤ C) (x : Ω → ℝ) :
+    S.E t (w * S.innov t x) =ᵐ[S.μ] 0 := by
+  have hi : Integrable (S.innov t x) S.μ := (S.integrable_E _ x).sub (S.integrable_E _ x)
+  filter_upwards [S.E_pullOut hw hwC hi, S.E_innov le_rfl x] with ω h1 h2
+  rw [h1, Pi.mul_apply, h2]
+  simp
+
+/-- Cochrane (2023), eq. (2.13), p. 30: forecast revisions telescope into news,
+`E_{t+n} x − E_t x = ∑_{i<n} ΔE_{t+i+1} x` (exactly). -/
+theorem E_sub_E_eq_sum_innov (t n : ℕ) (x : Ω → ℝ) :
+    S.E (t + n) x - S.E t x = ∑ i ∈ Finset.range n, S.innov (t + i) x := by
+  induction n with
+  | zero => simp
+  | succ n ih =>
+    rw [Finset.sum_range_succ, ← ih, innov, ← add_assoc]
+    abel
+
+/-- Cochrane (2023), eq. (2.17), p. 35: a variable known at `t + 1` is its forecast plus its
+news, `x = E_t x + ΔE_{t+1} x` (exactly). -/
+theorem eq_E_add_innov {t : ℕ} {x : Ω → ℝ} (hx : StronglyMeasurable[S.𝓕 (t + 1)] x)
+    (hi : Integrable x S.μ) : x = S.E t x + S.innov t x := by
+  rw [innov, S.E_of_stronglyMeasurable hx hi]
+  abel
+
+/-! ### `E_t` and dominated infinite sums -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (present values as infinite sums): **`E_t` passes through a
+dominated series** — if `|f_k| ≤ c_k` a.e. with `∑ c_k < ∞`, then a.e.
+`∑_k E_t f_k = E_t ∑_k f_k` (as a genuine `HasSum`). -/
+theorem E_hasSum {f : ℕ → Ω → ℝ} {c : ℕ → ℝ} (hc : Summable c)
+    (hm : ∀ k, AEStronglyMeasurable (f k) S.μ) (hf : ∀ k, ∀ᵐ ω ∂S.μ, |f k ω| ≤ c k) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => S.E t (f k) ω) (S.E t (fun ω' => ∑' k, f k ω') ω) := by
+  set F : Ω → ℝ := fun ω' => ∑' k, f k ω' with hF
+  have hall : ∀ᵐ ω ∂S.μ, ∀ k, |f k ω| ≤ c k := ae_all_iff.2 hf
+  have hsum : ∀ᵐ ω ∂S.μ, Summable (fun k => f k ω) := hall.mono fun ω h =>
+    Summable.of_norm_bounded hc (fun k => by rw [Real.norm_eq_abs]; exact h k)
+  have hFm : AEStronglyMeasurable F S.μ := by
+    refine aestronglyMeasurable_of_tendsto_ae atTop
+      (f := fun N ω => ∑ k ∈ Finset.range N, f k ω)
+      (fun N => Finset.aestronglyMeasurable_fun_sum _ fun k _ => hm k) ?_
+    filter_upwards [hsum] with ω h
+    exact h.hasSum.tendsto_sum_nat
+  -- the tail bound
+  have htail : ∀ N, ∀ᵐ ω ∂S.μ,
+      |F ω - ∑ k ∈ Finset.range N, f k ω| ≤ ∑' k, c (k + N) := by
+    intro N
+    filter_upwards [hall, hsum] with ω h hs
+    change |∑' k, f k ω - ∑ k ∈ Finset.range N, f k ω| ≤ _
+    rw [← hs.sum_add_tsum_nat_add N, add_sub_cancel_left, ← Real.norm_eq_abs]
+    exact tsum_of_norm_bounded ((summable_nat_add_iff N).2 hc).hasSum
+      (fun k => by rw [Real.norm_eq_abs]; exact h (k + N))
+  have hbF : ∀ᵐ ω ∂S.μ, |F ω| ≤ ∑' k, c k := by
+    filter_upwards [htail 0] with ω h
+    simpa using h
+  have hint : ∀ k, Integrable (f k) S.μ := fun k => BddRV.integrable (S := S) ⟨hm k, c k, hf k⟩
+  have hFi : Integrable F S.μ := BddRV.integrable (S := S) ⟨hFm, _, hbF⟩
+  have hdiff : ∀ N, ∀ᵐ ω ∂S.μ,
+      |S.E t F ω - ∑ k ∈ Finset.range N, S.E t (f k) ω| ≤ ∑' k, c (k + N) := by
+    intro N
+    have hpi : Integrable (∑ k ∈ Finset.range N, f k) S.μ :=
+      integrable_finsetSum' _ fun k _ => hint k
+    have hEs : S.E t (∑ k ∈ Finset.range N, f k) =ᵐ[S.μ] ∑ k ∈ Finset.range N, S.E t (f k) :=
+      condExp_finsetSum (fun k _ => hint k) (S.𝓕 t)
+    filter_upwards [S.E_sub hFi hpi t, hEs,
+      S.abs_E_le (x := F - ∑ k ∈ Finset.range N, f k) (by
+        filter_upwards [htail N] with ω h
+        simpa [Finset.sum_apply] using h) t] with ω h1 h2 h3
+    rw [h1, Pi.sub_apply, h2, Finset.sum_apply] at h3
+    exact h3
+  have hEb : ∀ᵐ ω ∂S.μ, ∀ k, |S.E t (f k) ω| ≤ c k :=
+    ae_all_iff.2 fun k => S.abs_E_le (hf k) t
+  filter_upwards [ae_all_iff.2 hdiff, hEb] with ω hd hb
+  have hs : Summable fun k => ‖S.E t (f k) ω‖ :=
+    Summable.of_nonneg_of_le (fun _ => norm_nonneg _)
+      (fun k => by rw [Real.norm_eq_abs]; exact hb k) hc
+  rw [hasSum_iff_tendsto_nat_of_summable_norm hs, tendsto_iff_norm_sub_tendsto_zero]
+  refine squeeze_zero_norm (fun N => ?_) (tendsto_sum_nat_add c)
+  rw [norm_norm, Real.norm_eq_abs, abs_sub_comm]
+  exact hd N
+
+/-! ### Forward solutions: existence and uniqueness for `|a| < 1` -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (present values): the realised discounted sum
+`∑_k aᵏ u_{t+k}`. -/
+noncomputable def discSum (a : ℝ) (u : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => ∑' k, a ^ k * u (t + k) ω
+
+/-- Cochrane (2023), Ch. 2, p. 29: a geometric series with bounded terms is summable. -/
+theorem summable_geom_mul {a M : ℝ} (ha : |a| < 1) {x : ℕ → ℝ} (hx : ∀ k, |x k| ≤ M) :
+    Summable (fun k => a ^ k * x k) :=
+  Summable.of_norm_bounded ((summable_geometric_of_lt_one (abs_nonneg a) ha).mul_right M)
+    (fun k => by
+      rw [Real.norm_eq_abs, abs_mul, abs_pow]
+      exact mul_le_mul_of_nonneg_left (hx k) (pow_nonneg (abs_nonneg a) k))
+
+/-- Cochrane (2023), Ch. 2, p. 29: the bound `|∑ aᵏ x_k| ≤ M / (1 − |a|)`. -/
+theorem abs_tsum_geom_mul_le {a M : ℝ} (ha : |a| < 1) {x : ℕ → ℝ} (hx : ∀ k, |x k| ≤ M) :
+    |∑' k, a ^ k * x k| ≤ M / (1 - |a|) := by
+  rw [← Real.norm_eq_abs, div_eq_inv_mul]
+  refine tsum_of_norm_bounded ((hasSum_geometric_of_lt_one (abs_nonneg a) ha).mul_right M)
+    (fun k => ?_)
+  rw [Real.norm_eq_abs, abs_mul, abs_pow]
+  exact mul_le_mul_of_nonneg_left (hx k) (pow_nonneg (abs_nonneg a) k)
+
+omit mΩ in
+/-- Cochrane (2023), Ch. 2, p. 29: the discounted sum satisfies `U_t = u_t + a U_{t+1}` wherever
+it converges. -/
+theorem discSum_succ {a : ℝ} {u : ℕ → Ω → ℝ} {t : ℕ} {ω : Ω}
+    (hs : Summable (fun k => a ^ k * u (t + k) ω)) :
+    discSum a u t ω = u t ω + a * discSum a u (t + 1) ω := by
+  unfold discSum
+  rw [hs.tsum_eq_zero_add, pow_zero, one_mul, add_zero, ← tsum_mul_left]
+  congr 1
+  refine tsum_congr fun k => ?_
+  rw [show t + (k + 1) = t + 1 + k by omega, pow_succ]
+  ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: the discounted sum of a bounded process is bounded a.e. -/
+theorem discSum_bdd {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, |discSum a u t ω| ≤ M / (1 - |a|) := by
+  filter_upwards [ae_all_iff.2 hb] with ω h
+  exact abs_tsum_geom_mul_le ha fun k => h (t + k)
+
+/-- Cochrane (2023), Ch. 2, p. 29: `U_t = u_t + a U_{t+1}` a.e. -/
+theorem discSum_rec {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    discSum a u t =ᵐ[S.μ] u t + a • discSum a u (t + 1) := by
+  filter_upwards [ae_all_iff.2 hb] with ω h
+  rw [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+  exact discSum_succ (summable_geom_mul ha fun k => h (t + k))
+
+/-- Cochrane (2023), Ch. 2, p. 29: the discounted sum is a.e. strongly measurable. -/
+theorem aestronglyMeasurable_discSum {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hm : ∀ t, AEStronglyMeasurable (u t) S.μ) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    AEStronglyMeasurable (discSum a u t) S.μ := by
+  refine aestronglyMeasurable_of_tendsto_ae atTop
+    (f := fun N ω => ∑ k ∈ Finset.range N, a ^ k * u (t + k) ω)
+    (fun N => Finset.aestronglyMeasurable_fun_sum _ fun k _ => (hm (t + k)).const_mul _) ?_
+  filter_upwards [ae_all_iff.2 hb] with ω h
+  exact (summable_geom_mul ha fun k => h (t + k)).hasSum.tendsto_sum_nat
+
+/-- Cochrane (2023), Ch. 2, p. 29: `z` solves `z_t = a E_t z_{t+1} + u_t` (a.e. at every
+date). -/
+def Solves (a : ℝ) (u z : ℕ → Ω → ℝ) : Prop :=
+  ∀ t, z t =ᵐ[S.μ] a • S.E t (z (t + 1)) + u t
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution `z_t = E_t ∑_k aᵏ u_{t+k}`. -/
+noncomputable def forwardSol (a : ℝ) (u : ℕ → Ω → ℝ) (t : ℕ) : Ω → ℝ := S.E t (discSum a u t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution is adapted. -/
+theorem forwardSol_adapted (a : ℝ) (u : ℕ → Ω → ℝ) : StronglyAdapted S.𝓕 (S.forwardSol a u) :=
+  fun t => S.stronglyMeasurable_E t _
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution is bounded by `M / (1 − |a|)`. -/
+theorem forwardSol_bdd {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) : S.BddProc (S.forwardSol a u) :=
+  ⟨M / (1 - |a|), fun t => S.abs_E_le (S.discSum_bdd ha hb t) t⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: **existence** — for `|a| < 1` and bounded adapted `u`, the
+forward solution solves `z_t = a E_t z_{t+1} + u_t`. -/
+theorem forwardSol_solves {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) :
+    S.Solves a u (S.forwardSol a u) := by
+  intro t
+  have hm : ∀ t, AEStronglyMeasurable (u t) S.μ :=
+    fun t => ((hua t).mono (S.𝓕.le t)).aestronglyMeasurable
+  have hDi : ∀ s, Integrable (discSum a u s) S.μ := fun s =>
+    BddRV.integrable ⟨S.aestronglyMeasurable_discSum ha hm hb s, _, S.discSum_bdd ha hb s⟩
+  have hui : Integrable (u t) S.μ := BddRV.integrable ⟨hm t, M, hb t⟩
+  have hEu : S.E t (u t) = u t := S.E_of_stronglyMeasurable (hua t) hui
+  filter_upwards [S.E_congr (S.discSum_rec ha hb t) t, S.E_add hui ((hDi (t + 1)).smul a) t,
+    S.E_smul a (discSum a u (t + 1)) t, S.E_tower (Nat.le_succ t) (discSum a u (t + 1))]
+    with ω h1 h2 h3 h4
+  change S.E t (discSum a u t) ω = (a • S.E t (S.E (t + 1) (discSum a u (t + 1))) + u t) ω
+  rw [h1, h2, Pi.add_apply, hEu, h3, Pi.add_apply, Pi.smul_apply, Pi.smul_apply, h4,
+    add_comm]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the forward solution is the genuine forward sum
+`z_t = ∑_k aᵏ E_t u_{t+k}` (a.e., as a convergent series). -/
+theorem forwardSol_hasSum {a M : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hm : ∀ t, AEStronglyMeasurable (u t) S.μ) (hb : ∀ t, ∀ᵐ ω ∂S.μ, |u t ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun k => a ^ k * S.E t (u (t + k)) ω) (S.forwardSol a u t ω) := by
+  have hsm : ∀ k, S.E t (fun ω => a ^ k * u (t + k) ω) =ᵐ[S.μ] a ^ k • S.E t (u (t + k)) :=
+    fun k => S.E_smul (a ^ k) (u (t + k)) t
+  filter_upwards [S.E_hasSum (f := fun k ω => a ^ k * u (t + k) ω)
+    ((summable_geometric_of_lt_one (abs_nonneg a) ha).mul_right M)
+    (fun k => (hm (t + k)).const_mul _) (fun k => by
+      filter_upwards [hb (t + k)] with ω h
+      rw [abs_mul, abs_pow]
+      exact mul_le_mul_of_nonneg_left h (pow_nonneg (abs_nonneg a) k)) t,
+    ae_all_iff.2 hsm] with ω h1 h2
+  have e : (fun k => a ^ k * S.E t (u (t + k)) ω) =
+      fun k => S.E t (fun ω => a ^ k * u (t + k) ω) ω := by
+    funext k
+    rw [h2 k, Pi.smul_apply, smul_eq_mul]
+  rw [e]
+  exact h1
+
+/-- Cochrane (2023), Ch. 2, p. 29: iterating a homogeneous forward equation,
+`d_t = a^{k+1} E_t d_{t+k+1}` a.e. -/
+theorem iterate_homog {a : ℝ} {d : ℕ → Ω → ℝ} (hd : ∀ t, d t =ᵐ[S.μ] a • S.E t (d (t + 1)))
+    (t k : ℕ) : d t =ᵐ[S.μ] a ^ (k + 1) • S.E t (d (t + (k + 1))) := by
+  induction k with
+  | zero => simpa using hd t
+  | succ k ih =>
+    have h2 := hd (t + (k + 1))
+    have e : t + (k + 1) + 1 = t + (k + 1 + 1) := rfl
+    rw [e] at h2
+    filter_upwards [ih, S.E_congr h2 t, S.E_smul a (S.E (t + (k + 1)) (d (t + (k + 1 + 1)))) t,
+      S.E_tower (Nat.le_add_right t (k + 1)) (d (t + (k + 1 + 1)))] with ω e1 e2 e3 e4
+    rw [e1, Pi.smul_apply, e2, e3, Pi.smul_apply, e4, Pi.smul_apply, smul_eq_mul, smul_eq_mul,
+      smul_eq_mul, pow_succ]
+    ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: **uniqueness** — for `|a| < 1` the equation
+`z_t = a E_t z_{t+1} + u_t` has at most one bounded (a.e. measurable) solution, up to a.e.
+equality at every date. -/
+theorem forward_unique {a : ℝ} (ha : |a| < 1) {u z₁ z₂ : ℕ → Ω → ℝ} (h₁ : S.Solves a u z₁)
+    (h₂ : S.Solves a u z₂) (hm₁ : ∀ t, AEStronglyMeasurable (z₁ t) S.μ)
+    (hm₂ : ∀ t, AEStronglyMeasurable (z₂ t) S.μ) (hb₁ : S.BddProc z₁) (hb₂ : S.BddProc z₂) :
+    ∀ t, z₁ t =ᵐ[S.μ] z₂ t := by
+  obtain ⟨M₁, hM₁⟩ := hb₁
+  obtain ⟨M₂, hM₂⟩ := hb₂
+  have hi₁ : ∀ t, Integrable (z₁ t) S.μ := fun t => BddRV.integrable ⟨hm₁ t, M₁, hM₁ t⟩
+  have hi₂ : ∀ t, Integrable (z₂ t) S.μ := fun t => BddRV.integrable ⟨hm₂ t, M₂, hM₂ t⟩
+  set d : ℕ → Ω → ℝ := fun t => z₁ t - z₂ t with hd_def
+  have hd : ∀ t, d t =ᵐ[S.μ] a • S.E t (d (t + 1)) := by
+    intro t
+    filter_upwards [h₁ t, h₂ t, S.E_sub (hi₁ (t + 1)) (hi₂ (t + 1)) t] with ω e1 e2 e3
+    simp only [hd_def, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    rw [e1, e2, e3]
+    simp only [Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    ring
+  have hdb : ∀ s, ∀ᵐ ω ∂S.μ, |d s ω| ≤ M₁ + M₂ := fun s => by
+    filter_upwards [hM₁ s, hM₂ s] with ω e1 e2
+    exact (abs_sub _ _).trans (add_le_add e1 e2)
+  intro t
+  have hk : ∀ k : ℕ, ∀ᵐ ω ∂S.μ, |d t ω| ≤ |a| ^ (k + 1) * (M₁ + M₂) := by
+    intro k
+    filter_upwards [S.iterate_homog hd t k, S.abs_E_le (hdb (t + (k + 1))) t] with ω e1 e2
+    rw [e1, Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow]
+    exact mul_le_mul_of_nonneg_left e2 (pow_nonneg (abs_nonneg a) _)
+  filter_upwards [ae_all_iff.2 hk] with ω h
+  have hlim : Tendsto (fun k : ℕ => |a| ^ (k + 1) * (M₁ + M₂)) atTop (𝓝 0) := by
+    have := ((tendsto_pow_atTop_nhds_zero_of_lt_one (abs_nonneg a) ha).comp
+      (tendsto_add_atTop_nat 1)).mul_const (M₁ + M₂)
+    simpa using this
+  have h0 : d t ω = 0 := abs_nonpos_iff.mp (ge_of_tendsto' hlim h)
+  simpa [hd_def, sub_eq_zero] using h0
+
+/-- Cochrane (2023), Ch. 2, p. 29: **existence and uniqueness** of the bounded adapted solution
+of `z_t = a E_t z_{t+1} + u_t` for `|a| < 1` and bounded adapted `u`: it is the forward solution
+`∑ aᵏ E_t u_{t+k}` (`forwardSol_hasSum`), and every bounded a.e.-measurable solution equals it
+a.e. at every date. -/
+theorem existsUnique_forward {a : ℝ} (ha : |a| < 1) {u : ℕ → Ω → ℝ}
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u) :
+    (S.Solves a u (S.forwardSol a u) ∧ StronglyAdapted S.𝓕 (S.forwardSol a u) ∧
+      S.BddProc (S.forwardSol a u)) ∧
+    ∀ z, S.Solves a u z → (∀ t, AEStronglyMeasurable (z t) S.μ) → S.BddProc z →
+      ∀ t, z t =ᵐ[S.μ] S.forwardSol a u t := by
+  obtain ⟨M, hb⟩ := hub
+  refine ⟨⟨S.forwardSol_solves ha hua hb, S.forwardSol_adapted a u, S.forwardSol_bdd ha hb⟩,
+    fun z hz hzm hzb => S.forward_unique ha hz (S.forwardSol_solves ha hua hb) hzm
+      (fun t => ((S.forwardSol_adapted a u t).mono (S.𝓕.le t)).aestronglyMeasurable) hzb
+      (S.forwardSol_bdd ha hb)⟩
+
+/-! ### Nonuniqueness for `|a| ≥ 1`: genuinely random sunspots -/
+
+/-- Cochrane (2023), Ch. 2, p. 29 (multiple equilibria when the root is not stable): the sunspot
+started by a date-`s+1` shock `η`: `d_t = 0` for `t ≤ s` and `d_t = a^{-(t-s-1)} (η − E_s η)`
+for `t > s`. -/
+noncomputable def sunspot (a : ℝ) (s : ℕ) (η : Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  if t ≤ s then 0 else a⁻¹ ^ (t - (s + 1)) • (η - S.E s η)
+
+/-- Cochrane (2023), Ch. 2, p. 29: at date `s + 1` the sunspot is the news `η − E_s η`. -/
+theorem sunspot_succ (a : ℝ) (s : ℕ) (η : Ω → ℝ) : S.sunspot a s η (s + 1) = η - S.E s η := by
+  simp [sunspot]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the sunspot is adapted. -/
+theorem sunspot_adapted (a : ℝ) {s : ℕ} {η : Ω → ℝ} (hη : StronglyMeasurable[S.𝓕 (s + 1)] η) :
+    StronglyAdapted S.𝓕 (S.sunspot a s η) := by
+  intro t
+  unfold sunspot
+  by_cases h : t ≤ s
+  · simp only [h, ↓reduceIte]
+    exact stronglyMeasurable_zero
+  · simp only [h, ↓reduceIte]
+    have h1 : s + 1 ≤ t := by omega
+    exact ((hη.mono (S.𝓕.mono h1)).sub
+      ((S.stronglyMeasurable_E s η).mono (S.𝓕.mono (by omega)))).const_smul _
+
+/-- Cochrane (2023), Ch. 2, p. 29: for `|a| ≥ 1` the sunspot of a bounded shock is bounded. -/
+theorem sunspot_bdd {a B : ℝ} (ha : 1 ≤ |a|) {s : ℕ} {η : Ω → ℝ}
+    (hηb : ∀ᵐ ω ∂S.μ, |η ω| ≤ B) : S.BddProc (S.sunspot a s η) := by
+  obtain ⟨ω₀, hω₀⟩ := hηb.exists
+  have hB : 0 ≤ B := (abs_nonneg _).trans hω₀
+  refine ⟨B + B, fun t => ?_⟩
+  unfold sunspot
+  by_cases h : t ≤ s
+  · simp only [h, ↓reduceIte]
+    exact Eventually.of_forall fun ω => by simp; linarith
+  · simp only [h, ↓reduceIte]
+    filter_upwards [hηb, S.abs_E_le hηb s] with ω h1 h2
+    rw [Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow, Pi.sub_apply]
+    have hp : |a⁻¹| ^ (t - (s + 1)) ≤ 1 :=
+      pow_le_one₀ (abs_nonneg _) (by rw [abs_inv]; exact inv_le_one_of_one_le₀ ha)
+    have hs : |η ω - S.E s η ω| ≤ B + B := (abs_sub _ _).trans (add_le_add h1 h2)
+    calc |a⁻¹| ^ (t - (s + 1)) * |η ω - S.E s η ω| ≤ 1 * (B + B) :=
+          mul_le_mul hp hs (abs_nonneg _) zero_le_one
+      _ = B + B := one_mul _
+
+/-- Cochrane (2023), Ch. 2, p. 29: the sunspot solves the homogeneous equation
+`d_t = a E_t d_{t+1}` (a.e.) for every `a ≠ 0`. -/
+theorem sunspot_solves {a : ℝ} (ha : a ≠ 0) {s : ℕ} {η : Ω → ℝ}
+    (hη : StronglyMeasurable[S.𝓕 (s + 1)] η) (hηi : Integrable η S.μ) (t : ℕ) :
+    S.sunspot a s η t =ᵐ[S.μ] a • S.E t (S.sunspot a s η (t + 1)) := by
+  rcases lt_trichotomy t s with h | rfl | h
+  · have h1 : t ≤ s := h.le
+    have h2 : t + 1 ≤ s := h
+    unfold sunspot
+    simp only [h1, h2, ↓reduceIte, S.E_zero, smul_zero]
+    rfl
+  · rw [S.sunspot_succ]
+    unfold sunspot
+    simp only [le_refl, ↓reduceIte]
+    filter_upwards [S.E_sub hηi (S.integrable_E t η) t] with ω h1
+    rw [Pi.smul_apply, h1, Pi.sub_apply, S.E_E_self, sub_self, smul_zero, Pi.zero_apply]
+  · have h1 : ¬ t ≤ s := by omega
+    have h2 : ¬ t + 1 ≤ s := by omega
+    have hν : StronglyMeasurable[S.𝓕 t] (a⁻¹ ^ (t + 1 - (s + 1)) • (η - S.E s η)) :=
+      ((hη.mono (S.𝓕.mono h)).sub
+        ((S.stronglyMeasurable_E s η).mono (S.𝓕.mono h.le))).const_smul _
+    have hνi : Integrable (a⁻¹ ^ (t + 1 - (s + 1)) • (η - S.E s η)) S.μ :=
+      (hηi.sub (S.integrable_E s η)).smul _
+    unfold sunspot
+    simp only [h1, h2, ↓reduceIte]
+    rw [S.E_of_stronglyMeasurable hν hνi, smul_smul]
+    have e : t + 1 - (s + 1) = t - (s + 1) + 1 := by omega
+    rw [e, pow_succ, ← mul_assoc, mul_comm a, mul_assoc, mul_inv_cancel₀ ha, mul_one]
+
+/-- Cochrane (2023), Ch. 2, p. 29: adding a solution of the homogeneous equation to a solution
+gives a solution. -/
+theorem solves_add {a : ℝ} {u z d : ℕ → Ω → ℝ} (hz : S.Solves a u z)
+    (hd : ∀ t, d t =ᵐ[S.μ] a • S.E t (d (t + 1))) (hzi : ∀ t, Integrable (z t) S.μ)
+    (hdi : ∀ t, Integrable (d t) S.μ) : S.Solves a u (fun t => z t + d t) := by
+  intro t
+  filter_upwards [hz t, hd t, S.E_add (hzi (t + 1)) (hdi (t + 1)) t] with ω e1 e2 e3
+  simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e1 e2 e3 ⊢
+  rw [e1, e2, e3]
+  ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: the sunspot shock is genuinely random — `η − E_s η` is not
+a.e. equal to any variable known at date `s` — unless `η` is a.e. its own date-`s` forecast. -/
+theorem sunspot_not_predictable {s : ℕ} {η : Ω → ℝ} (hηi : Integrable η S.μ)
+    (hηr : ¬ η =ᵐ[S.μ] S.E s η) {g : Ω → ℝ} (hg : StronglyMeasurable[S.𝓕 s] g) :
+    ¬ (η - S.E s η) =ᵐ[S.μ] g := by
+  intro h
+  have hνi : Integrable (η - S.E s η) S.μ := hηi.sub (S.integrable_E s η)
+  have hgi : Integrable g S.μ := hνi.congr h
+  have h0 : S.E s (η - S.E s η) =ᵐ[S.μ] 0 := by
+    filter_upwards [S.E_sub hηi (S.integrable_E s η) s] with ω h1
+    rw [h1, Pi.sub_apply, S.E_E_self, sub_self, Pi.zero_apply]
+  have hg0 : g =ᵐ[S.μ] 0 := by
+    have := (S.E_congr h s).symm.trans h0
+    rwa [S.E_of_stronglyMeasurable hg hgi] at this
+  apply hηr
+  filter_upwards [h.trans hg0] with ω h1
+  rw [Pi.sub_apply, Pi.zero_apply, sub_eq_zero] at h1
+  exact h1
+
+/-- Cochrane (2023), Ch. 2, p. 29: **nonuniqueness for `|a| ≥ 1`** — next to every bounded
+adapted solution of `z_t = a E_t z_{t+1} + u_t` there is another one, `z + d` with the sunspot
+`d` driven by any bounded date-`s+1` shock `η` that is not a.e. its own date-`s` forecast; the
+two differ with positive probability at date `s + 1`. -/
+theorem not_unique_of_one_le {a B : ℝ} (ha : 1 ≤ |a|) {s : ℕ} {η : Ω → ℝ}
+    (hη : StronglyMeasurable[S.𝓕 (s + 1)] η) (hηb : ∀ᵐ ω ∂S.μ, |η ω| ≤ B)
+    (hηr : ¬ η =ᵐ[S.μ] S.E s η) {u z : ℕ → Ω → ℝ} (hz : S.Solves a u z)
+    (hza : StronglyAdapted S.𝓕 z) (hzb : S.BddProc z) :
+    ∃ z', S.Solves a u z' ∧ StronglyAdapted S.𝓕 z' ∧ S.BddProc z' ∧
+      ¬ z' (s + 1) =ᵐ[S.μ] z (s + 1) := by
+  have ha0 : a ≠ 0 := fun h => by rw [h, abs_zero] at ha; linarith
+  have hηi : Integrable η S.μ := BddRV.integrable (BddRV.of_stronglyMeasurable hη hηb)
+  obtain ⟨M, hM⟩ := hzb
+  obtain ⟨M', hM'⟩ := S.sunspot_bdd (s := s) ha hηb
+  have hzi : ∀ t, Integrable (z t) S.μ := fun t =>
+    BddRV.integrable (BddRV.of_stronglyMeasurable (hza t) (hM t))
+  have hdi : ∀ t, Integrable (S.sunspot a s η t) S.μ := fun t =>
+    BddRV.integrable (BddRV.of_stronglyMeasurable (S.sunspot_adapted a hη t) (hM' t))
+  refine ⟨fun t => z t + S.sunspot a s η t,
+    S.solves_add hz (S.sunspot_solves ha0 hη hηi) hzi hdi,
+    fun t => (hza t).add (S.sunspot_adapted a hη t), ⟨M + M', fun t => ?_⟩, ?_⟩
+  · filter_upwards [hM t, hM' t] with ω h1 h2
+    exact (abs_add_le _ _).trans (add_le_add h1 h2)
+  · intro h
+    apply hηr
+    filter_upwards [h] with ω h1
+    rw [S.sunspot_succ, Pi.add_apply, Pi.sub_apply, add_eq_left, sub_eq_zero] at h1
+    exact h1
+
+/-- Cochrane (2023), Ch. 2, p. 29: the zero process solves `z_t = a E_t z_{t+1}`. -/
+theorem solves_zero (a : ℝ) : S.Solves a 0 0 := fun t => by
+  rw [Pi.zero_apply, Pi.zero_apply, S.E_zero, smul_zero, add_zero]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **determinacy criterion** — on a filtration carrying some
+genuinely random bounded news (a bounded date-`s+1` variable that is not a.e. its own date-`s`
+forecast), bounded adapted solutions of `z_t = a E_t z_{t+1} + u_t` are unique (for every
+bounded adapted `u`) if and only if `|a| < 1`. -/
+theorem unique_iff (hnd : ∃ s η B, StronglyMeasurable[S.𝓕 (s + 1)] η ∧
+      (∀ᵐ ω ∂S.μ, |η ω| ≤ B) ∧ ¬ η =ᵐ[S.μ] S.E s η) (a : ℝ) :
+    (∀ u z₁ z₂ : ℕ → Ω → ℝ, S.Solves a u z₁ → S.Solves a u z₂ → StronglyAdapted S.𝓕 z₁ →
+      StronglyAdapted S.𝓕 z₂ → S.BddProc z₁ → S.BddProc z₂ → ∀ t, z₁ t =ᵐ[S.μ] z₂ t) ↔
+      |a| < 1 := by
+  constructor
+  · intro h
+    by_contra ha
+    push Not at ha
+    obtain ⟨s, η, B, hη, hηb, hηr⟩ := hnd
+    obtain ⟨z', hz', hza', hzb', hne⟩ := S.not_unique_of_one_le ha hη hηb hηr (S.solves_zero a)
+      (fun _ => stronglyMeasurable_zero) ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+    exact hne (h 0 z' 0 hz' (S.solves_zero a) hza' (fun _ => stronglyMeasurable_zero) hzb'
+      ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩ (s + 1))
+  · intro ha u z₁ z₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂
+    exact S.forward_unique ha h₁ h₂ (fun t => ((ha₁ t).mono (S.𝓕.le t)).aestronglyMeasurable)
+      (fun t => ((ha₂ t).mono (S.𝓕.le t)).aestronglyMeasurable) hb₁ hb₂
+
+/-- Cochrane (2023), Ch. 2, p. 29: **existence and uniqueness iff `|a| < 1`** — under genuinely
+random news, every bounded adapted `u` has a bounded adapted solution, unique up to a.e.
+equality, exactly when `|a| < 1`. -/
+theorem existsUnique_iff (hnd : ∃ s η B, StronglyMeasurable[S.𝓕 (s + 1)] η ∧
+      (∀ᵐ ω ∂S.μ, |η ω| ≤ B) ∧ ¬ η =ᵐ[S.μ] S.E s η) (a : ℝ) :
+    (∀ u : ℕ → Ω → ℝ, StronglyAdapted S.𝓕 u → S.BddProc u →
+      (∃ z, S.Solves a u z ∧ StronglyAdapted S.𝓕 z ∧ S.BddProc z) ∧
+      ∀ z₁ z₂ : ℕ → Ω → ℝ, S.Solves a u z₁ → S.Solves a u z₂ → StronglyAdapted S.𝓕 z₁ →
+        StronglyAdapted S.𝓕 z₂ → S.BddProc z₁ → S.BddProc z₂ → ∀ t, z₁ t =ᵐ[S.μ] z₂ t) ↔
+      |a| < 1 := by
+  constructor
+  · intro h
+    by_contra ha
+    push Not at ha
+    obtain ⟨s, η, B, hη, hηb, hηr⟩ := hnd
+    have h0 := (h 0 (fun _ => stronglyMeasurable_zero)
+      ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩).2
+    obtain ⟨z', hz', hza', hzb', hne⟩ := S.not_unique_of_one_le ha hη hηb hηr (S.solves_zero a)
+      (fun _ => stronglyMeasurable_zero) ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+    exact hne (h0 z' 0 hz' (S.solves_zero a) hza' (fun _ => stronglyMeasurable_zero) hzb'
+      ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩ (s + 1))
+  · intro ha u hua hub
+    obtain ⟨⟨h1, h2, h3⟩, -⟩ := S.existsUnique_forward ha hua hub
+    exact ⟨⟨_, h1, h2, h3⟩, fun z₁ z₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂ =>
+      (S.unique_iff hnd a).2 ha u z₁ z₂ h₁ h₂ ha₁ ha₂ hb₁ hb₂⟩
+
+/-! ### AR(1) processes driven by martingale-difference shocks -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the square of a bounded variable is bounded. -/
+theorem BddRV.sq {S : MeasExpectationSystem Ω} {x : Ω → ℝ} (hx : S.BddRV x) : S.BddRV (x ^ 2) := by
+  rw [pow_two]
+  exact hx.mul hx
+
+/-- Cochrane (2023), p. 42 (AR(1) surpluses `s_t = η s_{t−1} + ε_t`): for
+`u_{t+1} = ρ u_t + ε_{t+1}` with bounded adapted `u` and martingale-difference shocks
+(`E_t ε_{t+1} = 0`), `E_t u_{t+j} = ρʲ u_t` a.e. -/
+theorem ar1_E {ρ : ℝ} {u ε : ℕ → Ω → ℝ} (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0) (t j : ℕ) :
+    S.E t (u (t + j)) =ᵐ[S.μ] ρ ^ j • u t := by
+  obtain ⟨M, hM⟩ := hub
+  have hui : ∀ s, Integrable (u s) S.μ := fun s =>
+    BddRV.integrable (BddRV.of_stronglyMeasurable (hua s) (hM s))
+  have hεe : ∀ s, ε (s + 1) = u (s + 1) - ρ • u s := fun s => by
+    rw [hrec s, add_sub_cancel_left]
+  have hεi : ∀ s, Integrable (ε (s + 1)) S.μ := fun s => by
+    rw [hεe]
+    exact (hui _).sub ((hui s).smul ρ)
+  induction j with
+  | zero =>
+    rw [add_zero, pow_zero, one_smul, S.E_of_stronglyMeasurable (hua t) (hui t)]
+  | succ j ih =>
+    have e : u (t + (j + 1)) = ρ • u (t + j) + ε (t + j + 1) := hrec (t + j)
+    have hz : S.E t (ε (t + j + 1)) =ᵐ[S.μ] 0 := by
+      filter_upwards [(S.E_tower (Nat.le_add_right t j) (ε (t + j + 1))).symm,
+        S.E_congr (hmd (t + j)) t] with ω h1 h2
+      rw [h1, h2, S.E_zero]
+    rw [e]
+    filter_upwards [S.E_add ((hui _).smul ρ) (hεi (t + j)) t, S.E_smul ρ (u (t + j)) t, ih, hz]
+      with ω h1 h2 h3 h4
+    rw [h1, Pi.add_apply, h2, h4, Pi.smul_apply, h3, Pi.smul_apply, Pi.smul_apply, smul_eq_mul,
+      smul_eq_mul, smul_eq_mul, Pi.zero_apply, add_zero, pow_succ]
+    ring
+
+/-- Cochrane (2023), p. 42: with conditionally homoskedastic shocks (`E_t ε_{t+1}² = σ²`), the
+squared forecast error of an AR(1) has conditional mean `σ² ∑_{i<j} ρ^{2i}`. -/
+theorem ar1_E_sq_dev {ρ σ2 : ℝ} {u ε : ℕ → Ω → ℝ} (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) ^ 2) =ᵐ[S.μ] fun _ => σ2) (t j : ℕ) :
+    S.E t ((u (t + j) - ρ ^ j • u t) ^ 2) =ᵐ[S.μ]
+      fun _ => σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) := by
+  obtain ⟨M, hM⟩ := hub
+  have hB : ∀ s, S.BddRV (u s) := fun s => BddRV.of_stronglyMeasurable (hua s) (hM s)
+  have hεe : ∀ s, ε (s + 1) = u (s + 1) - ρ • u s := fun s => by
+    rw [hrec s, add_sub_cancel_left]
+  have hεB : ∀ s, S.BddRV (ε (s + 1)) := fun s => by
+    rw [hεe]
+    exact (hB _).sub ((hB s).smul ρ)
+  induction j with
+  | zero =>
+    have h0 : (u (t + 0) - ρ ^ 0 • u t) ^ 2 = 0 := by
+      funext ω
+      simp
+    rw [h0, S.E_zero]
+    exact Eventually.of_forall fun ω => by simp
+  | succ j ih =>
+    set w := u (t + j) - ρ ^ j • u t with hw
+    set e' := ε (t + j + 1) with he'
+    have hwB : S.BddRV w := (hB _).sub ((hB t).smul _)
+    have hwm : StronglyMeasurable[S.𝓕 (t + j)] w :=
+      (hua (t + j)).sub (((hua t).mono (S.𝓕.mono (Nat.le_add_right t j))).const_smul _)
+    have hsplit : (u (t + (j + 1)) - ρ ^ (j + 1) • u t) ^ 2 =
+        ρ ^ 2 • w ^ 2 + (2 * ρ) • (w * e') + e' ^ 2 := by
+      have e : u (t + (j + 1)) = ρ • u (t + j) + ε (t + j + 1) := hrec (t + j)
+      rw [e]
+      funext ω
+      simp only [hw, he', Pi.add_apply, Pi.smul_apply, Pi.pow_apply, Pi.sub_apply, Pi.mul_apply,
+        smul_eq_mul]
+      ring
+    have hcross : S.E t (w * e') =ᵐ[S.μ] 0 := by
+      obtain ⟨-, C, hC⟩ := hwB
+      have hz : w * S.E (t + j) e' =ᵐ[S.μ] 0 := by
+        filter_upwards [hmd (t + j)] with ω h
+        rw [Pi.mul_apply, he', h, Pi.zero_apply, mul_zero]
+      filter_upwards [(S.E_tower (Nat.le_add_right t j) (w * e')).symm,
+        S.E_congr (S.E_pullOut hwm hC (hεB (t + j)).integrable) t, S.E_congr hz t]
+        with ω h1 h2 h3
+      rw [h1, h2, h3, S.E_zero]
+    have hsq : S.E t (e' ^ 2) =ᵐ[S.μ] fun _ => σ2 := by
+      filter_upwards [(S.E_tower (Nat.le_add_right t j) (e' ^ 2)).symm,
+        S.E_congr (hvar (t + j)) t] with ω h1 h2
+      rw [h1, h2, S.E_const]
+    have I1 : Integrable (ρ ^ 2 • w ^ 2) S.μ := hwB.sq.integrable.smul _
+    have I2 : Integrable ((2 * ρ) • (w * e')) S.μ := (hwB.mul (hεB (t + j))).integrable.smul _
+    have I3 : Integrable (e' ^ 2) S.μ := (hεB (t + j)).sq.integrable
+    have hs : ∑ i ∈ Finset.range (j + 1), ρ ^ (2 * i) =
+        ρ ^ 2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) + 1 := by
+      rw [Finset.sum_range_succ', Finset.mul_sum]
+      congr 1
+      exact Finset.sum_congr rfl fun i _ => by ring
+    rw [hsplit]
+    filter_upwards [S.E_add (I1.add I2) I3 t, S.E_add I1 I2 t, S.E_smul (ρ ^ 2) (w ^ 2) t,
+      S.E_smul (2 * ρ) (w * e') t, ih, hcross, hsq] with ω h1 h2 h3 h4 h5 h6 h7
+    rw [h1, Pi.add_apply, h2, Pi.add_apply, h3, h4, Pi.smul_apply, Pi.smul_apply, h5, h6, h7, hs,
+      Pi.zero_apply, smul_eq_mul, smul_eq_mul]
+    ring
+
+/-- Cochrane (2023), p. 42: **conditional variance of an AR(1)** —
+`Var_t(u_{t+j}) = σ² ∑_{i<j} ρ^{2i}` a.e. (Mathlib's `condVar`). -/
+theorem ar1_condVar {ρ σ2 : ℝ} {u ε : ℕ → Ω → ℝ} (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) ^ 2) =ᵐ[S.μ] fun _ => σ2) (t j : ℕ) :
+    Var[u (t + j); S.μ | S.𝓕 t] =ᵐ[S.μ] fun _ => σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) := by
+  change S.E t ((u (t + j) - S.E t (u (t + j))) ^ 2) =ᵐ[S.μ] _
+  refine (S.E_congr ?_ t).trans (S.ar1_E_sq_dev hrec hua hub hmd hvar t j)
+  filter_upwards [S.ar1_E hrec hua hub hmd t j] with ω h
+  rw [Pi.pow_apply, Pi.pow_apply, Pi.sub_apply, Pi.sub_apply, h]
+
+/-- Cochrane (2023), p. 42: the closed form `Var_t(u_{t+j}) = σ² (1 − ρ^{2j}) / (1 − ρ²)` for
+`ρ² ≠ 1`. -/
+theorem ar1_condVar_closed {ρ σ2 : ℝ} (hρ : ρ ^ 2 ≠ 1) {u ε : ℕ → Ω → ℝ}
+    (hrec : ∀ t, u (t + 1) = ρ • u t + ε (t + 1))
+    (hua : StronglyAdapted S.𝓕 u) (hub : S.BddProc u)
+    (hmd : ∀ t, S.E t (ε (t + 1)) =ᵐ[S.μ] 0)
+    (hvar : ∀ t, S.E t (ε (t + 1) ^ 2) =ᵐ[S.μ] fun _ => σ2) (t j : ℕ) :
+    Var[u (t + j); S.μ | S.𝓕 t] =ᵐ[S.μ] fun _ => σ2 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2) := by
+  refine (S.ar1_condVar hrec hua hub hmd hvar t j).trans (Eventually.of_forall fun _ => ?_)
+  have h1 : 1 - ρ ^ 2 ≠ 0 := sub_ne_zero.mpr (Ne.symm hρ)
+  have hs : ∑ i ∈ Finset.range j, ρ ^ (2 * i) = (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2) := by
+    simp_rw [pow_mul]
+    rw [geom_sum_eq hρ, eq_div_iff h1, div_mul_eq_mul_div, div_eq_iff (sub_ne_zero.mpr hρ)]
+    ring
+  change σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) = σ2 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2)
+  rw [hs, mul_div_assoc]
+
+/-! ### Bridge to the core `ExpectationSystem` on a finite, fully supported state space -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: when every state has positive probability, a.e. equality is
+equality. -/
+theorem eq_of_ae_eq (hfull : ∀ ω, S.μ {ω} ≠ 0) {f g : Ω → ℝ} (h : f =ᵐ[S.μ] g) : f = g := by
+  funext ω
+  by_contra hne
+  have h0 : S.μ {ω' | f ω' ≠ g ω'} = 0 := ae_iff.mp h
+  refine hfull ω (measure_mono_null (fun ω' hω' => ?_) h0)
+  rw [Set.mem_singleton_iff.mp hω']
+  exact hne
+
+/-- Cochrane (2023), Ch. 2, p. 29: when every state has positive probability, a.e. inequality is
+inequality. -/
+theorem le_of_ae_le (hfull : ∀ ω, S.μ {ω} ≠ 0) {f g : Ω → ℝ} (h : f ≤ᵐ[S.μ] g) : f ≤ g := by
+  intro ω
+  by_contra hne
+  have h0 : S.μ {ω' | ¬ f ω' ≤ g ω'} = 0 := ae_iff.mp h
+  refine hfull ω (measure_mono_null (fun ω' hω' => ?_) h0)
+  rw [Set.mem_singleton_iff.mp hω']
+  exact hne
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t` as a linear map on all of `Ω → ℝ`, for a finite discrete
+state space with full support. -/
+noncomputable def ELin [Finite Ω] [DiscreteMeasurableSpace Ω] (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    (t : ℕ) : (Ω → ℝ) →ₗ[ℝ] (Ω → ℝ) where
+  toFun := S.E t
+  map_add' _ _ := S.eq_of_ae_eq hfull (S.E_add Integrable.of_finite Integrable.of_finite t)
+  map_smul' c x := S.eq_of_ae_eq hfull (S.E_smul c x t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: **bridge (b)** — on a finite discrete state space with full
+support, a measure-theoretic expectation system is a core `ExpectationSystem`, with the same
+`E_t` at every state, so every core theorem applies to it. -/
+noncomputable def toExpectationSystem [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) : ExpectationSystem Ω where
+  E := S.ELin hfull
+  const := S.E_const
+  mono t _ _ h := S.le_of_ae_le hfull
+    (S.E_mono Integrable.of_finite Integrable.of_finite (Eventually.of_forall h) t)
+  tower hst x := S.eq_of_ae_eq hfull (S.E_tower hst x)
+  known hst x := S.E_known hst x
+
+/-- Cochrane (2023), Ch. 2, p. 29: the core system's `E_t` is Mathlib's conditional
+expectation, exactly. -/
+theorem toExpectationSystem_E [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) (t : ℕ) (x : Ω → ℝ) :
+    (S.toExpectationSystem hfull).E t x = S.E t x := rfl
+
+/-- Cochrane (2023), Ch. 2, p. 29: the core system obtained from a measure-theoretic one has the
+pull-out property, so `PullOut`-hypothesis theorems of the core apply too. -/
+theorem toExpectationSystem_pullOut [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) : (S.toExpectationSystem hfull).PullOut := by
+  have := Fintype.ofFinite Ω
+  intro t a y ha
+  rw [toExpectationSystem_E] at ha ⊢
+  rw [toExpectationSystem_E]
+  have hm : StronglyMeasurable[S.𝓕 t] a := ha ▸ S.stronglyMeasurable_E t a
+  refine S.eq_of_ae_eq hfull (S.E_pullOut hm (C := ∑ ω, |a ω|)
+    (Eventually.of_forall fun ω => ?_) Integrable.of_finite)
+  exact Finset.single_le_sum (f := fun ω => |a ω|) (fun _ _ => abs_nonneg _)
+    (Finset.mem_univ ω)
+
+end MeasExpectationSystem
+
+/-! ### Bridge (a): every finite event tree is a measure-theoretic expectation system -/
+
+namespace TreeBridge
+
+open ExpectationsFiniteTree
+
+variable {Ω} [Fintype Ω] (T : FiniteTree Ω)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree with an uninformative date prepended (date `0`
+knows nothing, date `t + 1` knows what the original tree knows at `t`). -/
+def trivialFirst : FiniteTree Ω where
+  prob := T.prob
+  prob_pos := T.prob_pos
+  prob_sum := T.prob_sum
+  info n := match n with
+    | 0 => Setoid.ker (fun _ : Ω => ())
+    | n + 1 => T.info n
+  refines := by
+    intro s t hst a b h
+    cases s with
+    | zero => exact Setoid.ker_def.2 rfl
+    | succ s =>
+      cases t with
+      | zero => omega
+      | succ t => exact T.refines (by omega) a b h
+
+omit mΩ in
+/-- Cochrane (2023), Ch. 2, p. 29: **the law of total expectation on a finite tree**,
+`∑ p(ω) E_t x(ω) = ∑ p(ω) x(ω)`. -/
+theorem sum_prob_condE (t : ℕ) (x : Ω → ℝ) :
+    ∑ ω, T.prob ω * T.condE t x ω = ∑ ω, T.prob ω * x ω := by
+  obtain ⟨ω₀⟩ : Nonempty Ω := by
+    by_contra h
+    rw [not_nonempty_iff] at h
+    have := T.prob_sum
+    simp at this
+  have htriv : ∀ a b, (trivialFirst T).info 0 a b := fun _ _ => Setoid.ker_def.2 rfl
+  have h1 := (trivialFirst T).condE_of_trivial htriv ((trivialFirst T).condE (t + 1) x) ω₀
+  have h2 := (trivialFirst T).condE_of_trivial htriv x ω₀
+  rw [(trivialFirst T).condE_tower (Nat.zero_le (t + 1)) x] at h1
+  exact h1.symm.trans h2
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree's probabilities as a measure,
+`μ = ∑_ω p(ω) δ_ω`. -/
+noncomputable def treeMeasure : Measure Ω := ∑ ω, ENNReal.ofReal (T.prob ω) • Measure.dirac ω
+
+/-- Cochrane (2023), Ch. 2, p. 29: `μ{ω} = p(ω)`. -/
+theorem treeMeasure_singleton [DiscreteMeasurableSpace Ω] (ω : Ω) :
+    treeMeasure T {ω} = ENNReal.ofReal (T.prob ω) := by
+  classical
+  rw [treeMeasure, Measure.finsetSum_apply, Finset.sum_eq_single ω]
+  · rw [Measure.smul_apply, Measure.dirac_apply_of_mem (Set.mem_singleton ω), smul_eq_mul,
+      mul_one]
+  · intro b _ hb
+    rw [Measure.smul_apply, Measure.dirac_apply, Set.indicator_of_notMem (by simpa using hb),
+      smul_eq_mul, mul_zero]
+  · intro h
+    exact absurd (Finset.mem_univ ω) h
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree measure is a probability measure. -/
+theorem treeMeasure_univ : treeMeasure T Set.univ = 1 := by
+  rw [treeMeasure, Measure.finsetSum_apply]
+  simp only [Measure.smul_apply, measure_univ, smul_eq_mul, mul_one]
+  rw [← ENNReal.ofReal_sum_of_nonneg (fun ω _ => (T.prob_pos ω).le), T.prob_sum,
+    ENNReal.ofReal_one]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree's probability measure. -/
+noncomputable def treeProb : ProbabilityMeasure Ω := ⟨treeMeasure T, ⟨treeMeasure_univ T⟩⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: integrals against the tree measure are weighted sums. -/
+theorem integral_treeProb [DiscreteMeasurableSpace Ω] (f : Ω → ℝ) :
+    ∫ ω, f ω ∂(treeProb T : Measure Ω) = ∑ ω, T.prob ω * f ω := by
+  rw [integral_fintype Integrable.of_finite]
+  refine Finset.sum_congr rfl fun ω _ => ?_
+  have h : (treeProb T : Measure Ω) {ω} = ENNReal.ofReal (T.prob ω) := treeMeasure_singleton T ω
+  rw [measureReal_def, h, ENNReal.toReal_ofReal (T.prob_pos ω).le, smul_eq_mul]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the tree's information as a filtration, `𝓕_t = σ(cell_t)`. -/
+def treeFiltration [DiscreteMeasurableSpace Ω] : Filtration ℕ mΩ where
+  seq t := MeasurableSpace.comap (Quotient.mk (T.info t)) ⊤
+  mono' s t hst := by
+    intro A hA
+    obtain ⟨B, -, rfl⟩ := MeasurableSpace.measurableSet_comap.1 hA
+    exact MeasurableSpace.measurableSet_comap.2
+      ⟨Quotient.lift (Quotient.mk (T.info s)) (fun a b h => Quotient.sound (T.refines hst a b h))
+        ⁻¹' B, MeasurableSpace.measurableSet_top, rfl⟩
+  le' _ _ _ := MeasurableSet.of_discrete
+
+/-- Cochrane (2023), Ch. 2, p. 29: the cell average `E_t x` is `𝓕_t`-measurable. -/
+theorem stronglyMeasurable_condE [DiscreteMeasurableSpace Ω] (t : ℕ) (x : Ω → ℝ) :
+    StronglyMeasurable[treeFiltration T t] (T.condE t x) := by
+  have hm : Measurable[treeFiltration T t] (T.condE t x) := fun U _ =>
+    MeasurableSpace.measurableSet_comap.2
+      ⟨Quotient.lift (T.condE t x) (fun _ _ h => T.condE_congr x h) ⁻¹' U,
+        MeasurableSpace.measurableSet_top, rfl⟩
+  exact hm.stronglyMeasurable
+
+/-- Cochrane (2023), Ch. 2, p. 29: the finite tree as a measure-theoretic expectation system. -/
+noncomputable def treeSystem [DiscreteMeasurableSpace Ω] : MeasExpectationSystem Ω :=
+  ⟨treeProb T, treeFiltration T⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: every state of the tree has positive probability. -/
+theorem treeSystem_fullSupport [DiscreteMeasurableSpace Ω] (ω : Ω) :
+    (treeSystem T).μ {ω} ≠ 0 := by
+  change treeMeasure T {ω} ≠ 0
+  rw [treeMeasure_singleton, ne_eq, ENNReal.ofReal_eq_zero, not_le]
+  exact T.prob_pos ω
+
+/-- Cochrane (2023), Ch. 2, p. 29: **bridge (a)** — the tree's cell average is Mathlib's
+conditional expectation `μ[x | 𝓕_t]`, at every state and for every `x`. -/
+theorem treeSystem_E [DiscreteMeasurableSpace Ω] (t : ℕ) (x : Ω → ℝ) :
+    (treeSystem T).E t x = T.condE t x := by
+  classical
+  set S := treeSystem T
+  refine (S.eq_of_ae_eq (treeSystem_fullSupport T)
+    (ae_eq_condExp_of_forall_setIntegral_eq (S.𝓕.le t) Integrable.of_finite
+      (fun _ _ _ => Integrable.of_finite.integrableOn) (fun A hA _ => ?_)
+      (stronglyMeasurable_condE T t x).aestronglyMeasurable)).symm
+  obtain ⟨B, -, hB⟩ := MeasurableSpace.measurableSet_comap.1 hA
+  set a : Ω → ℝ := A.indicator fun _ => 1 with ha
+  have hcell : ∀ ω ω', T.info t ω' ω → (ω' ∈ A ↔ ω ∈ A) := fun ω ω' h => by
+    rw [← hB, Set.mem_preimage, Set.mem_preimage, Quotient.sound h]
+  have hacell : T.condE t a = a := by
+    funext ω
+    refine T.condE_of_const_on_cell fun ω' h => ?_
+    simp only [ha, Set.indicator, hcell ω ω' h]
+  have hind : ∀ y : Ω → ℝ, A.indicator y = a * y := fun y => by
+    funext ω
+    by_cases h : ω ∈ A <;> simp [ha, Set.indicator, h]
+  have hpo := finiteTree_pullOut T t a x hacell
+  rw [FiniteTree.toExpectationSystem_E, FiniteTree.toExpectationSystem_E] at hpo
+  rw [← integral_indicator MeasurableSet.of_discrete,
+    ← integral_indicator MeasurableSet.of_discrete]
+  change ∫ ω, A.indicator (T.condE t x) ω ∂(treeProb T : Measure Ω) =
+    ∫ ω, A.indicator x ω ∂(treeProb T : Measure Ω)
+  rw [integral_treeProb, integral_treeProb, hind, hind, ← hpo, sum_prob_condE]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the round trip — the core system obtained from the tree's
+measure-theoretic system (bridge (b)) is the tree's own core system. -/
+theorem treeSystem_toExpectationSystem_E [DiscreteMeasurableSpace Ω] (t : ℕ) (x : Ω → ℝ) :
+    ((treeSystem T).toExpectationSystem (treeSystem_fullSupport T)).E t x =
+      T.toExpectationSystem.E t x := by
+  rw [MeasExpectationSystem.toExpectationSystem_E, treeSystem_E,
+    FiniteTree.toExpectationSystem_E]
+
+end TreeBridge
+
+end Cochrane.DebtDeficitsInflation.ExpectationsMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# A genuine infinite-horizon expectation system: i.i.d. shocks
+
+Cochrane (2023), Ch. 2, §2.4, pp. 29–30 (unexpected inflation driven by news `ΔE_{t+1}`) and
+§2.7, p. 42 (AR(1) surpluses `s_t = η s_{t−1} + ε_t`). The state space is `Ω = ℕ → ℝ` with the
+infinite product `ν^ℕ` of a law `ν` on `ℝ` (Mathlib's `Measure.infinitePi`, built by
+Ionescu-Tulcea/Carathéodory), the shocks are the coordinates `ε_t(ω) = ω_t`, and the filtration is
+the natural one, `𝓕_t = σ(ε_0, …, ε_t)` (Mathlib's `Filtration.piLE`).
+
+## How to use (API)
+
+* `iidSystem ν : MeasExpectationSystem (ℕ → ℝ)` for any `ν : ProbabilityMeasure ℝ`; `shock t`.
+* Independence: `indep_future` (future shocks ⟂ `𝓕_t`), `E_future` (`E_t g = E g` for `g`
+  measurable w.r.t. the future), `E_shock_fun` (`E_t f(ε_{t+1}) = ∫ f dν`), `integral_shock_fun`.
+* Moments (mean `0`, variance `σ² > 0`): `E_shock_zero`, `E_shock_sq_eq`, `condVar_shock`
+  (`Var_t ε_{t+1} = σ²`).
+* Nondegeneracy, not finitely supported: `shock_not_ae_E`, `singleton_lt_one`, `iid_singleton`
+  (every history is null), `iid_countable_null`, `iid_not_finitely_supported`.
+* Determinacy: `iid_news`, `iid_existsUnique_iff`, `iid_sunspot`.
+* AR(1): `ar1`, `ar1_succ`, `ar1_adapted`, `ar1_bdd`, `iid_ar1_E`, `iid_ar1_condVar`,
+  `iid_ar1_condVar_closed`.
+* The fair `±1` coin: `coin`, `coin_mean`, `coin_var`, `coin_bdd`, `coin_economy`.
+-/
+
+namespace Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open ExpectationsMeasure
+
+variable (ν : ProbabilityMeasure ℝ)
+
+/-- Cochrane (2023), Ch. 2, p. 29: the law of the i.i.d. shock sequence, the infinite product
+`ν^ℕ` on `Ω = ℕ → ℝ`. -/
+noncomputable def iidProb : ProbabilityMeasure (ℕ → ℝ) :=
+  ⟨Measure.infinitePi (fun _ => (ν : Measure ℝ)), inferInstance⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: the i.i.d. expectation system — `Ω = ℕ → ℝ`, `μ = ν^ℕ`, and the
+natural filtration `𝓕_t = σ(ε_0, …, ε_t)`. -/
+noncomputable def iidSystem : MeasExpectationSystem (ℕ → ℝ) := ⟨iidProb ν, Filtration.piLE⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: the shock `ε_t(ω) = ω_t`. -/
+def shock (t : ℕ) (ω : ℕ → ℝ) : ℝ := ω t
+
+/-- Cochrane (2023), Ch. 2, p. 29: the shock of date `s ≤ t` is known at `t`. -/
+theorem measurable_shock {s t : ℕ} (hst : s ≤ t) : Measurable[(iidSystem ν).𝓕 t] (shock s) := by
+  change Measurable[MeasurableSpace.comap (Preorder.restrictLe (π := fun _ : ℕ => ℝ) t)
+    MeasurableSpace.pi] (fun ω => Preorder.restrictLe (π := fun _ : ℕ => ℝ) t ω ⟨s, hst⟩)
+  exact (measurable_pi_apply (⟨s, hst⟩ : Set.Iic t)).comp (comap_measurable _)
+
+/-! ### Independence: the future is independent of the present information -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the σ-algebra generated by the date-`j` shock. -/
+abbrev coordSigma (j : ℕ) : MeasurableSpace (ℕ → ℝ) :=
+  MeasurableSpace.comap (fun ω : ℕ → ℝ => ω j) inferInstance
+
+/-- Cochrane (2023), Ch. 2, p. 29: the σ-algebra of the future shocks `ε_{t+1}, ε_{t+2}, …`. -/
+abbrev futureSigma (t : ℕ) : MeasurableSpace (ℕ → ℝ) := ⨆ j ∈ Set.Ioi t, coordSigma j
+
+/-- Cochrane (2023), Ch. 2, p. 29: each shock σ-algebra is a sub-σ-algebra. -/
+theorem coordSigma_le (j : ℕ) : coordSigma j ≤ MeasurableSpace.pi :=
+  (measurable_pi_apply j).comap_le
+
+/-- Cochrane (2023), Ch. 2, p. 29: the future σ-algebra is a sub-σ-algebra. -/
+theorem futureSigma_le (t : ℕ) : futureSigma t ≤ MeasurableSpace.pi :=
+  iSup₂_le fun j _ => coordSigma_le j
+
+/-- Cochrane (2023), Ch. 2, p. 29: the shocks are mutually independent under `ν^ℕ`. -/
+theorem iIndep_coord : iIndep coordSigma (iidSystem ν).μ :=
+  (iIndepFun_infinitePi (P := fun _ => (ν : Measure ℝ)) (X := fun _ => id)
+    (fun _ => measurable_id)).iIndep
+
+/-- Cochrane (2023), Ch. 2, p. 29: date-`t` information is generated by `ε_0, …, ε_t`. -/
+theorem filtration_le_past (t : ℕ) :
+    (iidSystem ν).𝓕 t ≤ ⨆ j ∈ Set.Iic t, coordSigma j := by
+  change MeasurableSpace.comap (Preorder.restrictLe (π := fun _ : ℕ => ℝ) t)
+    MeasurableSpace.pi ≤ _
+  simp only [MeasurableSpace.pi, MeasurableSpace.comap_iSup, MeasurableSpace.comap_comp]
+  refine iSup_le fun j => ?_
+  exact le_iSup₂ (f := fun i (_ : i ∈ Set.Iic t) => coordSigma i) j.1 j.2
+
+/-- Cochrane (2023), Ch. 2, p. 29: **the future shocks are independent of date-`t` information**.
+-/
+theorem indep_future (t : ℕ) : Indep (futureSigma t) ((iidSystem ν).𝓕 t) (iidSystem ν).μ :=
+  indep_of_indep_of_le_right (indep_iSup_of_disjoint coordSigma_le (iIndep_coord ν)
+    (Set.disjoint_left.2 fun _ h1 h2 => absurd (Set.mem_Ioi.1 h1) (not_lt.2 (Set.mem_Iic.1 h2))))
+    (filtration_le_past ν t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: **independence ⇒ the forecast of a function of the future is its
+unconditional mean**, `E_t g = E g` a.e. -/
+theorem E_future (t : ℕ) {g : (ℕ → ℝ) → ℝ} (hg : StronglyMeasurable[futureSigma t] g) :
+    (iidSystem ν).E t g =ᵐ[(iidSystem ν).μ] fun _ => ∫ ω, g ω ∂(iidSystem ν).μ :=
+  condExp_indep_eq (futureSigma_le t) ((iidSystem ν).𝓕.le t) hg (indep_future ν t)
+
+/-- Cochrane (2023), Ch. 2, p. 29: a function of the next shock is measurable for the future. -/
+theorem measurable_future_fun (t : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    Measurable[futureSigma t] (fun ω : ℕ → ℝ => f (ω (t + 1))) :=
+  hf.comp (Measurable.of_comap_le
+    (le_iSup₂ (f := fun i (_ : i ∈ Set.Ioi t) => coordSigma i) (t + 1) (Nat.lt_succ_self t)))
+
+/-- Cochrane (2023), Ch. 2, p. 29: each shock has law `ν`, so `E f(ε_i) = ∫ f dν`. -/
+theorem integral_shock_fun (i : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    ∫ ω, f (ω i) ∂(iidSystem ν).μ = ∫ x, f x ∂(ν : Measure ℝ) := by
+  have h := integral_map (μ := Measure.infinitePi (fun _ => (ν : Measure ℝ)))
+    (φ := fun ω : ℕ → ℝ => ω i) (measurable_pi_apply i).aemeasurable
+    (f := f) hf.aestronglyMeasurable
+  rw [Measure.infinitePi_map_eval] at h
+  exact h.symm
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t f(ε_{t+1}) = ∫ f dν` a.e. -/
+theorem E_shock_fun (t : ℕ) {f : ℝ → ℝ} (hf : Measurable f) :
+    (iidSystem ν).E t (fun ω => f (ω (t + 1))) =ᵐ[(iidSystem ν).μ]
+      fun _ => ∫ x, f x ∂(ν : Measure ℝ) := by
+  rw [← integral_shock_fun ν (t + 1) hf]
+  exact E_future ν t (measurable_future_fun t hf).stronglyMeasurable
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t ε_{t+1} = E ε` a.e. -/
+theorem E_shock (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1)) =ᵐ[(iidSystem ν).μ] fun _ => ∫ x, x ∂(ν : Measure ℝ) :=
+  E_shock_fun ν t measurable_id
+
+/-- Cochrane (2023), Ch. 2, p. 29: `E_t ε_{t+1}² = E ε²` a.e. -/
+theorem E_shock_sq (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1) ^ 2) =ᵐ[(iidSystem ν).μ]
+      fun _ => ∫ x, x ^ 2 ∂(ν : Measure ℝ) :=
+  E_shock_fun ν t (measurable_id.pow_const 2)
+
+/-- Cochrane (2023), Ch. 2, p. 29: each shock is bounded when `ν` has bounded support. -/
+theorem shock_ae_bdd {B : ℝ} (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t : ℕ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, |shock t ω| ≤ B :=
+  (measurePreserving_eval_infinitePi (fun _ => (ν : Measure ℝ)) t).quasiMeasurePreserving.ae hbdd
+
+/-! ### Mean-zero, nondegenerate shocks -/
+
+variable {ν}
+
+/-- Cochrane (2023), Ch. 2, p. 29: with mean-zero shocks, `E_t ε_{t+1} = 0` a.e. -/
+theorem E_shock_zero (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1)) =ᵐ[(iidSystem ν).μ] 0 := by
+  filter_upwards [E_shock ν t] with ω h
+  rw [h, hmean, Pi.zero_apply]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **constant conditional variance**, `E_t ε_{t+1}² = σ²` a.e. -/
+theorem E_shock_sq_eq {σ2 : ℝ} (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (t : ℕ) :
+    (iidSystem ν).E t (shock (t + 1) ^ 2) =ᵐ[(iidSystem ν).μ] fun _ => σ2 := by
+  filter_upwards [E_shock_sq ν t] with ω h
+  rw [h, hvar]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the conditional variance of the next shock is `σ²`. -/
+theorem condVar_shock {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (t : ℕ) :
+    Var[shock (t + 1); (iidSystem ν).μ | (iidSystem ν).𝓕 t] =ᵐ[(iidSystem ν).μ] fun _ => σ2 := by
+  change (iidSystem ν).E t ((shock (t + 1) - (iidSystem ν).E t (shock (t + 1))) ^ 2) =ᵐ[_] _
+  refine ((iidSystem ν).E_congr ?_ t).trans (E_shock_sq_eq hvar t)
+  filter_upwards [E_shock_zero hmean t] with ω h
+  rw [Pi.pow_apply, Pi.pow_apply, Pi.sub_apply, h, Pi.zero_apply, sub_zero]
+
+/-- Cochrane (2023), Ch. 2, p. 29: **the shocks are nondegenerate at every date** — `ε_{t+1}` is
+not a.e. equal to its date-`t` forecast (a fortiori not known at `t`). -/
+theorem shock_not_ae_E {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (t : ℕ) :
+    ¬ shock (t + 1) =ᵐ[(iidSystem ν).μ] (iidSystem ν).E t (shock (t + 1)) := by
+  intro h
+  have h0 := h.trans (E_shock_zero hmean t)
+  have hi : ∫ ω, (ω (t + 1)) ^ 2 ∂(iidSystem ν).μ = 0 := by
+    refine integral_eq_zero_of_ae ?_
+    filter_upwards [h0] with ω h1
+    simp only [shock, Pi.zero_apply] at h1
+    simp [h1]
+  rw [integral_shock_fun ν (t + 1) (f := fun x => x ^ 2) (measurable_id.pow_const 2), hvar] at hi
+  linarith
+
+/-- Cochrane (2023), Ch. 2, p. 29: a nondegenerate mean-zero law has no atom of mass one. -/
+theorem singleton_lt_one {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (x : ℝ) :
+    (ν : Measure ℝ) {x} < 1 := by
+  refine lt_of_le_of_ne prob_le_one fun h1 => ?_
+  have hae : ∀ᵐ y ∂(ν : Measure ℝ), y = x := by
+    rw [ae_iff]
+    have hs : {y : ℝ | ¬ y = x} = {x}ᶜ := by
+      ext y
+      simp
+    rw [hs, prob_compl_eq_zero_iff (measurableSet_singleton x)]
+    exact h1
+  have hm : ∫ y, y ∂(ν : Measure ℝ) = x := by
+    rw [integral_congr_ae (f := fun y => y) (g := fun _ => x) hae]
+    simp
+  have hv : ∫ y, y ^ 2 ∂(ν : Measure ℝ) = x ^ 2 := by
+    rw [integral_congr_ae (f := fun y => y ^ 2) (g := fun _ => x ^ 2)
+      (hae.mono fun y h => by rw [h])]
+    simp
+  rw [hmean] at hm
+  rw [hvar, ← hm] at hv
+  linarith
+
+/-- Cochrane (2023), Ch. 2, p. 29: the atoms of a nondegenerate mean-zero law are uniformly below
+one: `ν{x} ≤ q < 1` for all `x`. -/
+theorem exists_singleton_le {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) :
+    ∃ q < 1, ∀ x, (ν : Measure ℝ) {x} ≤ q := by
+  by_cases h : ∃ x₀, 2⁻¹ < (ν : Measure ℝ) {x₀}
+  · obtain ⟨x₀, hx₀⟩ := h
+    refine ⟨max 2⁻¹ ((ν : Measure ℝ) {x₀}),
+      max_lt (ENNReal.inv_lt_one.2 ENNReal.one_lt_two) (singleton_lt_one hmean hvar hσ x₀),
+      fun x => ?_⟩
+    by_cases hx : x = x₀
+    · rw [hx]
+      exact le_max_right _ _
+    · by_contra hlt
+      push Not at hlt
+      have h1 : (ν : Measure ℝ) {x} + (ν : Measure ℝ) {x₀} ≤ 1 := by
+        rw [← measure_union (Set.disjoint_singleton.2 hx) (measurableSet_singleton _)]
+        exact prob_le_one
+      have h2 : 1 < (ν : Measure ℝ) {x} + (ν : Measure ℝ) {x₀} := by
+        calc (1 : ENNReal) = 2⁻¹ + 2⁻¹ := ENNReal.inv_two_add_inv_two.symm
+          _ < (ν : Measure ℝ) {x} + (ν : Measure ℝ) {x₀} :=
+            ENNReal.add_lt_add (lt_of_le_of_lt (le_max_left _ _) hlt) hx₀
+      exact absurd h1 (not_le.2 h2)
+  · push Not at h
+    exact ⟨2⁻¹, ENNReal.inv_lt_one.2 ENNReal.one_lt_two, h⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: **every single history has probability zero** under `ν^ℕ`. -/
+theorem iid_singleton {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (ω : ℕ → ℝ) :
+    (iidSystem ν).μ {ω} = 0 := by
+  obtain ⟨q, hq, hle⟩ := exists_singleton_le hmean hvar hσ
+  have hb : ∀ n, (iidSystem ν).μ {ω} ≤ q ^ n := by
+    intro n
+    calc (iidSystem ν).μ {ω}
+        ≤ Measure.infinitePi (fun _ => (ν : Measure ℝ))
+            (Set.pi ↑(Finset.range n) fun i => {ω i}) :=
+          measure_mono fun ω' h i _ => by rw [Set.mem_singleton_iff.mp h]; rfl
+      _ = ∏ i ∈ Finset.range n, (ν : Measure ℝ) {ω i} :=
+          Measure.infinitePi_pi (fun _ => (ν : Measure ℝ)) fun i _ => measurableSet_singleton _
+      _ ≤ q ^ n := by
+          simpa using Finset.prod_le_pow_card (Finset.range n) _ q fun i _ => hle (ω i)
+  exact le_antisymm (ge_of_tendsto' (ENNReal.tendsto_pow_atTop_nhds_zero_of_lt_one hq) hb)
+    bot_le
+
+/-- Cochrane (2023), Ch. 2, p. 29: **not finitely (or countably) supported** — every countable set
+of histories is null, in contrast with a finite event tree. -/
+theorem iid_countable_null {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) {F : Set (ℕ → ℝ)}
+    (hF : F.Countable) : (iidSystem ν).μ F = 0 := by
+  have : NullSingletonClass (iidSystem ν).μ := ⟨iid_singleton hmean hvar hσ⟩
+  exact hF.measure_zero _
+
+/-- Cochrane (2023), Ch. 2, p. 29: no finite set of histories carries the probability. -/
+theorem iid_not_finitely_supported {σ2 : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2) (F : Finset (ℕ → ℝ)) :
+    (iidSystem ν).μ ↑F ≠ 1 := by
+  rw [iid_countable_null hmean hvar hσ F.countable_toSet]
+  exact zero_ne_one
+
+/-! ### Determinacy with i.i.d. news -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the i.i.d. filtration carries genuinely random bounded news. -/
+theorem iid_news {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) :
+    ∃ s η B, StronglyMeasurable[(iidSystem ν).𝓕 (s + 1)] η ∧
+      (∀ᵐ ω ∂(iidSystem ν).μ, |η ω| ≤ B) ∧ ¬ η =ᵐ[(iidSystem ν).μ] (iidSystem ν).E s η :=
+  ⟨0, shock 1, B, (measurable_shock ν le_rfl).stronglyMeasurable, shock_ae_bdd ν hbdd 1,
+    shock_not_ae_E hmean hvar hσ 0⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: **determinacy in the i.i.d. economy** — bounded adapted
+solutions of `z_t = a E_t z_{t+1} + u_t` exist and are unique for every bounded adapted `u` iff
+`|a| < 1`. -/
+theorem iid_existsUnique_iff {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (a : ℝ) :
+    (∀ u : ℕ → (ℕ → ℝ) → ℝ, StronglyAdapted (iidSystem ν).𝓕 u → (iidSystem ν).BddProc u →
+      (∃ z, (iidSystem ν).Solves a u z ∧ StronglyAdapted (iidSystem ν).𝓕 z ∧
+        (iidSystem ν).BddProc z) ∧
+      ∀ z₁ z₂, (iidSystem ν).Solves a u z₁ → (iidSystem ν).Solves a u z₂ →
+        StronglyAdapted (iidSystem ν).𝓕 z₁ → StronglyAdapted (iidSystem ν).𝓕 z₂ →
+        (iidSystem ν).BddProc z₁ → (iidSystem ν).BddProc z₂ →
+        ∀ t, z₁ t =ᵐ[(iidSystem ν).μ] z₂ t) ↔ |a| < 1 :=
+  (iidSystem ν).existsUnique_iff (iid_news hmean hvar hσ hbdd) a
+
+/-- Cochrane (2023), Ch. 2, p. 29: for `|a| ≥ 1` the i.i.d. economy has a bounded, genuinely random
+sunspot solution of `z_t = a E_t z_{t+1}` next to `z = 0`, driven by the date-1 shock. -/
+theorem iid_sunspot {σ2 B a : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (ha : 1 ≤ |a|) :
+    ∃ z, (iidSystem ν).Solves a 0 z ∧ StronglyAdapted (iidSystem ν).𝓕 z ∧
+      (iidSystem ν).BddProc z ∧ ¬ z 1 =ᵐ[(iidSystem ν).μ] 0 :=
+  (iidSystem ν).not_unique_of_one_le ha (measurable_shock ν le_rfl).stronglyMeasurable
+    (shock_ae_bdd ν hbdd 1) (shock_not_ae_E hmean hvar hσ 0) ((iidSystem ν).solves_zero a)
+    (fun _ => stronglyMeasurable_zero) ⟨0, fun _ => Eventually.of_forall fun _ => by simp⟩
+
+/-! ### AR(1) with i.i.d. innovations -/
+
+/-- Cochrane (2023), p. 42: the AR(1) `u_0 = ε_0`, `u_{t+1} = ρ u_t + ε_{t+1}`. -/
+def ar1 (ρ : ℝ) : ℕ → (ℕ → ℝ) → ℝ
+  | 0 => shock 0
+  | t + 1 => fun ω => ρ * ar1 ρ t ω + shock (t + 1) ω
+
+/-- Cochrane (2023), p. 42: the AR(1) law of motion. -/
+theorem ar1_succ (ρ : ℝ) (t : ℕ) : ar1 ρ (t + 1) = ρ • ar1 ρ t + shock (t + 1) := rfl
+
+variable (ν) in
+/-- Cochrane (2023), p. 42: the AR(1) is adapted. -/
+theorem ar1_adapted (ρ : ℝ) : StronglyAdapted (iidSystem ν).𝓕 (ar1 ρ) := by
+  intro t
+  induction t with
+  | zero => exact (measurable_shock ν le_rfl).stronglyMeasurable
+  | succ t ih =>
+    rw [ar1_succ]
+    exact ((ih.mono ((iidSystem ν).𝓕.mono (Nat.le_succ t))).const_smul ρ).add
+      (measurable_shock ν le_rfl).stronglyMeasurable
+
+/-- Cochrane (2023), p. 42: for `|ρ| < 1` and shocks bounded by `B`, `|u_t| ≤ B / (1 − |ρ|)`. -/
+theorem ar1_bdd {ρ B : ℝ} (hρ : |ρ| < 1) (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t : ℕ) :
+    ∀ᵐ ω ∂(iidSystem ν).μ, |ar1 ρ t ω| ≤ B / (1 - |ρ|) := by
+  obtain ⟨x₀, hx₀⟩ := hbdd.exists
+  have hB : 0 ≤ B := (abs_nonneg _).trans hx₀
+  have h1 : 0 < 1 - |ρ| := by linarith
+  filter_upwards [ae_all_iff.2 (shock_ae_bdd ν hbdd)] with ω h
+  induction t with
+  | zero =>
+    refine (h 0).trans ?_
+    rw [le_div_iff₀ h1]
+    nlinarith [abs_nonneg ρ]
+  | succ t ih =>
+    change |ρ * ar1 ρ t ω + shock (t + 1) ω| ≤ _
+    have key : |ρ| * (B / (1 - |ρ|)) + B = B / (1 - |ρ|) := by
+      field_simp
+      ring
+    calc |ρ * ar1 ρ t ω + shock (t + 1) ω| ≤ |ρ| * |ar1 ρ t ω| + |shock (t + 1) ω| := by
+          rw [← abs_mul]
+          exact abs_add_le _ _
+      _ ≤ |ρ| * (B / (1 - |ρ|)) + B :=
+          add_le_add (mul_le_mul_of_nonneg_left ih (abs_nonneg ρ)) (h (t + 1))
+      _ = B / (1 - |ρ|) := key
+
+/-- Cochrane (2023), p. 42: **AR(1) forecasts**, `E_t u_{t+j} = ρʲ u_t` a.e. -/
+theorem iid_ar1_E {ρ B : ℝ} (hρ : |ρ| < 1) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t j : ℕ) :
+    (iidSystem ν).E t (ar1 ρ (t + j)) =ᵐ[(iidSystem ν).μ] ρ ^ j • ar1 ρ t :=
+  (iidSystem ν).ar1_E (ar1_succ ρ) (ar1_adapted ν ρ) ⟨_, ar1_bdd hρ hbdd⟩
+    (E_shock_zero hmean) t j
+
+/-- Cochrane (2023), p. 42: **AR(1) conditional variance**,
+`Var_t(u_{t+j}) = σ² ∑_{i<j} ρ^{2i}` a.e. -/
+theorem iid_ar1_condVar {ρ B σ2 : ℝ} (hρ : |ρ| < 1) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B)
+    (t j : ℕ) :
+    Var[ar1 ρ (t + j); (iidSystem ν).μ | (iidSystem ν).𝓕 t] =ᵐ[(iidSystem ν).μ]
+      fun _ => σ2 * ∑ i ∈ Finset.range j, ρ ^ (2 * i) :=
+  (iidSystem ν).ar1_condVar (ar1_succ ρ) (ar1_adapted ν ρ) ⟨_, ar1_bdd hρ hbdd⟩
+    (E_shock_zero hmean) (E_shock_sq_eq hvar) t j
+
+/-- Cochrane (2023), p. 42: closed form `Var_t(u_{t+j}) = σ² (1 − ρ^{2j}) / (1 − ρ²)`. -/
+theorem iid_ar1_condVar_closed {ρ B σ2 : ℝ} (hρ : |ρ| < 1)
+    (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t j : ℕ) :
+    Var[ar1 ρ (t + j); (iidSystem ν).μ | (iidSystem ν).𝓕 t] =ᵐ[(iidSystem ν).μ]
+      fun _ => σ2 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2) := by
+  have hρ2 : ρ ^ 2 ≠ 1 := by
+    intro h
+    have : |ρ| ^ 2 = 1 := by rw [sq_abs]; exact h
+    nlinarith [abs_nonneg ρ]
+  exact (iidSystem ν).ar1_condVar_closed hρ2 (ar1_succ ρ) (ar1_adapted ν ρ)
+    ⟨_, ar1_bdd hρ hbdd⟩ (E_shock_zero hmean) (E_shock_sq_eq hvar) t j
+
+/-! ### A concrete law: the fair `±1` coin -/
+
+/-- Cochrane (2023), Ch. 2, p. 29: the fair coin `ν = ½ δ₁ + ½ δ₋₁` as a measure. -/
+noncomputable def coinMeasure : Measure ℝ :=
+  (2⁻¹ : ENNReal) • (Measure.dirac 1 + Measure.dirac (-1))
+
+/-- Cochrane (2023), Ch. 2, p. 29: the fair coin has total mass one. -/
+theorem coinMeasure_univ : coinMeasure Set.univ = 1 := by
+  simp only [coinMeasure, Measure.smul_apply, Measure.add_apply, measure_univ, smul_eq_mul]
+  rw [one_add_one_eq_two, ENNReal.inv_mul_cancel two_ne_zero ENNReal.ofNat_ne_top]
+
+/-- Cochrane (2023), Ch. 2, p. 29: the fair coin as a probability measure. -/
+noncomputable def coin : ProbabilityMeasure ℝ := ⟨coinMeasure, ⟨coinMeasure_univ⟩⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29: integrals against the coin, `∫ f dν = (f 1 + f (−1)) / 2`. -/
+theorem integral_coin (f : ℝ → ℝ) :
+    ∫ x, f x ∂(coin : Measure ℝ) = (f 1 + f (-1)) / 2 := by
+  change ∫ x, f x ∂coinMeasure = _
+  rw [coinMeasure, integral_smul_measure, integral_add_measure (integrable_dirac enorm_lt_top)
+    (integrable_dirac enorm_lt_top), integral_dirac, integral_dirac, ENNReal.toReal_inv,
+    ENNReal.toReal_ofNat, smul_eq_mul]
+  ring
+
+/-- Cochrane (2023), Ch. 2, p. 29: the coin has mean zero. -/
+theorem coin_mean : ∫ x, x ∂(coin : Measure ℝ) = 0 := by
+  rw [integral_coin]
+  norm_num
+
+/-- Cochrane (2023), Ch. 2, p. 29: the coin has variance one. -/
+theorem coin_var : ∫ x, x ^ 2 ∂(coin : Measure ℝ) = 1 := by
+  rw [integral_coin]
+  norm_num
+
+/-- Cochrane (2023), Ch. 2, p. 29: the coin is bounded by one. -/
+theorem coin_bdd : ∀ᵐ x ∂(coin : Measure ℝ), |x| ≤ 1 := by
+  change ∀ᵐ x ∂coinMeasure, |x| ≤ 1
+  rw [ae_iff]
+  have hs : MeasurableSet {x : ℝ | ¬ |x| ≤ 1} :=
+    (measurableSet_le continuous_abs.measurable measurable_const).compl
+  simp only [coinMeasure, Measure.smul_apply, Measure.add_apply, Measure.dirac_apply' _ hs,
+    Set.indicator, Set.mem_ofPred_eq]
+  norm_num
+
+/-- Cochrane (2023), Ch. 2, p. 29 and p. 42: **the coin economy** — `ε_t = ±1` i.i.d. fair coins —
+satisfies everything: `E_t ε_{t+1} = 0`, `Var_t ε_{t+1} = 1`, every history is null, the shock is
+never predictable, determinacy holds iff `|a| < 1`, and the AR(1) has
+`Var_t(u_{t+j}) = (1 − ρ^{2j}) / (1 − ρ²)`. -/
+theorem coin_economy (ρ a : ℝ) (hρ : |ρ| < 1) :
+    (∀ t, (iidSystem coin).E t (shock (t + 1)) =ᵐ[(iidSystem coin).μ] 0) ∧
+    (∀ t, Var[shock (t + 1); (iidSystem coin).μ | (iidSystem coin).𝓕 t]
+      =ᵐ[(iidSystem coin).μ] fun _ => 1) ∧
+    (∀ ω, (iidSystem coin).μ {ω} = 0) ∧
+    (∀ t, ¬ shock (t + 1) =ᵐ[(iidSystem coin).μ] (iidSystem coin).E t (shock (t + 1))) ∧
+    ((∀ u : ℕ → (ℕ → ℝ) → ℝ, StronglyAdapted (iidSystem coin).𝓕 u →
+      (iidSystem coin).BddProc u →
+      (∃ z, (iidSystem coin).Solves a u z ∧ StronglyAdapted (iidSystem coin).𝓕 z ∧
+        (iidSystem coin).BddProc z) ∧
+      ∀ z₁ z₂, (iidSystem coin).Solves a u z₁ → (iidSystem coin).Solves a u z₂ →
+        StronglyAdapted (iidSystem coin).𝓕 z₁ → StronglyAdapted (iidSystem coin).𝓕 z₂ →
+        (iidSystem coin).BddProc z₁ → (iidSystem coin).BddProc z₂ →
+        ∀ t, z₁ t =ᵐ[(iidSystem coin).μ] z₂ t) ↔ |a| < 1) ∧
+    (∀ t j, (iidSystem coin).E t (ar1 ρ (t + j)) =ᵐ[(iidSystem coin).μ] ρ ^ j • ar1 ρ t) ∧
+    (∀ t j, Var[ar1 ρ (t + j); (iidSystem coin).μ | (iidSystem coin).𝓕 t]
+      =ᵐ[(iidSystem coin).μ] fun _ => 1 * (1 - ρ ^ (2 * j)) / (1 - ρ ^ 2)) :=
+  ⟨E_shock_zero coin_mean, condVar_shock coin_mean coin_var,
+    iid_singleton coin_mean coin_var one_pos, shock_not_ae_E coin_mean coin_var one_pos,
+    iid_existsUnique_iff coin_mean coin_var one_pos coin_bdd a,
+    iid_ar1_E hρ coin_mean coin_bdd, iid_ar1_condVar_closed hρ coin_mean coin_var coin_bdd⟩
+
+end Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Conditioning down on a general probability space
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 4, §4.3, pp. 101–102, and
+Online Appendix Chapter 2, §2.1.7, eqs. (2.22)–(2.23), pp. 602–603; the identities conditioned
+down are (3.17)–(3.20), pp. 63–65, and (4.2), p. 87.
+
+People condition on `𝓕_t` (`Ω_t` in the book), the econometrician on a coarser `𝓖_t ≤ 𝓕_t`
+(`I_t ⊂ Ω_t`, the VAR's information). Both are filtrations on one probability space `(Ω, P)`, and
+both expectation operators are Mathlib's conditional expectations `P[· | 𝓕_t]`, `P[· | 𝓖_t]`, so
+nothing is finite or finitely supported. The cross-information tower property
+`E(E(x|𝓕_t)|𝓖_t) = E(x|𝓖_t)` is Mathlib's `condExp_condExp_of_le`.
+
+## Main definitions
+
+* `coarsen S 𝓖`: the econometrician's system — same probability, filtration `𝓖`.
+* `Nested S 𝓖`: `𝓖_t ≤ 𝓕_t` at every date; `MeasCoarser SI SΩ` for a pair of systems, and
+  `eq_coarsen`: every nested pair is of the form `(coarsen SΩ 𝓖, SΩ)`.
+* `KnownAE 𝓖 t v`: `v` is a.e. equal to a `𝓖_t`-measurable variable (`v_t ∈ I_t`).
+* `lagFiltration S`: the econometrician sees the agents' information with a one-period lag.
+
+## Main results
+
+* `E_coarsen_tower`, `condDown_general` (`E(X|I_t) = E(v_t|I_t)` always), `condDown_iff`
+  (`v_t = E(X|I_t)` iff `v_t ∈ I_t`), `known_iff_E_eq`.
+* The valuation equation (2.22) ⇒ (2.23): `condDown_valuation` (the econometrician's discounted
+  forecasts sum to `E(v_t|I_t)`) and `condDown_valuation_iff` (to `v_t` iff `v_t ∈ I_t`).
+* The flow identity (3.17) ex post: `pv_ex_post`, `pv_E` (under ANY information, the discounted
+  forecasts sum to the forecast of `v_t`), `pv_agents`, `condDown_flow_iff` (Links.condDown_flow
+  on a general probability space).
+* Unexpected inflation (3.20): `innov_pv`, `unexpected_inflation_any` — for ANY information set,
+  `Δπ − Δrⁿ = −∑ρʲΔs̃ − ∑ρʲΔg + ∑_{j≥1}ρʲΔr + Δ_{t+1}v_t`; `unexpected_inflation_agents` (the
+  book's (3.20), the extra term vanishes); `innov_coarsen_of_known` (it also vanishes for the
+  econometrician when `v_t ∈ I_t`); `E_coarsen_innov` (the agents' news is unforecastable with the
+  coarser information).
+* The simple model (4.2): `constExp_condDown`, `innov_return_condDown` (constant expected returns
+  condition down), `simple_model_any` (`Δπ − Δrⁿ = −∑ρʲΔs̃ + Δ_{t+1}v_t` for any nested
+  information), `simple_model_agents` (`Δπ = −∑ρʲΔs̃`), `simple_model_econ_iff` (the book's form
+  holds for the econometrician iff `Δ^I_{t+1}v_t = 0`).
+* Correction: `Example.econ_decomp_counterexample` — i.i.d. shocks, MA(1) surplus, lagged
+  econometrician: the agents' decomposition holds, the econometrician's book-form decomposition
+  fails.
+* Links: `coarsen_toExpectationSystem_E` (the finite full-support case is the
+  `ConditioningDown.CondExp.condExpSystem` of Mathlib), `coarser_core` (the abstract `Coarser`),
+  `condDown_iff_core` (the general `condDown_iff` IS the abstract `ConditioningDown.condDown_iff`
+  there), `unexpected_inflation_core` (the core (3.20) for the bridged system).
+-/
+
+namespace Cochrane.DebtDeficitsInflation.ConditioningDownMeasure
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.DebtDeficitsInflation.ExpectationsMeasure
+open Cochrane.DebtDeficitsInflation.LinearizedIdentities (Recursion Flow rec_finite tvc_of_bound
+  flow_iff_recursion)
+
+variable {Ω : Type*} [mΩ : MeasurableSpace Ω]
+
+/-! ### Two nested information sets -/
+
+/-- Cochrane (2023), p. 101 (`I_t ⊂ Ω_t`): the econometrician's expectation system — the same
+probability as the agents' system `S`, with the coarser filtration `𝓖`. -/
+def coarsen (S : MeasExpectationSystem Ω) (𝓖 : Filtration ℕ mΩ) : MeasExpectationSystem Ω :=
+  ⟨S.P, 𝓖⟩
+
+/-- Cochrane (2023), p. 101 (`I_t ⊂ Ω_t`): the econometrician's information is contained in the
+agents' at every date. -/
+def Nested (S : MeasExpectationSystem Ω) (𝓖 : Filtration ℕ mΩ) : Prop := ∀ t, 𝓖 t ≤ S.𝓕 t
+
+/-- Cochrane (2023), Online Appendix p. 602 ("two nested expectation systems"): `SI` and `SΩ`
+share the probability and `SI`'s information is contained in `SΩ`'s. -/
+def MeasCoarser (SI SΩ : MeasExpectationSystem Ω) : Prop := SI.P = SΩ.P ∧ ∀ t, SI.𝓕 t ≤ SΩ.𝓕 t
+
+/-- Cochrane (2023), Online Appendix p. 602: every nested pair of systems is the agents' system
+together with its coarsening by the econometrician's filtration. -/
+theorem eq_coarsen {SI SΩ : MeasExpectationSystem Ω} (h : MeasCoarser SI SΩ) :
+    SI = coarsen SΩ SI.𝓕 ∧ Nested SΩ SI.𝓕 := by
+  obtain ⟨hP, hle⟩ := h
+  refine ⟨?_, hle⟩
+  cases SI
+  cases SΩ
+  simp only at hP
+  subst hP
+  rfl
+
+/-- Cochrane (2023), p. 101 ("`v_t ∈ I_t`"): `v` is (a.e. equal to) a `𝓖_t`-measurable random
+variable. -/
+def KnownAE (μ : Measure Ω) (𝓖 : Filtration ℕ mΩ) (t : ℕ) (v : Ω → ℝ) : Prop :=
+  ∃ w : Ω → ℝ, StronglyMeasurable[𝓖 t] w ∧ v =ᵐ[μ] w
+
+/-- Cochrane (2023), p. 101: the econometrician's probability is the agents'. -/
+theorem coarsen_μ (S : MeasExpectationSystem Ω) (𝓖 : Filtration ℕ mΩ) :
+    (coarsen S 𝓖).μ = S.μ := rfl
+
+/-- Cochrane (2023), p. 101: the econometrician's forecast is the Mathlib conditional expectation
+given `𝓖_t`. -/
+theorem coarsen_E (S : MeasExpectationSystem Ω) (𝓖 : Filtration ℕ mΩ) (t : ℕ) (x : Ω → ℝ) :
+    (coarsen S 𝓖).E t x = S.μ[x | 𝓖 t] := rfl
+
+/-- Cochrane (2023), p. 101 (`E(E(x|Ω_t)|I_s) = E(x|I_s)`, `s ≤ t`): the tower property across
+information sets (Mathlib's `condExp_condExp_of_le`). -/
+theorem E_coarsen_tower {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ} (h : Nested S 𝓖)
+    {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) :
+    (coarsen S 𝓖).E s (S.E t x) =ᵐ[S.μ] (coarsen S 𝓖).E s x :=
+  condExp_condExp_of_le ((𝓖.mono hst).trans (h t)) (S.𝓕.le t)
+
+/-- Cochrane (2023), p. 101 ("if not, the left-hand side should be `E(v_t|I_t)`"): if
+`v_t = E(X|Ω_t)` a.e., then `E(X|I_t) = E(v_t|I_t)` a.e., for every random variable `X`. -/
+theorem condDown_general {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ} (h : Nested S 𝓖)
+    {t : ℕ} {v X : Ω → ℝ} (hv : v =ᵐ[S.μ] S.E t X) :
+    (coarsen S 𝓖).E t X =ᵐ[S.μ] (coarsen S 𝓖).E t v :=
+  ((E_coarsen_tower h le_rfl X).symm.trans ((coarsen S 𝓖).E_congr hv t).symm)
+
+/-- Cochrane (2023), p. 101 ("`v_t ∈ I_t`"): an integrable `v` is a.e. its own `I_t`-forecast iff it
+is a.e. `𝓖_t`-measurable. -/
+theorem known_iff_E_eq (S : MeasExpectationSystem Ω) (𝓖 : Filtration ℕ mΩ) {t : ℕ}
+    {v : Ω → ℝ} (hi : Integrable v S.μ) :
+    v =ᵐ[S.μ] (coarsen S 𝓖).E t v ↔ KnownAE S.μ 𝓖 t v := by
+  constructor
+  · intro h
+    exact ⟨_, (coarsen S 𝓖).stronglyMeasurable_E t v, h⟩
+  · rintro ⟨w, hw, hvw⟩
+    have hwi : Integrable w S.μ := hi.congr hvw
+    have hE : (coarsen S 𝓖).E t w = w := (coarsen S 𝓖).E_of_stronglyMeasurable hw hwi
+    exact hvw.trans (hE ▸ ((coarsen S 𝓖).E_congr hvw t).symm)
+
+/-- Cochrane (2023), p. 101 ("this conditioning down is valid, so long as `v_t ∈ I_t`") and Online
+Appendix eqs. (2.22)–(2.23), p. 602 ("only if we include the value of debt in the VAR"): on any
+probability space, if `v_t = E(X|Ω_t)` a.e., then `v_t = E(X|I_t)` a.e. **if and only if** `v_t` is
+(a.e.) `I_t`-measurable. No integrability of `X` is needed. -/
+theorem condDown_iff {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ} (h : Nested S 𝓖)
+    {t : ℕ} {v X : Ω → ℝ} (hv : v =ᵐ[S.μ] S.E t X) :
+    v =ᵐ[S.μ] (coarsen S 𝓖).E t X ↔ KnownAE S.μ 𝓖 t v := by
+  have hi : Integrable v S.μ := (S.integrable_E t X).congr hv.symm
+  rw [← known_iff_E_eq S 𝓖 hi]
+  have hg := condDown_general h hv
+  constructor
+  · intro h1
+    exact h1.trans hg
+  · intro h1
+    exact h1.trans hg.symm
+
+/-- Cochrane (2023), p. 102 ("the only way to rescue such a calculation is to assume … `I_t = Ω_t`
+… `v_t` would be an exact function of the observed information"): with no coarsening, `v_t` is
+always known. -/
+theorem known_of_same (S : MeasExpectationSystem Ω) {t : ℕ} {v X : Ω → ℝ}
+    (hv : v =ᵐ[S.μ] S.E t X) : KnownAE S.μ S.𝓕 t v :=
+  ⟨_, S.stronglyMeasurable_E t X, hv⟩
+
+/-- Cochrane (2023), eq. (2.13), p. 30, across information sets: the agents' news
+`Δ^Ω_{t+1}x = E(x|Ω_{t+1}) − E(x|Ω_t)` cannot be forecast with the coarser information,
+`E(Δ^Ω_{t+1}x | I_s) = 0` for `s ≤ t`. -/
+theorem E_coarsen_innov {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ} (h : Nested S 𝓖)
+    {s t : ℕ} (hst : s ≤ t) (x : Ω → ℝ) :
+    (coarsen S 𝓖).E s (S.innov t x) =ᵐ[S.μ] 0 := by
+  filter_upwards [(coarsen S 𝓖).E_sub (S.integrable_E (t + 1) x) (S.integrable_E t x) s,
+    E_coarsen_tower h (hst.trans (Nat.le_succ t)) x, E_coarsen_tower h hst x] with ω h1 h2 h3
+  rw [ExpectationsMeasure.MeasExpectationSystem.innov, h1, Pi.sub_apply, h2, h3, sub_self,
+    Pi.zero_apply]
+
+/-! ### Present values: the valuation equation and the flow identity -/
+
+/-- Cochrane (2023), eqs. (2.22)–(2.23), p. 602, and p. 101: if the valuation equation holds with
+the agents' information, `v_t = E(∑ρʲs_{t+1+j}|Ω_t)` a.e. (bounded measurable surpluses,
+`|ρ| < 1`), then with the econometrician's information the discounted forecasts sum to
+`E(v_t|I_t)`: a.e. `∑ρʲE(s_{t+1+j}|I_t) = E(v_t|I_t)`, a genuine `HasSum`. -/
+theorem condDown_valuation {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ}
+    (h : Nested S 𝓖) {ρ : ℝ} (hρ : |ρ| < 1) {s : ℕ → Ω → ℝ}
+    (hsm : ∀ j, AEStronglyMeasurable (s j) S.μ) {K : ℝ} (hs : ∀ j, ∀ᵐ ω ∂S.μ, |s j ω| ≤ K)
+    {t : ℕ} {v : Ω → ℝ} (hv : v =ᵐ[S.μ] S.E t (fun ω => ∑' j, ρ ^ j * s (t + 1 + j) ω)) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).E t (s (t + 1 + j)) ω)
+      ((coarsen S 𝓖).E t v ω) := by
+  set G := coarsen S 𝓖
+  have hc : Summable fun j => |ρ| ^ j * K :=
+    (summable_geometric_of_lt_one (abs_nonneg ρ) hρ).mul_right K
+  have hb : ∀ j, ∀ᵐ ω ∂S.μ, |ρ ^ j * s (t + 1 + j) ω| ≤ |ρ| ^ j * K := fun j => by
+    filter_upwards [hs (t + 1 + j)] with ω hω
+    rw [abs_mul, abs_pow]
+    exact mul_le_mul_of_nonneg_left hω (pow_nonneg (abs_nonneg _) _)
+  have hE := G.E_hasSum (f := fun j ω => ρ ^ j * s (t + 1 + j) ω) hc
+    (fun j => (hsm (t + 1 + j)).const_mul _) hb t
+  have hsmul : ∀ j, G.E t (fun ω => ρ ^ j * s (t + 1 + j) ω) =ᵐ[S.μ]
+      fun ω => ρ ^ j * G.E t (s (t + 1 + j)) ω := fun j => G.E_smul (ρ ^ j) (s (t + 1 + j)) t
+  filter_upwards [hE, ae_all_iff.2 hsmul, condDown_general h hv] with ω h1 h2 h3
+  rw [← h3]
+  exact h1.congr_fun fun j => (h2 j).symm
+
+/-- Cochrane (2023), eqs. (2.22)–(2.23), p. 602, and p. 101 ("this conditioning down is valid, so
+long as `v_t ∈ I_t`"): under the valuation equation with the agents' information, the
+econometrician's discounted forecasts sum to `v_t` a.e. **iff** `v_t` is in the VAR information. -/
+theorem condDown_valuation_iff {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ}
+    (h : Nested S 𝓖) {ρ : ℝ} (hρ : |ρ| < 1) {s : ℕ → Ω → ℝ}
+    (hsm : ∀ j, AEStronglyMeasurable (s j) S.μ) {K : ℝ} (hs : ∀ j, ∀ᵐ ω ∂S.μ, |s j ω| ≤ K)
+    {t : ℕ} {v : Ω → ℝ} (hv : v =ᵐ[S.μ] S.E t (fun ω => ∑' j, ρ ^ j * s (t + 1 + j) ω)) :
+    (∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).E t (s (t + 1 + j)) ω) (v ω)) ↔
+      KnownAE S.μ 𝓖 t v := by
+  have hi : Integrable v S.μ := (S.integrable_E t _).congr hv.symm
+  rw [← known_iff_E_eq S 𝓖 hi]
+  have hH := condDown_valuation h hρ hsm hs hv
+  constructor
+  · intro h1
+    filter_upwards [h1, hH] with ω a b
+    exact a.unique b
+  · intro h1
+    filter_upwards [h1, hH] with ω a b
+    rw [a]
+    exact b
+
+/-- Cochrane (2023), eq. (3.18), p. 63, ex post on a probability space: if
+`x_t = ρx_{t+1} + f_{t+1}` holds state by state, `|ρ| < 1` and `x`, `f` are (essentially) bounded,
+then a.e. `x_t = ∑_{j≥0} ρʲ f_{t+1+j}` (a genuine `HasSum`). -/
+theorem pv_ex_post {μ : Measure Ω} {ρ : ℝ} (hρ : |ρ| < 1) {x f : ℕ → Ω → ℝ}
+    (hrec : Recursion ρ x f) {M K : ℝ} (hx : ∀ t, ∀ᵐ ω ∂μ, |x t ω| ≤ M)
+    (hf : ∀ t, ∀ᵐ ω ∂μ, |f t ω| ≤ K) (t : ℕ) :
+    ∀ᵐ ω ∂μ, HasSum (fun j => ρ ^ j * f (t + 1 + j) ω) (x t ω) := by
+  filter_upwards [ae_all_iff.2 hx, ae_all_iff.2 hf] with ω hMω hKω
+  have hs : Summable fun j => ‖ρ ^ j * f (t + 1 + j) ω‖ := by
+    refine Summable.of_nonneg_of_le (fun _ => norm_nonneg _) (fun j => ?_)
+      ((summable_geometric_of_lt_one (abs_nonneg ρ) hρ).mul_right K)
+    rw [Real.norm_eq_abs, abs_mul, abs_pow]
+    exact mul_le_mul_of_nonneg_left (hKω _) (pow_nonneg (abs_nonneg _) _)
+  rw [hasSum_iff_tendsto_nat_of_summable_norm hs]
+  have hfin : (fun T => ∑ j ∈ Finset.range T, ρ ^ j * f (t + 1 + j) ω) =
+      fun T => x t ω - ρ ^ T * x (t + T) ω := by
+    funext T
+    have := congrFun (rec_finite hrec t T) ω
+    simp only [Pi.add_apply, Finset.sum_apply, Pi.smul_apply, smul_eq_mul] at this
+    linarith
+  rw [hfin]
+  simpa using tendsto_const_nhds.sub (tvc_of_bound hρ (fun T => hMω (t + T)))
+
+/-- Cochrane (2023), eq. (3.19), p. 64, under ANY information: with the recursion holding ex post
+and bounded measurable `x`, `f`, `|ρ| < 1`, for every date `m`, a.e.
+`∑_{j≥0} ρʲ E_m f_{t+1+j} = E_m x_t`. -/
+theorem pv_E (T : MeasExpectationSystem Ω) {ρ : ℝ} (hρ : |ρ| < 1) {x f : ℕ → Ω → ℝ}
+    (hrec : Recursion ρ x f) {M K : ℝ} (hx : ∀ t, ∀ᵐ ω ∂T.μ, |x t ω| ≤ M)
+    (hfm : ∀ t, AEStronglyMeasurable (f t) T.μ) (hf : ∀ t, ∀ᵐ ω ∂T.μ, |f t ω| ≤ K)
+    (t m : ℕ) :
+    ∀ᵐ ω ∂T.μ, HasSum (fun j => ρ ^ j * T.E m (f (t + 1 + j)) ω) (T.E m (x t) ω) := by
+  have hc : Summable fun j => |ρ| ^ j * K :=
+    (summable_geometric_of_lt_one (abs_nonneg ρ) hρ).mul_right K
+  have hb : ∀ j, ∀ᵐ ω ∂T.μ, |ρ ^ j * f (t + 1 + j) ω| ≤ |ρ| ^ j * K := fun j => by
+    filter_upwards [hf (t + 1 + j)] with ω hω
+    rw [abs_mul, abs_pow]
+    exact mul_le_mul_of_nonneg_left hω (pow_nonneg (abs_nonneg _) _)
+  have hE := T.E_hasSum (f := fun j ω => ρ ^ j * f (t + 1 + j) ω) hc
+    (fun j => (hfm (t + 1 + j)).const_mul _) hb m
+  have hsmul : ∀ j, T.E m (fun ω => ρ ^ j * f (t + 1 + j) ω) =ᵐ[T.μ]
+      fun ω => ρ ^ j * T.E m (f (t + 1 + j)) ω := fun j => T.E_smul (ρ ^ j) (f (t + 1 + j)) m
+  have hX : (fun ω => ∑' j, ρ ^ j * f (t + 1 + j) ω) =ᵐ[T.μ] x t := by
+    filter_upwards [pv_ex_post hρ hrec hx hf t] with ω hω
+    exact hω.tsum_eq
+  filter_upwards [hE, ae_all_iff.2 hsmul, T.E_congr hX m] with ω h1 h2 h3
+  rw [← h3]
+  exact h1.congr_fun fun j => (h2 j).symm
+
+/-- Cochrane (2023), eq. (3.19), p. 64: under the agents' information (`v_t` known at `t`) the
+discounted forecasts of `s̃ + g − r` sum to `v_t` itself. -/
+theorem pv_agents (S : MeasExpectationSystem Ω) {ρ : ℝ} (hρ : |ρ| < 1) {v f : ℕ → Ω → ℝ}
+    (hrec : Recursion ρ v f) (hvm : StronglyAdapted S.𝓕 v) {M K : ℝ}
+    (hv : ∀ t, ∀ᵐ ω ∂S.μ, |v t ω| ≤ M) (hfm : ∀ t, AEStronglyMeasurable (f t) S.μ)
+    (hf : ∀ t, ∀ᵐ ω ∂S.μ, |f t ω| ≤ K) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * S.E t (f (t + 1 + j)) ω) (v t ω) := by
+  have hE : S.E t (v t) = v t :=
+    S.E_of_stronglyMeasurable (hvm t) (MeasExpectationSystem.BddRV.integrable (S := S)
+      ⟨((hvm t).mono (S.𝓕.le t)).aestronglyMeasurable, M, hv t⟩)
+  filter_upwards [pv_E S hρ hrec hv hfm hf t t] with ω hω
+  rwa [hE] at hω
+
+/-- Cochrane (2023), p. 101, and Online Appendix p. 602, with the flow identity (3.17) holding ex
+post (the measure-theoretic `Links.condDown_flow`): for any coarser information the discounted
+forecasts of `s̃ + g − r` sum to `E(v_t|I_t)`, hence to `v_t` iff `v_t ∈ I_t`. -/
+theorem condDown_flow_iff {S : MeasExpectationSystem Ω} (𝓖 : Filtration ℕ mΩ) {ρ : ℝ}
+    (hρ : |ρ| < 1) {v r g s : ℕ → Ω → ℝ} (hflow : Flow ρ v r g s) {M K : ℝ}
+    (hvm : ∀ t, AEStronglyMeasurable (v t) S.μ) (hv : ∀ t, ∀ᵐ ω ∂S.μ, |v t ω| ≤ M)
+    (hfm : ∀ t, AEStronglyMeasurable (s t + g t - r t) S.μ)
+    (hf : ∀ t, ∀ᵐ ω ∂S.μ, |(s t + g t - r t) ω| ≤ K) (t : ℕ) :
+    (∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).E t
+      (s (t + 1 + j) + g (t + 1 + j) - r (t + 1 + j)) ω) ((coarsen S 𝓖).E t (v t) ω)) ∧
+    ((∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).E t
+      (s (t + 1 + j) + g (t + 1 + j) - r (t + 1 + j)) ω) (v t ω)) ↔ KnownAE S.μ 𝓖 t (v t)) := by
+  have hrec := (flow_iff_recursion ρ v r g s).1 hflow
+  have hH := pv_E (coarsen S 𝓖) hρ hrec hv hfm hf t t
+  have hi : Integrable (v t) S.μ := MeasExpectationSystem.BddRV.integrable (S := S) ⟨hvm t, M, hv t⟩
+  refine ⟨hH, ?_⟩
+  rw [← known_iff_E_eq S 𝓖 hi]
+  constructor
+  · intro h1
+    filter_upwards [h1, hH] with ω a b
+    exact a.unique b
+  · intro h1
+    filter_upwards [h1, hH] with ω a b
+    rw [a]
+    exact b
+
+/-! ### Unexpected inflation under any information set -/
+
+/-- Cochrane (2023), eq. (2.13), p. 30 (tool): the news about an essentially bounded variable is
+bounded by twice the bound. -/
+theorem abs_innov_le (T : MeasExpectationSystem Ω) {x : Ω → ℝ} {K : ℝ}
+    (hx : ∀ᵐ ω ∂T.μ, |x ω| ≤ K) (t : ℕ) : ∀ᵐ ω ∂T.μ, |T.innov t x ω| ≤ 2 * K := by
+  filter_upwards [T.abs_E_le hx (t + 1), T.abs_E_le hx t] with ω h1 h2
+  rw [ExpectationsMeasure.MeasExpectationSystem.innov, Pi.sub_apply]
+  calc |T.E (t + 1) x ω - T.E t x ω| ≤ |T.E (t + 1) x ω| + |T.E t x ω| := abs_sub _ _
+    _ ≤ 2 * K := by linarith
+
+/-- Cochrane (2023), eq. (3.20), p. 65 (tool): discounted news about a bounded process is
+summable a.e. -/
+theorem summable_innov (T : MeasExpectationSystem Ω) {ρ : ℝ} (hρ : |ρ| < 1) {x : ℕ → Ω → ℝ}
+    {K : ℝ} (hx : ∀ t, ∀ᵐ ω ∂T.μ, |x t ω| ≤ K) (t k : ℕ) :
+    ∀ᵐ ω ∂T.μ, Summable fun j => ρ ^ j * T.innov t (x (k + j)) ω := by
+  filter_upwards [ae_all_iff.2 fun j => abs_innov_le T (hx (k + j)) t] with ω hω
+  refine Summable.of_norm_bounded
+    ((summable_geometric_of_lt_one (abs_nonneg ρ) hρ).mul_right (2 * K)) fun j => ?_
+  rw [Real.norm_eq_abs, abs_mul, abs_pow]
+  exact mul_le_mul_of_nonneg_left (hω j) (pow_nonneg (abs_nonneg _) _)
+
+/-- Cochrane (2023), eq. (3.20), p. 65, under ANY information: with the recursion
+`x_t = ρx_{t+1} + f_{t+1}` ex post (bounded measurable `x`, `f`, `|ρ| < 1`), a.e.
+`∑_{j≥0} ρʲ Δ_{t+1} f_{t+1+j} = Δ_{t+1} x_t`, where `Δ_{t+1} = E_{t+1} − E_t` is the news of the
+information set at hand. -/
+theorem innov_pv (T : MeasExpectationSystem Ω) {ρ : ℝ} (hρ : |ρ| < 1) {x f : ℕ → Ω → ℝ}
+    (hrec : Recursion ρ x f) {M K : ℝ} (hx : ∀ t, ∀ᵐ ω ∂T.μ, |x t ω| ≤ M)
+    (hfm : ∀ t, AEStronglyMeasurable (f t) T.μ) (hf : ∀ t, ∀ᵐ ω ∂T.μ, |f t ω| ≤ K) (t : ℕ) :
+    ∀ᵐ ω ∂T.μ, HasSum (fun j => ρ ^ j * T.innov t (f (t + 1 + j)) ω) (T.innov t (x t) ω) := by
+  filter_upwards [pv_E T hρ hrec hx hfm hf t (t + 1), pv_E T hρ hrec hx hfm hf t t] with ω h1 h2
+  refine (h1.sub h2).congr_fun fun j => ?_
+  simp only [ExpectationsMeasure.MeasExpectationSystem.innov, Pi.sub_apply]
+  ring
+
+/-- Cochrane (2023), eq. (3.20), p. 65, under ANY information set on a general probability space:
+if the flow identity (3.17) `ρv_{t+1} = v_t + r_{t+1} − g_{t+1} − s̃_{t+1}` holds ex post with
+`r = rⁿ − π` (bounded measurable `v`, `s̃`, `g`, `r`, integrable `rⁿ`, `|ρ| < 1`), then a.e.
+`Δπ_{t+1} − Δrⁿ_{t+1} = −∑ρʲΔs̃_{t+1+j} − ∑ρʲΔg_{t+1+j} + ∑_{j≥1}ρʲΔr_{t+1+j} + Δ_{t+1}v_t`.
+The last term — news about the date-`t` value of debt — vanishes for the agents (`v_t` known at
+`t`) but not in general for a coarser information set. -/
+theorem unexpected_inflation_any (T : MeasExpectationSystem Ω) {ρ : ℝ} (hρ : |ρ| < 1)
+    {v r rn infl g s : ℕ → Ω → ℝ} (hflow : Flow ρ v r g s) (hr : ∀ t, r t = rn t - infl t)
+    {M Ks Kg Kr : ℝ} (hv : ∀ t, ∀ᵐ ω ∂T.μ, |v t ω| ≤ M)
+    (hsm : ∀ t, AEStronglyMeasurable (s t) T.μ) (hs : ∀ t, ∀ᵐ ω ∂T.μ, |s t ω| ≤ Ks)
+    (hgm : ∀ t, AEStronglyMeasurable (g t) T.μ) (hg : ∀ t, ∀ᵐ ω ∂T.μ, |g t ω| ≤ Kg)
+    (hrm : ∀ t, AEStronglyMeasurable (r t) T.μ) (hrb : ∀ t, ∀ᵐ ω ∂T.μ, |r t ω| ≤ Kr)
+    (hrn : ∀ t, Integrable (rn t) T.μ) (t : ℕ) :
+    ∀ᵐ ω ∂T.μ, T.innov t (infl (t + 1)) ω - T.innov t (rn (t + 1)) ω =
+      -∑' j, ρ ^ j * T.innov t (s (t + 1 + j)) ω - ∑' j, ρ ^ j * T.innov t (g (t + 1 + j)) ω +
+        ∑' j, ρ ^ (j + 1) * T.innov t (r (t + 2 + j)) ω + T.innov t (v t) ω := by
+  have hint : ∀ {x : ℕ → Ω → ℝ} {K : ℝ}, (∀ t, AEStronglyMeasurable (x t) T.μ) →
+      (∀ t, ∀ᵐ ω ∂T.μ, |x t ω| ≤ K) → ∀ t, Integrable (x t) T.μ :=
+    fun hm hb t => MeasExpectationSystem.BddRV.integrable (S := T) ⟨hm t, _, hb t⟩
+  have hsi := hint hsm hs
+  have hgi := hint hgm hg
+  have hri := hint hrm hrb
+  have hfm : ∀ t, AEStronglyMeasurable (s t + g t - r t) T.μ :=
+    fun t => ((hsm t).add (hgm t)).sub (hrm t)
+  have hfb : ∀ t, ∀ᵐ ω ∂T.μ, |(s t + g t - r t) ω| ≤ Ks + Kg + Kr := fun t => by
+    filter_upwards [hs t, hg t, hrb t] with ω h1 h2 h3
+    simp only [Pi.add_apply, Pi.sub_apply]
+    calc |s t ω + g t ω - r t ω| ≤ |s t ω + g t ω| + |r t ω| := abs_sub _ _
+      _ ≤ |s t ω| + |g t ω| + |r t ω| := by linarith [abs_add_le (s t ω) (g t ω)]
+      _ ≤ Ks + Kg + Kr := by linarith
+  have hH := innov_pv T hρ ((flow_iff_recursion ρ v r g s).1 hflow) hv hfm hfb t
+  -- the news is linear (a.e.)
+  have hlin : ∀ j, ∀ᵐ ω ∂T.μ, T.innov t (s (t + 1 + j) + g (t + 1 + j) - r (t + 1 + j)) ω =
+      T.innov t (s (t + 1 + j)) ω + T.innov t (g (t + 1 + j)) ω -
+        T.innov t (r (t + 1 + j)) ω := fun j => by
+    have hsg := (hsi (t + 1 + j)).add (hgi (t + 1 + j))
+    filter_upwards [T.E_sub hsg (hri (t + 1 + j)) (t + 1), T.E_sub hsg (hri (t + 1 + j)) t,
+      T.E_add (hsi (t + 1 + j)) (hgi (t + 1 + j)) (t + 1),
+      T.E_add (hsi (t + 1 + j)) (hgi (t + 1 + j)) t] with ω h1 h2 h3 h4
+    simp only [ExpectationsMeasure.MeasExpectationSystem.innov, Pi.sub_apply, Pi.add_apply] at *
+    rw [h1, h2, h3, h4]
+    ring
+  have hinfl : ∀ᵐ ω ∂T.μ, T.innov t (r (t + 1)) ω =
+      T.innov t (rn (t + 1)) ω - T.innov t (infl (t + 1)) ω := by
+    have hii : Integrable (infl (t + 1)) T.μ := by
+      have : infl (t + 1) = rn (t + 1) - r (t + 1) := by rw [hr (t + 1)]; abel
+      rw [this]
+      exact (hrn (t + 1)).sub (hri (t + 1))
+    filter_upwards [T.E_sub (hrn (t + 1)) hii (t + 1), T.E_sub (hrn (t + 1)) hii t] with ω h1 h2
+    simp only [ExpectationsMeasure.MeasExpectationSystem.innov, Pi.sub_apply]
+    rw [hr (t + 1), h1, h2, Pi.sub_apply, Pi.sub_apply]
+    ring
+  filter_upwards [hH, ae_all_iff.2 hlin, hinfl, summable_innov T hρ hs t (t + 1),
+    summable_innov T hρ hg t (t + 1), summable_innov T hρ hrb t (t + 1)] with ω h1 h2 h3 h4 h5 h6
+  have hsum : HasSum (fun j => ρ ^ j * T.innov t (s (t + 1 + j)) ω +
+      ρ ^ j * T.innov t (g (t + 1 + j)) ω - ρ ^ j * T.innov t (r (t + 1 + j)) ω)
+      (T.innov t (v t) ω) := h1.congr_fun fun j => by rw [h2 j]; ring
+  have hsplit := (h4.hasSum.add h5.hasSum).sub h6.hasSum
+  have heq := hsum.unique hsplit
+  have hr0 := h6.tsum_eq_zero_add
+  simp only [pow_zero, one_mul, add_zero] at hr0
+  have hr1 : ∑' j, ρ ^ (j + 1) * T.innov t (r (t + 1 + (j + 1))) ω =
+      ∑' j, ρ ^ (j + 1) * T.innov t (r (t + 2 + j)) ω :=
+    tsum_congr fun j => by rw [show t + 1 + (j + 1) = t + 2 + j by omega]
+  rw [hr1, h3] at hr0
+  linarith
+
+/-- Cochrane (2023), eq. (3.20), p. 65 (the book's form, for the agents): when `v_t` is known at
+`t` the extra term vanishes, `Δπ − Δrⁿ = −∑ρʲΔs̃ − ∑ρʲΔg + ∑_{j≥1}ρʲΔr`. -/
+theorem unexpected_inflation_agents (S : MeasExpectationSystem Ω) {ρ : ℝ} (hρ : |ρ| < 1)
+    {v r rn infl g s : ℕ → Ω → ℝ} (hflow : Flow ρ v r g s) (hr : ∀ t, r t = rn t - infl t)
+    (hvm : StronglyAdapted S.𝓕 v)
+    {M Ks Kg Kr : ℝ} (hv : ∀ t, ∀ᵐ ω ∂S.μ, |v t ω| ≤ M)
+    (hsm : ∀ t, AEStronglyMeasurable (s t) S.μ) (hs : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ Ks)
+    (hgm : ∀ t, AEStronglyMeasurable (g t) S.μ) (hg : ∀ t, ∀ᵐ ω ∂S.μ, |g t ω| ≤ Kg)
+    (hrm : ∀ t, AEStronglyMeasurable (r t) S.μ) (hrb : ∀ t, ∀ᵐ ω ∂S.μ, |r t ω| ≤ Kr)
+    (hrn : ∀ t, Integrable (rn t) S.μ) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, S.innov t (infl (t + 1)) ω - S.innov t (rn (t + 1)) ω =
+      -∑' j, ρ ^ j * S.innov t (s (t + 1 + j)) ω - ∑' j, ρ ^ j * S.innov t (g (t + 1 + j)) ω +
+        ∑' j, ρ ^ (j + 1) * S.innov t (r (t + 2 + j)) ω := by
+  have hvi : Integrable (v t) S.μ := MeasExpectationSystem.BddRV.integrable (S := S)
+    ⟨((hvm t).mono (S.𝓕.le t)).aestronglyMeasurable, M, hv t⟩
+  have h0 : S.innov t (v t) = 0 := by
+    rw [ExpectationsMeasure.MeasExpectationSystem.innov,
+      S.E_of_stronglyMeasurable ((hvm t).mono (S.𝓕.mono (Nat.le_succ t))) hvi,
+      S.E_of_stronglyMeasurable (hvm t) hvi, sub_self]
+  filter_upwards [unexpected_inflation_any S hρ hflow hr hv hsm hs hgm hg hrm hrb hrn t]
+    with ω hω
+  rw [hω, h0, Pi.zero_apply, add_zero]
+
+/-- Cochrane (2023), p. 101 ("`v_t ∈ I_t`"): if the value of debt is in the econometrician's
+information, its news vanishes for the econometrician, `Δ^I_{t+1} v_t = 0` a.e. -/
+theorem innov_coarsen_of_known (S : MeasExpectationSystem Ω) (𝓖 : Filtration ℕ mΩ) {t : ℕ}
+    {v : Ω → ℝ} (hi : Integrable v S.μ) (hk : KnownAE S.μ 𝓖 t v) :
+    (coarsen S 𝓖).innov t v =ᵐ[S.μ] 0 := by
+  obtain ⟨w, hw, hvw⟩ := hk
+  have hwi : Integrable w S.μ := hi.congr hvw
+  have h1 : (coarsen S 𝓖).E (t + 1) w = w :=
+    (coarsen S 𝓖).E_of_stronglyMeasurable (hw.mono (𝓖.mono (Nat.le_succ t))) hwi
+  have h2 : (coarsen S 𝓖).E t w = w := (coarsen S 𝓖).E_of_stronglyMeasurable hw hwi
+  filter_upwards [(coarsen S 𝓖).E_congr hvw (t + 1), (coarsen S 𝓖).E_congr hvw t] with ω a b
+  rw [ExpectationsMeasure.MeasExpectationSystem.innov, Pi.sub_apply, a, b, h1, h2, sub_self,
+    Pi.zero_apply]
+
+/-- Cochrane (2023), §4.2, p. 87 (constant expected returns) conditioned down: if the agents expect
+a constant real return, `E(r_{t+1}|Ω_t) = c`, so does the econometrician at every earlier date,
+`E(r_{t+1}|I_m) = c` for `m ≤ t`. -/
+theorem constExp_condDown {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ} (h : Nested S 𝓖)
+    {r : ℕ → Ω → ℝ} {c : ℝ} (hc : ∀ t, S.E t (r (t + 1)) =ᵐ[S.μ] fun _ => c) {m t : ℕ}
+    (hmt : m ≤ t) : (coarsen S 𝓖).E m (r (t + 1)) =ᵐ[S.μ] fun _ => c := by
+  filter_upwards [(E_coarsen_tower h hmt (r (t + 1))).symm, (coarsen S 𝓖).E_congr (hc t) m]
+    with ω a b
+  rw [a, b, (coarsen S 𝓖).E_const]
+
+/-- Cochrane (2023), §4.2, p. 87: under constant expected returns the news about future returns
+vanishes for the econometrician (and for the agents, `𝓖 = 𝓕`), `Δ^I_{t+1} r_{t+2+j} = 0`. -/
+theorem innov_return_condDown {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ}
+    (h : Nested S 𝓖) {r : ℕ → Ω → ℝ} {c : ℝ}
+    (hc : ∀ t, S.E t (r (t + 1)) =ᵐ[S.μ] fun _ => c) (t j : ℕ) :
+    (coarsen S 𝓖).innov t (r (t + 2 + j)) =ᵐ[S.μ] 0 := by
+  have e : t + 2 + j = (t + 1 + j) + 1 := by omega
+  rw [e]
+  filter_upwards [constExp_condDown h hc (show t + 1 ≤ t + 1 + j by omega),
+    constExp_condDown h hc (show t ≤ t + 1 + j by omega)] with ω a b
+  rw [ExpectationsMeasure.MeasExpectationSystem.innov, Pi.sub_apply, a, b, sub_self,
+    Pi.zero_apply]
+
+/-- Cochrane (2023), eq. (4.2), p. 87, and (3.24), p. 66 (the simple model: no growth, constant
+expected return), under ANY information nested in the agents': a.e.
+`Δ^Iπ_{t+1} − Δ^Irⁿ_{t+1} = −∑ρʲΔ^I s̃_{t+1+j} + Δ^I_{t+1} v_t`. -/
+theorem simple_model_any {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ} (h : Nested S 𝓖)
+    {ρ : ℝ} (hρ : |ρ| < 1) {v r rn infl s : ℕ → Ω → ℝ} (hflow : Flow ρ v r (fun _ => 0) s)
+    (hr : ∀ t, r t = rn t - infl t) {c : ℝ} (hc : ∀ t, S.E t (r (t + 1)) =ᵐ[S.μ] fun _ => c)
+    {M Ks Kr : ℝ} (hv : ∀ t, ∀ᵐ ω ∂S.μ, |v t ω| ≤ M)
+    (hsm : ∀ t, AEStronglyMeasurable (s t) S.μ) (hs : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ Ks)
+    (hrm : ∀ t, AEStronglyMeasurable (r t) S.μ) (hrb : ∀ t, ∀ᵐ ω ∂S.μ, |r t ω| ≤ Kr)
+    (hrn : ∀ t, Integrable (rn t) S.μ) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, (coarsen S 𝓖).innov t (infl (t + 1)) ω - (coarsen S 𝓖).innov t (rn (t + 1)) ω =
+      -∑' j, ρ ^ j * (coarsen S 𝓖).innov t (s (t + 1 + j)) ω +
+        (coarsen S 𝓖).innov t (v t) ω := by
+  have hg0 : (coarsen S 𝓖).innov t 0 = 0 := by
+    rw [ExpectationsMeasure.MeasExpectationSystem.innov, (coarsen S 𝓖).E_zero,
+      (coarsen S 𝓖).E_zero, sub_self]
+  filter_upwards [unexpected_inflation_any (coarsen S 𝓖) hρ hflow hr (Kg := 0) hv hsm hs
+    (fun _ => aestronglyMeasurable_const) (fun _ => Eventually.of_forall fun _ => by simp)
+    hrm hrb hrn t, ae_all_iff.2 (innov_return_condDown h hc t)] with ω h1 h2
+  rw [h1]
+  have e1 : ∑' j, ρ ^ j * (coarsen S 𝓖).innov t ((fun _ => (0 : Ω → ℝ)) (t + 1 + j)) ω = 0 := by
+    simp [hg0]
+  have e2 : ∑' j, ρ ^ (j + 1) * (coarsen S 𝓖).innov t (r (t + 2 + j)) ω = 0 := by
+    simp only [h2, Pi.zero_apply, mul_zero, tsum_zero]
+  rw [e1, e2]
+  ring
+
+/-- Cochrane (2023), eq. (4.2), p. 87 (`Δπ_{t+1} = −∑ρʲΔs̃_{t+1+j}`), for the agents: in the
+simple model with one-period debt (`rⁿ_{t+1}` known at `t`) and `v_t` known at `t`, a.e. the
+discounted surplus news sums to minus unexpected inflation. -/
+theorem simple_model_agents (S : MeasExpectationSystem Ω) {ρ : ℝ} (hρ : |ρ| < 1)
+    {v r rn infl s : ℕ → Ω → ℝ} (hflow : Flow ρ v r (fun _ => 0) s)
+    (hr : ∀ t, r t = rn t - infl t) {c : ℝ} (hc : ∀ t, S.E t (r (t + 1)) =ᵐ[S.μ] fun _ => c)
+    (hvm : StronglyAdapted S.𝓕 v) (hrnm : ∀ t, StronglyMeasurable[S.𝓕 t] (rn (t + 1)))
+    {M Ks Kr : ℝ} (hv : ∀ t, ∀ᵐ ω ∂S.μ, |v t ω| ≤ M)
+    (hsm : ∀ t, AEStronglyMeasurable (s t) S.μ) (hs : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ Ks)
+    (hrm : ∀ t, AEStronglyMeasurable (r t) S.μ) (hrb : ∀ t, ∀ᵐ ω ∂S.μ, |r t ω| ≤ Kr)
+    (hrn : ∀ t, Integrable (rn t) S.μ) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * S.innov t (s (t + 1 + j)) ω)
+      (-S.innov t (infl (t + 1)) ω) := by
+  have hN : Nested S S.𝓕 := fun _ => le_rfl
+  have hvi : Integrable (v t) S.μ := MeasExpectationSystem.BddRV.integrable (S := S)
+    ⟨((hvm t).mono (S.𝓕.le t)).aestronglyMeasurable, M, hv t⟩
+  have hk : S.innov t (v t) =ᵐ[S.μ] 0 :=
+    innov_coarsen_of_known S S.𝓕 hvi ⟨v t, hvm t, ae_eq_refl _⟩
+  have hkr : S.innov t (rn (t + 1)) =ᵐ[S.μ] 0 :=
+    innov_coarsen_of_known S S.𝓕 (hrn (t + 1)) ⟨rn (t + 1), hrnm t, ae_eq_refl _⟩
+  filter_upwards [simple_model_any hN hρ hflow hr hc hv hsm hs hrm hrb hrn t, hk, hkr,
+    summable_innov S hρ hs t (t + 1)] with ω h1 h2 h3 h4
+  change S.innov t (infl (t + 1)) ω - S.innov t (rn (t + 1)) ω =
+    -∑' j, ρ ^ j * S.innov t (s (t + 1 + j)) ω + S.innov t (v t) ω at h1
+  rw [h2, h3, Pi.zero_apply] at h1
+  have : -S.innov t (infl (t + 1)) ω = ∑' j, ρ ^ j * S.innov t (s (t + 1 + j)) ω := by linarith
+  rw [this]
+  exact h4.hasSum
+
+/-- Cochrane (2023), eq. (4.2), p. 87, p. 101 and Online Appendix p. 602, for the econometrician:
+in the simple model, the book's decomposition with the econometrician's news,
+`Δ^I π_{t+1} − Δ^I rⁿ_{t+1} = −∑ρʲΔ^I s̃_{t+1+j}`, holds a.e. **iff** `Δ^I_{t+1} v_t = 0` a.e.;
+in particular it holds when `v_t ∈ I_t` (`innov_coarsen_of_known`). -/
+theorem simple_model_econ_iff {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ}
+    (h : Nested S 𝓖) {ρ : ℝ} (hρ : |ρ| < 1) {v r rn infl s : ℕ → Ω → ℝ}
+    (hflow : Flow ρ v r (fun _ => 0) s) (hr : ∀ t, r t = rn t - infl t) {c : ℝ}
+    (hc : ∀ t, S.E t (r (t + 1)) =ᵐ[S.μ] fun _ => c)
+    {M Ks Kr : ℝ} (hv : ∀ t, ∀ᵐ ω ∂S.μ, |v t ω| ≤ M)
+    (hsm : ∀ t, AEStronglyMeasurable (s t) S.μ) (hs : ∀ t, ∀ᵐ ω ∂S.μ, |s t ω| ≤ Ks)
+    (hrm : ∀ t, AEStronglyMeasurable (r t) S.μ) (hrb : ∀ t, ∀ᵐ ω ∂S.μ, |r t ω| ≤ Kr)
+    (hrn : ∀ t, Integrable (rn t) S.μ) (t : ℕ) :
+    (∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).innov t (s (t + 1 + j)) ω)
+      (-((coarsen S 𝓖).innov t (infl (t + 1)) ω - (coarsen S 𝓖).innov t (rn (t + 1)) ω))) ↔
+      (coarsen S 𝓖).innov t (v t) =ᵐ[S.μ] 0 := by
+  have hid := simple_model_any h hρ hflow hr hc hv hsm hs hrm hrb hrn t
+  have hsum := summable_innov (coarsen S 𝓖) hρ hs t (t + 1)
+  constructor
+  · intro h1
+    filter_upwards [h1, hid, hsum] with ω a b c
+    rw [a.tsum_eq] at b
+    rw [Pi.zero_apply]
+    linarith
+  · intro h1
+    filter_upwards [h1, hid, hsum] with ω a b c
+    rw [Pi.zero_apply] at a
+    rw [b, a]
+    simpa using c.hasSum
+
+/-! ### Correction: the econometrician's decomposition fails when `v_t ∉ I_t` -/
+
+/-- Cochrane (2023), p. 102 and Online Appendix p. 602 ("people have more information than we
+do"): the econometrician sees the agents' information with a one-period lag, `𝓖_t = 𝓕_{t−1}`
+(`𝓖_0 = 𝓕_0`). -/
+def lagFiltration (S : MeasExpectationSystem Ω) : Filtration ℕ mΩ where
+  seq t := S.𝓕 (t - 1)
+  mono' _ _ h := S.𝓕.mono (Nat.sub_le_sub_right h 1)
+  le' t := S.𝓕.le (t - 1)
+
+/-- Cochrane (2023), p. 101: the lagged information is nested in the agents'. -/
+theorem nested_lag (S : MeasExpectationSystem Ω) : Nested S (lagFiltration S) :=
+  fun t => S.𝓕.mono (Nat.sub_le t 1)
+
+namespace Example
+
+open Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID
+
+/-- Cochrane (2023), p. 88 (the MA(1) surplus): `s̃_t = ε_t + θε_{t−1}`. -/
+def exS (θ : ℝ) : ℕ → (ℕ → ℝ) → ℝ := fun t ω => ω t + θ * ω (t - 1)
+
+/-- Cochrane (2023), p. 102 (`v_t = θε_t` for the MA(1)): the value of debt. -/
+def exV (θ : ℝ) : ℕ → (ℕ → ℝ) → ℝ := fun t ω => θ * ω t
+
+/-- Cochrane (2023), eq. (4.2), p. 87: the real return `r_t = a(ρ)ε_t`, `a(ρ) = 1 + ρθ`. -/
+def exR (ρ θ : ℝ) : ℕ → (ℕ → ℝ) → ℝ := fun t ω => (1 + ρ * θ) * ω t
+
+/-- Cochrane (2023), eq. (4.2), p. 87: inflation `π_t = −a(ρ)ε_t` (zero nominal rate). -/
+def exInfl (ρ θ : ℝ) : ℕ → (ℕ → ℝ) → ℝ := fun t ω => -((1 + ρ * θ) * ω t)
+
+/-- Cochrane (2023), §4.2, p. 87: the nominal return (one-period debt, `i = 0`). -/
+def exRn : ℕ → (ℕ → ℝ) → ℝ := fun _ _ => 0
+
+/-- Cochrane (2023), eq. (3.17), p. 63: the MA(1) example satisfies the flow identity ex post. -/
+theorem ex_flow (ρ θ : ℝ) : Flow ρ (exV θ) (exR ρ θ) (fun _ => 0) (exS θ) := by
+  intro t
+  funext ω
+  simp only [exV, exR, exS, Pi.smul_apply, Pi.add_apply, Pi.sub_apply, Pi.zero_apply,
+    smul_eq_mul, Nat.add_sub_cancel]
+  ring
+
+/-- Cochrane (2023), §4.2, p. 87: `r = rⁿ − π` in the example. -/
+theorem ex_fisher (ρ θ : ℝ) (t : ℕ) : exR ρ θ t = exRn t - exInfl ρ θ t := by
+  funext ω
+  simp only [exR, exRn, exInfl, Pi.sub_apply]
+  ring
+
+variable {ν : ProbabilityMeasure ℝ}
+
+/-- Cochrane (2023), p. 102, and Online Appendix p. 602 (correction): with i.i.d. shocks (law `ν`,
+mean `0`, variance `σ² > 0`, bounded), the MA(1) surplus `s̃_t = ε_t + θε_{t−1}` (`θ ≠ 0`) and a
+lagged econometrician, the agents' decomposition `Δπ_{t+1} = −∑ρʲΔs̃_{t+1+j}` holds at every date,
+but the econometrician's version with his own news fails at `t = 1`: his news about `v_1 = θε_1`
+is `θε_1 ≠ 0`. So the unexpected-inflation decomposition does NOT condition down in general; the
+corrected statement is `simple_model_any` / `simple_model_econ_iff`. -/
+theorem econ_decomp_counterexample {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) {ρ θ : ℝ} (hρ : |ρ| < 1) (hθ : θ ≠ 0) :
+    Flow ρ (exV θ) (exR ρ θ) (fun _ => 0) (exS θ) ∧
+    Nested (iidSystem ν) (lagFiltration (iidSystem ν)) ∧
+    (∀ t, ∀ᵐ ω ∂(iidSystem ν).μ, HasSum
+      (fun j => ρ ^ j * (iidSystem ν).innov t (exS θ (t + 1 + j)) ω)
+      (-(iidSystem ν).innov t (exInfl ρ θ (t + 1)) ω)) ∧
+    ¬ (∀ᵐ ω ∂(iidSystem ν).μ, HasSum
+      (fun j => ρ ^ j * (coarsen (iidSystem ν) (lagFiltration (iidSystem ν))).innov 1
+        (exS θ (1 + 1 + j)) ω)
+      (-((coarsen (iidSystem ν) (lagFiltration (iidSystem ν))).innov 1 (exInfl ρ θ (1 + 1)) ω -
+        (coarsen (iidSystem ν) (lagFiltration (iidSystem ν))).innov 1 (exRn (1 + 1)) ω))) := by
+  set S := iidSystem ν
+  have hB := shock_ae_bdd ν hbdd
+  have hc : ∀ t, S.E t (exR ρ θ (t + 1)) =ᵐ[S.μ] fun _ => (0 : ℝ) := fun t => by
+    have e : exR ρ θ (t + 1) = (1 + ρ * θ) • shock (t + 1) := rfl
+    filter_upwards [e ▸ S.E_smul (1 + ρ * θ) (shock (t + 1)) t, E_shock_zero hmean t]
+      with ω a b
+    rw [a, Pi.smul_apply, b, Pi.zero_apply, smul_zero]
+  have hvm : StronglyAdapted S.𝓕 (exV θ) := fun t =>
+    ((measurable_shock ν le_rfl).const_mul θ).stronglyMeasurable
+  have hv : ∀ t, ∀ᵐ ω ∂S.μ, |exV θ t ω| ≤ |θ| * B := fun t => by
+    filter_upwards [hB t] with ω h
+    simp only [exV, abs_mul]
+    exact mul_le_mul_of_nonneg_left h (abs_nonneg θ)
+  have hsm : ∀ t, AEStronglyMeasurable (exS θ t) S.μ := fun t =>
+    Measurable.aestronglyMeasurable (by unfold exS; fun_prop)
+  have hs : ∀ t, ∀ᵐ ω ∂S.μ, |exS θ t ω| ≤ B + |θ| * B := fun t => by
+    filter_upwards [hB t, hB (t - 1)] with ω h1 h2
+    simp only [exS]
+    calc |ω t + θ * ω (t - 1)| ≤ |ω t| + |θ * ω (t - 1)| := abs_add_le _ _
+      _ ≤ B + |θ| * B := by
+        rw [abs_mul]
+        exact add_le_add h1 (mul_le_mul_of_nonneg_left h2 (abs_nonneg θ))
+  have hrm : ∀ t, AEStronglyMeasurable (exR ρ θ t) S.μ := fun t =>
+    ((measurable_pi_apply t).const_mul _).aestronglyMeasurable
+  have hrb : ∀ t, ∀ᵐ ω ∂S.μ, |exR ρ θ t ω| ≤ |1 + ρ * θ| * B := fun t => by
+    filter_upwards [hB t] with ω h
+    simp only [exR, abs_mul]
+    exact mul_le_mul_of_nonneg_left h (abs_nonneg _)
+  have hrn : ∀ t, Integrable (exRn t) S.μ := fun _ => integrable_const 0
+  refine ⟨ex_flow ρ θ, nested_lag S, fun t => ?_, ?_⟩
+  · exact simple_model_agents S hρ (ex_flow ρ θ) (ex_fisher ρ θ) hc hvm
+      (fun _ => stronglyMeasurable_const) hv hsm hs hrm hrb hrn t
+  · rw [simple_model_econ_iff (nested_lag S) hρ (ex_flow ρ θ) (ex_fisher ρ θ) hc hv hsm hs
+      hrm hrb hrn 1]
+    intro h0
+    have hvi : Integrable (exV θ 1) S.μ := MeasExpectationSystem.BddRV.integrable (S := S)
+      ⟨(hvm 1).mono (S.𝓕.le 1) |>.aestronglyMeasurable, _, hv 1⟩
+    have h2 : (coarsen S (lagFiltration S)).E (1 + 1) (exV θ 1) = exV θ 1 :=
+      S.E_of_stronglyMeasurable (hvm 1) hvi
+    have h1 : (coarsen S (lagFiltration S)).E 1 (exV θ 1) =ᵐ[S.μ] 0 := by
+      have e : exV θ 1 = θ • shock (0 + 1) := rfl
+      change S.E 0 (exV θ 1) =ᵐ[S.μ] 0
+      filter_upwards [e ▸ S.E_smul θ (shock (0 + 1)) 0, E_shock_zero hmean 0] with ω a b
+      rw [a, Pi.smul_apply, b, Pi.zero_apply, smul_zero]
+    have hz : ∀ᵐ ω ∂S.μ, ω 1 ^ 2 = 0 := by
+      filter_upwards [h0, h1] with ω a b
+      rw [ExpectationsMeasure.MeasExpectationSystem.innov, Pi.sub_apply, h2, b] at a
+      simp only [exV, Pi.zero_apply, sub_zero, mul_eq_zero] at a
+      rcases a with a | a
+      · exact absurd a hθ
+      · rw [a]; ring
+    have hint := integral_shock_fun ν 1 (f := fun x => x ^ 2) (measurable_id.pow_const 2)
+    rw [integral_congr_ae hz, integral_zero, hvar] at hint
+    linarith
+
+end Example
+
+/-! ### Links: the finite Mathlib instance and the abstract nested systems -/
+
+/-- Cochrane (2023), p. 101: on a finite state space with full support, the econometrician's
+system (bridged to the core) is exactly `ConditioningDown.CondExp.condExpSystem` for `𝓖`. -/
+theorem coarsen_toExpectationSystem_E [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (S : MeasExpectationSystem Ω) (𝓖 : Filtration ℕ mΩ) (hfull : ∀ ω, S.μ {ω} ≠ 0) (t : ℕ)
+    (x : Ω → ℝ) :
+    ((coarsen S 𝓖).toExpectationSystem hfull).E t x =
+      (ConditioningDown.CondExp.condExpSystem S.μ hfull 𝓖 𝓖.le (fun _ _ h => 𝓖.mono h)).E t x :=
+  rfl
+
+/-- Cochrane (2023), p. 101: on a finite state space with full support, a nested pair of
+measure-theoretic systems is a coarser pair of core systems in the abstract sense of
+`ConditioningDown.Coarser`. -/
+theorem coarser_core [Finite Ω] [DiscreteMeasurableSpace Ω] {S : MeasExpectationSystem Ω}
+    {𝓖 : Filtration ℕ mΩ} (h : Nested S 𝓖) (hfull : ∀ ω, S.μ {ω} ≠ 0) :
+    ConditioningDown.Coarser ((coarsen S 𝓖).toExpectationSystem hfull)
+      (S.toExpectationSystem hfull) :=
+  fun _ x => S.eq_of_ae_eq hfull (E_coarsen_tower h le_rfl x)
+
+/-- Cochrane (2023), p. 101, and Online Appendix (2.22)–(2.23), p. 602: on a finite state space
+with full support, the general measure-theoretic `condDown_iff` and the abstract
+`ConditioningDown.condDown_iff` for nested systems are the same statement: each side of the
+general one is the corresponding side of the abstract one. -/
+theorem condDown_iff_core [Finite Ω] [DiscreteMeasurableSpace Ω] {S : MeasExpectationSystem Ω}
+    {𝓖 : Filtration ℕ mΩ} (h : Nested S 𝓖) (hfull : ∀ ω, S.μ {ω} ≠ 0) {t : ℕ} {v X : Ω → ℝ}
+    (hv : v = S.E t X) :
+    (v =ᵐ[S.μ] (coarsen S 𝓖).E t X ↔ v = ((coarsen S 𝓖).toExpectationSystem hfull).E t X) ∧
+    (KnownAE S.μ 𝓖 t v ↔ ((coarsen S 𝓖).toExpectationSystem hfull).E t v = v) ∧
+    (v = ((coarsen S 𝓖).toExpectationSystem hfull).E t X ↔
+      ((coarsen S 𝓖).toExpectationSystem hfull).E t v = v) := by
+  refine ⟨⟨fun h1 => S.eq_of_ae_eq hfull h1, fun h1 => h1 ▸ ae_eq_refl _⟩, ?_,
+    ConditioningDown.condDown_iff (coarser_core h hfull) hv⟩
+  rw [← known_iff_E_eq S 𝓖 Integrable.of_finite]
+  exact ⟨fun h1 => (S.eq_of_ae_eq hfull h1).symm,
+    fun h1 => Eventually.of_forall fun ω => (congrFun h1 ω).symm⟩
+
+/-- Cochrane (2023), Ch. 2, p. 29 (tool): when every state has positive probability, an a.e.
+statement holds at every state. -/
+theorem forall_of_ae [Finite Ω] {S : MeasExpectationSystem Ω} (hfull : ∀ ω, S.μ {ω} ≠ 0)
+    {p : Ω → Prop} (h : ∀ᵐ ω ∂S.μ, p ω) (ω : Ω) : p ω := by
+  by_contra hω
+  exact hfull ω (measure_mono_null (fun x hx => by rw [Set.mem_singleton_iff.mp hx]; exact hω)
+    (ae_iff.mp h))
+
+/-- Cochrane (2023), eq. (3.20), p. 65: on a finite state space with full support, the core
+innovation operator of the bridged system is the measure-theoretic news `E_{t+1} − E_t`. -/
+theorem core_innov_eq [Finite Ω] [DiscreteMeasurableSpace Ω] (S : MeasExpectationSystem Ω)
+    (hfull : ∀ ω, S.μ {ω} ≠ 0) (t : ℕ) (x : Ω → ℝ) :
+    Innovations.innov (S.toExpectationSystem hfull) t x = S.innov t x := rfl
+
+/-- Cochrane (2023), eq. (3.20), p. 65, link to the core: on a finite state space with full
+support, `unexpected_inflation_agents` specialises to the core statement
+(`LinearizedIdentities.unexpected_inflation_identity_tsum`'s conclusion) for the bridged
+`ExpectationSystem`, at every state. -/
+theorem unexpected_inflation_core [Finite Ω] [DiscreteMeasurableSpace Ω]
+    (S : MeasExpectationSystem Ω) (hfull : ∀ ω, S.μ {ω} ≠ 0) {ρ : ℝ} (hρ : |ρ| < 1)
+    {v r rn infl g s : ℕ → Ω → ℝ} (hflow : Flow ρ v r g s) (hr : ∀ t, r t = rn t - infl t)
+    (hvm : StronglyAdapted S.𝓕 v) {M Ks Kg Kr : ℝ} (hv : ∀ t ω, |v t ω| ≤ M)
+    (hs : ∀ t ω, |s t ω| ≤ Ks) (hg : ∀ t ω, |g t ω| ≤ Kg) (hrb : ∀ t ω, |r t ω| ≤ Kr) (t : ℕ)
+    (ω : Ω) :
+    Innovations.innov (S.toExpectationSystem hfull) t (infl (t + 1)) ω -
+      Innovations.innov (S.toExpectationSystem hfull) t (rn (t + 1)) ω =
+      -∑' j, ρ ^ j * Innovations.innov (S.toExpectationSystem hfull) t (s (t + 1 + j)) ω -
+        ∑' j, ρ ^ j * Innovations.innov (S.toExpectationSystem hfull) t (g (t + 1 + j)) ω +
+        ∑' j, ρ ^ (j + 1) * Innovations.innov (S.toExpectationSystem hfull) t
+          (r (t + 2 + j)) ω := by
+  have hm : ∀ x : Ω → ℝ, AEStronglyMeasurable x S.μ := fun x =>
+    (Measurable.of_discrete (f := x)).aestronglyMeasurable
+  have hA := unexpected_inflation_any S hρ hflow hr (M := M)
+    (fun t => Eventually.of_forall (hv t)) (fun t => hm _) (fun t => Eventually.of_forall (hs t))
+    (fun t => hm _) (fun t => Eventually.of_forall (hg t)) (fun t => hm _)
+    (fun t => Eventually.of_forall (hrb t)) (fun _ => Integrable.of_finite) t
+  have hvi : Integrable (v t) S.μ := Integrable.of_finite
+  have h0 : S.innov t (v t) = 0 := by
+    rw [ExpectationsMeasure.MeasExpectationSystem.innov,
+      S.E_of_stronglyMeasurable ((hvm t).mono (S.𝓕.mono (Nat.le_succ t))) hvi,
+      S.E_of_stronglyMeasurable (hvm t) hvi, sub_self]
+  have hB := forall_of_ae hfull hA ω
+  rw [h0, Pi.zero_apply, add_zero] at hB
+  exact hB
+
+end Cochrane.DebtDeficitsInflation.ConditioningDownMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Invertibility, Wold and Granger causality in the Hilbert space of second moments
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 4, §4.3, p. 102, and Online
+Appendix Chapter 2, §§2.1.4–2.1.6, eqs. (2.4)–(2.5) and (2.17)–(2.21), pp. 597–601.
+
+This module extends the Hilbert-space layer of `Invertibility` (white noise `e` in a real Hilbert
+space `H`, moving averages `maProc a e`, closed past spans `pastSpan`). It is stated for an
+arbitrary `H`; `InvertibilityMeasureL2` instantiates it on `L²(Ω, P)` of a genuine i.i.d.
+probability space.
+
+## Main definitions
+
+* `eSpan e`: the closed span of all the shocks; `cconv b c`: the Cauchy product of coefficient
+  sequences (the coefficients of `b(L)c(L)`).
+* `factorCoeff θ g`: the coefficients of `(1 − θL)g(L)` (the book's factorisation (2.17));
+  `jointSpan s v t`: the closed span of current and past `s` AND `v` (the debt–surplus VAR's
+  information); the one-step-ahead forecast error `u_t = s_t − P(s_t|s_{t−1}, …)`
+  (in `wold_factor`).
+
+## Main results
+
+* Tools: `inner_e_maProc_int`, `eq_of_inner_e`, `hasSum_filter_maProc`
+  (`b(L)[c(L)e_t] = (b·c)(L)e_t` in `H`), `gen_factorCoeff` (`a(z) = (1 − θz)g(z)`).
+* Non-invertibility at `|ρ| ≤ 1`, including `ρ = 1` (p. 102, A2 p. 600):
+  `not_filter_of_aRho_eq_zero`
+  — no absolutely summable filter of current and past surpluses converges in `H` to the shock.
+* Correction at `|ρ| = 1`: `mem_pastSpan_unit_root` — for `s_t = e_t − ρe_{t−1}`, `ρ = ±1`
+  (`a(ρ) = 0`), the shock IS in the closed span of current and past surpluses (Cesàro means of
+  the filter partial sums converge to it, error variance `σ²/(n+1)`); so the closed-span
+  statement `Invertibility.Hilbert.not_mem_pastSpan_of_aRho_eq_zero` genuinely needs `|ρ| < 1`.
+* Wold (A2 pp. 597, 600, the factorised claim (2.17)): `wold_factor` — for
+  `a(L) = (1 − θL)g(L)`, `|θ| > 1`, `g₀ = 1` and `g` invertible (absolutely summable inverse),
+  the autoregression's innovation is `w_t = ∑θ⁻ᵏm_{t−k}` (`m_t = e_t − θe_{t−1}`), with
+  variance `θ²σ²`, `s_t = ∑ã_n w_{t−n}` for `ã(L) = (1 − θ⁻¹L)g(L)` (root flipped), fitted
+  `ã(θ⁻¹) = (1 − θ⁻²)g(θ⁻¹) ≠ 0` while `a(θ⁻¹) = 0`, and `w_t ≠ e_t`.
+* Debt (2.18)–(2.20): `summable_abs_hsCoeff` (for `|ρ| < 1` debt is a moving average),
+  `debt_hasSum_expost` (with `a(ρ) = 0` debt is the ex-post present value, in `H`),
+  `hsCoeff_factor` (`c = −θg`, "the non-invertible root cancels"), `shock_mem_debtSpan` (with `g`
+  invertible the shock is recovered from the debt history), `debt_not_invertible_example`
+  (correction: when another root of `a(L)` is inside the disc the debt is NOT invertible).
+* Links: `factorCoeff_delta`, `recoverable_delta`, `wold_factor_ma1` (`g = 1` gives the MA(1)
+  statements `Invertibility.Hilbert.ma1_wold`, `Invertibility.ma1_fitted_aRho`, and `v = −θe`).
+* Granger causality ((2.21), p. 601): `exists_shift` (white noise has a unitary time shift),
+  `granger_general` — for an ARBITRARY absolutely summable MA with `a₀ ≠ 0`, `a(ρ) = 0`,
+  `|ρ| < 1`, the projection of `s_{t+1}` on the joint surplus–debt past differs from that on the
+  surplus past, and the forecast-error norm is strictly smaller with debt; `granger_factor` —
+  in the factorised case the two error variances are exactly `σ²` and `θ²σ² = σ²/ρ²`.
+-/
+
+namespace Cochrane.DebtDeficitsInflation.InvertibilityMeasure
+
+open Filter Topology
+open Cochrane.DebtDeficitsInflation.Innovations (gen)
+open Cochrane.DebtDeficitsInflation.Invertibility
+open Cochrane.DebtDeficitsInflation.Invertibility.Hilbert
+open scoped RealInnerProductSpace
+
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
+
+/-! ### Tools: the closed span of the shocks and filters of moving averages -/
+
+/-- Cochrane (2023), p. 102 (tool): the closed linear span of all the structural shocks. -/
+noncomputable def eSpan (e : ℤ → H) : Submodule ℝ H :=
+  (Submodule.span ℝ (Set.range e)).topologicalClosure
+
+/-- Cochrane (2023), p. 102 (tool): a shock from the future is uncorrelated with the moving
+average, `⟪e_{t+1+n}, s_t⟫ = 0`. -/
+theorem inner_e_maProc_future [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    {a : ℕ → ℝ} (ha : Summable (fun k => |a k|)) (t : ℤ) (n : ℕ) :
+    ⟪e (t + 1 + n), maProc a e t⟫ = 0 := by
+  have h := inner_hasSum_right (maProc_hasSum he ha t) (e (t + 1 + n))
+  refine h.unique ?_
+  convert hasSum_zero with k
+  rw [real_inner_smul_right, he]
+  have : t + 1 + (n : ℤ) ≠ t - k := by omega
+  simp [this]
+
+/-- Cochrane (2023), p. 102 (tool): the covariance of any shock with the moving average,
+`⟪e_u, s_t⟫ = σ² a_{t−u}` for `u ≤ t` and `0` for `u > t`. -/
+theorem inner_e_maProc_int [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    {a : ℕ → ℝ} (ha : Summable (fun k => |a k|)) (t u : ℤ) :
+    ⟪e u, maProc a e t⟫ = if u ≤ t then σ2 * a (t - u).toNat else 0 := by
+  by_cases hu : u ≤ t
+  · simp only [hu, ↓reduceIte]
+    have e1 : u = t - ((t - u).toNat : ℕ) := by omega
+    conv_lhs => rw [e1]
+    exact inner_e_maProc he ha t _
+  · simp only [hu, ↓reduceIte]
+    have e1 : u = t + 1 + ((u - t - 1).toNat : ℕ) := by omega
+    rw [e1]
+    exact inner_e_maProc_future he ha t _
+
+/-- Cochrane (2023), p. 102 (tool): a convergent series of members of the shock span lies in it. -/
+theorem hasSum_mem_eSpan {e : ℤ → H} {f : ℕ → H} {x : H} (h : HasSum f x)
+    (hf : ∀ k, f k ∈ eSpan e) : x ∈ eSpan e :=
+  (Submodule.isClosed_topologicalClosure _).mem_of_tendsto h.tendsto_sum_nat
+    (Filter.Eventually.of_forall fun _ => Submodule.sum_mem _ fun k _ => hf k)
+
+/-- Cochrane (2023), p. 102 (tool): each shock lies in the shock span. -/
+theorem e_mem_eSpan (e : ℤ → H) (u : ℤ) : e u ∈ eSpan e :=
+  Submodule.le_topologicalClosure _ (Submodule.subset_span ⟨u, rfl⟩)
+
+/-- Cochrane (2023), p. 102 (tool): a moving average lies in the shock span. -/
+theorem maProc_mem_eSpan [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    {a : ℕ → ℝ} (ha : Summable (fun k => |a k|)) (t : ℤ) : maProc a e t ∈ eSpan e :=
+  hasSum_mem_eSpan (maProc_hasSum he ha t) fun _ => Submodule.smul_mem _ _ (e_mem_eSpan e _)
+
+/-- Cochrane (2023), p. 102 (tool): two members of the shock span with the same covariances with
+every shock are equal. -/
+theorem eq_of_inner_e {e : ℤ → H} {x y : H} (hx : x ∈ eSpan e) (hy : y ∈ eSpan e)
+    (h : ∀ u, ⟪e u, x⟫ = ⟪e u, y⟫) : x = y := by
+  have hd : x - y ∈ eSpan e := Submodule.sub_mem _ hx hy
+  have hle : eSpan e ≤ (ℝ ∙ (x - y))ᗮ := by
+    refine Submodule.topologicalClosure_minimal _ (Submodule.span_le.mpr ?_)
+      (Submodule.isClosed_orthogonal _)
+    rintro _ ⟨u, rfl⟩
+    rw [SetLike.mem_coe, Submodule.mem_orthogonal_singleton_iff_inner_right, inner_sub_left,
+      real_inner_comm, h u, real_inner_comm, sub_self]
+  have h0 := Submodule.mem_orthogonal_singleton_iff_inner_right.mp (hle hd)
+  rwa [inner_self_eq_zero, sub_eq_zero] at h0
+
+/-- Cochrane (2023), p. 87 (tool): `‖s_t‖ ≤ (∑|a_k|)‖e_0‖`. -/
+theorem norm_maProc_le [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    {a : ℕ → ℝ} (ha : Summable (fun k => |a k|)) (t : ℤ) :
+    ‖maProc a e t‖ ≤ (∑' k, |a k|) * ‖e 0‖ := by
+  have hs : Summable fun k : ℕ => ‖a k • e (t - k)‖ :=
+    (ha.mul_right ‖e 0‖).congr fun k => by rw [norm_smul, Real.norm_eq_abs, he.norm_eq (t - k)]
+  calc ‖maProc a e t‖ ≤ ∑' k : ℕ, ‖a k • e (t - k)‖ := norm_tsum_le_tsum_norm hs
+    _ = ∑' k, |a k| * ‖e 0‖ := tsum_congr fun k => by
+        rw [norm_smul, Real.norm_eq_abs, he.norm_eq (t - k)]
+    _ = (∑' k, |a k|) * ‖e 0‖ := tsum_mul_right
+
+/-- Cochrane (2023), Online Appendix eq. (2.17), p. 600 (tool): the coefficients of the product
+`b(L)c(L)`, `(b·c)_n = ∑_{k ≤ n} b_k c_{n−k}`. -/
+noncomputable def cconv (b c : ℕ → ℝ) (n : ℕ) : ℝ := ∑ k ∈ Finset.range (n + 1), b k * c (n - k)
+
+/-- Cochrane (2023), Online Appendix eq. (2.17), p. 600 (tool): the product of absolutely summable
+lag polynomials is absolutely summable. -/
+theorem summable_cconv {b c : ℕ → ℝ} (hb : Summable (fun k => |b k|))
+    (hc : Summable (fun k => |c k|)) : Summable (fun n => |cconv b c n|) := by
+  have := summable_norm_sum_mul_range_of_summable_norm (f := b) (g := c)
+    (by simpa [Real.norm_eq_abs] using hb) (by simpa [Real.norm_eq_abs] using hc)
+  simpa [Real.norm_eq_abs, cconv] using this
+
+/-- Cochrane (2023), Online Appendix eq. (2.17), p. 600 (tool): the product of lag polynomials is
+the product of power series. -/
+theorem mk_cconv (b c : ℕ → ℝ) :
+    PowerSeries.mk (cconv b c) = PowerSeries.mk b * PowerSeries.mk c := by
+  ext n
+  rw [PowerSeries.coeff_mk, PowerSeries.coeff_mul, cconv,
+    Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk]
+  simp
+
+/-- Cochrane (2023), Online Appendix pp. 597–601 (tool): **filters of moving averages** — for
+absolutely summable `b`, `c`, `∑_k b_k s_{t−k} = (b·c)(L)e_t` in `H`, where `s = c(L)e`. -/
+theorem hasSum_filter_maProc [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    {b c : ℕ → ℝ} (hb : Summable (fun k => |b k|)) (hc : Summable (fun k => |c k|)) (t : ℤ) :
+    HasSum (fun k : ℕ => b k • maProc c e (t - k)) (maProc (cconv b c) e t) := by
+  have hsum : Summable (fun k : ℕ => b k • maProc c e (t - k)) := by
+    refine Summable.of_norm_bounded (hb.mul_right ((∑' k, |c k|) * ‖e 0‖)) fun k => ?_
+    rw [norm_smul, Real.norm_eq_abs]
+    exact mul_le_mul_of_nonneg_left (norm_maProc_le he hc _) (abs_nonneg _)
+  have hX := hsum.hasSum
+  convert hX using 1
+  refine eq_of_inner_e (maProc_mem_eSpan he (summable_cconv hb hc) t)
+    (hasSum_mem_eSpan hX fun k => Submodule.smul_mem _ _ (maProc_mem_eSpan he hc _))
+    fun u => ?_
+  have h := inner_hasSum_right hX (e u)
+  refine (h.unique ?_).symm
+  rw [inner_e_maProc_int he (summable_cconv hb hc)]
+  by_cases hu : u ≤ t
+  · simp only [hu, ↓reduceIte]
+    obtain ⟨n, hn⟩ : ∃ n : ℕ, u = t - n := ⟨(t - u).toNat, by omega⟩
+    subst hn
+    have hn' : (t - (t - (n : ℤ))).toNat = n := by omega
+    rw [hn']
+    have hF : ∀ k, ⟪e (t - n), b k • maProc c e (t - k)⟫ =
+        if k ∈ Finset.range (n + 1) then σ2 * (b k * c (n - k)) else 0 := by
+      intro k
+      rw [real_inner_smul_right, inner_e_maProc_int he hc]
+      by_cases hk : k ∈ Finset.range (n + 1)
+      · have hkn : k ≤ n := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+        have h1 : t - (n : ℤ) ≤ t - k := by omega
+        have h2 : (t - (k : ℤ) - (t - n)).toNat = n - k := by omega
+        simp only [h1, hk, ↓reduceIte]
+        rw [h2]
+        ring
+      · have : ¬ t - (n : ℤ) ≤ t - k := by
+          rw [Finset.mem_range] at hk; omega
+        simp only [this, hk, ↓reduceIte, mul_zero]
+    have hS : HasSum (fun k => if k ∈ Finset.range (n + 1) then σ2 * (b k * c (n - k)) else 0)
+        (∑ k ∈ Finset.range (n + 1),
+          if k ∈ Finset.range (n + 1) then σ2 * (b k * c (n - k)) else 0) :=
+      hasSum_sum_of_ne_finset_zero fun k hk => by simp only [hk, ↓reduceIte]
+    rw [Finset.sum_ite_of_true (fun _ hk => hk), ← Finset.mul_sum] at hS
+    exact hS.congr_fun hF
+  · simp only [hu, ↓reduceIte]
+    convert hasSum_zero with k
+    rw [real_inner_smul_right, inner_e_maProc_int he hc]
+    have : ¬ u ≤ t - k := by omega
+    simp only [this, ↓reduceIte, mul_zero]
+
+/-! ### Non-invertibility at `|ρ| ≤ 1`, and what fails at `|ρ| = 1` -/
+
+/-- Cochrane (2023), p. 102 ("the shock `ε_t` is a function of current and future surpluses, not
+current and past surpluses") and Online Appendix p. 600, in the Hilbert space, for every
+`|ρ| ≤ 1` including the book's `ρ = 1`: if `a(ρ) = 0`, no absolutely summable filter of current and
+past surpluses converges (in mean square) to the structural shock `e_t`. -/
+theorem not_filter_of_aRho_eq_zero [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ}
+    (he : WhiteNoise e σ2) (hσ : σ2 ≠ 0) {a : ℕ → ℝ} (ha : Summable (fun k => |a k|)) {ρ : ℝ}
+    (hρ : |ρ| ≤ 1) (h0 : gen a ρ = 0) (t : ℤ) :
+    ¬ ∃ b : ℕ → ℝ, Summable (fun k => |b k|) ∧
+      HasSum (fun k : ℕ => b k • maProc a e (t - k)) (e t) := by
+  rintro ⟨b, hb, hsum⟩
+  refine not_recoverable_of_aRho_eq_zero ha hρ h0 ⟨b, hb, fun n => ?_⟩
+  have h1 := (hasSum_filter_maProc he hb ha t).unique hsum
+  have h2 : ⟪e (t - n), maProc (cconv b a) e t⟫ = ⟪e (t - n), e t⟫ := by rw [h1]
+  rw [inner_e_maProc he (summable_cconv hb ha) t n, he] at h2
+  change cconv b a n = _
+  by_cases hn : n = 0
+  · subst hn
+    simp only [Nat.cast_zero, sub_zero, ↓reduceIte] at h2 ⊢
+    exact mul_left_cancel₀ hσ (h2.trans (mul_one σ2).symm)
+  · have hne : t - (n : ℤ) ≠ t := by omega
+    simp only [hne, hn, ↓reduceIte] at h2 ⊢
+    exact (mul_eq_zero.mp h2).resolve_left hσ
+
+/-- Cochrane (2023), p. 102 (tool): the MA(1) coefficients give `s_t = e_t − θe_{t−1}`. -/
+theorem maProc_armaCoeff_zero [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    (θ : ℝ) (t : ℤ) : maProc (armaCoeff 0 θ) e t = maOne θ e t := by
+  have ha := summable_abs_armaCoeff (show |(0 : ℝ)| < 1 by simp) θ
+  have := ar2_filter_eq_maOne he ha (φ1 := 0) (φ2 := 0) (θ := θ) rfl (by simp [armaCoeff])
+    (fun k => by simp [armaCoeff]) t
+  simpa using this
+
+/-- Cochrane (2023), p. 102 (tool): the squared norm of a finite combination of distinct shocks,
+`‖∑ c_m e_{f(m)}‖² = σ² ∑ c_m²`. -/
+theorem inner_sum_e {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2) (c : ℕ → ℝ) (f : ℕ → ℤ)
+    (hf : Function.Injective f) (N : ℕ) :
+    ⟪∑ m ∈ Finset.range N, c m • e (f m), ∑ m ∈ Finset.range N, c m • e (f m)⟫ =
+      σ2 * ∑ m ∈ Finset.range N, c m ^ 2 := by
+  rw [sum_inner, Finset.mul_sum]
+  refine Finset.sum_congr rfl fun m hm => ?_
+  rw [inner_sum]
+  have : ∀ m' ∈ Finset.range N, ⟪c m • e (f m), c m' • e (f m')⟫ =
+      if m = m' then c m * c m' * σ2 else 0 := by
+    intro m' _
+    rw [real_inner_smul_left, real_inner_smul_right, he]
+    simp only [hf.eq_iff]
+    split_ifs <;> ring
+  rw [Finset.sum_congr rfl this, Finset.sum_ite_eq]
+  simp only [hm, ↓reduceIte]
+  ring
+
+/-- Cochrane (2023), p. 102, and Online Appendix p. 597 ("`ρ ≤ 1`"), **correction at `|ρ| = 1`**:
+for the MA(1) `s_t = e_t − ρe_{t−1}` with `ρ = ±1` we have `a(ρ) = 1 − ρ² = 0`, yet the structural
+shock `e_t` IS in the closed linear span of current and past surpluses: the Cesàro means of the
+filter partial sums `∑_{k≤m} ρᵏs_{t−k} = e_t − ρ^{m+1}e_{t−m−1}` converge to it, with error
+variance `σ²/(n+1)`. So in mean square the shock can be recovered from the surplus history at
+`|ρ| = 1` (though by no absolutely summable filter, `not_filter_of_aRho_eq_zero`), and
+`Invertibility.Hilbert.not_mem_pastSpan_of_aRho_eq_zero` cannot be extended to `|ρ| = 1`. -/
+theorem mem_pastSpan_unit_root [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    {ρ : ℝ} (hρ : ρ ^ 2 = 1) (t : ℤ) :
+    gen (armaCoeff 0 ρ) ρ = 0 ∧ e t ∈ pastSpan (maProc (armaCoeff 0 ρ) e) t := by
+  refine ⟨by rw [ma1_aRho]; nlinarith, ?_⟩
+  set s := maProc (armaCoeff 0 ρ) e with hs
+  have hsm : ∀ τ, s τ = e τ - ρ • e (τ - 1) := fun τ => maProc_armaCoeff_zero he ρ τ
+  -- partial sums of the filter
+  have hP : ∀ m : ℕ, ∑ k ∈ Finset.range (m + 1), ρ ^ k • s (t - k) =
+      e t - ρ ^ (m + 1) • e (t - 1 - m) := by
+    intro m
+    induction m with
+    | zero => simp [hsm]
+    | succ m ih =>
+      rw [Finset.sum_range_succ, ih, hsm, smul_sub, smul_smul, ← pow_succ,
+        show t - ((m + 1 : ℕ) : ℤ) = t - 1 - m by push_cast; ring,
+        show t - 1 - (m : ℤ) - 1 = t - 1 - ((m + 1 : ℕ) : ℤ) by push_cast; ring]
+      abel
+  set y : ℕ → H := fun n => ((n : ℝ) + 1)⁻¹ •
+    ∑ m ∈ Finset.range (n + 1), ∑ k ∈ Finset.range (m + 1), ρ ^ k • s (t - k) with hy
+  have hymem : ∀ n, y n ∈ pastSpan s t := fun n =>
+    Submodule.smul_mem _ _ (Submodule.sum_mem _ fun m _ => Submodule.sum_mem _ fun k _ =>
+      Submodule.smul_mem _ _ (mem_pastSpan_self s t k))
+  have hdiff : ∀ n, e t - y n = ((n : ℝ) + 1)⁻¹ •
+      ∑ m ∈ Finset.range (n + 1), ρ ^ (m + 1) • e (t - 1 - m) := by
+    intro n
+    have hn : ((n : ℝ) + 1) ≠ 0 := by positivity
+    simp only [hy, hP, Finset.sum_sub_distrib, Finset.sum_const, Finset.card_range]
+    rw [smul_sub, ← Nat.cast_smul_eq_nsmul ℝ, smul_smul, Nat.cast_add, Nat.cast_one,
+      inv_mul_cancel₀ hn, one_smul]
+    abel
+  have hnorm : ∀ n, ‖e t - y n‖ ^ 2 = σ2 / ((n : ℝ) + 1) := by
+    intro n
+    have hn : ((n : ℝ) + 1) ≠ 0 := by positivity
+    rw [hdiff, ← real_inner_self_eq_norm_sq, real_inner_smul_left, real_inner_smul_right,
+      inner_sum_e he (fun m => ρ ^ (m + 1)) (fun m => t - 1 - m)
+        (fun m m' h => by simpa using h) (n + 1)]
+    have : ∀ m ∈ Finset.range (n + 1), (ρ ^ (m + 1)) ^ 2 = 1 := fun m _ => by
+      rw [← pow_mul, mul_comm, pow_mul, hρ, one_pow]
+    rw [Finset.sum_congr rfl this, Finset.sum_const, Finset.card_range, nsmul_eq_mul, mul_one]
+    push_cast
+    field_simp
+  have hlim : Tendsto y atTop (𝓝 (e t)) := by
+    rw [tendsto_iff_norm_sub_tendsto_zero]
+    have h1 : Tendsto (fun n : ℕ => σ2 / ((n : ℝ) + 1)) atTop (𝓝 0) :=
+      tendsto_const_div_atTop_nhds_zero_nat σ2 |>.comp (tendsto_add_atTop_nat 1) |>.congr
+        fun n => by simp only [Function.comp_apply, Nat.cast_add, Nat.cast_one]
+    have h2 := (Real.continuous_sqrt.tendsto 0).comp h1
+    rw [Real.sqrt_zero] at h2
+    refine h2.congr fun n => ?_
+    simp only [Function.comp_apply]
+    rw [← hnorm, norm_sub_rev, Real.sqrt_sq (norm_nonneg _)]
+  exact (Submodule.isClosed_topologicalClosure _).mem_of_tendsto hlim
+    (Eventually.of_forall hymem)
+
+/-! ### The general (factorised) Wold statement -/
+
+/-- Cochrane (2023), Online Appendix eq. (2.17), p. 600: the coefficients of `(1 − θL)g(L)`,
+`a₀ = g₀`, `a_{k+1} = g_{k+1} − θg_k`. -/
+def factorCoeff (θ : ℝ) (g : ℕ → ℝ) : ℕ → ℝ
+  | 0 => g 0
+  | k + 1 => g (k + 1) - θ * g k
+
+/-- Cochrane (2023), Online Appendix eq. (2.17), p. 600 (tool): `(1 − θL)g(L)` is the product of
+the lag polynomials `g(L)` and `1 − θL` (as power series). -/
+theorem mk_factorCoeff (θ : ℝ) (g : ℕ → ℝ) :
+    PowerSeries.mk (factorCoeff θ g) = PowerSeries.mk g * PowerSeries.mk (armaCoeff 0 θ) := by
+  rw [← mk_cconv]
+  congr 1
+  funext n
+  rcases n with _ | m
+  · simp [factorCoeff, cconv, armaCoeff]
+  · rw [cconv, Finset.sum_range_succ, Finset.sum_range_succ, Nat.sub_self,
+      show m + 1 - m = 0 + 1 by omega, factorCoeff]
+    have h0 : ∑ k ∈ Finset.range m, g k * armaCoeff 0 θ (m + 1 - k) = 0 :=
+      Finset.sum_eq_zero fun k hk => by
+        have hk' : m + 1 - k = (m - k) + 1 := by rw [Finset.mem_range] at hk; omega
+        have hk'' : m - k ≠ 0 := by rw [Finset.mem_range] at hk; omega
+        rw [hk', armaCoeff, zero_pow hk'', mul_zero, mul_zero]
+    rw [h0]
+    simp [armaCoeff]
+    ring
+
+/-- Cochrane (2023), Online Appendix eq. (2.17), p. 600 (tool): `(1 − θL)g(L)` has absolutely
+summable coefficients when `g` does. -/
+theorem summable_factorCoeff (θ : ℝ) {g : ℕ → ℝ} (hg : Summable (fun k => |g k|)) :
+    Summable (fun k => |factorCoeff θ g k|) := by
+  rw [← summable_nat_add_iff 1]
+  refine Summable.of_nonneg_of_le (fun _ => abs_nonneg _) (fun k => ?_)
+    (((summable_nat_add_iff 1).mpr hg).add (hg.mul_left |θ|))
+  change |g (k + 1) - θ * g k| ≤ |g (k + 1)| + |θ| * |g k|
+  calc |g (k + 1) - θ * g k| ≤ |g (k + 1)| + |θ * g k| := abs_sub _ _
+    _ = |g (k + 1)| + |θ| * |g k| := by rw [abs_mul]
+
+/-- Cochrane (2023), Online Appendix eq. (2.17), p. 600: `a(z) = (1 − θz)g(z)` for `|z| ≤ 1`. -/
+theorem gen_factorCoeff (θ : ℝ) {g : ℕ → ℝ} (hg : Summable (fun k => |g k|)) {z : ℝ}
+    (hz : |z| ≤ 1) : gen (factorCoeff θ g) z = (1 - θ * z) * gen g z := by
+  have hgz : Summable (fun j => g j * z ^ j) :=
+    Summable.of_norm_bounded hg fun j => by
+      rw [Real.norm_eq_abs, abs_mul, abs_pow]
+      exact mul_le_of_le_one_right (abs_nonneg _) (pow_le_one₀ (abs_nonneg _) hz)
+  have h1 : HasSum (fun j => g (j + 1) * z ^ (j + 1)) (gen g z - g 0) := by
+    have := (hasSum_nat_add_iff' 1).mpr hgz.hasSum
+    simpa [gen] using this
+  have h2 : HasSum (fun j => factorCoeff θ g (j + 1) * z ^ (j + 1))
+      (gen g z - g 0 - θ * z * gen g z) := by
+    refine (h1.sub (hgz.hasSum.mul_left (θ * z))).congr_fun fun j => ?_
+    simp only [factorCoeff, pow_succ]
+    ring
+  have h3 : HasSum (fun j => factorCoeff θ g j * z ^ j)
+      (factorCoeff θ g 0 + (gen g z - g 0 - θ * z * gen g z)) := by
+    rw [← hasSum_nat_add_iff' 1]
+    simpa using h2
+  rw [gen, h3.tsum_eq, factorCoeff]
+  ring
+
+/-- Cochrane (2023), p. 600 (tool): an absolutely summable inverse of `g(L)` turns into the power
+series identity `h(L)g(L) = 1`. -/
+theorem mk_mul_eq_one {h g : ℕ → ℝ}
+    (hconv : ∀ n, ∑ k ∈ Finset.range (n + 1), h k * g (n - k) = if n = 0 then 1 else 0) :
+    PowerSeries.mk h * PowerSeries.mk g = 1 := by
+  rw [← mk_cconv]
+  ext n
+  rw [PowerSeries.coeff_mk, PowerSeries.coeff_one, cconv, hconv]
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): `∑ θ⁻ᵏ Lᵏ (1 − θ⁻¹L) = 1`. -/
+theorem mk_geom_factor (θ : ℝ) :
+    PowerSeries.mk (fun k => (θ⁻¹) ^ k) * PowerSeries.mk (armaCoeff 0 θ⁻¹) = 1 := by
+  rw [← mk_factorCoeff]
+  ext n
+  rw [PowerSeries.coeff_mk, PowerSeries.coeff_one]
+  rcases n with _ | m
+  · simp [factorCoeff]
+  · simp only [factorCoeff, pow_succ, Nat.add_one_ne_zero, ↓reduceIte]
+    ring
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): the coefficients of a power series determine
+the sequence. -/
+theorem eq_of_mk_eq {b c : ℕ → ℝ} (h : PowerSeries.mk b = PowerSeries.mk c) : b = c := by
+  funext n
+  have := congrArg (PowerSeries.coeff n) h
+  simpa using this
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 600 (`(1 − ρ⁻¹L)` "blows up going backwards"; "if
+you do run an autoregression you recover a representation that is invertible, by the Wold
+decomposition theorem"), **the factorised claim made precise**: let `s_t = a(L)e_t` with
+`a(L) = (1 − θL)g(L)` (the book's (2.17) with `θ = ρ⁻¹`), `|θ| > 1`, `g₀ = 1`, and `g`
+absolutely summable with an absolutely summable inverse (all other roots outside the unit
+circle, the book's "appropriately less than one"). Then, with `m_t = e_t − θe_{t−1}` and
+`w_t = ∑θ⁻ᵏm_{t−k}`:
+* `s_t − w_t` is the projection of `s_t` on its own past (`w` is the autoregression's error);
+* `w` is white noise with variance `θ²σ²`;
+* `s_t = ∑ ã_n w_{t−n}` with `ã(L) = (1 − θ⁻¹L)g(L)`: the root `θ` is flipped to `θ⁻¹ = ρ`;
+* `a(θ⁻¹) = 0` but the fitted `ã(θ⁻¹) = (1 − θ⁻²)g(θ⁻¹) ≠ 0` ("the resulting estimate of
+  `a(L)` does not have `a(ρ) = 0` even in infinite data");
+* the structural shock is not in the closed span of the surplus history, and `w_t ≠ e_t`. -/
+theorem wold_factor [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    (hσ : σ2 ≠ 0) {θ : ℝ} (hθ : 1 < |θ|) {g : ℕ → ℝ} (hg : Summable (fun k => |g k|))
+    (hg0 : g 0 = 1) (hrec : Recoverable g) (t : ℤ) :
+    (haveI : (pastSpan (maProc (factorCoeff θ g) e) (t - 1)).HasOrthogonalProjection := by
+        unfold pastSpan; infer_instance
+      (pastSpan (maProc (factorCoeff θ g) e) (t - 1)).starProjection
+        (maProc (factorCoeff θ g) e t)) =
+      maProc (factorCoeff θ g) e t - woldInnov θ (maOne θ e) t ∧
+    ⟪woldInnov θ (maOne θ e) t, woldInnov θ (maOne θ e) t⟫ = θ ^ 2 * σ2 ∧
+    (∀ u, u < t → ⟪woldInnov θ (maOne θ e) t, woldInnov θ (maOne θ e) u⟫ = 0) ∧
+    HasSum (fun n : ℕ => factorCoeff θ⁻¹ g n • woldInnov θ (maOne θ e) (t - n))
+      (maProc (factorCoeff θ g) e t) ∧
+    gen (factorCoeff θ g) θ⁻¹ = 0 ∧
+    gen (factorCoeff θ⁻¹ g) θ⁻¹ = (1 - θ⁻¹ ^ 2) * gen g θ⁻¹ ∧
+    gen (factorCoeff θ⁻¹ g) θ⁻¹ ≠ 0 ∧
+    e t ∉ pastSpan (maProc (factorCoeff θ g) e) t ∧
+    woldInnov θ (maOne θ e) t ≠ e t := by
+  obtain ⟨h, hh, hconv⟩ := hrec
+  have hθ0 : θ ≠ 0 := by intro h0; rw [h0, abs_zero] at hθ; linarith
+  have hq : |θ⁻¹| < 1 := by rw [abs_inv]; exact inv_lt_one_of_one_lt₀ hθ
+  set a := factorCoeff θ g with ha_def
+  have ha := summable_factorCoeff θ hg
+  have hd := summable_abs_armaCoeff (show |(0 : ℝ)| < 1 by simp) θ
+  set s := maProc a e with hs
+  have hroot : gen a θ⁻¹ = 0 := by
+    rw [gen_factorCoeff θ hg hq.le, mul_inv_cancel₀ hθ0, sub_self, zero_mul]
+  have ha0 : a 0 = 1 := hg0
+  have hh0 : h 0 = 1 := by
+    have := hconv 0
+    simpa [hg0] using this
+  -- `h(L)s_t = m_t`
+  have hha : cconv h a = armaCoeff 0 θ := by
+    refine eq_of_mk_eq ?_
+    rw [mk_cconv, ha_def, mk_factorCoeff, ← mul_assoc, mk_mul_eq_one hconv, one_mul]
+  have hm : ∀ τ, maOne θ e τ - s τ ∈ pastSpan s (τ - 1) := by
+    intro τ
+    have hf := hasSum_filter_maProc he hh ha τ
+    rw [hha, maProc_armaCoeff_zero he] at hf
+    rw [← hasSum_nat_add_iff' 1] at hf
+    simp only [Finset.range_one, Finset.sum_singleton, hh0, one_smul, Nat.cast_zero,
+      sub_zero] at hf
+    refine hasSum_mem_pastSpan hf fun k => Submodule.smul_mem _ _ ?_
+    rw [show τ - ((k + 1 : ℕ) : ℤ) = τ - 1 - k by push_cast; ring]
+    exact mem_pastSpan_self s (τ - 1) k
+  obtain ⟨-, hsub, hproj, hnorm, hwhite, -, hnot⟩ :=
+    wold_innovation he hσ hθ ha ha0 hroot hm t
+  -- `w = (θ⁻ᵏ)(L)(1 − θL)e`
+  have hgeo : Summable (fun k => |(θ⁻¹) ^ k|) := by
+    simpa [abs_pow] using summable_geometric_of_lt_one (abs_nonneg _) hq
+  have hw : ∀ τ, woldInnov θ (maOne θ e) τ =
+      maProc (cconv (fun k => (θ⁻¹) ^ k) (armaCoeff 0 θ)) e τ := by
+    intro τ
+    refine (woldInnov_hasSum he hθ τ).unique ?_
+    have := hasSum_filter_maProc he hgeo hd τ
+    refine this.congr_fun fun k => ?_
+    rw [maProc_armaCoeff_zero he]
+  -- the fitted representation
+  have hfit : HasSum (fun n : ℕ => factorCoeff θ⁻¹ g n • woldInnov θ (maOne θ e) (t - n))
+      (s t) := by
+    have hft := hasSum_filter_maProc he (summable_factorCoeff θ⁻¹ hg)
+      (summable_cconv hgeo hd) t
+    have hcoef : cconv (factorCoeff θ⁻¹ g) (cconv (fun k => (θ⁻¹) ^ k) (armaCoeff 0 θ)) = a := by
+      refine eq_of_mk_eq ?_
+      rw [mk_cconv, mk_cconv, mk_factorCoeff, ha_def, mk_factorCoeff,
+        show PowerSeries.mk g * PowerSeries.mk (armaCoeff 0 θ⁻¹) *
+          (PowerSeries.mk (fun k => (θ⁻¹) ^ k) * PowerSeries.mk (armaCoeff 0 θ)) =
+          PowerSeries.mk g * (PowerSeries.mk (fun k => (θ⁻¹) ^ k) *
+            PowerSeries.mk (armaCoeff 0 θ⁻¹)) * PowerSeries.mk (armaCoeff 0 θ) by ring,
+        mk_geom_factor θ, mul_one]
+    rw [hcoef] at hft
+    exact hft.congr_fun fun n => by rw [hw]
+  have hfitted : gen (factorCoeff θ⁻¹ g) θ⁻¹ = (1 - θ⁻¹ ^ 2) * gen g θ⁻¹ := by
+    rw [gen_factorCoeff θ⁻¹ hg hq.le, sq]
+  have hgne : gen g θ⁻¹ ≠ 0 := by
+    intro h0
+    refine genFnC_ne_zero_of_recoverable hg ⟨h, hh, hconv⟩ (z := ((θ⁻¹ : ℝ) : ℂ)) ?_ ?_
+    · rw [Complex.norm_real, Real.norm_eq_abs]; exact hq.le
+    · rw [genFnC_ofReal, h0, Complex.ofReal_zero]
+  have hsq : (1 : ℝ) - θ⁻¹ ^ 2 ≠ 0 := by
+    have : θ⁻¹ ^ 2 < 1 := by
+      rw [← sq_abs]
+      exact pow_lt_one₀ (abs_nonneg _) hq two_ne_zero
+    linarith
+  have hwne : woldInnov θ (maOne θ e) t ≠ e t := by
+    intro hwe
+    have hst : s t ∈ pastSpan s t := by simpa using mem_pastSpan_self s t 0
+    have hsub' := pastSpan_mono s (show t - 1 ≤ t by omega) hsub
+    have : e t ∈ pastSpan s t := by
+      rw [← hwe]
+      have := Submodule.sub_mem _ hst hsub'
+      convert this using 1
+      simp only [hs, ha_def]
+      abel
+    exact hnot this
+  exact ⟨hproj, hnorm, hwhite, hfit, hroot, hfitted, by rw [hfitted]; exact mul_ne_zero hsq hgne,
+    hnot, hwne⟩
+
+/-! ### Debt: the ex-post present value, and recovering the shock from the debt history -/
+
+/-- Cochrane (2023), Online Appendix eq. (2.19), p. 601 (tool): for `|ρ| < 1` the Hansen–Sargent
+coefficients `c_k = ∑ⱼ ρʲ a_{k+1+j}` are absolutely summable, so debt `v_t = ∑ c_k e_{t−k}` is a
+moving average. -/
+theorem summable_abs_hsCoeff {a : ℕ → ℝ} (ha : Summable (fun k => |a k|)) {ρ : ℝ}
+    (hρ : |ρ| < 1) : Summable (fun k => |hsCoeff a ρ k|) := by
+  set F : ℕ × ℕ → ℝ := fun p => |ρ| ^ p.2 * |a (p.1 + 1 + p.2)| with hF
+  have hF0 : 0 ≤ F := fun p => by positivity
+  have hsw : Summable (F ∘ Prod.swap) := by
+    have h0 : 0 ≤ F ∘ Prod.swap := fun p => hF0 p.swap
+    rw [summable_prod_of_nonneg h0]
+    have hj : ∀ j : ℕ, Summable fun k : ℕ => |ρ| ^ j * |a (k + 1 + j)| := fun j =>
+      ((summable_nat_add_iff (f := fun i => |a i|) (1 + j)).mpr ha).mul_left (|ρ| ^ j) |>.congr
+        fun k => by simp only [add_assoc]
+    refine ⟨hj, ?_⟩
+    refine Summable.of_nonneg_of_le (fun j => tsum_nonneg fun k => h0 _) (fun j => ?_)
+      ((summable_geometric_of_lt_one (abs_nonneg ρ) hρ).mul_right (∑' i, |a i|))
+    change ∑' k, |ρ| ^ j * |a (k + 1 + j)| ≤ |ρ| ^ j * ∑' i, |a i|
+    rw [tsum_mul_left]
+    refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+    calc ∑' k, |a (k + 1 + j)| = ∑' k, |a (k + (1 + j))| :=
+          tsum_congr fun k => by rw [add_assoc]
+      _ ≤ ∑' i, |a i| := by
+          rw [← ha.sum_add_tsum_nat_add (1 + j)]
+          exact le_add_of_nonneg_left (Finset.sum_nonneg fun _ _ => abs_nonneg _)
+  have hFs : Summable F := (Equiv.prodComm ℕ ℕ).summable_iff.mp hsw
+  have hk := ((summable_prod_of_nonneg hF0).mp hFs).2
+  refine Summable.of_nonneg_of_le (fun _ => abs_nonneg _) (fun k => ?_) hk
+  have hsk : Summable fun j => ‖ρ ^ j * a (k + 1 + j)‖ :=
+    ((summable_prod_of_nonneg hF0).mp hFs).1 k |>.congr fun j => by
+      simp [hF]
+  calc |hsCoeff a ρ k| = ‖∑' j, ρ ^ j * a (k + 1 + j)‖ := by rw [Real.norm_eq_abs]; rfl
+    _ ≤ ∑' j, ‖ρ ^ j * a (k + 1 + j)‖ := norm_tsum_le_tsum_norm hsk
+    _ = ∑' j, F (k, j) := tsum_congr fun j => by simp [hF]
+
+/-- Cochrane (2023), Online Appendix eq. (2.18), p. 600 ("debt equals the ex-post as well as
+expected present value of surpluses"), in the Hilbert space: if `a(ρ) = 0`, `|ρ| < 1`, then
+`∑_{j≥0} ρʲ s_{t+1+j}` converges to the debt `v_t = ∑ c_k e_{t−k}` (Hansen–Sargent `c`). -/
+theorem debt_hasSum_expost [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    {a : ℕ → ℝ} (ha : Summable (fun k => |a k|)) {ρ : ℝ} (hρ : |ρ| < 1) (h0 : gen a ρ = 0)
+    (t : ℤ) :
+    HasSum (fun j : ℕ => ρ ^ j • maProc a e (t + 1 + j)) (maProc (hsCoeff a ρ) e t) := by
+  have hc := summable_abs_hsCoeff ha hρ
+  have hsum : Summable (fun j : ℕ => ρ ^ j • maProc a e (t + 1 + j)) := by
+    refine Summable.of_norm_bounded
+      ((summable_geometric_of_lt_one (abs_nonneg ρ) hρ).mul_right ((∑' k, |a k|) * ‖e 0‖))
+      fun j => ?_
+    rw [norm_smul, Real.norm_eq_abs, abs_pow]
+    exact mul_le_mul_of_nonneg_left (norm_maProc_le he ha _) (by positivity)
+  have hX := hsum.hasSum
+  convert hX using 1
+  refine eq_of_inner_e (maProc_mem_eSpan he hc t)
+    (hasSum_mem_eSpan hX fun j => Submodule.smul_mem _ _ (maProc_mem_eSpan he ha _))
+    fun u => ?_
+  refine ((inner_hasSum_right hX (e u)).unique ?_).symm
+  rw [inner_e_maProc_int he hc]
+  by_cases hu : u ≤ t
+  · simp only [hu, ↓reduceIte]
+    obtain ⟨n, rfl⟩ : ∃ n : ℕ, u = t - n := ⟨(t - u).toNat, by omega⟩
+    have hn : (t - (t - (n : ℤ))).toNat = n := by omega
+    rw [hn, hsCoeff]
+    refine ((summable_hs ha hρ.le n).hasSum.mul_left σ2).congr_fun fun j => ?_
+    rw [real_inner_smul_right, inner_e_maProc_int he ha]
+    have h1 : t - (n : ℤ) ≤ t + 1 + j := by omega
+    have h2 : (t + 1 + (j : ℤ) - (t - n)).toNat = n + 1 + j := by omega
+    simp only [h1, ↓reduceIte, h2]
+    ring
+  · simp only [hu, ↓reduceIte]
+    obtain ⟨n, rfl⟩ : ∃ n : ℕ, u = t + 1 + n := ⟨(u - t - 1).toNat, by omega⟩
+    rw [← hasSum_nat_add_iff' n]
+    have hz : ∑ i ∈ Finset.range n, ⟪e (t + 1 + n), ρ ^ i • maProc a e (t + 1 + i)⟫ = 0 :=
+      Finset.sum_eq_zero fun i hi => by
+        rw [real_inner_smul_right, inner_e_maProc_int he ha]
+        have : ¬ t + 1 + (n : ℤ) ≤ t + 1 + i := by rw [Finset.mem_range] at hi; omega
+        simp [this]
+    rw [hz, sub_zero]
+    have hsa : Summable (fun i => a i * ρ ^ i) :=
+      Summable.of_norm_bounded ha fun i => by
+        rw [Real.norm_eq_abs, abs_mul, abs_pow]
+        exact mul_le_of_le_one_right (abs_nonneg _) (pow_le_one₀ (abs_nonneg _) hρ.le)
+    have := hsa.hasSum.mul_left (σ2 * ρ ^ n)
+    rw [← gen, h0, mul_zero] at this
+    refine this.congr_fun fun i => ?_
+    rw [real_inner_smul_right, inner_e_maProc_int he ha]
+    have h1 : t + 1 + (n : ℤ) ≤ t + 1 + ((i + n : ℕ) : ℤ) := by push_cast; omega
+    have h2 : (t + 1 + ((i + n : ℕ) : ℤ) - (t + 1 + n)).toNat = i := by push_cast; omega
+    simp only [h1, ↓reduceIte, h2]
+    ring
+
+/-- Cochrane (2023), p. 102 (tool): the moving average with coefficients `δ₀ = 1`, `δ_k = 0`
+otherwise is the shock itself. -/
+theorem maProc_delta [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2) (t : ℤ) :
+    maProc (fun n => if n = 0 then 1 else 0) e t = e t := by
+  have hs : Summable (fun n : ℕ => |(if n = 0 then (1 : ℝ) else 0)|) :=
+    summable_of_ne_finset_zero (s := {0}) fun n hn => by simp_all
+  refine (maProc_hasSum he hs t).unique ?_
+  convert hasSum_ite_eq (0 : ℕ) (e t) using 1
+  funext n
+  by_cases hn : n = 0 <;> simp [hn]
+
+/-- Cochrane (2023), Online Appendix eq. (2.20), p. 601: with `a(L) = (1 − θL)g(L)`, `θ = ρ⁻¹`,
+the Hansen–Sargent debt coefficients are `c_k = −θg_k`: "the non-invertible root cancels". -/
+theorem hsCoeff_factor {θ : ℝ} (hθ : 1 < |θ|) {g : ℕ → ℝ} (hg : Summable (fun k => |g k|)) :
+    hsCoeff (factorCoeff θ g) θ⁻¹ = fun k => -θ * g k := by
+  have hθ0 : θ ≠ 0 := by intro h0; rw [h0, abs_zero] at hθ; linarith
+  have hq : |θ⁻¹| ≤ 1 := by rw [abs_inv]; exact inv_le_one_of_one_le₀ hθ.le
+  have := (factor_value (a := factorCoeff θ g) hg (inv_ne_zero hθ0) hq rfl (fun k => by
+    simp only [factorCoeff, inv_inv])).2
+  funext k
+  rw [this k, inv_inv]
+
+/-- Cochrane (2023), Online Appendix eq. (2.20), p. 601 ("thus, one can recover the structural
+shock to surpluses from an autoregression of debt on past debt"): if `a(L) = (1 − θL)g(L)`,
+`|θ| > 1`, and `g` has an absolutely summable inverse `h`, then `e_t = −θ⁻¹∑_k h_k v_{t−k}`: the
+shock lies in the closed span of current and past debt. -/
+theorem shock_mem_debtSpan [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    {θ : ℝ} (hθ : 1 < |θ|) {g : ℕ → ℝ} (hg : Summable (fun k => |g k|)) (hrec : Recoverable g)
+    (t : ℤ) : e t ∈ pastSpan (maProc (hsCoeff (factorCoeff θ g) θ⁻¹) e) t := by
+  obtain ⟨h, hh, hconv⟩ := hrec
+  have hθ0 : θ ≠ 0 := by intro h0; rw [h0, abs_zero] at hθ; linarith
+  rw [hsCoeff_factor hθ hg]
+  have hcg : Summable (fun k => |-θ * g k|) := (hg.mul_left |θ|).congr fun k => by
+    rw [abs_mul, abs_neg]
+  have hb : Summable (fun k => |-θ⁻¹ * h k|) := (hh.mul_left |θ⁻¹|).congr fun k => by
+    rw [abs_mul, abs_neg]
+  have hf := hasSum_filter_maProc he hb hcg t
+  have hco : cconv (fun k => -θ⁻¹ * h k) (fun k => -θ * g k) =
+      fun n => if n = 0 then 1 else 0 := by
+    funext n
+    rw [cconv, ← hconv n]
+    refine Finset.sum_congr rfl fun k _ => ?_
+    field_simp
+  rw [hco, maProc_delta he] at hf
+  refine hasSum_mem_pastSpan hf fun k => Submodule.smul_mem _ _ (mem_pastSpan_self _ t k)
+
+/-- Cochrane (2023), Online Appendix p. 601 ("the debt is an invertible moving average of the
+structural shock. Thus, one can recover the structural shock … from an autoregression of debt on
+past debt"), **correction**: this needs the other roots of `a(L)` outside the unit circle. With
+`a(L) = (1 − θL)(1 − 2L)`, `|θ| > 1`, the government repays (`a(θ⁻¹) = 0`) and debt is
+`v_t = −θ(1 − 2L)e_t`, a function of current and past shocks, but the shock is NOT in the closed
+span of current and past debt (the debt MA has the root `1/2` inside the disc). -/
+theorem debt_not_invertible_example [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ}
+    (he : WhiteNoise e σ2) (hσ : σ2 ≠ 0) {θ : ℝ} (hθ : 1 < |θ|) (t : ℤ) :
+    gen (factorCoeff θ (armaCoeff 0 2)) θ⁻¹ = 0 ∧
+    hsCoeff (factorCoeff θ (armaCoeff 0 2)) θ⁻¹ = (fun k => -θ * armaCoeff 0 2 k) ∧
+    e t ∉ pastSpan (maProc (hsCoeff (factorCoeff θ (armaCoeff 0 2)) θ⁻¹) e) t := by
+  have hθ0 : θ ≠ 0 := by intro h0; rw [h0, abs_zero] at hθ; linarith
+  have hq : |θ⁻¹| < 1 := by rw [abs_inv]; exact inv_lt_one_of_one_lt₀ hθ
+  have hg := summable_abs_armaCoeff (show |(0 : ℝ)| < 1 by simp) 2
+  have hhs := hsCoeff_factor hθ hg
+  refine ⟨by rw [gen_factorCoeff θ hg hq.le, mul_inv_cancel₀ hθ0, sub_self, zero_mul], hhs, ?_⟩
+  rw [hhs]
+  have hcg : Summable (fun k => |-θ * armaCoeff 0 2 k|) := (hg.mul_left |θ|).congr fun k => by
+    rw [abs_mul, abs_neg]
+  have hroot : gen (fun k => -θ * armaCoeff 0 2 k) (1 / 2) = 0 := by
+    have h1 : gen (fun k => -θ * armaCoeff 0 2 k) (1 / 2) =
+        -θ * gen (armaCoeff 0 2) (1 / 2) := by
+      rw [Cochrane.DebtDeficitsInflation.Innovations.gen,
+        Cochrane.DebtDeficitsInflation.Innovations.gen, ← tsum_mul_left]
+      exact tsum_congr fun j => by ring
+    rw [h1, ma1_aRho]
+    norm_num
+  exact not_mem_pastSpan_of_aRho_eq_zero he hσ hcg (by norm_num) hroot t
+
+/-! ### Granger causality: debt helps forecast surpluses -/
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool; stationarity of a moving average in white
+noise): white noise with `σ² ≠ 0` has a unitary time shift `U e_t = e_{t+1}` of the whole
+Hilbert space (extend the normalised shocks to a Hilbert basis and shift them, fixing the rest). -/
+theorem exists_shift [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    (hσ : σ2 ≠ 0) : ∃ U : H ≃ₗᵢ[ℝ] H, ∀ t, U (e t) = e (t + 1) := by
+  classical
+  have hσn : σ2 = ‖e 0‖ ^ 2 := by
+    have := he 0 0
+    simp only [↓reduceIte, real_inner_self_eq_norm_sq] at this
+    exact this.symm
+  have hn : ‖e 0‖ ≠ 0 := by
+    intro h0; rw [h0] at hσn; exact hσ (by simpa using hσn)
+  set ê : ℤ → H := fun t => ‖e 0‖⁻¹ • e t with hê
+  have hon : Orthonormal ℝ ê := by
+    rw [orthonormal_iff_ite]
+    intro i j
+    simp only [hê, real_inner_smul_left, real_inner_smul_right]
+    rw [he i j]
+    split_ifs
+    · rw [hσn]; field_simp
+    · ring
+  have hinj : Function.Injective ê := hon.linearIndependent.injective
+  have hsub : Orthonormal ℝ (Subtype.val : Set.range ê → H) :=
+    (orthonormal_subtype_range hinj).2 hon
+  obtain ⟨w, b, hsw, hb⟩ := hsub.exists_hilbertBasis_extension
+  have hmem : ∀ t, ê t ∈ w := fun t => hsw ⟨t, rfl⟩
+  have hch : ∀ t (h : ∃ s, ê s = ê t), h.choose = t := fun t h => hinj h.choose_spec
+  let f : w → w := fun x => if h : ∃ t, ê t = x then ⟨ê (h.choose + 1), hmem _⟩ else x
+  let g : w → w := fun x => if h : ∃ t, ê t = x then ⟨ê (h.choose - 1), hmem _⟩ else x
+  have hf : ∀ t, f ⟨ê t, hmem t⟩ = ⟨ê (t + 1), hmem _⟩ := fun t => by
+    have h : ∃ s, ê s = ê t := ⟨t, rfl⟩
+    simp only [f, h, ↓reduceDIte, hch t h]
+  have hg : ∀ t, g ⟨ê t, hmem t⟩ = ⟨ê (t - 1), hmem _⟩ := fun t => by
+    have h : ∃ s, ê s = ê t := ⟨t, rfl⟩
+    simp only [g, h, ↓reduceDIte, hch t h]
+  have hgf : ∀ x, g (f x) = x := fun x => by
+    by_cases h : ∃ t, ê t = x
+    · obtain ⟨t, ht⟩ := h
+      obtain rfl : x = ⟨ê t, hmem t⟩ := Subtype.ext ht.symm
+      rw [hf, hg]
+      simp
+    · simp only [f, g, h, ↓reduceDIte]
+  have hfg : ∀ x, f (g x) = x := fun x => by
+    by_cases h : ∃ t, ê t = x
+    · obtain ⟨t, ht⟩ := h
+      obtain rfl : x = ⟨ê t, hmem t⟩ := Subtype.ext ht.symm
+      rw [hg, hf]
+      simp
+    · simp only [f, g, h, ↓reduceDIte]
+  let σ : w ≃ w := ⟨f, g, hgf, hfg⟩
+  have hb' : Orthonormal ℝ (b ∘ σ) := b.orthonormal.comp σ σ.injective
+  have hsp : ⊤ ≤ (Submodule.span ℝ (Set.range (b ∘ σ))).topologicalClosure := by
+    rw [Set.range_comp, σ.range_eq_univ, Set.image_univ, b.dense_span]
+  refine ⟨b.repr.trans (HilbertBasis.mk hb' hsp).repr.symm, fun t => ?_⟩
+  have key : ∀ i, (b.repr.trans (HilbertBasis.mk hb' hsp).repr.symm) (b i) = b (σ i) := by
+    intro i
+    rw [LinearIsometryEquiv.trans_apply, b.repr_self, HilbertBasis.repr_symm_single,
+      HilbertBasis.coe_mk]
+    rfl
+  have hbi : ∀ τ, b ⟨ê τ, hmem τ⟩ = ê τ := fun τ => by rw [hb]
+  have het : ∀ τ, e τ = ‖e 0‖ • ê τ := fun τ => by
+    rw [hê, smul_smul, mul_inv_cancel₀ hn, one_smul]
+  rw [het, map_smul, ← hbi, key]
+  change ‖e 0‖ • b (f ⟨ê t, hmem t⟩) = e (t + 1)
+  rw [hf, hbi, het (t + 1)]
+
+/-- Cochrane (2023), Online Appendix p. 601 ("a VAR including surplus and value of debt"): the
+closed linear span of current and past surpluses AND current and past debt. -/
+noncomputable def jointSpan (s v : ℤ → H) (t : ℤ) : Submodule ℝ H :=
+  (Submodule.span ℝ (Set.range (fun k : ℕ => s (t - k)) ∪
+    Set.range (fun k : ℕ => v (t - k)))).topologicalClosure
+
+/-- Cochrane (2023), p. 601 (tool): the surplus history is part of the VAR's information. -/
+theorem pastSpan_le_jointSpan (s v : ℤ → H) (t : ℤ) : pastSpan s t ≤ jointSpan s v t :=
+  Submodule.topologicalClosure_mono (Submodule.span_mono Set.subset_union_left)
+
+/-- Cochrane (2023), p. 601 (tool): the debt history is part of the VAR's information. -/
+theorem debt_mem_jointSpan (s v : ℤ → H) (t : ℤ) (k : ℕ) : v (t - k) ∈ jointSpan s v t :=
+  Submodule.le_topologicalClosure _ (Submodule.subset_span (Or.inr ⟨k, rfl⟩))
+
+/-- Cochrane (2023), p. 601 (tool): the closed span of the debt history is part of the VAR's
+information. -/
+theorem pastSpan_debt_le_jointSpan (s v : ℤ → H) (t : ℤ) : pastSpan v t ≤ jointSpan s v t :=
+  Submodule.topologicalClosure_mono (Submodule.span_mono Set.subset_union_right)
+
+/-- Cochrane (2023), p. 597 (tool): a continuous linear map sending the generators of one past
+span to those of another maps the closed spans into each other. -/
+theorem map_pastSpan (L : H →L[ℝ] H) {s s' : ℤ → H} {t t' : ℤ}
+    (h : ∀ k : ℕ, L (s (t - k)) = s' (t' - k)) {x : H} (hx : x ∈ pastSpan s t) :
+    L x ∈ pastSpan s' t' := by
+  have hle : pastSpan s t ≤ (pastSpan s' t').comap (L : H →ₗ[ℝ] H) := by
+    refine Submodule.topologicalClosure_minimal _ (Submodule.span_le.mpr ?_) ?_
+    · rintro _ ⟨k, rfl⟩
+      change L (s (t - k)) ∈ pastSpan s' t'
+      rw [h k]
+      exact mem_pastSpan_self s' t' k
+    · exact (Submodule.isClosed_topologicalClosure _).preimage L.continuous
+  exact hle hx
+
+/-- Cochrane (2023), Online Appendix eq. (2.21), p. 601 ("VAR shocks to debt `ε_t` help to forecast
+surpluses, so debt Granger-causes surpluses"), for an ARBITRARY absolutely summable moving
+average: let `s_t = a(L)e_t` with `a₀ ≠ 0`, `a(ρ) = 0`, `|ρ| < 1`, and let `v_t = ∑c_ke_{t−k}` be
+the debt (Hansen–Sargent coefficients; by `debt_hasSum_expost` the ex-post present value of
+surpluses). Then the best linear forecast of `s_{t+1}` from current and past surpluses and debt
+differs from the one from surpluses alone, and its error is strictly smaller. The proof uses
+only stationarity (`exists_shift`): if debt did not help, the surplus innovations `u` would satisfy
+`∑ρʲ⟪u_{t+1}, s_{t+1+j}⟫ = 0`, which makes `∑ρᵏu_{t−k}` a nonzero element of the surplus past
+orthogonal to that past. -/
+theorem granger_general [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    (hσ : σ2 ≠ 0) {a : ℕ → ℝ} (ha : Summable (fun k => |a k|)) (ha0 : a 0 ≠ 0) {ρ : ℝ}
+    (hρ : |ρ| < 1) (h0 : gen a ρ = 0) (t : ℤ) :
+    (haveI : (pastSpan (maProc a e) t).HasOrthogonalProjection := by
+        unfold pastSpan; infer_instance
+      (pastSpan (maProc a e) t).starProjection (maProc a e (t + 1))) ≠
+    (haveI : (jointSpan (maProc a e) (maProc (hsCoeff a ρ) e) t).HasOrthogonalProjection := by
+        unfold jointSpan; infer_instance
+      (jointSpan (maProc a e) (maProc (hsCoeff a ρ) e) t).starProjection (maProc a e (t + 1))) ∧
+    (haveI : (pastSpan (maProc a e) t).HasOrthogonalProjection := by
+        unfold pastSpan; infer_instance
+    haveI : (jointSpan (maProc a e) (maProc (hsCoeff a ρ) e) t).HasOrthogonalProjection := by
+        unfold jointSpan; infer_instance
+      ‖maProc a e (t + 1) - (jointSpan (maProc a e) (maProc (hsCoeff a ρ) e) t).starProjection
+        (maProc a e (t + 1))‖ <
+      ‖maProc a e (t + 1) - (pastSpan (maProc a e) t).starProjection (maProc a e (t + 1))‖) := by
+  have hS : ∀ τ, (pastSpan (maProc a e) τ).HasOrthogonalProjection := fun τ => by
+    unfold pastSpan; infer_instance
+  have hJ : (jointSpan (maProc a e) (maProc (hsCoeff a ρ) e) t).HasOrthogonalProjection := by
+    unfold jointSpan; infer_instance
+  set s := maProc a e with hs
+  set v := maProc (hsCoeff a ρ) e with hv
+  obtain ⟨U, hU⟩ := exists_shift he hσ
+  set UL : H →L[ℝ] H := U.toContinuousLinearEquiv.toContinuousLinearMap with hUL
+  set UL' : H →L[ℝ] H := U.symm.toContinuousLinearEquiv.toContinuousLinearMap with hUL'
+  have hUs : ∀ τ, U (s τ) = s (τ + 1) := by
+    intro τ
+    have h1 := (maProc_hasSum he ha τ).mapL UL
+    refine h1.unique ((maProc_hasSum he ha (τ + 1)).congr_fun fun k => ?_)
+    change U (a k • e (τ - k)) = a k • e (τ + 1 - k)
+    rw [map_smul, hU, show τ - (k : ℤ) + 1 = τ + 1 - k by ring]
+  have hUs' : ∀ τ, U.symm (s τ) = s (τ - 1) := fun τ => by
+    rw [← U.symm_apply_apply (s (τ - 1)), hUs, sub_add_cancel]
+  -- the spans move with the shift
+  have hUS : ∀ τ x, x ∈ pastSpan s τ → U x ∈ pastSpan s (τ + 1) := fun τ x hx =>
+    map_pastSpan UL (fun k => by
+      change U (s (τ - k)) = s (τ + 1 - k)
+      rw [hUs, show τ - (k : ℤ) + 1 = τ + 1 - k by ring]) hx
+  have hUS' : ∀ τ x, x ∈ pastSpan s (τ + 1) → U.symm x ∈ pastSpan s τ := fun τ x hx =>
+    map_pastSpan UL' (fun k => by
+      change U.symm (s (τ + 1 - k)) = s (τ - k)
+      rw [hUs', show τ + 1 - (k : ℤ) - 1 = τ - k by ring]) hx
+  have hP : ∀ τ x, U ((pastSpan s τ).starProjection x) =
+      (pastSpan s (τ + 1)).starProjection (U x) := by
+    intro τ x
+    refine (Submodule.eq_starProjection_of_mem_orthogonal
+      (hUS τ _ (Submodule.starProjection_apply_mem _ x)) ?_).symm
+    rw [← map_sub, Submodule.mem_orthogonal]
+    intro y hy
+    rw [← U.apply_symm_apply y, LinearIsometryEquiv.inner_map_map]
+    exact Submodule.inner_right_of_mem_orthogonal (hUS' τ y hy)
+      (Submodule.sub_starProjection_mem_orthogonal x)
+  -- the surplus innovations and their stationarity
+  set u : ℤ → H := fun τ => s τ - (pastSpan s (τ - 1)).starProjection (s τ) with hu
+  have hUu : ∀ τ, U (u τ) = u (τ + 1) := by
+    intro τ
+    simp only [hu, map_sub, hP, hUs, sub_add_cancel, add_sub_cancel_right]
+  have hu_orth : ∀ τ, u τ ∈ (pastSpan s (τ - 1))ᗮ := fun τ =>
+    Submodule.sub_starProjection_mem_orthogonal (s τ)
+  have hs_mem : ∀ τ, s τ ∈ pastSpan s τ := fun τ => by simpa using mem_pastSpan_self s τ 0
+  have hu_mem : ∀ τ, u τ ∈ pastSpan s τ := fun τ =>
+    Submodule.sub_mem _ (hs_mem τ)
+      (pastSpan_mono s (by omega) (Submodule.starProjection_apply_mem _ _))
+  have hstep : ∀ τ (j : ℕ), ⟪u (τ + 1), s (τ + 1 + j)⟫ = ⟪u τ, s (τ + j)⟫ := by
+    intro τ j
+    rw [← hUu, show τ + 1 + (j : ℤ) = τ + j + 1 by ring, ← hUs, LinearIsometryEquiv.inner_map_map]
+  have hγ : ∀ τ (j : ℕ), ⟪u τ, s (τ + j)⟫ = ⟪u 0, s j⟫ := by
+    intro τ j
+    induction τ using Int.induction_on with
+    | zero => simp
+    | succ i ih => rw [hstep, ih]
+    | pred i ih =>
+      rw [← ih, ← hstep (-(i : ℤ) - 1) j, show -(i : ℤ) - 1 + 1 = -i by ring]
+  have huu : ∀ τ, ⟪u τ, u τ⟫ = ⟪u 0, s 0⟫ := by
+    intro τ
+    have h1 : ⟪u τ, (pastSpan s (τ - 1)).starProjection (s τ)⟫ = 0 :=
+      Submodule.inner_left_of_mem_orthogonal (Submodule.starProjection_apply_mem _ _) (hu_orth τ)
+    have h2 := hγ τ 0
+    simp only [Nat.cast_zero, add_zero] at h2
+    conv_lhs => rw [show u τ = s τ - (pastSpan s (τ - 1)).starProjection (s τ) from rfl]
+    rw [inner_sub_right, h1, sub_zero, ← h2]
+  -- the innovation is not zero
+  have he_orth : ∀ τ, e τ ∈ (pastSpan s (τ - 1))ᗮ := fun τ =>
+    mem_orthogonal_pastSpan fun k => by
+      have := inner_e_maProc_future he ha (τ - 1 - k) k
+      rwa [show τ - 1 - (k : ℤ) + 1 + k = τ by ring] at this
+  have heu : ∀ τ, ⟪e τ, u τ⟫ = σ2 * a 0 := by
+    intro τ
+    have h1 : ⟪e τ, (pastSpan s (τ - 1)).starProjection (s τ)⟫ = 0 :=
+      Submodule.inner_left_of_mem_orthogonal (Submodule.starProjection_apply_mem _ _) (he_orth τ)
+    change ⟪e τ, s τ - (pastSpan s (τ - 1)).starProjection (s τ)⟫ = _
+    rw [inner_sub_right, h1, sub_zero]
+    simpa using inner_e_maProc he ha τ 0
+  have hu0 : ⟪u t, u t⟫ ≠ 0 := by
+    intro h
+    have : u t = 0 := inner_self_eq_zero.mp h
+    have := heu t
+    rw [‹u t = 0›, inner_zero_right] at this
+    exact mul_ne_zero hσ ha0 this.symm
+  have hnu : ∀ τ, ‖u τ‖ = ‖u 0‖ := by
+    intro τ
+    have h1 := huu τ
+    have h2 := huu 0
+    rw [real_inner_self_eq_norm_sq] at h1 h2
+    exact (pow_left_inj₀ (norm_nonneg _) (norm_nonneg _) two_ne_zero).mp (h1.trans h2.symm)
+  -- the main argument
+  have hne : (pastSpan s t).starProjection (s (t + 1)) ≠
+      (jointSpan s v t).starProjection (s (t + 1)) := by
+    intro hEq
+    have hut : u (t + 1) = s (t + 1) - (jointSpan s v t).starProjection (s (t + 1)) := by
+      change s (t + 1) - (pastSpan s (t + 1 - 1)).starProjection (s (t + 1)) = _
+      rw [add_sub_cancel_right, hEq]
+    have hJo : u (t + 1) ∈ (jointSpan s v t)ᗮ := by
+      rw [hut]; exact Submodule.sub_starProjection_mem_orthogonal _
+    have hv0 : ⟪u (t + 1), v t⟫ = 0 :=
+      Submodule.inner_left_of_mem_orthogonal (by simpa using debt_mem_jointSpan s v t 0) hJo
+    -- `∑ρʲγ_j = 0`
+    have hΓ : HasSum (fun j : ℕ => ρ ^ j * ⟪u 0, s j⟫) 0 := by
+      have h := inner_hasSum_right (debt_hasSum_expost he ha hρ h0 t) (u (t + 1))
+      rw [← hv, hv0] at h
+      refine h.congr_fun fun j => ?_
+      rw [real_inner_smul_right, ← hγ (t + 1) j]
+    -- `y = ∑ρᵏu_{t−k}`
+    have hys : Summable (fun k : ℕ => ρ ^ k • u (t - k)) := by
+      refine Summable.of_norm_bounded
+        ((summable_geometric_of_lt_one (abs_nonneg ρ) hρ).mul_right ‖u 0‖) fun k => ?_
+      rw [norm_smul, Real.norm_eq_abs, abs_pow, hnu]
+    have hy := hys.hasSum
+    set y := ∑' k : ℕ, ρ ^ k • u (t - k) with hy_def
+    have hyS : y ∈ pastSpan s t :=
+      hasSum_mem_pastSpan hy fun k => Submodule.smul_mem _ _
+        (pastSpan_mono s (by omega) (hu_mem (t - k)))
+    have hyO : y ∈ (pastSpan s t)ᗮ := by
+      refine mem_orthogonal_pastSpan fun j => ?_
+      rw [real_inner_comm]
+      have h := inner_hasSum_right hy (s (t - j))
+      refine h.unique ?_
+      rw [← hasSum_nat_add_iff' j]
+      have hz : ∑ k ∈ Finset.range j, ⟪s (t - j), ρ ^ k • u (t - k)⟫ = 0 :=
+        Finset.sum_eq_zero fun k hk => by
+          rw [real_inner_smul_right]
+          have hkj : k < j := Finset.mem_range.mp hk
+          have hmem : s (t - j) ∈ pastSpan s (t - k - 1) := by
+            have := mem_pastSpan_self s (t - k - 1) (j - k - 1)
+            rwa [show t - (k : ℤ) - 1 - ((j - k - 1 : ℕ) : ℤ) = t - j by omega]
+              at this
+          rw [Submodule.inner_right_of_mem_orthogonal hmem (hu_orth (t - k)), mul_zero]
+      rw [hz, sub_zero]
+      have := hΓ.mul_left (ρ ^ j)
+      rw [mul_zero] at this
+      refine this.congr_fun fun i => ?_
+      rw [real_inner_smul_right, real_inner_comm,
+        show t - ((i + j : ℕ) : ℤ) = t - j - i by push_cast; ring,
+        show s (t - j) = s (t - j - i + i) by ring_nf, hγ, pow_add]
+      ring
+    have hy0 : y = 0 := inner_self_eq_zero.mp (Submodule.inner_right_of_mem_orthogonal hyS hyO)
+    have hyu : ⟪u t, y⟫ = ⟪u t, u t⟫ := by
+      have h := inner_hasSum_right hy (u t)
+      refine h.unique ?_
+      have h1 : HasSum (fun k : ℕ => ⟪u t, ρ ^ k • u (t - k)⟫)
+          ⟪u t, ρ ^ 0 • u (t - ((0 : ℕ) : ℤ))⟫ := hasSum_single 0 fun k hk => by
+        rw [real_inner_smul_right]
+        have hmem : u (t - k) ∈ pastSpan s (t - 1) :=
+          pastSpan_mono s (by omega) (hu_mem (t - k))
+        rw [Submodule.inner_left_of_mem_orthogonal hmem (hu_orth t), mul_zero]
+      have e0 : ⟪u t, ρ ^ 0 • u (t - ((0 : ℕ) : ℤ))⟫ = ⟪u t, u t⟫ := by simp
+      rwa [e0] at h1
+    rw [hy0, inner_zero_right] at hyu
+    exact hu0 hyu.symm
+  refine ⟨hne, ?_⟩
+  -- Pythagoras
+  set p := (pastSpan s t).starProjection (s (t + 1))
+  set q := (jointSpan s v t).starProjection (s (t + 1))
+  have hpJ : p ∈ jointSpan s v t :=
+    pastSpan_le_jointSpan s v t (Submodule.starProjection_apply_mem _ _)
+  have hqp : q - p ∈ jointSpan s v t :=
+    Submodule.sub_mem _ (Submodule.starProjection_apply_mem _ _) hpJ
+  have horth : ⟪s (t + 1) - q, q - p⟫ = 0 :=
+    Submodule.inner_left_of_mem_orthogonal hqp (Submodule.sub_starProjection_mem_orthogonal _)
+  have hpy := norm_add_sq_eq_norm_sq_add_norm_sq_real horth
+  rw [show s (t + 1) - q + (q - p) = s (t + 1) - p by abel] at hpy
+  have hpos : 0 < ‖q - p‖ := norm_pos_iff.mpr (sub_ne_zero.mpr (Ne.symm hne))
+  have : ‖s (t + 1) - q‖ ^ 2 < ‖s (t + 1) - p‖ ^ 2 := by nlinarith
+  exact lt_of_pow_lt_pow_left₀ 2 (norm_nonneg _) this
+
+/-- Cochrane (2023), p. 601 (tool): a vector orthogonal to every current and past surplus and debt
+is orthogonal to the joint span. -/
+theorem mem_orthogonal_jointSpan {s v : ℤ → H} {t : ℤ} {x : H}
+    (hs : ∀ k : ℕ, ⟪x, s (t - k)⟫ = 0) (hv : ∀ k : ℕ, ⟪x, v (t - k)⟫ = 0) :
+    x ∈ (jointSpan s v t)ᗮ := by
+  have hle : jointSpan s v t ≤ (ℝ ∙ x)ᗮ := by
+    refine Submodule.topologicalClosure_minimal _ (Submodule.span_le.mpr ?_)
+      (Submodule.isClosed_orthogonal _)
+    rintro _ (⟨k, rfl⟩ | ⟨k, rfl⟩)
+    · exact Submodule.mem_orthogonal_singleton_iff_inner_right.mpr (hs k)
+    · exact Submodule.mem_orthogonal_singleton_iff_inner_right.mpr (hv k)
+  rw [Submodule.mem_orthogonal]
+  intro u hu
+  rw [real_inner_comm]
+  exact Submodule.mem_orthogonal_singleton_iff_inner_right.mp (hle hu)
+
+/-- Cochrane (2023), Online Appendix eqs. (2.20)–(2.21), p. 601, and p. 102 ("the value of debt
+reveals the true shock"), quantitatively: for `a(L) = (1 − θL)g(L)`, `|θ| > 1` (`ρ = θ⁻¹`), `g₀ = 1`
+and `g` invertible, the joint surplus–debt forecast of `s_{t+1}` has error `e_{t+1}` (variance
+`σ²`: the structural shock is recovered), the surplus-only forecast has error variance
+`θ²σ² = σ²/ρ²`, and `σ² < θ²σ²`: debt Granger-causes surpluses. -/
+theorem granger_factor [CompleteSpace H] {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2)
+    (hσ : σ2 ≠ 0) {θ : ℝ} (hθ : 1 < |θ|) {g : ℕ → ℝ} (hg : Summable (fun k => |g k|))
+    (hg0 : g 0 = 1) (hrec : Recoverable g) (t : ℤ) :
+    (haveI : (jointSpan (maProc (factorCoeff θ g) e)
+        (maProc (hsCoeff (factorCoeff θ g) θ⁻¹) e) t).HasOrthogonalProjection := by
+        unfold jointSpan; infer_instance
+      Submodule.starProjection
+        (jointSpan (maProc (factorCoeff θ g) e) (maProc (hsCoeff (factorCoeff θ g) θ⁻¹) e) t)
+        (maProc (factorCoeff θ g) e (t + 1))) =
+      maProc (factorCoeff θ g) e (t + 1) - e (t + 1) ∧
+    (haveI : (pastSpan (maProc (factorCoeff θ g) e) t).HasOrthogonalProjection := by
+        unfold pastSpan; infer_instance
+      ‖maProc (factorCoeff θ g) e (t + 1) - Submodule.starProjection
+        (pastSpan (maProc (factorCoeff θ g) e) t) (maProc (factorCoeff θ g) e (t + 1))‖ ^ 2) =
+      θ ^ 2 * σ2 ∧
+    ‖e (t + 1)‖ ^ 2 = σ2 ∧ σ2 < θ ^ 2 * σ2 := by
+  have hθ0 : θ ≠ 0 := by intro h0; rw [h0, abs_zero] at hθ; linarith
+  have hq : |θ⁻¹| < 1 := by rw [abs_inv]; exact inv_lt_one_of_one_lt₀ hθ
+  have ha := summable_factorCoeff θ hg
+  have hc := summable_abs_hsCoeff ha hq
+  have hJ : (jointSpan (maProc (factorCoeff θ g) e)
+      (maProc (hsCoeff (factorCoeff θ g) θ⁻¹) e) t).HasOrthogonalProjection := by
+    unfold jointSpan; infer_instance
+  set s := maProc (factorCoeff θ g) e with hs
+  set v := maProc (hsCoeff (factorCoeff θ g) θ⁻¹) e with hv
+  have hσn : ‖e (t + 1)‖ ^ 2 = σ2 := by
+    have := he (t + 1) (t + 1)
+    simp only [↓reduceIte, real_inner_self_eq_norm_sq] at this
+    exact this
+  have hσp : 0 < σ2 := lt_of_le_of_ne (hσn ▸ sq_nonneg _) (Ne.symm hσ)
+  -- the joint forecast
+  have hJo : e (t + 1) ∈ (jointSpan s v t)ᗮ := mem_orthogonal_jointSpan
+    (fun k => by
+      have := inner_e_maProc_future he ha (t - k) k
+      rwa [show t - (k : ℤ) + 1 + k = t + 1 by ring] at this)
+    (fun k => by
+      have := inner_e_maProc_future he hc (t - k) k
+      rwa [show t - (k : ℤ) + 1 + k = t + 1 by ring] at this)
+  have hqJ : s (t + 1) - e (t + 1) ∈ jointSpan s v t := by
+    have h := maProc_hasSum he ha (t + 1)
+    rw [← hasSum_nat_add_iff' 1] at h
+    simp only [Finset.range_one, Finset.sum_singleton, Nat.cast_zero, sub_zero] at h
+    rw [show factorCoeff θ g 0 = 1 from hg0, one_smul] at h
+    refine (Submodule.isClosed_topologicalClosure _).mem_of_tendsto h.tendsto_sum_nat
+      (Eventually.of_forall fun n => Submodule.sum_mem _ fun k _ => Submodule.smul_mem _ _ ?_)
+    rw [show t + 1 - ((k + 1 : ℕ) : ℤ) = t - k by push_cast; ring]
+    exact pastSpan_debt_le_jointSpan s v t
+      (pastSpan_mono v (by omega) (shock_mem_debtSpan he hθ hg hrec (t - k)))
+  have hPJ : (jointSpan s v t).starProjection (s (t + 1)) = s (t + 1) - e (t + 1) :=
+    Submodule.eq_starProjection_of_mem_orthogonal hqJ (by simpa using hJo)
+  -- the surplus-only forecast
+  obtain ⟨hproj, hnorm, -⟩ := wold_factor he hσ hθ hg hg0 hrec (t + 1)
+  simp only [add_sub_cancel_right] at hproj
+  have hS : (pastSpan s t).HasOrthogonalProjection := by unfold pastSpan; infer_instance
+  have hPS : ‖s (t + 1) - (pastSpan s t).starProjection (s (t + 1))‖ ^ 2 = θ ^ 2 * σ2 := by
+    rw [hproj, sub_sub_cancel, ← real_inner_self_eq_norm_sq, hnorm]
+  have hθ2 : 1 < θ ^ 2 := by
+    rw [← sq_abs]; nlinarith [abs_nonneg θ]
+  exact ⟨hPJ, hPS, hσn, by nlinarith⟩
+
+/-! ### Links to the MA(1) statements of `Invertibility` -/
+
+/-- Cochrane (2023), p. 102 (link): with `g = 1` the factorised moving average is the MA(1)
+`1 − θL` of `Invertibility` (`armaCoeff 0 θ`). -/
+theorem factorCoeff_delta (θ : ℝ) :
+    factorCoeff θ (fun k => if k = 0 then 1 else 0) = armaCoeff 0 θ := by
+  funext k
+  rcases k with _ | _ | k <;> simp [factorCoeff, armaCoeff]
+
+/-- Cochrane (2023), p. 102 (link): `g = 1` is trivially invertible. -/
+theorem recoverable_delta : Recoverable (fun k : ℕ => if k = 0 then (1 : ℝ) else 0) := by
+  refine ⟨fun k => if k = 0 then 1 else 0,
+    summable_of_ne_finset_zero (s := {0}) fun n hn => by simp_all, fun n => ?_⟩
+  rcases n with _ | n
+  · simp
+  · rw [Finset.sum_eq_zero fun k _ => ?_]
+    · simp
+    · by_cases hk0 : k = 0
+      · subst hk0; simp
+      · simp [hk0]
+
+/-- Cochrane (2023), p. 102 and Online Appendix (2.13), p. 599 (link): for `g = 1`, `wold_factor`
+is `Invertibility.Hilbert.ma1_wold` — structural MA(1) `1 − θL`, fitted MA(1) `1 − θ⁻¹L` with
+`ã(ρ) = 1 − ρ²` at `ρ = θ⁻¹` (`Invertibility.ma1_fitted_aRho`), and debt `v_t = −θe_t`
+(p. 102, "`v_t = −ρ⁻¹ε_t`"). -/
+theorem wold_factor_ma1 {θ : ℝ} (hθ : 1 < |θ|) :
+    factorCoeff θ (fun k => if k = 0 then 1 else 0) = armaCoeff 0 θ ∧
+    factorCoeff θ⁻¹ (fun k => if k = 0 then 1 else 0) = armaCoeff 0 θ⁻¹ ∧
+    gen (factorCoeff θ⁻¹ (fun k => if k = 0 then 1 else 0)) θ⁻¹ = 1 - θ⁻¹ ^ 2 ∧
+    hsCoeff (armaCoeff 0 θ) θ⁻¹ = fun k => -θ * (if k = 0 then 1 else 0) := by
+  have hq : |θ⁻¹| < 1 := by rw [abs_inv]; exact inv_lt_one_of_one_lt₀ hθ
+  refine ⟨factorCoeff_delta θ, factorCoeff_delta θ⁻¹, ?_, ?_⟩
+  · rw [factorCoeff_delta]
+    exact (ma1_fitted_aRho hq).1
+  · rw [← factorCoeff_delta θ]
+    exact hsCoeff_factor hθ (summable_of_ne_finset_zero (s := {0}) fun n hn => by simp_all)
+
+end Cochrane.DebtDeficitsInflation.InvertibilityMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Invertibility, Wold and Granger causality in `L²` of an i.i.d. probability space
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 4, §4.3, p. 102, and Online
+Appendix Chapter 2, §§2.1.4–2.1.6, pp. 597–601.
+
+The Hilbert-space statements of `Invertibility` and `InvertibilityMeasure` are instantiated in the
+genuine probability setting: `H = L²(Ω, P)` with `Ω = ℕ → ℝ`, `P = ν^ℕ` the i.i.d. product of
+`ExpectationsMeasureIID` (not finitely supported), and the structural shocks
+`e_t = ε_{φ(t)}` for a bijection `φ : ℤ ≃ ℕ` (a `ℤ`-indexed i.i.d. sequence). Inner products are
+covariances `E[XY]`, closed spans are mean-square limits of linear combinations, and orthogonal
+projections are best linear forecasts (what a VAR estimates).
+
+## Main results
+
+* `iid_whiteNoise`: the shocks are white noise in `L²` (independence and mean zero).
+* `iid_not_filter`: `a(ρ) = 0`, `|ρ| ≤ 1` (including `ρ = 1`): no absolutely summable filter of
+  the surplus history converges in mean square to the shock.
+* `iid_not_mem_pastSpan` (`|ρ| < 1`: the shock is not in the closed span of the surplus history).
+* `iid_unit_root`: correction at `ρ = ±1` — the shock IS a mean-square limit of linear
+  combinations of current and past surpluses for `s_t = e_t − ρe_{t−1}`;
+  `closedSpan_fails_at_unit_root`: so the closed-span statement is false for `|ρ| ≤ 1`.
+* `iid_wold_factor`, `iid_granger_general`, `iid_granger_factor`: the factorised Wold statement and
+  "debt Granger-causes surpluses" in `L²`.
+* `coin_L2`: the fair-coin instance (`σ² = 1`).
+-/
+
+namespace Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.DebtDeficitsInflation.Innovations (gen)
+open Cochrane.DebtDeficitsInflation.ExpectationsMeasure
+open Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID
+open Cochrane.DebtDeficitsInflation.Invertibility
+open Cochrane.DebtDeficitsInflation.Invertibility.Hilbert
+open Cochrane.DebtDeficitsInflation.InvertibilityMeasure
+open scoped RealInnerProductSpace
+
+variable {ν : ProbabilityMeasure ℝ}
+
+/-- Cochrane (2023), p. 102 (the shocks as second-moment random variables): a bounded i.i.d.
+shock is square integrable. -/
+theorem memLp_coord {B : ℝ} (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (i : ℕ) :
+    MemLp (fun ω : ℕ → ℝ => ω i) 2 (iidSystem ν).μ :=
+  MemLp.of_bound (measurable_pi_apply i).aestronglyMeasurable B
+    ((shock_ae_bdd ν hbdd i).mono fun ω h => by rwa [Real.norm_eq_abs])
+
+/-- Cochrane (2023), p. 102 and Online Appendix p. 597: the structural shocks as elements of
+`L²(ν^ℕ)`, `e_t = ε_{φ(t)}` with `φ : ℤ ≃ ℕ`. -/
+noncomputable def shockL2 {B : ℝ} (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (t : ℤ) :
+    Lp ℝ 2 (iidSystem ν).μ :=
+  (memLp_coord hbdd (Equiv.intEquivNat t)).toLp _
+
+/-- Cochrane (2023), p. 102 (tool): distinct coordinates of the i.i.d. product are uncorrelated
+when the mean is zero, `E[ε_iε_j] = 0`. -/
+theorem integral_coord_mul {i j : ℕ} (hij : i ≠ j) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) :
+    ∫ ω, ω i * ω j ∂(iidSystem ν).μ = 0 := by
+  have hind : iIndepFun (fun k (ω : ℕ → ℝ) => ω k) (iidSystem ν).μ :=
+    iIndepFun_infinitePi (P := fun _ => (ν : Measure ℝ)) (X := fun _ => id)
+      (fun _ => measurable_id)
+  rw [(hind.indepFun hij).integral_fun_mul_eq_mul_integral
+    (measurable_pi_apply i).aestronglyMeasurable (measurable_pi_apply j).aestronglyMeasurable]
+  have h := integral_shock_fun ν i (f := id) measurable_id
+  simp only [id] at h
+  change (∫ ω, ω i ∂(iidSystem ν).μ) * _ = 0
+  rw [h, hmean, zero_mul]
+
+/-- Cochrane (2023), p. 102, and Online Appendix p. 597: i.i.d. shocks with mean `0`, variance
+`σ²` and bounded support are white noise in `L²(ν^ℕ)`: `E[e_te_u] = σ²` if `t = u`, `0`
+otherwise. -/
+theorem iid_whiteNoise {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) :
+    WhiteNoise (shockL2 hbdd) σ2 := by
+  intro t u
+  rw [L2.inner_def]
+  have hc : ∀ τ, (shockL2 hbdd τ : (ℕ → ℝ) → ℝ) =ᵐ[(iidSystem ν).μ]
+      fun ω => ω (Equiv.intEquivNat τ) := fun τ => MemLp.coeFn_toLp _
+  have hcongr : (fun ω => ⟪(shockL2 hbdd t : (ℕ → ℝ) → ℝ) ω,
+      (shockL2 hbdd u : (ℕ → ℝ) → ℝ) ω⟫) =ᵐ[(iidSystem ν).μ]
+      fun ω => ω (Equiv.intEquivNat t) * ω (Equiv.intEquivNat u) := by
+    filter_upwards [hc t, hc u] with ω h1 h2
+    rw [h1, h2, real_inner_eq_re_inner, RCLike.inner_apply, conj_trivial, RCLike.re_to_real,
+      mul_comm]
+  rw [integral_congr_ae hcongr]
+  by_cases htu : t = u
+  · subst htu
+    simp only [↓reduceIte]
+    have h := integral_shock_fun ν (Equiv.intEquivNat t) (f := fun x => x ^ 2)
+      (measurable_id.pow_const 2)
+    rw [hvar] at h
+    rw [← h]
+    exact integral_congr_ae (Eventually.of_forall fun ω => by ring)
+  · simp only [htu, ↓reduceIte]
+    exact integral_coord_mul ((Equiv.intEquivNat).injective.ne htu) hmean
+
+/-! ### The statements in `L²` -/
+
+/-- Cochrane (2023), p. 102, and Online Appendix p. 600, in `L²` of the i.i.d. probability space,
+for every `|ρ| ≤ 1` including `ρ = 1`: if `a(ρ) = 0`, no absolutely summable filter of current and
+past surpluses converges in mean square to the structural shock. -/
+theorem iid_not_filter {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) {a : ℕ → ℝ} (ha : Summable (fun k => |a k|))
+    {ρ : ℝ} (hρ : |ρ| ≤ 1) (h0 : gen a ρ = 0) (t : ℤ) :
+    ¬ ∃ b : ℕ → ℝ, Summable (fun k => |b k|) ∧
+      HasSum (fun k : ℕ => b k • maProc a (shockL2 hbdd) (t - k)) (shockL2 hbdd t) :=
+  not_filter_of_aRho_eq_zero (iid_whiteNoise hmean hvar hbdd) hσ.ne' ha hρ h0 t
+
+/-- Cochrane (2023), p. 102 and Online Appendix p. 597, **correction at `ρ = ±1`**, in `L²`: for
+`s_t = e_t − ρe_{t−1}` with `ρ² = 1` (so `a(ρ) = 0`), the structural shock is in the closed span of
+current and past surpluses (a mean-square limit of linear combinations of them), although no
+absolutely summable filter recovers it. -/
+theorem iid_unit_root {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) {ρ : ℝ} (hρ : ρ ^ 2 = 1) (t : ℤ) :
+    gen (armaCoeff 0 ρ) ρ = 0 ∧
+    shockL2 hbdd t ∈ pastSpan (maProc (armaCoeff 0 ρ) (shockL2 hbdd)) t ∧
+    ¬ ∃ b : ℕ → ℝ, Summable (fun k => |b k|) ∧
+      HasSum (fun k : ℕ => b k • maProc (armaCoeff 0 ρ) (shockL2 hbdd) (t - k))
+        (shockL2 hbdd t) := by
+  have he := iid_whiteNoise hmean hvar hbdd
+  have hρ1 : |ρ| ≤ 1 := by
+    have : |ρ| ^ 2 = 1 := by rw [sq_abs, hρ]
+    nlinarith [abs_nonneg ρ]
+  obtain ⟨h0, hmem⟩ := mem_pastSpan_unit_root he hρ t
+  exact ⟨h0, hmem, not_filter_of_aRho_eq_zero he hσ.ne' (summable_abs_armaCoeff (by simp) ρ)
+    hρ1 h0 t⟩
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 600, in `L²`: the factorised Wold statement
+(`InvertibilityMeasure.wold_factor`) for i.i.d. shocks — the autoregression's error `w` has
+variance `θ²σ²`, the fitted moving average has the flipped root and `ã(θ⁻¹) ≠ 0`, and
+`w_t ≠ e_t`. -/
+theorem iid_wold_factor {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) {θ : ℝ} (hθ : 1 < |θ|) {g : ℕ → ℝ}
+    (hg : Summable (fun k => |g k|)) (hg0 : g 0 = 1) (hrec : Recoverable g) (t : ℤ) :
+    ⟪woldInnov θ (maOne θ (shockL2 hbdd)) t, woldInnov θ (maOne θ (shockL2 hbdd)) t⟫ =
+      θ ^ 2 * σ2 ∧
+    HasSum (fun n : ℕ => factorCoeff θ⁻¹ g n • woldInnov θ (maOne θ (shockL2 hbdd)) (t - n))
+      (maProc (factorCoeff θ g) (shockL2 hbdd) t) ∧
+    gen (factorCoeff θ g) θ⁻¹ = 0 ∧ gen (factorCoeff θ⁻¹ g) θ⁻¹ ≠ 0 ∧
+    shockL2 hbdd t ∉ pastSpan (maProc (factorCoeff θ g) (shockL2 hbdd)) t ∧
+    woldInnov θ (maOne θ (shockL2 hbdd)) t ≠ shockL2 hbdd t := by
+  obtain ⟨-, hn, -, hfit, hroot, -, hne, hnot, hw⟩ :=
+    wold_factor (iid_whiteNoise hmean hvar hbdd) hσ.ne' hθ hg hg0 hrec t
+  exact ⟨hn, hfit, hroot, hne, hnot, hw⟩
+
+/-- Cochrane (2023), Online Appendix eq. (2.21), p. 601 ("debt Granger-causes surpluses"), in the
+genuine probability setting, for an ARBITRARY absolutely summable moving average with `a₀ ≠ 0`,
+`a(ρ) = 0`, `|ρ| < 1`: the mean-square error of the best linear forecast of `s_{t+1}` from
+current and past surpluses and debt is strictly smaller than from surpluses alone. -/
+theorem iid_granger_general {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) {a : ℕ → ℝ} (ha : Summable (fun k => |a k|))
+    (ha0 : a 0 ≠ 0) {ρ : ℝ} (hρ : |ρ| < 1) (h0 : gen a ρ = 0) (t : ℤ) :
+    (haveI : (pastSpan (maProc a (shockL2 hbdd)) t).HasOrthogonalProjection := by
+        unfold pastSpan; infer_instance
+    haveI : (jointSpan (maProc a (shockL2 hbdd))
+        (maProc (hsCoeff a ρ) (shockL2 hbdd)) t).HasOrthogonalProjection := by
+        unfold jointSpan; infer_instance
+      ‖maProc a (shockL2 hbdd) (t + 1) - Submodule.starProjection
+        (jointSpan (maProc a (shockL2 hbdd)) (maProc (hsCoeff a ρ) (shockL2 hbdd)) t)
+        (maProc a (shockL2 hbdd) (t + 1))‖ <
+      ‖maProc a (shockL2 hbdd) (t + 1) - Submodule.starProjection
+        (pastSpan (maProc a (shockL2 hbdd)) t) (maProc a (shockL2 hbdd) (t + 1))‖) :=
+  (granger_general (iid_whiteNoise hmean hvar hbdd) hσ.ne' ha ha0 hρ h0 t).2
+
+/-- Cochrane (2023), Online Appendix eqs. (2.20)–(2.21), p. 601, in `L²`: for
+`a(L) = (1 − θL)g(L)` with `g` invertible, the debt history reveals the shock, the joint forecast
+error of `s_{t+1}` is `e_{t+1}` (variance `σ²`) and the surplus-only one has variance
+`θ²σ² > σ²`. -/
+theorem iid_granger_factor {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) {θ : ℝ} (hθ : 1 < |θ|) {g : ℕ → ℝ}
+    (hg : Summable (fun k => |g k|)) (hg0 : g 0 = 1) (hrec : Recoverable g) (t : ℤ) :
+    shockL2 hbdd t ∈ pastSpan (maProc (hsCoeff (factorCoeff θ g) θ⁻¹) (shockL2 hbdd)) t ∧
+    (haveI : (pastSpan (maProc (factorCoeff θ g) (shockL2 hbdd)) t).HasOrthogonalProjection := by
+        unfold pastSpan; infer_instance
+      ‖maProc (factorCoeff θ g) (shockL2 hbdd) (t + 1) - Submodule.starProjection
+        (pastSpan (maProc (factorCoeff θ g) (shockL2 hbdd)) t)
+        (maProc (factorCoeff θ g) (shockL2 hbdd) (t + 1))‖ ^ 2) = θ ^ 2 * σ2 ∧
+    ‖shockL2 hbdd (t + 1)‖ ^ 2 = σ2 ∧ σ2 < θ ^ 2 * σ2 := by
+  have he := iid_whiteNoise hmean hvar hbdd
+  obtain ⟨-, h2, h3, h4⟩ := granger_factor he hσ.ne' hθ hg hg0 hrec t
+  exact ⟨shock_mem_debtSpan he hθ hg hrec t, h2, h3, h4⟩
+
+/-- Cochrane (2023), p. 102 and Online Appendix pp. 597–601, for the fair `±1` coin (`σ² = 1`) on
+the non-finitely-supported space `{±1}^ℕ`: (i) the MA(1) `s_t = e_t − e_{t−1}` (`ρ = 1`) has
+`a(1) = 0`, its shock is in the closed span of past surpluses but no summable filter recovers it;
+(ii) for `|ρ| < 1` the MA(1) `s_t = e_t − ρ⁻¹e_{t−1}` has `a(ρ) = 0` and debt strictly improves the
+forecast of surpluses (error variances `1` versus `ρ⁻²`). -/
+theorem coin_L2 {ρ : ℝ} (hρ0 : 0 < |ρ|) (hρ : |ρ| < 1) (t : ℤ) :
+    (∀ F : Finset (ℕ → ℝ), (iidSystem coin).μ ↑F ≠ 1) ∧
+    gen (armaCoeff 0 1) 1 = 0 ∧
+    shockL2 coin_bdd t ∈ pastSpan (maProc (armaCoeff 0 1) (shockL2 coin_bdd)) t ∧
+    (¬ ∃ b : ℕ → ℝ, Summable (fun k => |b k|) ∧
+      HasSum (fun k : ℕ => b k • maProc (armaCoeff 0 1) (shockL2 coin_bdd) (t - k))
+        (shockL2 coin_bdd t)) ∧
+    ‖shockL2 coin_bdd (t + 1)‖ ^ 2 = 1 ∧
+    (haveI : (pastSpan (maProc (factorCoeff ρ⁻¹ (fun k => if k = 0 then 1 else 0))
+        (shockL2 coin_bdd)) t).HasOrthogonalProjection := by
+        unfold pastSpan; infer_instance
+      ‖maProc (factorCoeff ρ⁻¹ (fun k => if k = 0 then 1 else 0)) (shockL2 coin_bdd) (t + 1) -
+        Submodule.starProjection (pastSpan (maProc (factorCoeff ρ⁻¹
+          (fun k => if k = 0 then 1 else 0)) (shockL2 coin_bdd)) t)
+        (maProc (factorCoeff ρ⁻¹ (fun k => if k = 0 then 1 else 0)) (shockL2 coin_bdd)
+          (t + 1))‖ ^ 2) = (ρ⁻¹) ^ 2 * 1 ∧
+    (1 : ℝ) < (ρ⁻¹) ^ 2 * 1 := by
+  have hθ : 1 < |ρ⁻¹| := by rw [abs_inv]; exact one_lt_inv_iff₀.mpr ⟨hρ0, hρ⟩
+  have hδ : Summable (fun k : ℕ => |(if k = 0 then (1 : ℝ) else 0)|) :=
+    summable_of_ne_finset_zero (s := {0}) fun n hn => by simp_all
+  have hrec := recoverable_delta
+  obtain ⟨h1, h2, h3⟩ := iid_unit_root coin_mean coin_var one_pos coin_bdd (ρ := 1) (by norm_num) t
+  obtain ⟨-, h5, h6, h7⟩ := iid_granger_factor coin_mean coin_var one_pos coin_bdd hθ hδ
+    (by simp) hrec t
+  exact ⟨iid_not_finitely_supported coin_mean coin_var one_pos, h1, h2, h3, h6, h5, h7⟩
+
+/-- Cochrane (2023), p. 102 and Online Appendix p. 597, for `|ρ| < 1` in `L²` (the existing
+`Invertibility.Hilbert.not_mem_pastSpan_of_aRho_eq_zero`, instantiated): with `a(ρ) = 0` the
+shock is not in the closed span of current and past surpluses. -/
+theorem iid_not_mem_pastSpan {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) {a : ℕ → ℝ} (ha : Summable (fun k => |a k|))
+    {ρ : ℝ} (hρ : |ρ| < 1) (h0 : gen a ρ = 0) (t : ℤ) :
+    shockL2 hbdd t ∉ pastSpan (maProc a (shockL2 hbdd)) t :=
+  not_mem_pastSpan_of_aRho_eq_zero (iid_whiteNoise hmean hvar hbdd) hσ.ne' ha hρ h0 t
+
+/-- Cochrane (2023), p. 102 and Online Appendix p. 597 ("`ρ ≤ 1`"), **counterexample**: the
+closed-span non-invertibility statement is false when extended to `|ρ| ≤ 1` — in `L²` of the
+fair-coin product, the MA(1) `1 − L` has `a(1) = 0` but its shock is in the closed span of the
+surplus history. -/
+theorem closedSpan_fails_at_unit_root (t : ℤ) :
+    ¬ ∀ a : ℕ → ℝ, Summable (fun k => |a k|) → ∀ ρ : ℝ, |ρ| ≤ 1 → gen a ρ = 0 →
+      shockL2 coin_bdd t ∉ pastSpan (maProc a (shockL2 coin_bdd)) t := by
+  intro h
+  obtain ⟨h0, hmem, -⟩ := iid_unit_root coin_mean coin_var one_pos coin_bdd (ρ := 1)
+    (by norm_num) t
+  exact h _ (summable_abs_armaCoeff (by simp) 1) 1 (by simp) h0 hmem
+
+end Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The Wold decomposition theorem
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 4, §4.3, p. 102, and Online
+Appendix Chapter 2, §§2.1.4 and 2.1.6, pp. 597 and 600 ("an autoregression of this surplus
+process recovers the Wold representation, which has an invertible moving average"; "if you do
+run an autoregression you recover a representation that is invertible, by the Wold
+decomposition theorem").
+
+The book invokes the Wold decomposition theorem without stating it. This module proves it in full
+for a weakly stationary sequence `(x_t)_{t ∈ ℤ}` in a real Hilbert space `H` (in `L²` this is the
+space of second moments; inner products are covariances, orthogonal projections are best linear
+forecasts). Stationarity is either covariance stationarity (`⟪x_s, x_u⟫` depends only on
+`s − u`) or, equivalently (`stationary_iff_exists_shift`), `x` is the orbit of a linear isometry
+`U` of `H`, `U x_t = x_{t+1}`.
+
+## Main definitions
+
+* `past x t`: `H_t`, the closed span of `x_t, x_{t−1}, …`; `remote x`: `H_{−∞} = ⋂_t H_t`.
+* `innov x t`: the innovation `e_t = x_t − P_{H_{t−1}} x_t` (the one-step-ahead linear forecast
+  error, the error of the infinite autoregression).
+* `woldCoeff x j`: `c_j = ⟪x_0, e_{−j}⟫ / ‖e‖²`; `detPart x t`: `d_t = P_{H_{−∞}} x_t`.
+* `Deterministic x`: `x_t ∈ H_{t−1}` for all `t`; `Regular x`: `H_{−∞} = 0`.
+
+## Main results
+
+* (a) `innov_mem`, `innov_mem_orthogonal`, `innov_whiteNoise`: `e_t ∈ H_t`, `e_t ⟂ H_{t−1}`,
+  the `e_t` are orthogonal with constant norm.
+* (b) `wold_decomposition`: `x_t = ∑_{j ≥ 0} c_j e_{t−j} + d_t`, the series converging in `H`,
+  `∑ c_j² < ∞` (with Bessel's bound), `c_0 = 1` when `e ≠ 0`, `c_j = ⟪x_t, e_{t−j}⟫/‖e‖²` for
+  every `t`, `d_t ∈ H_{−∞}`, `d ⟂ e`.
+* (c) `wold_unique`: any representation `x_t = ∑ b_j w_{t−j} + z_t` with `w_t ∈ H_t`,
+  `w_t ⟂ H_{t−1}`, `b_0 = 1`, `z_t ∈ H_{−∞}` is the Wold one.
+* (d) `deterministic_iff`, `regular_iff`, `wold_dichotomy`: `x` is deterministic iff `e = 0` iff
+  `d = x`; regular iff `d = 0`; in general the regular part `u_t = ∑ c_j e_{t−j}` is regular, the
+  deterministic part `d` is deterministic (`H_{−∞}` is the closed span of `d_{t−1}, d_{t−2}, …`),
+  both are stationary and they are uncorrelated. `mixed_example`: neither part can be dropped.
+* Stationarity: `stationary_of_shift`, `exists_shift_of_stationary`, `wold_of_stationary`.
+* Correction (A2 p. 597, "the Wold representation, which has an invertible moving average"):
+  `wold_unit_root`, `IIDEconomy.coin_wold_unit_root` — the Wold moving average is fundamental
+  but can have a root on the unit circle (`s_t = ε_t − ε_{t−1}`), and then no absolutely
+  summable autoregression recovers the Wold innovation.
+* Links: `maProc_regular` (every absolutely summable moving average in white noise is regular);
+  `wold_factor_is_wold` (the factorised `InvertibilityMeasure.wold_factor`: its `w_t` is the
+  Wold innovation, its fitted coefficients `ã = (1 − θ⁻¹L)g` are the Wold coefficients, and
+  `d = 0`); `IIDEconomy.iid_wold`, `IIDEconomy.iid_wold_factor_is_wold`,
+  `IIDEconomy.iid_mixed`, `IIDEconomy.coin_wold` in `L²(ν^ℕ)` of the i.i.d. economy of
+  `InvertibilityMeasureL2` (the mixed example `x_t = ε_t + 1`: the mean is the deterministic
+  part).
+-/
+
+namespace Cochrane.DebtDeficitsInflation.Wold
+
+open Filter Topology
+open Cochrane.DebtDeficitsInflation.Invertibility.Hilbert
+open scoped RealInnerProductSpace
+
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
+
+/-! ### The past, the remote past and the innovations -/
+
+/-- Cochrane (2023), Online Appendix p. 597 (`E(s_t|s_{t−1}, s_{t−2}, …)`): `H_t`, the closed
+linear span of `x_t, x_{t−1}, …` (the same subspace as `Invertibility.Hilbert.pastSpan`). -/
+noncomputable abbrev past (x : ℤ → H) (t : ℤ) : Submodule ℝ H :=
+  (Submodule.span ℝ (Set.range fun k : ℕ => x (t - k))).topologicalClosure
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): `past` is `Invertibility.Hilbert.pastSpan`. -/
+theorem past_eq_pastSpan (x : ℤ → H) (t : ℤ) : past x t = pastSpan x t := rfl
+
+/-- Cochrane (2023), Online Appendix p. 600 (the Wold theorem): the remote past
+`H_{−∞} = ⋂_t H_t` (written as its own closure, which `remote_eq` shows is no change). -/
+noncomputable abbrev remote (x : ℤ → H) : Submodule ℝ H := (⨅ t, past x t).topologicalClosure
+
+/-- Cochrane (2023), Online Appendix p. 597 ("`w_{s,t+1} = s_{t+1} − E(s_{t+1}|s_t, s_{t−1}, …)`"):
+the Wold innovation `e_t = x_t − P_{H_{t−1}} x_t`, the one-step-ahead linear forecast error. -/
+noncomputable def innov [CompleteSpace H] (x : ℤ → H) (t : ℤ) : H :=
+  x t - (past x (t - 1)).starProjection (x t)
+
+/-- Cochrane (2023), Online Appendix p. 600: the Wold coefficients
+`c_j = ⟪x_0, e_{−j}⟫ / ‖e_0‖²` (`0` when `e = 0`). -/
+noncomputable def woldCoeff [CompleteSpace H] (x : ℤ → H) (j : ℕ) : ℝ :=
+  ⟪x 0, innov x (-j)⟫ / ‖innov x 0‖ ^ 2
+
+/-- Cochrane (2023), Online Appendix p. 600: the deterministic part `d_t = P_{H_{−∞}} x_t`. -/
+noncomputable def detPart [CompleteSpace H] (x : ℤ → H) (t : ℤ) : H :=
+  (remote x).starProjection (x t)
+
+/-- Cochrane (2023), Online Appendix p. 600: `x` is deterministic (perfectly linearly predictable
+from its own past) if `x_t ∈ H_{t−1}` for every `t`. -/
+def Deterministic (x : ℤ → H) : Prop := ∀ t, x t ∈ past x (t - 1)
+
+/-- Cochrane (2023), Online Appendix p. 600: `x` is regular (purely non-deterministic) if its
+remote past is trivial, `H_{−∞} = 0`. -/
+def Regular (x : ℤ → H) : Prop := remote x = ⊥
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): `x_{t−k} ∈ H_t`. -/
+theorem mem_past (x : ℤ → H) (t : ℤ) (k : ℕ) : x (t - k) ∈ past x t :=
+  mem_pastSpan_self x t k
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): `x_t ∈ H_t`. -/
+theorem self_mem_past (x : ℤ → H) (t : ℤ) : x t ∈ past x t := by
+  simpa using mem_past x t 0
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): `H_t` grows with `t`. -/
+theorem past_mono (x : ℤ → H) {t t' : ℤ} (h : t ≤ t') : past x t ≤ past x t' :=
+  pastSpan_mono x h
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): `x_s ∈ H_t` for `s ≤ t`. -/
+theorem mem_past_of_le (x : ℤ → H) {s t : ℤ} (h : s ≤ t) : x s ∈ past x t :=
+  past_mono x h (self_mem_past x s)
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): the remote past is closed, so it equals
+`⋂_t H_t`. -/
+theorem remote_eq (x : ℤ → H) : remote x = ⨅ t, past x t := by
+  refine IsClosed.submodule_topologicalClosure_eq ?_
+  rw [Submodule.coe_iInf]
+  exact isClosed_iInter fun t => Submodule.isClosed_topologicalClosure _
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): `H_{−∞} ≤ H_t`. -/
+theorem remote_le (x : ℤ → H) (t : ℤ) : remote x ≤ past x t := by
+  rw [remote_eq]; exact iInf_le _ t
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): membership in `H_{−∞}`. -/
+theorem mem_remote_iff {x : ℤ → H} {z : H} : z ∈ remote x ↔ ∀ t, z ∈ past x t := by
+  rw [remote_eq, Submodule.mem_iInf]
+
+variable [CompleteSpace H]
+
+/-- Cochrane (2023), Online Appendix p. 597, Wold (a): `e_t ∈ H_t`. -/
+theorem innov_mem (x : ℤ → H) (t : ℤ) : innov x t ∈ past x t :=
+  Submodule.sub_mem _ (self_mem_past x t)
+    (past_mono x (by omega) (Submodule.starProjection_apply_mem _ _))
+
+/-- Cochrane (2023), Online Appendix p. 597, Wold (a): `e_t ⟂ H_{t−1}` (the forecast error is
+uncorrelated with everything linear in the past). -/
+theorem innov_mem_orthogonal (x : ℤ → H) (t : ℤ) : innov x t ∈ (past x (t - 1))ᗮ :=
+  Submodule.sub_starProjection_mem_orthogonal _
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): `⟪e_t, y⟫ = 0` for `y ∈ H_{t−1}`. -/
+theorem inner_innov_of_mem {x : ℤ → H} {t : ℤ} {y : H} (hy : y ∈ past x (t - 1)) :
+    ⟪innov x t, y⟫ = 0 :=
+  Submodule.inner_left_of_mem_orthogonal hy (innov_mem_orthogonal x t)
+
+/-- Cochrane (2023), Online Appendix p. 597, Wold (a): the innovations are orthogonal,
+`⟪e_t, e_s⟫ = 0` for `s < t`. -/
+theorem inner_innov_lt (x : ℤ → H) {s t : ℤ} (h : s < t) : ⟪innov x t, innov x s⟫ = 0 :=
+  inner_innov_of_mem (past_mono x (by omega) (innov_mem x s))
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): `x_t = e_t + P_{H_{t−1}} x_t`. -/
+theorem x_eq_innov_add (x : ℤ → H) (t : ℤ) :
+    x t = innov x t + (past x (t - 1)).starProjection (x t) := by
+  rw [innov, sub_add_cancel]
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): `e_t = 0` iff `x_t ∈ H_{t−1}`. -/
+theorem innov_eq_zero_iff (x : ℤ → H) (t : ℤ) : innov x t = 0 ↔ x t ∈ past x (t - 1) := by
+  rw [innov, sub_eq_zero, eq_comm, Submodule.starProjection_eq_self_iff]
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool, the key step of Wold's proof):
+`H_t = H_{t−1} ⊕ span{e_t}`, in the form: an element of `H_t` orthogonal to `e_t` lies in
+`H_{t−1}`. -/
+theorem mem_past_pred {x : ℤ → H} {t : ℤ} {y : H} (hy : y ∈ past x t)
+    (he : ⟪innov x t, y⟫ = 0) : y ∈ past x (t - 1) := by
+  set K := past x (t - 1) with hK
+  -- `Q = P_{Kᗮ}` maps `H_t` into the line through `e_t`
+  have hcl : IsClosed (((ℝ ∙ innov x t).comap (Kᗮ.starProjection : H →ₗ[ℝ] H) : Set H)) := by
+    rw [Submodule.comap_coe]
+    exact (Submodule.closed_of_finiteDimensional (ℝ ∙ innov x t)).preimage
+      Kᗮ.starProjection.continuous
+  have hle : past x t ≤ (ℝ ∙ innov x t).comap (Kᗮ.starProjection : H →ₗ[ℝ] H) := by
+    refine Submodule.topologicalClosure_minimal _ (Submodule.span_le.mpr ?_) hcl
+    rintro _ ⟨k, rfl⟩
+    change Kᗮ.starProjection (x (t - k)) ∈ ℝ ∙ innov x t
+    rw [Submodule.starProjection_orthogonal_val]
+    rcases Nat.eq_zero_or_pos k with hk | hk
+    · subst hk
+      rw [show t - ((0 : ℕ) : ℤ) = t by simp]
+      exact Submodule.mem_span_singleton_self (innov x t)
+    · have hmem : x (t - k) ∈ K := mem_past_of_le x (by omega)
+      rw [(Submodule.starProjection_eq_self_iff).mpr hmem, sub_self]
+      exact Submodule.zero_mem _
+  obtain ⟨a, ha⟩ := Submodule.mem_span_singleton.mp (hle hy)
+  change a • innov x t = Kᗮ.starProjection y at ha
+  rw [Submodule.starProjection_orthogonal_val] at ha
+  have h1 : ⟪innov x t, y - K.starProjection y⟫ = 0 := by
+    rw [inner_sub_right, he, inner_innov_of_mem (Submodule.starProjection_apply_mem _ _),
+      sub_zero]
+  rw [← ha, real_inner_smul_right, real_inner_self_eq_norm_sq] at h1
+  have h2 : a • innov x t = 0 := by
+    rcases mul_eq_zero.mp h1 with h | h
+    · rw [h, zero_smul]
+    · rw [norm_eq_zero.mp (pow_eq_zero_iff two_ne_zero |>.mp h), smul_zero]
+  rw [h2, eq_comm, sub_eq_zero] at ha
+  rw [ha]
+  exact Submodule.starProjection_apply_mem _ _
+
+/-! ### Stationarity: the shift -/
+
+omit [CompleteSpace H] in
+/-- Cochrane (2023), Online Appendix p. 597 (tool; stationarity): the shift `U` maps `H_t` into
+`H_{t+1}`. -/
+theorem map_past {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) {t : ℤ} {y : H}
+    (hy : y ∈ past x t) : U y ∈ past x (t + 1) :=
+  InvertibilityMeasure.map_pastSpan U.toContinuousLinearMap
+    (fun k => by
+      change U (x (t - k)) = x (t + 1 - k)
+      rw [hU]; congr 1; ring) hy
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): the shift commutes with the forecast,
+`P_{H_t} x_{t+1} = U P_{H_{t−1}} x_t`. -/
+theorem starProjection_shift {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1))
+    (t : ℤ) : (past x t).starProjection (x (t + 1)) =
+      U ((past x (t - 1)).starProjection (x t)) := by
+  refine Submodule.eq_starProjection_of_mem_orthogonal ?_ ?_
+  · have := map_past hU (Submodule.starProjection_apply_mem (past x (t - 1)) (x t))
+    rwa [sub_add_cancel] at this
+  · rw [← hU, ← map_sub]
+    refine mem_orthogonal_pastSpan fun k => ?_
+    rw [show t - (k : ℤ) = t - 1 - k + 1 by ring, ← hU, LinearIsometry.inner_map_map]
+    exact Submodule.starProjection_inner_eq_zero _ _ (mem_past x (t - 1) k)
+
+/-- Cochrane (2023), Online Appendix p. 597, Wold (a) (stationarity of the innovations):
+`e_{t+1} = U e_t`. -/
+theorem innov_shift {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) (t : ℤ) :
+    innov x (t + 1) = U (innov x t) := by
+  have h : innov x (t + 1) = x (t + 1) - (past x t).starProjection (x (t + 1)) := by
+    simp only [innov, add_sub_cancel_right]
+  rw [h, starProjection_shift hU, ← hU, innov, map_sub]
+
+omit [CompleteSpace H] in
+/-- Cochrane (2023), Online Appendix p. 597 (tool): inner products of two processes that the
+same isometry shifts are shift invariant, `⟪y_{s+t}, z_{u+t}⟫ = ⟪y_s, z_u⟫`. -/
+theorem inner_shift {U : H →ₗᵢ[ℝ] H} {y z : ℤ → H} (hy : ∀ t, U (y t) = y (t + 1))
+    (hz : ∀ t, U (z t) = z (t + 1)) (s u t : ℤ) : ⟪y (s + t), z (u + t)⟫ = ⟪y s, z u⟫ := by
+  induction t using Int.induction_on with
+  | zero => simp
+  | succ n ih => rw [← add_assoc, ← add_assoc, ← hy, ← hz, LinearIsometry.inner_map_map, ih]
+  | pred n ih =>
+    rw [← ih]
+    have h1 : y (s + -(n : ℤ)) = U (y (s + (-(n : ℤ) - 1))) := by rw [hy]; congr 1; ring
+    have h2 : z (u + -(n : ℤ)) = U (z (u + (-(n : ℤ) - 1))) := by rw [hz]; congr 1; ring
+    rw [h1, h2, LinearIsometry.inner_map_map]
+
+/-- Cochrane (2023), Online Appendix p. 597, Wold (a): the innovations have constant norm. -/
+theorem norm_innov {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) (t : ℤ) :
+    ‖innov x t‖ = ‖innov x 0‖ := by
+  have hs : ∀ τ, U (innov x τ) = innov x (τ + 1) := fun τ => (innov_shift hU τ).symm
+  have h := inner_shift hs hs 0 0 t
+  rw [zero_add, real_inner_self_eq_norm_sq, real_inner_self_eq_norm_sq] at h
+  exact (pow_left_inj₀ (norm_nonneg _) (norm_nonneg _) two_ne_zero).mp h
+
+/-- Cochrane (2023), Online Appendix p. 597, Wold (a): the innovations are white noise with
+variance `‖e_0‖²` (orthogonal, constant norm), in the sense of `Invertibility.Hilbert`. -/
+theorem innov_whiteNoise {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) :
+    WhiteNoise (innov x) (‖innov x 0‖ ^ 2) := by
+  intro t u
+  rcases lt_trichotomy t u with h | h | h
+  · rw [real_inner_comm, inner_innov_lt x h]
+    simp [h.ne]
+  · subst h
+    simp [norm_innov hU]
+  · rw [inner_innov_lt x h]
+    simp [h.ne']
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): if `e = 0` at one date it is `0` at all. -/
+theorem innov_eq_zero_of {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1))
+    (h0 : innov x 0 = 0) (t : ℤ) : innov x t = 0 := by
+  rw [← norm_eq_zero, norm_innov hU, h0, norm_zero]
+
+/-! ### The Wold coefficients and the regular part -/
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): `c_j` does not depend on the date,
+`⟪x_t, e_{t−j}⟫ = ⟪x_0, e_{−j}⟫`. -/
+theorem inner_x_innov {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) (t : ℤ)
+    (j : ℕ) : ⟪x t, innov x (t - j)⟫ = ⟪x 0, innov x (-j)⟫ := by
+  have h := inner_shift hU (fun τ => (innov_shift hU τ).symm) 0 (-j) t
+  rwa [zero_add, show -(j : ℤ) + t = t - j by ring] at h
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (b): `c_j = ⟪x_t, e_{t−j}⟫ / ‖e_t‖²` at every
+date `t`. -/
+theorem woldCoeff_eq {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) (t : ℤ)
+    (j : ℕ) : woldCoeff x j = ⟪x t, innov x (t - j)⟫ / ‖innov x t‖ ^ 2 := by
+  rw [woldCoeff, inner_x_innov hU, norm_innov hU t]
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): `⟪e_{t−j}, x_t⟫ = c_j ‖e‖²`. -/
+theorem inner_innov_x {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) (t : ℤ)
+    (j : ℕ) : ⟪innov x (t - j), x t⟫ = woldCoeff x j * ‖innov x 0‖ ^ 2 := by
+  by_cases h0 : innov x 0 = 0
+  · rw [innov_eq_zero_of hU h0, inner_zero_left, h0, norm_zero]; ring
+  · rw [woldCoeff, real_inner_comm, inner_x_innov hU, div_mul_cancel₀]
+    exact pow_ne_zero 2 (norm_ne_zero_iff.mpr h0)
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (b): `c_0 = 1` when `e ≠ 0`. -/
+theorem woldCoeff_zero {x : ℤ → H} (h0 : innov x 0 ≠ 0) : woldCoeff x 0 = 1 := by
+  have h : ⟪x 0, innov x 0⟫ = ‖innov x 0‖ ^ 2 := by
+    rw [x_eq_innov_add x 0, inner_add_left, real_inner_self_eq_norm_sq, real_inner_comm,
+      inner_innov_of_mem (Submodule.starProjection_apply_mem _ _), add_zero]
+  rw [woldCoeff, Nat.cast_zero, neg_zero, h, div_self (pow_ne_zero 2 (norm_ne_zero_iff.mpr h0))]
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): the normalised innovations
+`e_{t−j}/‖e‖`, `j ≥ 0`, are orthonormal. -/
+theorem orthonormal_innov {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1))
+    (h0 : innov x 0 ≠ 0) (t : ℤ) :
+    Orthonormal ℝ (fun j : ℕ => ‖innov x 0‖⁻¹ • innov x (t - j)) := by
+  have hn : ‖innov x 0‖ ≠ 0 := norm_ne_zero_iff.mpr h0
+  rw [orthonormal_iff_ite]
+  intro i j
+  rw [real_inner_smul_left, real_inner_smul_right, innov_whiteNoise hU]
+  by_cases hij : i = j
+  · subst hij
+    simp only [↓reduceIte]
+    field_simp
+  · have : t - (i : ℤ) ≠ t - j := by omega
+    simp [this, hij]
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): `c_j e_{t−j} = ⟪ê_j, x_t⟫ ê_j` with
+`ê_j = e_{t−j}/‖e‖`. -/
+theorem woldCoeff_smul {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1))
+    (h0 : innov x 0 ≠ 0) (t : ℤ) (j : ℕ) :
+    woldCoeff x j • innov x (t - j) =
+      ⟪‖innov x 0‖⁻¹ • innov x (t - j), x t⟫ • (‖innov x 0‖⁻¹ • innov x (t - j)) := by
+  have hn : ‖innov x 0‖ ≠ 0 := norm_ne_zero_iff.mpr h0
+  rw [real_inner_smul_left, inner_innov_x hU, smul_smul]
+  congr 1
+  field_simp
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (b): the series `∑_{j ≥ 0} c_j e_{t−j}`
+converges in `H` (to the regular part `maProc c e t`). -/
+theorem hasSum_wold {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) (t : ℤ) :
+    HasSum (fun j : ℕ => woldCoeff x j • innov x (t - j)) (maProc (woldCoeff x) (innov x) t) := by
+  refine Summable.hasSum ?_
+  by_cases h0 : innov x 0 = 0
+  · simp only [innov_eq_zero_of hU h0, smul_zero]
+    exact summable_zero
+  · have hv := orthonormal_innov hU h0 t
+    have hs := (hv.orthogonalFamily.summable_iff_norm_sq_summable
+      (fun j => ⟪‖innov x 0‖⁻¹ • innov x (t - j), x t⟫)).mpr (hv.inner_products_summable (x t))
+    refine hs.congr fun j => ?_
+    rw [woldCoeff_smul hU h0 t j, LinearIsometry.toSpanSingleton_apply]
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): `‖⟪ê_j, x_0⟫‖² = ‖e‖² c_j²`. -/
+theorem norm_inner_sq {x : ℤ → H} (h0 : innov x 0 ≠ 0) (j : ℕ) :
+    ‖⟪‖innov x 0‖⁻¹ • innov x (0 - j), x 0⟫‖ ^ 2 = ‖innov x 0‖ ^ 2 * woldCoeff x j ^ 2 := by
+  have hn : ‖innov x 0‖ ≠ 0 := norm_ne_zero_iff.mpr h0
+  rw [Real.norm_eq_abs, sq_abs, real_inner_smul_left, zero_sub, real_inner_comm, woldCoeff]
+  field_simp
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (b): `∑ c_j² < ∞`. -/
+theorem summable_sq_woldCoeff {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) :
+    Summable (fun j => woldCoeff x j ^ 2) := by
+  by_cases h0 : innov x 0 = 0
+  · simp [woldCoeff, h0]
+  · have hv := orthonormal_innov hU h0 0
+    have hn : ‖innov x 0‖ ^ 2 ≠ 0 := pow_ne_zero 2 (norm_ne_zero_iff.mpr h0)
+    exact (summable_mul_left_iff hn).mp
+      ((hv.inner_products_summable (x 0)).congr (norm_inner_sq h0))
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (b) (Bessel's bound):
+`‖e‖² ∑ c_j² ≤ ‖x_0‖²`. -/
+theorem tsum_sq_woldCoeff_le {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) :
+    ‖innov x 0‖ ^ 2 * ∑' j, woldCoeff x j ^ 2 ≤ ‖x 0‖ ^ 2 := by
+  by_cases h0 : innov x 0 = 0
+  · rw [h0, norm_zero]; simp
+  · have hv := orthonormal_innov hU h0 0
+    calc ‖innov x 0‖ ^ 2 * ∑' j, woldCoeff x j ^ 2
+        = ∑' j : ℕ, ‖innov x 0‖ ^ 2 * woldCoeff x j ^ 2 := tsum_mul_left.symm
+      _ = ∑' j : ℕ, ‖⟪‖innov x 0‖⁻¹ • innov x (0 - j), x 0⟫‖ ^ 2 :=
+          tsum_congr fun j => (norm_inner_sq h0 j).symm
+      _ ≤ ‖x 0‖ ^ 2 := hv.tsum_inner_products_le (x 0)
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): the regular part lies in `H_t`. -/
+theorem regPart_mem {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) (t : ℤ) :
+    maProc (woldCoeff x) (innov x) t ∈ past x t :=
+  hasSum_mem_pastSpan (hasSum_wold hU t) fun _ =>
+    Submodule.smul_mem _ _ (past_mono x (by omega) (innov_mem x _))
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): for any convergent series
+`y = ∑ b_j e_{t−j}` in the innovations, `⟪e_{t−j}, y⟫ = b_j ‖e‖²`. -/
+theorem inner_innov_hasSum {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1))
+    {t : ℤ} {b : ℕ → ℝ} {y : H} (h : HasSum (fun j : ℕ => b j • innov x (t - j)) y) (j : ℕ) :
+    ⟪innov x (t - j), y⟫ = b j * ‖innov x 0‖ ^ 2 := by
+  have hf : ∀ k : ℕ, ⟪innov x (t - j), b k • innov x (t - k)⟫ =
+      if k = j then b j * ‖innov x 0‖ ^ 2 else 0 := by
+    intro k
+    rw [real_inner_smul_right, innov_whiteNoise hU]
+    by_cases hk : k = j
+    · subst hk; simp
+    · have : t - (j : ℤ) ≠ t - k := by omega
+      simp [this, hk]
+  exact (inner_hasSum_right h (innov x (t - j))).unique ((hasSum_ite_eq j _).congr_fun hf)
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): `e_s ⟂ H_{−∞}`. -/
+theorem innov_mem_orthogonal_remote (x : ℤ → H) (s : ℤ) : innov x s ∈ (remote x)ᗮ :=
+  Submodule.orthogonal_le (remote_le x (s - 1)) (innov_mem_orthogonal x s)
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): the regular part is orthogonal to `H_{−∞}`. -/
+theorem regPart_mem_orthogonal_remote {x : ℤ → H} {U : H →ₗᵢ[ℝ] H}
+    (hU : ∀ t, U (x t) = x (t + 1)) (t : ℤ) :
+    maProc (woldCoeff x) (innov x) t ∈ (remote x)ᗮ :=
+  (Submodule.isClosed_orthogonal _).mem_of_tendsto (hasSum_wold hU t).tendsto_sum_nat
+    (Eventually.of_forall fun _ => Submodule.sum_mem _ fun _ _ =>
+      Submodule.smul_mem _ _ (innov_mem_orthogonal_remote x _))
+
+/-- Cochrane (2023), Online Appendix p. 600 (the key step): `x_t − ∑ c_j e_{t−j}` lies in every
+`H_s`, i.e. in `H_{−∞}`. -/
+theorem sub_regPart_mem_remote {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1))
+    (t : ℤ) : x t - maProc (woldCoeff x) (innov x) t ∈ remote x := by
+  have hd0 : x t - maProc (woldCoeff x) (innov x) t ∈ past x t :=
+    Submodule.sub_mem _ (self_mem_past x t) (regPart_mem hU t)
+  have horth : ∀ s, ⟪innov x s, x t - maProc (woldCoeff x) (innov x) t⟫ = 0 := by
+    intro s
+    rcases le_or_gt s t with hs | hs
+    · obtain ⟨j, rfl⟩ : ∃ j : ℕ, s = t - j := ⟨(t - s).toNat, by omega⟩
+      rw [inner_sub_right, inner_innov_x hU, inner_innov_hasSum hU (hasSum_wold hU t), sub_self]
+    · exact inner_innov_of_mem (past_mono x (by omega) hd0)
+  have hmem : ∀ n : ℕ, x t - maProc (woldCoeff x) (innov x) t ∈ past x (t - n) := by
+    intro n
+    induction n with
+    | zero => simpa using hd0
+    | succ n ih =>
+      have := mem_past_pred ih (horth _)
+      rwa [show t - (n : ℤ) - 1 = t - ((n + 1 : ℕ) : ℤ) by push_cast; ring] at this
+  rw [mem_remote_iff]
+  intro s
+  rcases le_or_gt s t with hs | hs
+  · have := hmem (t - s).toNat
+    rwa [show t - ((t - s).toNat : ℤ) = s by omega] at this
+  · exact past_mono x hs.le hd0
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (b): the deterministic part is
+`d_t = P_{H_{−∞}} x_t = x_t − ∑ c_j e_{t−j}`. -/
+theorem detPart_eq {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) (t : ℤ) :
+    detPart x t = x t - maProc (woldCoeff x) (innov x) t :=
+  Submodule.eq_starProjection_of_mem_orthogonal (sub_regPart_mem_remote hU t)
+    (by rw [sub_sub_cancel]; exact regPart_mem_orthogonal_remote hU t)
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): `x_t = u_t + d_t`. -/
+theorem x_eq_regPart_add_detPart {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1))
+    (t : ℤ) : x t = maProc (woldCoeff x) (innov x) t + detPart x t := by
+  rw [detPart_eq hU, add_sub_cancel]
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): `d_t ∈ H_{−∞}`. -/
+theorem detPart_mem_remote (x : ℤ → H) (t : ℤ) : detPart x t ∈ remote x :=
+  Submodule.starProjection_apply_mem _ _
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 600, **the Wold decomposition theorem** (the book
+invokes it; here proved): let `x` be weakly stationary in a real Hilbert space, `U x_t = x_{t+1}`
+for a linear isometry `U`; let `e_t = x_t − P_{H_{t−1}} x_t`.
+(a) `e_t ∈ H_t`, `e_t ⟂ H_{t−1}`, and `e` is white noise (orthogonal, constant norm);
+(b) `∑ c_j² < ∞` (indeed `‖e‖² ∑ c_j² ≤ ‖x_0‖²`), `c_0 = 1` if `e ≠ 0`,
+`c_j = ⟪x_t, e_{t−j}⟫/‖e_t‖²` at every date, and `x_t = ∑_{j ≥ 0} c_j e_{t−j} + d_t` with the
+series converging in `H`, `d_t = P_{H_{−∞}} x_t ∈ H_{−∞}` and `d ⟂ e`. -/
+theorem wold_decomposition {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) :
+    (∀ t, innov x t ∈ past x t) ∧ (∀ t, innov x t ∈ (past x (t - 1))ᗮ) ∧
+    WhiteNoise (innov x) (‖innov x 0‖ ^ 2) ∧
+    Summable (fun j => woldCoeff x j ^ 2) ∧
+    ‖innov x 0‖ ^ 2 * ∑' j, woldCoeff x j ^ 2 ≤ ‖x 0‖ ^ 2 ∧
+    (innov x 0 ≠ 0 → woldCoeff x 0 = 1) ∧
+    (∀ t (j : ℕ), woldCoeff x j = ⟪x t, innov x (t - j)⟫ / ‖innov x t‖ ^ 2) ∧
+    (∀ t, HasSum (fun j : ℕ => woldCoeff x j • innov x (t - j)) (x t - detPart x t)) ∧
+    (∀ t, detPart x t ∈ remote x) ∧
+    (∀ s t, ⟪detPart x s, innov x t⟫ = 0) := by
+  refine ⟨innov_mem x, innov_mem_orthogonal x, innov_whiteNoise hU, summable_sq_woldCoeff hU,
+    tsum_sq_woldCoeff_le hU, woldCoeff_zero, woldCoeff_eq hU, fun t => ?_, detPart_mem_remote x,
+    fun s t => ?_⟩
+  · rw [detPart_eq hU, sub_sub_cancel]; exact hasSum_wold hU t
+  · exact Submodule.inner_right_of_mem_orthogonal (detPart_mem_remote x s)
+      (innov_mem_orthogonal_remote x t)
+
+/-! ### Uniqueness -/
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 600, Wold (c), **uniqueness**: if
+`x_t = ∑_{j ≥ 0} b_j w_{t−j} + z_t` (converging in `H`) with `w_t ∈ H_t`, `w_t ⟂ H_{t−1}`,
+`b_0 = 1` and `z_t ∈ H_{−∞}`, then `w` is the Wold innovation, `z` the deterministic part, and
+(when `e ≠ 0`) `b` the Wold coefficients. This is why "an autoregression recovers the Wold
+representation": any one-sided representation in forecast errors is the Wold one. -/
+theorem wold_unique {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) {w z : ℤ → H}
+    {b : ℕ → ℝ} (hw : ∀ t, w t ∈ past x t) (hwo : ∀ t, w t ∈ (past x (t - 1))ᗮ)
+    (hb0 : b 0 = 1) (hz : ∀ t, z t ∈ remote x)
+    (hsum : ∀ t, HasSum (fun j : ℕ => b j • w (t - j)) (x t - z t)) :
+    (∀ t, w t = innov x t) ∧ (∀ t, z t = detPart x t) ∧ (innov x 0 ≠ 0 → b = woldCoeff x) := by
+  have hwe : ∀ t, w t = innov x t := by
+    intro t
+    have h1 := (hasSum_nat_add_iff' 1).mpr (hsum t)
+    simp only [Finset.range_one, Finset.sum_singleton, hb0, one_smul, Nat.cast_zero,
+      sub_zero] at h1
+    have hmem : x t - z t - w t ∈ past x (t - 1) :=
+      hasSum_mem_pastSpan h1 fun j => Submodule.smul_mem _ _ (past_mono x (by omega) (hw _))
+    have hP : (past x (t - 1)).starProjection (x t) = x t - w t := by
+      refine Submodule.eq_starProjection_of_mem_orthogonal ?_
+        (by rw [sub_sub_cancel]; exact hwo t)
+      have := Submodule.add_mem _ hmem (remote_le x (t - 1) (hz t))
+      rwa [sub_right_comm, sub_add_cancel] at this
+    rw [innov, hP, sub_sub_cancel]
+  obtain rfl : w = innov x := funext hwe
+  have hb : innov x 0 ≠ 0 → b = woldCoeff x := by
+    intro h0
+    funext j
+    have h1 := inner_innov_hasSum hU (hsum 0) j
+    have h2 : ⟪innov x (0 - j), z 0⟫ = 0 :=
+      inner_innov_of_mem (remote_le x _ (hz 0))
+    rw [inner_sub_right, h2, sub_zero, inner_innov_x hU] at h1
+    exact (mul_right_cancel₀ (pow_ne_zero 2 (norm_ne_zero_iff.mpr h0)) h1).symm
+  refine ⟨hwe, fun t => ?_, hb⟩
+  have hf : (fun j : ℕ => b j • innov x (t - j)) =
+      fun j : ℕ => woldCoeff x j • innov x (t - j) := by
+    funext j
+    by_cases h0 : innov x 0 = 0
+    · rw [innov_eq_zero_of hU h0, smul_zero, smul_zero]
+    · rw [hb h0]
+  have h := (hsum t).unique (hf ▸ (hasSum_wold hU t))
+  rw [detPart_eq hU, ← h, sub_sub_cancel]
+
+/-! ### The regular/deterministic dichotomy -/
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (d): `x` is deterministic iff its innovation
+vanishes. -/
+theorem deterministic_iff {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) :
+    Deterministic x ↔ innov x 0 = 0 :=
+  ⟨fun h => (innov_eq_zero_iff x 0).mpr (h 0),
+    fun h t => (innov_eq_zero_iff x t).mp (innov_eq_zero_of hU h t)⟩
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (d): `x` is deterministic iff it equals its
+deterministic part. -/
+theorem deterministic_iff_detPart {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) :
+    Deterministic x ↔ ∀ t, detPart x t = x t := by
+  rw [deterministic_iff hU]
+  constructor
+  · intro h t
+    rw [detPart_eq hU]
+    simp [maProc, innov_eq_zero_of hU h]
+  · intro h
+    refine (innov_eq_zero_iff x 0).mpr ?_
+    rw [← h 0]
+    exact remote_le x _ (detPart_mem_remote x 0)
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (d): `x` is regular (`H_{−∞} = 0`) iff its
+deterministic part vanishes. -/
+theorem regular_iff {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) :
+    Regular x ↔ ∀ t, detPart x t = 0 := by
+  constructor
+  · intro h t
+    have hm := detPart_mem_remote x t
+    rw [Regular] at h
+    rwa [h, Submodule.mem_bot] at hm
+  · intro h
+    rw [Regular, Submodule.eq_bot_iff]
+    intro z hz
+    have hx : ∀ s, ⟪z, x s⟫ = 0 := by
+      intro s
+      rw [x_eq_regPart_add_detPart hU s, h s, add_zero]
+      exact Submodule.inner_right_of_mem_orthogonal hz (regPart_mem_orthogonal_remote hU s)
+    have h0 : z ∈ (past x 0)ᗮ := mem_orthogonal_pastSpan fun k => hx _
+    exact inner_self_eq_zero.mp
+      (Submodule.inner_right_of_mem_orthogonal (mem_remote_iff.mp hz 0) h0)
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (d): `x` is regular iff it is the moving
+average of its innovations, `x_t = ∑ c_j e_{t−j}`. -/
+theorem regular_iff_hasSum {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) :
+    Regular x ↔ ∀ t, HasSum (fun j : ℕ => woldCoeff x j • innov x (t - j)) (x t) := by
+  rw [regular_iff hU]
+  refine forall_congr' fun t => ⟨fun h => ?_, fun h => ?_⟩
+  · have := hasSum_wold hU t
+    rwa [← sub_zero (x t), ← h, detPart_eq hU, sub_sub_cancel]
+  · rw [detPart_eq hU, (hasSum_wold hU t).unique h, sub_self]
+
+omit [CompleteSpace H] in
+/-- Cochrane (2023), Online Appendix p. 600 (tool): a closed subspace containing
+`y_t, y_{t−1}, …` contains their closed span. -/
+theorem past_le_of_mem {y : ℤ → H} {t : ℤ} {K : Submodule ℝ H} (hK : IsClosed (K : Set H))
+    (h : ∀ k : ℕ, y (t - k) ∈ K) : past y t ≤ K :=
+  Submodule.topologicalClosure_minimal _
+    (Submodule.span_le.mpr (by rintro _ ⟨k, rfl⟩; exact h k)) hK
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (d): the remote past is the closed span of the
+deterministic part's past at any date, `H_{−∞} = closure span{d_t, d_{t−1}, …}`. -/
+theorem remote_eq_past_detPart {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1))
+    (t : ℤ) : remote x = past (detPart x) t := by
+  have hle : past (detPart x) t ≤ remote x :=
+    past_le_of_mem (Submodule.isClosed_topologicalClosure _)
+      fun k => detPart_mem_remote x _
+  refine le_antisymm (fun h hh => ?_) hle
+  set D := past (detPart x) t
+  set k := h - D.starProjection h with hk
+  have hkr : k ∈ remote x :=
+    Submodule.sub_mem _ hh (hle (Submodule.starProjection_apply_mem _ _))
+  have hkD : k ∈ Dᗮ := Submodule.sub_starProjection_mem_orthogonal _
+  have hkx : k ∈ (past x t)ᗮ := by
+    refine mem_orthogonal_pastSpan fun j => ?_
+    rw [x_eq_regPart_add_detPart hU, inner_add_right,
+      Submodule.inner_right_of_mem_orthogonal hkr (regPart_mem_orthogonal_remote hU _),
+      zero_add]
+    exact Submodule.inner_left_of_mem_orthogonal (mem_past (detPart x) t j) hkD
+  have hk0 : k = 0 := inner_self_eq_zero.mp
+    (Submodule.inner_right_of_mem_orthogonal (remote_le x t hkr) hkx)
+  rw [hk, sub_eq_zero] at hk0
+  rw [hk0]
+  exact Submodule.starProjection_apply_mem _ _
+
+/-- Cochrane (2023), Online Appendix p. 600, **Wold (d), the dichotomy**: the regular part
+`u_t = ∑ c_j e_{t−j}` is regular, the deterministic part `d` is deterministic, `H_{−∞}` is
+spanned by `d`'s past, `u` and `d` are uncorrelated at all dates, and both are stationary (shifted
+by the same `U`). -/
+theorem wold_dichotomy {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1)) :
+    Regular (maProc (woldCoeff x) (innov x)) ∧ Deterministic (detPart x) ∧
+    (∀ t, remote x = past (detPart x) t) ∧
+    (∀ s t, ⟪maProc (woldCoeff x) (innov x) s, detPart x t⟫ = 0) ∧
+    (∀ t, U (maProc (woldCoeff x) (innov x) t) = maProc (woldCoeff x) (innov x) (t + 1)) ∧
+    (∀ t, U (detPart x t) = detPart x (t + 1)) := by
+  set u := maProc (woldCoeff x) (innov x) with hu
+  have hUu : ∀ t, U (u t) = u (t + 1) := by
+    intro t
+    have h := (hasSum_wold hU t).mapL U.toContinuousLinearMap
+    refine h.unique ((hasSum_wold hU (t + 1)).congr_fun fun j => ?_)
+    change U (woldCoeff x j • innov x (t - j)) = woldCoeff x j • innov x (t + 1 - j)
+    rw [map_smul, ← innov_shift hU, show t - (j : ℤ) + 1 = t + 1 - j by ring]
+  refine ⟨?_, fun t => ?_, remote_eq_past_detPart hU, fun s t => ?_, hUu, fun t => ?_⟩
+  · -- the regular part is regular
+    rw [Regular, Submodule.eq_bot_iff]
+    intro z hz
+    have hle : ∀ s, past u s ≤ past x s := fun s =>
+      past_le_of_mem (Submodule.isClosed_topologicalClosure _)
+        fun k => past_mono x (by omega) (regPart_mem hU _)
+    have he : ∀ s, ⟪z, innov x s⟫ = 0 := fun s => by
+      rw [real_inner_comm]
+      exact inner_innov_of_mem (hle _ (mem_remote_iff.mp hz (s - 1)))
+    have hzu : ∀ r, ⟪z, u r⟫ = 0 := fun r => by
+      refine (inner_hasSum_right (hasSum_wold hU r) z).unique ?_
+      convert hasSum_zero with j
+      rw [real_inner_smul_right, he, mul_zero]
+    exact inner_self_eq_zero.mp (Submodule.inner_right_of_mem_orthogonal
+      (mem_remote_iff.mp hz 0) (mem_orthogonal_pastSpan fun k => hzu _))
+  · rw [← remote_eq_past_detPart hU]
+    exact detPart_mem_remote x t
+  · exact Submodule.inner_left_of_mem_orthogonal (detPart_mem_remote x t)
+      (regPart_mem_orthogonal_remote hU s)
+  · rw [detPart_eq hU, detPart_eq hU, map_sub, hU, ← hu, hUu]
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (d): a process both regular and deterministic
+is zero. -/
+theorem eq_zero_of_regular_deterministic {x : ℤ → H} {U : H →ₗᵢ[ℝ] H}
+    (hU : ∀ t, U (x t) = x (t + 1)) (hr : Regular x) (hd : Deterministic x) (t : ℤ) :
+    x t = 0 := by
+  rw [← (deterministic_iff_detPart hU).mp hd t, (regular_iff hU).mp hr t]
+
+/-! ### Stationarity: covariance stationarity is the same as a shift isometry -/
+
+omit [CompleteSpace H] in
+/-- Cochrane (2023), Online Appendix p. 597 (stationarity): the orbit of a linear isometry is
+covariance stationary, `⟪x_s, x_u⟫ = γ(s − u)` with `γ(k) = ⟪x_k, x_0⟫`. -/
+theorem stationary_of_shift {x : ℤ → H} {U : H →ₗᵢ[ℝ] H} (hU : ∀ t, U (x t) = x (t + 1))
+    (s u : ℤ) : ⟪x s, x u⟫ = ⟪x (s - u), x 0⟫ := by
+  have := inner_shift hU hU (s - u) 0 u
+  rwa [sub_add_cancel, zero_add] at this
+
+/-- Cochrane (2023), Online Appendix p. 597 (stationarity): a covariance-stationary sequence
+(`⟪x_s, x_u⟫` depends only on `s − u`) is the orbit of a linear isometry `U` of `H`,
+`U x_t = x_{t+1}`: `U` is the isometric extension of `∑ c_t x_t ↦ ∑ c_t x_{t+1}` to the closed
+span `K` of the `x_t`, and the identity on `Kᗮ`. -/
+theorem exists_shift_of_stationary {x : ℤ → H} {γ : ℤ → ℝ}
+    (hγ : ∀ s u, ⟪x s, x u⟫ = γ (s - u)) : ∃ U : H →ₗᵢ[ℝ] H, ∀ t, U (x t) = x (t + 1) := by
+  classical
+  set K : Submodule ℝ H := (Submodule.span ℝ (Set.range x)).topologicalClosure with hK
+  set L : (ℤ →₀ ℝ) →ₗ[ℝ] H := Finsupp.linearCombination ℝ x with hL
+  set L' : (ℤ →₀ ℝ) →ₗ[ℝ] H := Finsupp.linearCombination ℝ (fun t => x (t + 1)) with hL'
+  have hspan : ∀ c, L c ∈ Submodule.span ℝ (Set.range x) := fun c => by
+    rw [← Finsupp.range_linearCombination]; exact LinearMap.mem_range_self _ c
+  have hspan' : ∀ c, L' c ∈ Submodule.span ℝ (Set.range x) := fun c => by
+    have : L' c ∈ Submodule.span ℝ (Set.range fun t => x (t + 1)) := by
+      rw [← Finsupp.range_linearCombination]; exact LinearMap.mem_range_self _ c
+    exact Submodule.span_mono (by rintro _ ⟨t, rfl⟩; exact ⟨t + 1, rfl⟩) this
+  let e : (ℤ →₀ ℝ) →ₗ[ℝ] K :=
+    L.codRestrict K fun c => Submodule.le_topologicalClosure _ (hspan c)
+  have hinner : ∀ c d : ℤ →₀ ℝ, ⟪L' c, L' d⟫ = ⟪L c, L d⟫ := by
+    intro c d
+    simp only [hL, hL', Finsupp.linearCombination_apply, Finsupp.sum, sum_inner, inner_sum,
+      real_inner_smul_left, real_inner_smul_right, hγ, add_sub_add_right_eq_sub]
+  have hnorm : ∀ c, ‖L' c‖ = ‖e c‖ := by
+    intro c
+    change ‖L' c‖ = ‖L c‖
+    rw [norm_eq_sqrt_real_inner, norm_eq_sqrt_real_inner, hinner]
+  have hdense : DenseRange e := by
+    refine Subtype.dense_iff.mpr ?_
+    rw [← Set.range_comp]
+    change (K : Set H) ⊆ closure (Set.range (L : (ℤ →₀ ℝ) → H))
+    rw [← LinearMap.coe_range, hL, Finsupp.range_linearCombination, hK,
+      Submodule.topologicalClosure_coe]
+  let V : K →ₗᵢ[ℝ] H := L'.extendOfIsometry hdense hnorm
+  have hVe : ∀ c, V (e c) = L' c := fun c => LinearMap.extendOfIsometry_eq L' hdense hnorm c
+  have hVK : ∀ y : K, V y ∈ K := by
+    intro y
+    refine hdense.induction_on y ?_ fun c => ?_
+    · exact (Submodule.isClosed_topologicalClosure _).preimage V.continuous
+    · rw [hVe]; exact Submodule.le_topologicalClosure _ (hspan' c)
+  let T : H →ₗ[ℝ] H := V.toLinearMap ∘ₗ (K.orthogonalProjectionOnto : H →ₗ[ℝ] K) +
+    (LinearMap.id - (K.starProjection : H →ₗ[ℝ] H))
+  have hT : ∀ y, T y = V (K.orthogonalProjectionOnto y) + (y - K.starProjection y) :=
+    fun y => rfl
+  have hPy : ∀ y, ((K.orthogonalProjectionOnto y : K) : H) = K.starProjection y := fun y => rfl
+  refine ⟨⟨T, fun y => ?_⟩, fun t => ?_⟩
+  · rw [hT]
+    have h1 : ⟪V (K.orthogonalProjectionOnto y), y - K.starProjection y⟫ = 0 :=
+      Submodule.inner_right_of_mem_orthogonal (hVK _)
+        (Submodule.sub_starProjection_mem_orthogonal y)
+    have h2 : ⟪K.starProjection y, y - K.starProjection y⟫ = 0 :=
+      Submodule.inner_right_of_mem_orthogonal (Submodule.starProjection_apply_mem _ _)
+        (Submodule.sub_starProjection_mem_orthogonal y)
+    have e1 := norm_add_sq_eq_norm_sq_add_norm_sq_real h1
+    have e2 := norm_add_sq_eq_norm_sq_add_norm_sq_real h2
+    rw [add_sub_cancel] at e2
+    have e3 : ‖V (K.orthogonalProjectionOnto y)‖ = ‖K.starProjection y‖ := by
+      rw [LinearIsometry.norm_map]; rfl
+    rw [e3, ← e2] at e1
+    exact (mul_self_inj (norm_nonneg _) (norm_nonneg _)).mp e1
+  · have hxK : x t ∈ K := Submodule.le_topologicalClosure _ (Submodule.subset_span ⟨t, rfl⟩)
+    change T (x t) = x (t + 1)
+    rw [hT, (Submodule.starProjection_eq_self_iff).mpr hxK, sub_self, add_zero]
+    have hP : K.orthogonalProjectionOnto (x t) = e (Finsupp.single t 1) := by
+      apply Subtype.ext
+      rw [hPy, (Submodule.starProjection_eq_self_iff).mpr hxK]
+      change x t = L (Finsupp.single t 1)
+      rw [hL, Finsupp.linearCombination_single, one_smul]
+    rw [hP, hVe, hL', Finsupp.linearCombination_single, one_smul]
+
+/-- Cochrane (2023), Online Appendix p. 597 (stationarity): the two notions of weak
+stationarity agree — `⟪x_s, x_u⟫` depends only on `s − u` iff `x` is the orbit of a linear
+isometry of `H`. -/
+theorem stationary_iff_exists_shift (x : ℤ → H) :
+    (∃ γ : ℤ → ℝ, ∀ s u, ⟪x s, x u⟫ = γ (s - u)) ↔
+      ∃ U : H →ₗᵢ[ℝ] H, ∀ t, U (x t) = x (t + 1) :=
+  ⟨fun ⟨_, hγ⟩ => exists_shift_of_stationary hγ,
+    fun ⟨_, hU⟩ => ⟨fun k => ⟪x k, x 0⟫, stationary_of_shift hU⟩⟩
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 600, **the Wold decomposition for a
+covariance-stationary sequence**: innovations are white noise, `∑ c_j² < ∞`, `c_0 = 1` if
+`e ≠ 0`, `x_t = ∑ c_j e_{t−j} + d_t` in `H` with `d_t ∈ H_{−∞}`, `d ⟂ e`, the regular part is
+regular and the deterministic part deterministic. -/
+theorem wold_of_stationary {x : ℤ → H} {γ : ℤ → ℝ} (hγ : ∀ s u, ⟪x s, x u⟫ = γ (s - u)) :
+    WhiteNoise (innov x) (‖innov x 0‖ ^ 2) ∧ Summable (fun j => woldCoeff x j ^ 2) ∧
+    (innov x 0 ≠ 0 → woldCoeff x 0 = 1) ∧
+    (∀ t, HasSum (fun j : ℕ => woldCoeff x j • innov x (t - j)) (x t - detPart x t)) ∧
+    (∀ t, detPart x t ∈ remote x) ∧ (∀ s t, ⟪detPart x s, innov x t⟫ = 0) ∧
+    Regular (maProc (woldCoeff x) (innov x)) ∧ Deterministic (detPart x) := by
+  obtain ⟨U, hU⟩ := exists_shift_of_stationary hγ
+  obtain ⟨-, -, h1, h2, -, h3, -, h4, h5, h6⟩ := wold_decomposition hU
+  obtain ⟨h7, h8, -⟩ := wold_dichotomy hU
+  exact ⟨h1, h2, h3, h4, h5, h6, h7, h8⟩
+
+/-! ### Neither part can be dropped: a mixed process -/
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (d), **a mixed example**: white noise plus a
+fixed vector orthogonal to it, `x_t = ε_t + v` with `v ≠ 0`, `v ⟂ ε`. Its Wold innovation is
+`ε`, its coefficients are `c = (1, 0, 0, …)`, its deterministic part is `d_t = v` (a mean, in
+`L²`), and it is neither regular nor deterministic. -/
+theorem mixed_example {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2) (hσ : σ2 ≠ 0) {v : H}
+    (hv : v ≠ 0) (hve : ∀ t, ⟪e t, v⟫ = 0) {x : ℤ → H} (hx : ∀ t, x t = e t + v) :
+    (∀ t, innov x t = e t) ∧ (∀ t, detPart x t = v) ∧
+    (∀ j, woldCoeff x j = if j = 0 then 1 else 0) ∧ ¬ Regular x ∧ ¬ Deterministic x := by
+  have hγ : ∀ s u, ⟪x s, x u⟫ = (fun k : ℤ => (if k = 0 then σ2 else 0) + ‖v‖ ^ 2) (s - u) := by
+    intro s u
+    rw [hx, hx, inner_add_left, inner_add_right, inner_add_right, he, hve, real_inner_comm,
+      hve, real_inner_self_eq_norm_sq]
+    simp only [sub_eq_zero, add_zero, zero_add]
+  obtain ⟨U, hU⟩ := exists_shift_of_stationary (x := x)
+    (γ := fun k : ℤ => (if k = 0 then σ2 else 0) + ‖v‖ ^ 2) hγ
+  -- `v` lies in every `H_s` (Cesàro means of the past)
+  have hvmem : ∀ s, v ∈ past x s := by
+    intro s
+    set y : ℕ → H := fun n => ((n : ℝ) + 1)⁻¹ • ∑ m ∈ Finset.range (n + 1), x (s - m) with hy
+    have hymem : ∀ n, y n ∈ past x s := fun n =>
+      Submodule.smul_mem _ _ (Submodule.sum_mem _ fun m _ => mem_past x s m)
+    have hdiff : ∀ n, y n - v =
+        ((n : ℝ) + 1)⁻¹ • ∑ m ∈ Finset.range (n + 1), (1 : ℝ) • e (s - m) := by
+      intro n
+      have hn : ((n : ℝ) + 1) ≠ 0 := by positivity
+      simp only [hy, hx, one_smul, Finset.sum_add_distrib, Finset.sum_const, Finset.card_range]
+      rw [smul_add, ← Nat.cast_smul_eq_nsmul ℝ, smul_smul, Nat.cast_add, Nat.cast_one,
+        inv_mul_cancel₀ hn, one_smul, add_sub_cancel_right]
+    have hnorm : ∀ n, ‖y n - v‖ ^ 2 = σ2 / ((n : ℝ) + 1) := by
+      intro n
+      have hn : ((n : ℝ) + 1) ≠ 0 := by positivity
+      rw [hdiff, ← real_inner_self_eq_norm_sq, real_inner_smul_left, real_inner_smul_right,
+        InvertibilityMeasure.inner_sum_e he (fun _ => 1) (fun m => s - m)
+          (fun m m' h => by simpa using h) (n + 1)]
+      simp only [one_pow, Finset.sum_const, Finset.card_range, nsmul_eq_mul, mul_one]
+      push_cast
+      field_simp
+    have hlim : Tendsto y atTop (𝓝 v) := by
+      rw [tendsto_iff_norm_sub_tendsto_zero]
+      have h1 : Tendsto (fun n : ℕ => σ2 / ((n : ℝ) + 1)) atTop (𝓝 0) :=
+        tendsto_const_div_atTop_nhds_zero_nat σ2 |>.comp (tendsto_add_atTop_nat 1) |>.congr
+          fun n => by simp only [Function.comp_apply, Nat.cast_add, Nat.cast_one]
+      have h2 := (Real.continuous_sqrt.tendsto 0).comp h1
+      rw [Real.sqrt_zero] at h2
+      refine h2.congr fun n => ?_
+      simp only [Function.comp_apply]
+      rw [← hnorm, Real.sqrt_sq (norm_nonneg _)]
+    exact (Submodule.isClosed_topologicalClosure _).mem_of_tendsto hlim
+      (Eventually.of_forall hymem)
+  have hw : ∀ t, e t ∈ past x t := fun t => by
+    have : e t = x t - v := by rw [hx, add_sub_cancel_right]
+    rw [this]
+    exact Submodule.sub_mem _ (self_mem_past x t) (hvmem t)
+  have hwo : ∀ t, e t ∈ (past x (t - 1))ᗮ := fun t => mem_orthogonal_pastSpan fun k => by
+    have : t ≠ t - 1 - k := by omega
+    rw [hx, inner_add_right, he, hve]
+    simp [this]
+  have hsum : ∀ t, HasSum (fun j : ℕ => (if j = 0 then (1 : ℝ) else 0) • e (t - j)) (x t - v) := by
+    intro t
+    rw [hx, add_sub_cancel_right]
+    convert hasSum_single (f := fun j : ℕ => (if j = 0 then (1 : ℝ) else 0) • e (t - j)) 0
+      (fun j hj => by simp [hj]) using 1
+    simp
+  obtain ⟨h1, h2, h3⟩ := wold_unique hU hw hwo (by simp) (fun _ => mem_remote_iff.mpr hvmem)
+    hsum
+  have h0 : innov x 0 ≠ 0 := by
+    rw [← h1 0]
+    intro h
+    have := he 0 0
+    rw [h, inner_zero_left] at this
+    simp only [↓reduceIte] at this
+    exact hσ this.symm
+  refine ⟨fun t => (h1 t).symm, fun t => (h2 t).symm, fun j => (congrFun (h3 h0) j).symm,
+    fun hr => hv ?_, fun hd => h0 ((deterministic_iff hU).mp hd)⟩
+  rw [h2 0]
+  exact (regular_iff hU).mp hr 0
+
+/-! ### Links: moving averages, and the factorised Wold statement -/
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): an absolutely summable moving average in white
+noise with `σ² ≠ 0` is stationary — the shift of the shocks shifts it. -/
+theorem maProc_shift {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2) (hσ : σ2 ≠ 0) {a : ℕ → ℝ}
+    (ha : Summable (fun k => |a k|)) :
+    ∃ U : H →ₗᵢ[ℝ] H, ∀ t, U (maProc a e t) = maProc a e (t + 1) := by
+  obtain ⟨U, hU⟩ := InvertibilityMeasure.exists_shift he hσ
+  refine ⟨U.toLinearIsometry, fun t => ?_⟩
+  have h := (maProc_hasSum he ha t).mapL U.toLinearIsometry.toContinuousLinearMap
+  refine h.unique ((maProc_hasSum he ha (t + 1)).congr_fun fun k => ?_)
+  change U (a k • e (t - k)) = a k • e (t + 1 - k)
+  rw [map_smul, hU, show t - (k : ℤ) + 1 = t + 1 - k by ring]
+
+/-- Cochrane (2023), Online Appendix p. 597 ("the Wold representation, which has an invertible
+moving average"): every absolutely summable moving average `s_t = ∑ a_k e_{t−k}` in white noise is
+regular — its remote past is `0`, so its deterministic part vanishes and it is the moving average
+of its own Wold innovations. -/
+theorem maProc_regular {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2) {a : ℕ → ℝ}
+    (ha : Summable (fun k => |a k|)) : Regular (maProc a e) := by
+  rw [Regular, Submodule.eq_bot_iff]
+  intro z hz
+  have he0 : ∀ r, ⟪z, e r⟫ = 0 := by
+    intro r
+    have horth : e r ∈ (past (maProc a e) (r - 1))ᗮ := mem_orthogonal_pastSpan fun k => by
+      rw [InvertibilityMeasure.inner_e_maProc_int he ha]
+      have : ¬ r ≤ r - 1 - k := by omega
+      simp only [this, ↓reduceIte]
+    exact Submodule.inner_right_of_mem_orthogonal (mem_remote_iff.mp hz (r - 1)) horth
+  have hzs : ∀ q, ⟪z, maProc a e q⟫ = 0 := fun q => by
+    refine (inner_hasSum_right (maProc_hasSum he ha q) z).unique ?_
+    convert hasSum_zero with k
+    rw [real_inner_smul_right, he0, mul_zero]
+  exact inner_self_eq_zero.mp (Submodule.inner_right_of_mem_orthogonal
+    (mem_remote_iff.mp hz 0) (mem_orthogonal_pastSpan fun k => hzs _))
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 600, **the factorised statement is an instance of
+Wold**: for `s_t = a(L)e_t` with `a(L) = (1 − θL)g(L)`, `|θ| > 1`, `g₀ = 1`, `g` invertible
+(`InvertibilityMeasure.wold_factor`), the abstract Wold innovation of `s` is the autoregression
+error `w_t = ∑ θ⁻ᵏ(e_{t−k} − θe_{t−k−1})`, the abstract Wold coefficients are the fitted
+`ã = (1 − θ⁻¹L)g` (the flipped root), `‖w‖² = θ²σ²`, the deterministic part is `0` and `s` is
+regular. -/
+theorem wold_factor_is_wold {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2) (hσ : σ2 ≠ 0) {θ : ℝ}
+    (hθ : 1 < |θ|) {g : ℕ → ℝ} (hg : Summable (fun k => |g k|)) (hg0 : g 0 = 1)
+    (hrec : Invertibility.Recoverable g) :
+    (∀ t, innov (maProc (InvertibilityMeasure.factorCoeff θ g) e) t =
+      woldInnov θ (maOne θ e) t) ∧
+    woldCoeff (maProc (InvertibilityMeasure.factorCoeff θ g) e) =
+      InvertibilityMeasure.factorCoeff θ⁻¹ g ∧
+    (∀ t, detPart (maProc (InvertibilityMeasure.factorCoeff θ g) e) t = 0) ∧
+    Regular (maProc (InvertibilityMeasure.factorCoeff θ g) e) ∧
+    ‖innov (maProc (InvertibilityMeasure.factorCoeff θ g) e) 0‖ ^ 2 = θ ^ 2 * σ2 := by
+  set s := maProc (InvertibilityMeasure.factorCoeff θ g) e with hs
+  obtain ⟨U, hU⟩ := maProc_shift he hσ (InvertibilityMeasure.summable_factorCoeff θ hg)
+  have hW := InvertibilityMeasure.wold_factor he hσ hθ hg hg0 hrec
+  have hw : ∀ t, innov s t = woldInnov θ (maOne θ e) t := by
+    intro t
+    have hP : (past s (t - 1)).starProjection (s t) = s t - woldInnov θ (maOne θ e) t :=
+      (hW t).1
+    rw [innov, hP, sub_sub_cancel]
+  have hn : ‖innov s 0‖ ^ 2 = θ ^ 2 * σ2 := by
+    rw [hw, ← real_inner_self_eq_norm_sq]
+    exact (hW 0).2.1
+  have h0 : innov s 0 ≠ 0 := by
+    intro h
+    rw [h, norm_zero] at hn
+    have hθ0 : θ ≠ 0 := by intro h'; rw [h', abs_zero] at hθ; linarith
+    exact mul_ne_zero (pow_ne_zero 2 hθ0) hσ (by rw [← hn]; ring)
+  obtain ⟨-, h2, h3⟩ := wold_unique hU (w := woldInnov θ (maOne θ e))
+    (b := InvertibilityMeasure.factorCoeff θ⁻¹ g) (z := fun _ => 0)
+    (fun t => by rw [← hw t]; exact innov_mem s t)
+    (fun t => by rw [← hw t]; exact innov_mem_orthogonal s t) hg0
+    (fun _ => Submodule.zero_mem _) (fun t => by rw [sub_zero]; exact (hW t).2.2.2.1)
+  exact ⟨hw, (h3 h0).symm, fun t => (h2 t).symm, (regular_iff hU).mpr fun t => (h2 t).symm, hn⟩
+
+/-- Cochrane (2023), Online Appendix p. 597 ("the Wold representation, which has an invertible
+moving average"), **correction**: the Wold moving average is fundamental (`e_t ∈ H_t`) but need not
+be invertible. For `s_t = e_t − ρe_{t−1}` with `ρ = ±1`, the Wold innovation is the structural
+shock, the Wold coefficients are `(1, −ρ, 0, …)`, so the Wold polynomial vanishes at `ρ` on the
+unit circle, and no absolutely summable autoregression of current and past `s` converges to the
+Wold innovation. -/
+theorem wold_unit_root {e : ℤ → H} {σ2 : ℝ} (he : WhiteNoise e σ2) (hσ : σ2 ≠ 0) {ρ : ℝ}
+    (hρ : ρ ^ 2 = 1) :
+    (∀ t, innov (maProc (Invertibility.armaCoeff 0 ρ) e) t = e t) ∧
+    woldCoeff (maProc (Invertibility.armaCoeff 0 ρ) e) = Invertibility.armaCoeff 0 ρ ∧
+    Regular (maProc (Invertibility.armaCoeff 0 ρ) e) ∧
+    Innovations.gen (woldCoeff (maProc (Invertibility.armaCoeff 0 ρ) e)) ρ = 0 ∧ |ρ| = 1 ∧
+    ∀ t, ¬ ∃ b : ℕ → ℝ, Summable (fun k => |b k|) ∧
+      HasSum (fun k : ℕ => b k • maProc (Invertibility.armaCoeff 0 ρ) e (t - k))
+        (innov (maProc (Invertibility.armaCoeff 0 ρ) e) t) := by
+  set s := maProc (Invertibility.armaCoeff 0 ρ) e with hs
+  have ha := Invertibility.summable_abs_armaCoeff (show |(0 : ℝ)| < 1 by simp) ρ
+  obtain ⟨U, hU⟩ := maProc_shift he hσ ha
+  have habs : |ρ| = 1 := by
+    have : |ρ| ^ 2 = 1 := by rw [sq_abs, hρ]
+    nlinarith [abs_nonneg ρ]
+  have hroot : Innovations.gen (Invertibility.armaCoeff 0 ρ) ρ = 0 := by
+    rw [Invertibility.ma1_aRho]; nlinarith
+  have hwo : ∀ t, e t ∈ (past s (t - 1))ᗮ := fun t => mem_orthogonal_pastSpan fun k => by
+    rw [InvertibilityMeasure.inner_e_maProc_int he ha]
+    have : ¬ t ≤ t - 1 - k := by omega
+    simp only [this, ↓reduceIte]
+  obtain ⟨h1, h2, h3⟩ := wold_unique hU (w := e) (b := Invertibility.armaCoeff 0 ρ)
+    (z := fun _ => 0) (fun t => (InvertibilityMeasure.mem_pastSpan_unit_root he hρ t).2) hwo
+    rfl (fun _ => Submodule.zero_mem _)
+    (fun t => by rw [sub_zero]; exact maProc_hasSum he ha t)
+  have h0 : innov s 0 ≠ 0 := by
+    rw [← h1 0]
+    intro h
+    have := he 0 0
+    rw [h, inner_zero_left] at this
+    simp only [↓reduceIte] at this
+    exact hσ this.symm
+  have hc := (h3 h0).symm
+  have hroot' : Innovations.gen (woldCoeff s) ρ = 0 := by rw [hc]; exact hroot
+  refine ⟨fun t => (h1 t).symm, hc, (regular_iff hU).mpr fun t => (h2 t).symm, hroot', habs,
+    fun t => ?_⟩
+  rw [← h1 t]
+  exact InvertibilityMeasure.not_filter_of_aRho_eq_zero he hσ ha habs.le hroot t
+
+/-! ### The i.i.d. economy in `L²(ν^ℕ)` -/
+
+namespace IIDEconomy
+
+open MeasureTheory ProbabilityTheory
+open Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID
+open Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2
+
+/-- Cochrane (2023), Online Appendix p. 600 (the deterministic part as a mean): the constant
+random variable `1` in `L²(ν^ℕ)`. -/
+noncomputable def oneL2 (ν : ProbabilityMeasure ℝ) : Lp ℝ 2 (iidSystem ν).μ :=
+  (memLp_const (1 : ℝ)).toLp _
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): `E[1 · 1] = 1`. -/
+theorem inner_oneL2 (ν : ProbabilityMeasure ℝ) : ⟪oneL2 ν, oneL2 ν⟫ = 1 := by
+  rw [L2.inner_def]
+  have h2 : (oneL2 ν : (ℕ → ℝ) → ℝ) =ᵐ[(iidSystem ν).μ] fun _ => (1 : ℝ) := MemLp.coeFn_toLp _
+  have hc : (fun ω => ⟪(oneL2 ν : (ℕ → ℝ) → ℝ) ω, (oneL2 ν : (ℕ → ℝ) → ℝ) ω⟫)
+      =ᵐ[(iidSystem ν).μ] fun _ => (1 : ℝ) := by
+    filter_upwards [h2] with ω e2
+    rw [e2]
+    simp
+  rw [integral_congr_ae hc]
+  simp
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): `1 ≠ 0` in `L²(ν^ℕ)`. -/
+theorem oneL2_ne_zero (ν : ProbabilityMeasure ℝ) : oneL2 ν ≠ 0 := by
+  intro h
+  have := inner_oneL2 ν
+  rw [h, inner_zero_left] at this
+  exact zero_ne_one this
+
+/-- Cochrane (2023), Online Appendix p. 600 (tool): mean-zero shocks are uncorrelated with the
+constant, `E[ε_t · 1] = 0`. -/
+theorem inner_shockL2_one {ν : ProbabilityMeasure ℝ} {B : ℝ}
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (t : ℤ) :
+    ⟪shockL2 hbdd t, oneL2 ν⟫ = 0 := by
+  rw [L2.inner_def]
+  have h1 : (shockL2 hbdd t : (ℕ → ℝ) → ℝ) =ᵐ[(iidSystem ν).μ]
+      fun ω => ω (Equiv.intEquivNat t) := MemLp.coeFn_toLp _
+  have h2 : (oneL2 ν : (ℕ → ℝ) → ℝ) =ᵐ[(iidSystem ν).μ] fun _ => (1 : ℝ) := MemLp.coeFn_toLp _
+  have hc : (fun ω => ⟪(shockL2 hbdd t : (ℕ → ℝ) → ℝ) ω, (oneL2 ν : (ℕ → ℝ) → ℝ) ω⟫)
+      =ᵐ[(iidSystem ν).μ] fun ω => ω (Equiv.intEquivNat t) := by
+    filter_upwards [h1, h2] with ω e1 e2
+    rw [e1, e2]
+    simp
+  rw [integral_congr_ae hc]
+  have h := integral_shock_fun ν (Equiv.intEquivNat t) (f := id) measurable_id
+  simp only [id] at h
+  rw [h, hmean]
+
+/-- Cochrane (2023), p. 102 and Online Appendix pp. 597 and 600, the Wold theorem in `L²` of the
+i.i.d. economy: every absolutely summable moving average of the i.i.d. shocks is regular and is
+the moving average `∑ c_j e_{t−j}` (converging in mean square) of its own Wold innovations, which
+are white noise, with `∑ c_j² < ∞` and `c_0 = 1`. -/
+theorem iid_wold {ν : ProbabilityMeasure ℝ} {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) {a : ℕ → ℝ} (ha : Summable (fun k => |a k|)) :
+    WhiteNoise (innov (maProc a (shockL2 hbdd))) (‖innov (maProc a (shockL2 hbdd)) 0‖ ^ 2) ∧
+    Summable (fun j => woldCoeff (maProc a (shockL2 hbdd)) j ^ 2) ∧
+    (innov (maProc a (shockL2 hbdd)) 0 ≠ 0 → woldCoeff (maProc a (shockL2 hbdd)) 0 = 1) ∧
+    Regular (maProc a (shockL2 hbdd)) ∧
+    ∀ t, HasSum (fun j : ℕ => woldCoeff (maProc a (shockL2 hbdd)) j •
+      innov (maProc a (shockL2 hbdd)) (t - j)) (maProc a (shockL2 hbdd) t) := by
+  have he := iid_whiteNoise hmean hvar hbdd
+  obtain ⟨U, hU⟩ := maProc_shift he hσ.ne' ha
+  have hr := maProc_regular he ha
+  obtain ⟨-, -, h1, h2, -, h3, -⟩ := wold_decomposition hU
+  exact ⟨h1, h2, h3, hr, (regular_iff_hasSum hU).mp hr⟩
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 600, in `L²` of the i.i.d. economy: for
+`a(L) = (1 − θL)g(L)` (`|θ| > 1`, `g₀ = 1`, `g` invertible) the Wold innovation of the surplus is
+the autoregression error `w` (not the structural shock), the Wold coefficients are the fitted
+`ã = (1 − θ⁻¹L)g`, the Wold innovation variance is `θ²σ²`, and the surplus is regular. -/
+theorem iid_wold_factor_is_wold {ν : ProbabilityMeasure ℝ} {σ2 B : ℝ}
+    (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2)
+    (hσ : 0 < σ2) (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) {θ : ℝ} (hθ : 1 < |θ|)
+    {g : ℕ → ℝ} (hg : Summable (fun k => |g k|)) (hg0 : g 0 = 1)
+    (hrec : Invertibility.Recoverable g) :
+    (∀ t, innov (maProc (InvertibilityMeasure.factorCoeff θ g) (shockL2 hbdd)) t =
+      woldInnov θ (maOne θ (shockL2 hbdd)) t) ∧
+    woldCoeff (maProc (InvertibilityMeasure.factorCoeff θ g) (shockL2 hbdd)) =
+      InvertibilityMeasure.factorCoeff θ⁻¹ g ∧
+    Regular (maProc (InvertibilityMeasure.factorCoeff θ g) (shockL2 hbdd)) ∧
+    ‖innov (maProc (InvertibilityMeasure.factorCoeff θ g) (shockL2 hbdd)) 0‖ ^ 2 =
+      θ ^ 2 * σ2 ∧
+    innov (maProc (InvertibilityMeasure.factorCoeff θ g) (shockL2 hbdd)) 0 ≠ shockL2 hbdd 0 := by
+  obtain ⟨h1, h2, -, h4, h5⟩ :=
+    wold_factor_is_wold (iid_whiteNoise hmean hvar hbdd) hσ.ne' hθ hg hg0 hrec
+  refine ⟨h1, h2, h4, h5, ?_⟩
+  rw [h1]
+  exact (iid_wold_factor hmean hvar hσ hbdd hθ hg hg0 hrec 0).2.2.2.2.2
+
+/-- Cochrane (2023), Online Appendix p. 600, Wold (d), a mixed process in `L²` of the i.i.d.
+economy: `x_t = ε_t + 1` (shocks with a nonzero mean). Its Wold innovation is `ε_t`, its
+coefficients are `(1, 0, 0, …)`, its deterministic part is the mean `1`, and it is neither regular
+nor deterministic. -/
+theorem iid_mixed {ν : ProbabilityMeasure ℝ} {σ2 B : ℝ} (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0)
+    (hvar : ∫ x, x ^ 2 ∂(ν : Measure ℝ) = σ2) (hσ : 0 < σ2)
+    (hbdd : ∀ᵐ x ∂(ν : Measure ℝ), |x| ≤ B) {x : ℤ → Lp ℝ 2 (iidSystem ν).μ}
+    (hx : ∀ t, x t = shockL2 hbdd t + oneL2 ν) :
+    (∀ t, innov x t = shockL2 hbdd t) ∧ (∀ t, detPart x t = oneL2 ν) ∧
+    (∀ j, woldCoeff x j = if j = 0 then 1 else 0) ∧ ¬ Regular x ∧ ¬ Deterministic x :=
+  mixed_example (iid_whiteNoise hmean hvar hbdd) hσ.ne' (oneL2_ne_zero ν)
+    (inner_shockL2_one hbdd hmean) hx
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 600, the fair coin (`σ² = 1`, on the
+non-finitely-supported `{±1}^ℕ`): for `|ρ| < 1`, the MA(1) `s_t = e_t − ρ⁻¹e_{t−1}` (`a(ρ) = 0`)
+has Wold innovation variance `ρ⁻²`, Wold coefficients `(1, −ρ, 0, 0, …)` (the root flipped to
+`ρ`), and is regular; `ε_t + 1` is a mixed process with deterministic part `1`. -/
+theorem coin_wold {ρ : ℝ} (hρ0 : 0 < |ρ|) (hρ : |ρ| < 1) :
+    woldCoeff (maProc (InvertibilityMeasure.factorCoeff ρ⁻¹ (fun k => if k = 0 then 1 else 0))
+      (shockL2 coin_bdd)) = InvertibilityMeasure.factorCoeff ρ (fun k => if k = 0 then 1 else 0) ∧
+    InvertibilityMeasure.factorCoeff ρ (fun k => if k = 0 then 1 else 0) 1 = -ρ ∧
+    Regular (maProc (InvertibilityMeasure.factorCoeff ρ⁻¹ (fun k => if k = 0 then 1 else 0))
+      (shockL2 coin_bdd)) ∧
+    ‖innov (maProc (InvertibilityMeasure.factorCoeff ρ⁻¹ (fun k => if k = 0 then 1 else 0))
+      (shockL2 coin_bdd)) 0‖ ^ 2 = (ρ⁻¹) ^ 2 * 1 ∧
+    (∀ t, detPart (fun t => shockL2 coin_bdd t + oneL2 coin) t = oneL2 coin) := by
+  have hθ : 1 < |ρ⁻¹| := by rw [abs_inv]; exact one_lt_inv_iff₀.mpr ⟨hρ0, hρ⟩
+  have hδ : Summable (fun k : ℕ => |(if k = 0 then (1 : ℝ) else 0)|) :=
+    summable_of_ne_finset_zero (s := {0}) fun n hn => by simp_all
+  obtain ⟨-, h2, h3, h4, -⟩ := iid_wold_factor_is_wold coin_mean coin_var one_pos coin_bdd hθ hδ
+    (by simp) InvertibilityMeasure.recoverable_delta
+  obtain ⟨-, h5, -⟩ := iid_mixed coin_mean coin_var one_pos coin_bdd (x := fun t =>
+    shockL2 coin_bdd t + oneL2 coin) fun _ => rfl
+  refine ⟨by rwa [inv_inv] at h2, by simp [InvertibilityMeasure.factorCoeff], h3, h4, h5⟩
+
+/-- Cochrane (2023), Online Appendix p. 597, **correction** in `L²` of the fair-coin economy: the
+surplus `s_t = ε_t − ε_{t−1}` has Wold innovation `ε_t` and Wold polynomial `1 − z`, with a root at
+`z = 1` on the unit circle; no absolutely summable autoregression recovers the Wold innovation. -/
+theorem coin_wold_unit_root (t : ℤ) :
+    innov (maProc (Invertibility.armaCoeff 0 1) (shockL2 coin_bdd)) t = shockL2 coin_bdd t ∧
+    Innovations.gen (woldCoeff (maProc (Invertibility.armaCoeff 0 1) (shockL2 coin_bdd))) 1 = 0 ∧
+    ¬ ∃ b : ℕ → ℝ, Summable (fun k => |b k|) ∧
+      HasSum (fun k : ℕ => b k • maProc (Invertibility.armaCoeff 0 1) (shockL2 coin_bdd) (t - k))
+        (innov (maProc (Invertibility.armaCoeff 0 1) (shockL2 coin_bdd)) t) := by
+  obtain ⟨h1, -, -, h4, -, h6⟩ := wold_unit_root (iid_whiteNoise coin_mean coin_var coin_bdd)
+    one_ne_zero (ρ := 1) (by norm_num)
+  exact ⟨h1 t, h4, h6 t⟩
+
+end IIDEconomy
+
+end Cochrane.DebtDeficitsInflation.Wold
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The debt-feedback surplus as a closed-form moving average
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 4, §4.2.6, p. 96 (survey E10,
+the Chapter 4 half).
+
+The surplus `s̃_{t+1} = αv_t + u_{s,t+1}` with `ρv_{t+1} = v_t − s̃_{t+1}` and a disturbance with
+moving-average representation `u_t = a_u(L)ε_t` is itself a moving average in the same shock.
+With `λ = (1 − α)/ρ` (`|λ| < 1`), the stationary value of debt is
+`v_t = −ρ⁻¹∑_m c_mε_{t−m}`, `c_m = ∑_{k ≤ m} a_{u,k}λ^{m−k}`, and the surplus has coefficients
+`a_{s,0} = a_{u,0}`, `a_{s,m+1} = a_{u,m+1} − (α/ρ)c_m`, i.e. `a_s(L) = a_u(L)(1 − ρ⁻¹L)/(1 − λL)`.
+Hence `a_s(ρ) = 0` whatever `a_u`, while `a_u(ρ) = 1/(1 − ρη) > 1` for an AR(1) disturbance with
+`η > 0`. The module `SurplusProcessFacts` proved the same fact termwise
+(`SurplusProcessFacts.feedback_full_repayment`); here it is a statement about the coefficient
+sequence, and the two are linked.
+
+## Main definitions
+
+* `lam`, `debtCoeff` (`c_m`), `fbCoeff` (`a_s`), `fbFactor` (the coefficients of
+  `(1 − ρ⁻¹L)/(1 − λL)`), `statValue` (the stationary value of debt), `maSeries`.
+
+## Main results
+
+* `debtCoeff_succ`, `fbCoeff_eq_conv` (`a_s = a_u * fbFactor`), `summable_abs_debtCoeff`,
+  `summable_abs_fbCoeff`.
+* Generating functions: `hasSum_gen_debtCoeff` (`c(z) = a_u(z)/(1 − λz)`),
+  `hasSum_gen_fbCoeff` (`a_s(z) = a_u(z)(1 − z/ρ)/(1 − λz)`), `gen_fbCoeff_rho`
+  (`a_s(ρ) = 0`).
+* The process: `statValue_succ`, `fbValue_eq_statValue`, `fbSurplus_eq_maSeries`,
+  `isMA_maSeries`, `isMA_statValue`.
+* Headlines: `feedback_ma_repaid` (the surplus is the moving average `a_s`, `a_s(ρ) = 0`, and
+  `∑ρʲΔs̃_{t+1+j} = a_s(ρ)ε_{t+1} = 0` while `∑ρʲΔu_{t+1+j} = a_u(ρ)ε_{t+1}`),
+  `feedback_ma_link` (the termwise `SurplusProcessFacts.feedback_full_repayment` is the same
+  series), `debtCoeff_ar1`, `fbCoeff_ar1`, `feedback_ar1_closed_form` (AR(1) disturbance:
+  explicit sequences, `a_s(ρ) = 0 < 1 < a_u(ρ)`).
+-/
+
+namespace Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA
+
+open Filter Topology
+open Cochrane.DebtDeficitsInflation.Innovations
+open Cochrane.DebtDeficitsInflation.LinearizedIdentities
+open Cochrane.DebtDeficitsInflation.SurplusMA
+open Cochrane.DebtDeficitsInflation.SurplusProcessFacts
+
+/-! ### The coefficient sequences -/
+
+/-- Cochrane (2023), §4.2.6, p. 96: the debt-feedback root `λ = (1 − α)/ρ` (from
+`v_{t+1} = λv_t − u_{t+1}/ρ`). -/
+noncomputable def lam (ρ α : ℝ) : ℝ := (1 - α) / ρ
+
+/-- Cochrane (2023), §4.2.6, p. 96: the debt coefficients `c_m = ∑_{k ≤ m} a_{u,k}λ^{m−k}`, so
+that `v_t = −ρ⁻¹∑_m c_mε_{t−m}` (the coefficients of `a_u(L)/(1 − λL)`). -/
+noncomputable def debtCoeff (ρ α : ℝ) (a : ℕ → ℝ) (m : ℕ) : ℝ :=
+  ∑ k ∈ Finset.range (m + 1), a k * lam ρ α ^ (m - k)
+
+/-- Cochrane (2023), §4.2.6, p. 96: the moving-average coefficients `a_s` of the debt-feedback
+surplus, `a_{s,0} = a_{u,0}`, `a_{s,m+1} = a_{u,m+1} − (α/ρ)c_m`. -/
+noncomputable def fbCoeff (ρ α : ℝ) (a : ℕ → ℝ) : ℕ → ℝ
+  | 0 => a 0
+  | m + 1 => a (m + 1) - α / ρ * debtCoeff ρ α a m
+
+/-- Cochrane (2023), §4.2.6, p. 96: the coefficients of the lag polynomial
+`(1 − ρ⁻¹L)/(1 − λL)`: `1, −(α/ρ), −(α/ρ)λ, −(α/ρ)λ², …`. -/
+noncomputable def fbFactor (ρ α : ℝ) : ℕ → ℝ
+  | 0 => 1
+  | m + 1 => -(α / ρ) * lam ρ α ^ m
+
+/-- Cochrane (2023), §4.2.6, p. 96: `c_0 = a_{u,0}`. -/
+theorem debtCoeff_zero (ρ α : ℝ) (a : ℕ → ℝ) : debtCoeff ρ α a 0 = a 0 := by
+  simp [debtCoeff]
+
+/-- Cochrane (2023), §4.2.6, p. 96: the debt coefficients follow the debt dynamics,
+`c_{m+1} = λc_m + a_{u,m+1}`. -/
+theorem debtCoeff_succ (ρ α : ℝ) (a : ℕ → ℝ) (m : ℕ) :
+    debtCoeff ρ α a (m + 1) = lam ρ α * debtCoeff ρ α a m + a (m + 1) := by
+  unfold debtCoeff
+  rw [Finset.sum_range_succ, Nat.sub_self, pow_zero, mul_one, Finset.mul_sum]
+  congr 1
+  refine Finset.sum_congr rfl fun k hk => ?_
+  have hk' : k ≤ m := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+  rw [show m + 1 - k = (m - k) + 1 by omega, pow_succ]
+  ring
+
+/-- Cochrane (2023), §4.2.6, p. 96: the closed form `a_s(L) = a_u(L)·(1 − ρ⁻¹L)/(1 − λL)` as a
+convolution of coefficient sequences, `a_{s,j} = ∑_{k ≤ j} a_{u,k}·fbFactor_{j−k}`, provided
+`ρ ≠ 0` (it uses `λ − ρ⁻¹ = −α/ρ`). -/
+theorem fbCoeff_eq_conv (ρ α : ℝ) (a : ℕ → ℝ) (j : ℕ) :
+    fbCoeff ρ α a j = ∑ k ∈ Finset.range (j + 1), a k * fbFactor ρ α (j - k) := by
+  rcases j with _ | m
+  · simp [fbCoeff, fbFactor]
+  · rw [Finset.sum_range_succ, Nat.sub_self]
+    simp only [fbCoeff, debtCoeff, Finset.mul_sum]
+    rw [show fbFactor ρ α 0 = 1 from rfl, mul_one, sub_eq_add_neg, add_comm,
+      ← Finset.sum_neg_distrib]
+    congr 1
+    refine Finset.sum_congr rfl fun k hk => ?_
+    have hk' : k ≤ m := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+    rw [show m + 1 - k = (m - k) + 1 by omega,
+      show fbFactor ρ α (m - k + 1) = -(α / ρ) * lam ρ α ^ (m - k) from rfl]
+    ring
+
+/-- Cochrane (2023), §4.2.6, p. 96: with `∑|a_{u,j}| < ∞` and `|λ| < 1` the debt coefficients are
+absolutely summable. -/
+theorem summable_abs_debtCoeff {ρ α : ℝ} (hl : |lam ρ α| < 1) {a : ℕ → ℝ}
+    (ha : Summable fun j => |a j|) : Summable fun m => |debtCoeff ρ α a m| := by
+  have hg : Summable fun n => ‖lam ρ α ^ n‖ := by
+    simpa [norm_pow, Real.norm_eq_abs] using
+      summable_geometric_of_lt_one (abs_nonneg _) hl
+  have h := summable_norm_sum_mul_range_of_summable_norm
+    (f := a) (g := fun n => lam ρ α ^ n) (by simpa [Real.norm_eq_abs] using ha) hg
+  simpa [Real.norm_eq_abs, debtCoeff] using h
+
+/-- Cochrane (2023), §4.2.6, p. 96: the surplus coefficients are absolutely summable. -/
+theorem summable_abs_fbCoeff {ρ α : ℝ} (hl : |lam ρ α| < 1) {a : ℕ → ℝ}
+    (ha : Summable fun j => |a j|) : Summable fun j => |fbCoeff ρ α a j| := by
+  rw [← summable_nat_add_iff 1]
+  refine Summable.of_nonneg_of_le (fun _ => abs_nonneg _) (fun m => ?_)
+    (((summable_nat_add_iff 1).2 ha).add ((summable_abs_debtCoeff hl ha).mul_left |α / ρ|))
+  simp only [fbCoeff]
+  calc |a (m + 1) - α / ρ * debtCoeff ρ α a m|
+      ≤ |a (m + 1)| + |α / ρ * debtCoeff ρ α a m| := abs_sub _ _
+    _ = |a (m + 1)| + |α / ρ| * |debtCoeff ρ α a m| := by rw [abs_mul]
+
+/-! ### Generating functions -/
+
+/-- Cochrane (2023), §4.2.6, p. 96: the generating function of the debt coefficients,
+`∑ c_mzᵐ = a_u(z)/(1 − λz)`, whenever `∑|a_{u,j}zʲ| < ∞` and `|λz| < 1`. -/
+theorem hasSum_gen_debtCoeff {ρ α z : ℝ} {a : ℕ → ℝ} (ha : Summable fun j => |a j * z ^ j|)
+    (hz : |lam ρ α * z| < 1) :
+    HasSum (fun m => debtCoeff ρ α a m * z ^ m) (gen a z / (1 - lam ρ α * z)) := by
+  have hg : Summable fun n => ‖(lam ρ α * z) ^ n‖ := by
+    simpa [norm_pow, Real.norm_eq_abs] using summable_geometric_of_lt_one (abs_nonneg _) hz
+  have hf : Summable fun j => ‖a j * z ^ j‖ := by simpa [Real.norm_eq_abs] using ha
+  have hterm : ∀ m, ∑ k ∈ Finset.range (m + 1), a k * z ^ k * (lam ρ α * z) ^ (m - k) =
+      debtCoeff ρ α a m * z ^ m := fun m => by
+    rw [debtCoeff, Finset.sum_mul]
+    refine Finset.sum_congr rfl fun k hk => ?_
+    have hk' : k ≤ m := Nat.lt_succ_iff.mp (Finset.mem_range.mp hk)
+    have : z ^ m = z ^ k * z ^ (m - k) := by rw [← pow_add, Nat.add_sub_cancel' hk']
+    rw [this, mul_pow]
+    ring
+  have hsum := summable_norm_sum_mul_range_of_summable_norm hf hg
+  simp_rw [hterm] at hsum
+  have heq := tsum_mul_tsum_eq_tsum_sum_range_of_summable_norm hf hg
+  simp_rw [hterm] at heq
+  have hgeo : ∑' n, (lam ρ α * z) ^ n = (1 - lam ρ α * z)⁻¹ :=
+    tsum_geometric_of_abs_lt_one hz
+  rw [hgeo] at heq
+  have hval : gen a z / (1 - lam ρ α * z) = ∑' m, debtCoeff ρ α a m * z ^ m := by
+    rw [div_eq_mul_inv, gen, heq]
+  rw [hval]
+  exact (hsum.of_norm).hasSum
+
+/-- Cochrane (2023), §4.2.6, p. 96: the generating function of the debt-feedback surplus,
+`a_s(z) = a_u(z)(1 − z/ρ)/(1 − λz)` (`ρ ≠ 0`, `∑|a_{u,j}zʲ| < ∞`, `|λz| < 1`). -/
+theorem hasSum_gen_fbCoeff {ρ α z : ℝ} (hρ : ρ ≠ 0) {a : ℕ → ℝ}
+    (ha : Summable fun j => |a j * z ^ j|) (hz : |lam ρ α * z| < 1) :
+    HasSum (fun j => fbCoeff ρ α a j * z ^ j)
+      (gen a z * (1 - z / ρ) / (1 - lam ρ α * z)) := by
+  have hA : HasSum (fun j => a j * z ^ j) (gen a z) := (ha.of_abs).hasSum
+  have hC := hasSum_gen_debtCoeff ha hz
+  have hd : 1 - lam ρ α * z ≠ 0 := by
+    intro h0
+    have : lam ρ α * z = 1 := by linarith
+    rw [this, abs_one] at hz
+    exact lt_irrefl _ hz
+  rw [← hasSum_nat_add_iff' 1]
+  have h1 := (hasSum_nat_add_iff' 1).2 hA
+  have h2 := h1.sub (hC.mul_left (α / ρ * z))
+  convert h2 using 1
+  · funext m
+    simp only [fbCoeff, pow_succ]
+    ring
+  · simp only [Finset.range_one, Finset.sum_singleton, fbCoeff, pow_zero, mul_one]
+    have key : 1 - z / ρ = (1 - lam ρ α * z) - α / ρ * z := by
+      unfold lam; field_simp; ring
+    rw [key]
+    field_simp
+    ring
+
+/-- Cochrane (2023), §4.2.6, p. 96 ("surpluses themselves `s_t` may be fully repaid with
+`a_s(ρ) = 0`"): `a_s(ρ) = 0` for every disturbance with `∑|a_{u,j}ρʲ| < ∞`, provided `ρ ≠ 0` and
+`|1 − α| < 1` (so `|λρ| < 1`). -/
+theorem gen_fbCoeff_rho {ρ α : ℝ} (hρ : ρ ≠ 0) (hα : |1 - α| < 1) {a : ℕ → ℝ}
+    (ha : Summable fun j => |a j * ρ ^ j|) : gen (fbCoeff ρ α a) ρ = 0 := by
+  have hz : |lam ρ α * ρ| < 1 := by rwa [lam, div_mul_cancel₀ _ hρ]
+  have h := hasSum_gen_fbCoeff hρ ha hz
+  rw [div_self hρ, sub_self, mul_zero, zero_div] at h
+  exact h.tsum_eq
+
+/-! ### The debt-feedback process as a moving average -/
+
+variable {Ω : Type*}
+
+/-- Cochrane (2023), eq. (4.1), p. 87: the moving average `∑_j b_jε_{t−j}` of a shock with an
+infinite past. -/
+noncomputable def maSeries (b : ℕ → ℝ) (ε : ℤ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  fun ω => ∑' j, b j * ε ((t : ℤ) - j) ω
+
+/-- Cochrane (2023), §4.2.6, p. 96: the stationary value of debt under the debt-feedback
+surplus, `v_t = −ρ⁻¹∑_m c_mε_{t−m}`. -/
+noncomputable def statValue (ρ α : ℝ) (a : ℕ → ℝ) (ε : ℤ → Ω → ℝ) (t : ℕ) : Ω → ℝ :=
+  maSeries (fun m => -ρ⁻¹ * debtCoeff ρ α a m) ε t
+
+/-- Cochrane (2023), eq. (4.1), p. 87 (tool): an absolutely summable moving average of a bounded
+shock converges at every date and state. -/
+theorem summable_ma_term {b : ℕ → ℝ} (hb : Summable fun j => |b j|) {ε : ℤ → Ω → ℝ} {M : ℝ}
+    (hM : ∀ k ω, |ε k ω| ≤ M) (τ : ℤ) (ω : Ω) : Summable fun j => b j * ε (τ - j) ω :=
+  Summable.of_norm_bounded (hb.mul_right M) fun j => by
+    rw [Real.norm_eq_abs, abs_mul]
+    exact mul_le_mul_of_nonneg_left (hM _ ω) (abs_nonneg _)
+
+/-- Cochrane (2023), eq. (4.1), p. 87: `maSeries b ε` is a moving average in the sense of
+`Innovations.IsMA`. -/
+theorem isMA_maSeries {b : ℕ → ℝ} (hb : Summable fun j => |b j|) (ε : ℤ → Ω → ℝ) :
+    IsMA b ε (maSeries b ε) :=
+  ⟨hb, fun _ _ => rfl⟩
+
+/-- Cochrane (2023), §4.2.6, p. 96: the stationary value of debt is a moving average with
+coefficients `−ρ⁻¹c_m`. -/
+theorem isMA_statValue {ρ α : ℝ} (hl : |lam ρ α| < 1) {a : ℕ → ℝ}
+    (ha : Summable fun j => |a j|) (ε : ℤ → Ω → ℝ) :
+    IsMA (fun m => -ρ⁻¹ * debtCoeff ρ α a m) ε (statValue ρ α a ε) :=
+  isMA_maSeries (by simpa [abs_mul] using (summable_abs_debtCoeff hl ha).mul_left |ρ⁻¹|) ε
+
+/-- Cochrane (2023), §4.2.6, p. 96 (tool): the date-`t` value of debt is `−ρ⁻¹∑_m c_mε_{t−m}`. -/
+theorem statValue_apply (ρ α : ℝ) (a : ℕ → ℝ) (ε : ℤ → Ω → ℝ) (t : ℕ) (ω : Ω) :
+    statValue ρ α a ε t ω = -ρ⁻¹ * ∑' m, debtCoeff ρ α a m * ε ((t : ℤ) - m) ω := by
+  simp only [statValue, maSeries]
+  rw [← tsum_mul_left]
+  exact tsum_congr fun m => by ring
+
+/-- Cochrane (2023), §4.2.6, p. 96 (tool): peeling off the current shock of a moving average,
+`∑_j b_jε_{t+1−j} = b_0ε_{t+1} + ∑_m b_{m+1}ε_{t−m}`. -/
+theorem tsum_ma_succ {b : ℕ → ℝ} (hb : Summable fun j => |b j|) {ε : ℤ → Ω → ℝ} {M : ℝ}
+    (hM : ∀ k ω, |ε k ω| ≤ M) (t : ℕ) (ω : Ω) :
+    ∑' j, b j * ε (((t + 1 : ℕ) : ℤ) - j) ω =
+      b 0 * ε ((t : ℤ) + 1) ω + ∑' m, b (m + 1) * ε ((t : ℤ) - m) ω := by
+  rw [(summable_ma_term hb hM _ ω).tsum_eq_zero_add]
+  congr 1
+  refine tsum_congr fun m => ?_
+  rw [show ((t + 1 : ℕ) : ℤ) - ((m + 1 : ℕ) : ℤ) = (t : ℤ) - m by push_cast; ring]
+
+/-- Cochrane (2023), §4.2.6, p. 96: the stationary value of debt solves the debt-feedback
+dynamics `v_{t+1} = ρ⁻¹((1 − α)v_t − u_{t+1})` when `u = a_u(L)ε`, `ρ ≠ 0`, `|λ| < 1`. -/
+theorem statValue_succ {ρ α : ℝ} (hρ : ρ ≠ 0) (hl : |lam ρ α| < 1) {a : ℕ → ℝ}
+    (ha : Summable fun j => |a j|) {ε : ℤ → Ω → ℝ} {M : ℝ} (hM : ∀ k ω, |ε k ω| ≤ M)
+    {u : ℕ → Ω → ℝ} (hu : IsMA a ε u) (t : ℕ) :
+    statValue ρ α a ε (t + 1) = ρ⁻¹ • ((1 - α) • statValue ρ α a ε t - u (t + 1)) := by
+  funext ω
+  have hc := summable_abs_debtCoeff hl ha
+  have ha1 : Summable fun m => |a (m + 1)| := (summable_nat_add_iff 1).2 ha
+  have hS : ∑' m, debtCoeff ρ α a m * ε (((t + 1 : ℕ) : ℤ) - m) ω =
+      lam ρ α * ∑' m, debtCoeff ρ α a m * ε ((t : ℤ) - m) ω + u (t + 1) ω := by
+    rw [tsum_ma_succ hc hM, hu.2 (t + 1) ω, tsum_ma_succ ha hM, debtCoeff_zero]
+    simp_rw [debtCoeff_succ, add_mul]
+    have hs1 : Summable fun m => lam ρ α * debtCoeff ρ α a m * ε ((t : ℤ) - m) ω := by
+      simpa [mul_assoc] using (summable_ma_term hc hM t ω).mul_left (lam ρ α)
+    rw [Summable.tsum_add hs1 (summable_ma_term ha1 hM t ω)]
+    simp_rw [mul_assoc]
+    rw [tsum_mul_left]
+    ring
+  simp only [Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+  rw [statValue_apply, statValue_apply, hS, lam]
+  field_simp
+  ring
+
+/-- Cochrane (2023), §4.2.6, p. 96: started at the stationary `v_0`, the value of debt of
+`SurplusProcessFacts` (`SurplusProcessFacts.fbValue`) is the stationary value at every date. -/
+theorem fbValue_eq_statValue {ρ α : ℝ} (hρ : ρ ≠ 0) (hl : |lam ρ α| < 1) {a : ℕ → ℝ}
+    (ha : Summable fun j => |a j|) {ε : ℤ → Ω → ℝ} {M : ℝ} (hM : ∀ k ω, |ε k ω| ≤ M)
+    {u : ℕ → Ω → ℝ} (hu : IsMA a ε u) (t : ℕ) :
+    fbValue ρ α (statValue ρ α a ε 0) u t = statValue ρ α a ε t := by
+  induction t with
+  | zero => rfl
+  | succ t ih =>
+    change ρ⁻¹ • ((1 - α) • fbValue ρ α (statValue ρ α a ε 0) u t - u (t + 1)) = _
+    rw [ih, statValue_succ hρ hl ha hM hu t]
+
+/-- Cochrane (2023), §4.2.6, p. 96: **the debt-feedback surplus is the moving average `a_s(L)ε`**,
+`s̃_{t+1} = αv_t + u_{t+1} = ∑_j a_{s,j}ε_{t+1−j}`. -/
+theorem fbSurplus_eq_maSeries {ρ α : ℝ} (hρ : ρ ≠ 0) (hl : |lam ρ α| < 1) {a : ℕ → ℝ}
+    (ha : Summable fun j => |a j|) {ε : ℤ → Ω → ℝ} {M : ℝ} (hM : ∀ k ω, |ε k ω| ≤ M)
+    {u : ℕ → Ω → ℝ} (hu : IsMA a ε u) (t : ℕ) :
+    fbSurplus ρ α (statValue ρ α a ε 0) u (t + 1) = maSeries (fbCoeff ρ α a) ε (t + 1) := by
+  change α • fbValue ρ α (statValue ρ α a ε 0) u t + u (t + 1) = _
+  rw [fbValue_eq_statValue hρ hl ha hM hu t]
+  funext ω
+  have hc := summable_abs_debtCoeff hl ha
+  have ha1 : Summable fun m => |a (m + 1)| := (summable_nat_add_iff 1).2 ha
+  simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, maSeries]
+  rw [tsum_ma_succ (summable_abs_fbCoeff hl ha) hM, statValue_apply, hu.2 (t + 1) ω,
+    tsum_ma_succ ha hM]
+  simp only [fbCoeff, sub_mul]
+  have hs2 : Summable fun m => α / ρ * debtCoeff ρ α a m * ε ((t : ℤ) - m) ω := by
+    simpa [mul_assoc] using (summable_ma_term hc hM t ω).mul_left (α / ρ)
+  rw [Summable.tsum_sub (summable_ma_term ha1 hM t ω) hs2]
+  simp_rw [mul_assoc]
+  rw [tsum_mul_left]
+  ring
+
+/-- Cochrane (2023), §4.2.6, p. 96 (survey E10, the Chapter 4 half), **closed form**: let the
+disturbance be a moving average `u = a_u(L)ε` in a bounded martingale-difference shock,
+`ρ ≠ 0`, `|ρ| ≤ 1`, `|1 − α| < |ρ|`. Then the debt-feedback surplus (from the stationary value of
+debt) is the moving average with the explicit coefficients `a_s = fbCoeff`, with the same impact
+`a_{s,0} = a_{u,0}`; `a_s(ρ) = 0`; and the discounted surplus news is `a_s(ρ)ε_{t+1} = 0`, while
+the discounted disturbance news is `a_u(ρ)ε_{t+1}`. -/
+theorem feedback_ma_repaid (𝔼 : ExpectationSystem Ω) {ρ α : ℝ} (hρ : ρ ≠ 0) (hρ1 : |ρ| ≤ 1)
+    (hα : |1 - α| < |ρ|) {a : ℕ → ℝ} (ha : Summable fun j => |a j|) {ε : ℤ → Ω → ℝ}
+    (hε : IsMDS 𝔼 ε) {M : ℝ} (hM : ∀ k ω, |ε k ω| ≤ M) {u : ℕ → Ω → ℝ} (hu : IsMA a ε u) :
+    IsMA (fbCoeff ρ α a) ε (maSeries (fbCoeff ρ α a) ε) ∧
+    (∀ t, fbSurplus ρ α (statValue ρ α a ε 0) u (t + 1) = maSeries (fbCoeff ρ α a) ε (t + 1)) ∧
+    fbCoeff ρ α a 0 = a 0 ∧ gen (fbCoeff ρ α a) ρ = 0 ∧
+    (∀ t ω, HasSum (fun j => ρ ^ j *
+      innov 𝔼 t (fbSurplus ρ α (statValue ρ α a ε 0) u (t + 1 + j)) ω)
+        (gen (fbCoeff ρ α a) ρ * ε ((t : ℤ) + 1) ω)) ∧
+    (∀ t ω, HasSum (fun j => ρ ^ j *
+      innov 𝔼 t (fbSurplus ρ α (statValue ρ α a ε 0) u (t + 1 + j)) ω) 0) ∧
+    (∀ t ω, HasSum (fun j => ρ ^ j * innov 𝔼 t (u (t + 1 + j)) ω)
+      (gen a ρ * ε ((t : ℤ) + 1) ω)) := by
+  have hρp : 0 < |ρ| := abs_pos.2 hρ
+  have hl : |lam ρ α| < 1 := by
+    rw [lam, abs_div, div_lt_one hρp]
+    exact hα
+  have hα1 : |1 - α| < 1 := lt_of_lt_of_le hα hρ1
+  have hMA := isMA_maSeries (summable_abs_fbCoeff hl ha) ε
+  have hS := fbSurplus_eq_maSeries hρ hl ha hM hu
+  have hsr : Summable fun j => |a j * ρ ^ j| :=
+    Summable.of_nonneg_of_le (fun _ => abs_nonneg _) (fun j => by
+      rw [abs_mul, abs_pow]
+      exact mul_le_of_le_one_right (abs_nonneg _) (pow_le_one₀ (abs_nonneg _) hρ1)) ha
+  have h0 := gen_fbCoeff_rho hρ hα1 hsr
+  have hterm : ∀ t ω, HasSum (fun j => ρ ^ j *
+      innov 𝔼 t (fbSurplus ρ α (statValue ρ α a ε 0) u (t + 1 + j)) ω)
+        (gen (fbCoeff ρ α a) ρ * ε ((t : ℤ) + 1) ω) := fun t ω =>
+    (innov_PV_termwise 𝔼 hMA hε hM hρ1 t ω).congr_fun fun j => by
+      rw [show t + 1 + j = (t + j) + 1 by omega, hS (t + j)]
+  refine ⟨hMA, hS, rfl, h0, hterm, fun t ω => ?_, fun t ω => innov_PV_termwise 𝔼 hu hε hM hρ1 t ω⟩
+  simpa [h0] using hterm t ω
+
+/-- Cochrane (2023), §4.2.6, p. 96, **link to the termwise result**: for `0 < ρ < 1` and
+`|1 − α| < ρ`, the series `∑ρʲΔs̃_{t+1+j}` of `SurplusProcessFacts.feedback_full_repayment` (with
+the stationary `v_0`) is the same series, and it converges both to `0` (the termwise proof) and
+to `a_s(ρ)ε_{t+1}` (the closed form); the two agree because `a_s(ρ) = 0`. -/
+theorem feedback_ma_link (𝔼 : ExpectationSystem Ω) {ρ α : ℝ} (hρ0 : 0 < ρ) (hρ1 : ρ < 1)
+    (hα : |1 - α| < ρ) {a : ℕ → ℝ} (ha : Summable fun j => |a j|) {ε : ℤ → Ω → ℝ}
+    (hε : IsMDS 𝔼 ε) {M : ℝ} (hM : ∀ k ω, |ε k ω| ≤ M) {u : ℕ → Ω → ℝ} (hu : IsMA a ε u)
+    (t : ℕ) (ω : Ω) :
+    SeriesTo (fun j => ρ ^ j *
+      innov 𝔼 t (fbSurplus ρ α (statValue ρ α a ε 0) u (t + 1 + j)) ω) 0 ∧
+    SeriesTo (fun j => ρ ^ j *
+      innov 𝔼 t (fbSurplus ρ α (statValue ρ α a ε 0) u (t + 1 + j)) ω)
+        (gen (fbCoeff ρ α a) ρ * ε ((t : ℤ) + 1) ω) ∧
+    gen (fbCoeff ρ α a) ρ = 0 := by
+  have hρa : |ρ| = ρ := abs_of_pos hρ0
+  have hl : |lam ρ α| < 1 := by
+    rw [lam, abs_div, hρa, div_lt_one hρ0]
+    exact hα
+  obtain ⟨-, -, -, h0, hterm, -, -⟩ := feedback_ma_repaid 𝔼 hρ0.ne' (by rw [hρa]; exact hρ1.le)
+    (by rwa [hρa]) ha hε hM hu
+  have hV := isMA_statValue hl ha ε
+  have hVv := (isMA_iff_vec _ ε _).1 hV
+  have huv := (isMA_iff_vec a ε u).1 hu
+  have hεv := isMDSVec_of_isMDS 𝔼 hε
+  have hv0b : ∀ ω', |statValue ρ α a ε 0 ω'| ≤
+      ∑ _i : Fin 1, (∑' j, |-ρ⁻¹ * debtCoeff ρ α a j|) * M :=
+    fun ω' => abs_MAVec_le hVv (fun k _ ω'' => hM k ω'') 0 ω'
+  have hv0 : 𝔼.E 0 (statValue ρ α a ε 0) = statValue ρ α a ε 0 :=
+    adapted_MAVec 𝔼 hVv hεv (fun k _ ω'' => hM k ω'') 0
+  have hub : ∀ τ ω', |u τ ω'| ≤ ∑ _i : Fin 1, (∑' j, |a j|) * M :=
+    fun τ ω' => abs_MAVec_le huv (fun k _ ω'' => hM k ω'') τ ω'
+  have hua : 𝔼.Adapted u := adapted_MAVec 𝔼 huv hεv (fun k _ ω'' => hM k ω'')
+  exact ⟨feedback_full_repayment 𝔼 hρ0 hρ1 hα hv0b hv0 hub hua t ω,
+    seriesTo_of_hasSum (hterm t ω), h0⟩
+
+/-! ### The AR(1) disturbance: explicit sequences -/
+
+/-- Cochrane (2023), §4.2.6, p. 96, AR(1) disturbance `a_{u,j} = ηʲ`, `η ≠ λ`: the debt
+coefficients in closed form, `c_m = (η^{m+1} − λ^{m+1})/(η − λ)`. -/
+theorem debtCoeff_ar1 {ρ α η : ℝ} (hne : η ≠ lam ρ α) (m : ℕ) :
+    debtCoeff ρ α (fun j => η ^ j) m = (η ^ (m + 1) - lam ρ α ^ (m + 1)) / (η - lam ρ α) := by
+  rw [eq_div_iff (sub_ne_zero.2 hne), ← geom_sum₂_mul]
+  simp [debtCoeff]
+
+/-- Cochrane (2023), §4.2.6, p. 96, AR(1) disturbance with `η = λ`: `c_m = (m + 1)λᵐ`. -/
+theorem debtCoeff_ar1_eq {ρ α : ℝ} (m : ℕ) :
+    debtCoeff ρ α (fun j => lam ρ α ^ j) m = (m + 1) * lam ρ α ^ m := by
+  unfold debtCoeff
+  rw [Finset.sum_congr rfl fun k hk => (show lam ρ α ^ k * lam ρ α ^ (m - k) = lam ρ α ^ m by
+    rw [← pow_add, Nat.add_sub_cancel' (Nat.lt_succ_iff.mp (Finset.mem_range.mp hk))])]
+  simp
+
+/-- Cochrane (2023), §4.2.6, p. 96, AR(1) disturbance, `η ≠ λ`: the surplus coefficients
+`a_{s,0} = 1`, `a_{s,m+1} = η^{m+1} − (α/ρ)(η^{m+1} − λ^{m+1})/(η − λ)`. -/
+theorem fbCoeff_ar1 {ρ α η : ℝ} (hne : η ≠ lam ρ α) :
+    fbCoeff ρ α (fun j => η ^ j) 0 = 1 ∧ ∀ m, fbCoeff ρ α (fun j => η ^ j) (m + 1) =
+      η ^ (m + 1) - α / ρ * ((η ^ (m + 1) - lam ρ α ^ (m + 1)) / (η - lam ρ α)) :=
+  ⟨by simp [fbCoeff], fun m => by simp only [fbCoeff, debtCoeff_ar1 hne]⟩
+
+/-- Cochrane (2023), §4.2.6, p. 96 ("the `u_{s,t}` term may have `a_u(ρ) > 1` … surpluses
+themselves may be fully repaid with `a_s(ρ) = 0`"), **closed form for an AR(1) disturbance**
+(`0 < ρ`, `0 < η`, `|ρη| < 1`, `|1 − α| < 1`, `η ≠ λ`): the explicit coefficient sequence, the
+generating function `a_s(z) = (1 − z/ρ)/((1 − ηz)(1 − λz))`, `a_s(ρ) = 0`, and
+`a_u(ρ) = 1/(1 − ρη) > 1`. -/
+theorem feedback_ar1_closed_form {ρ α η : ℝ} (hρ : 0 < ρ) (hα : |1 - α| < 1) (hη : 0 < η)
+    (hρη : |ρ * η| < 1) (hne : η ≠ lam ρ α) :
+    fbCoeff ρ α (fun j => η ^ j) 0 = 1 ∧
+    (∀ m, fbCoeff ρ α (fun j => η ^ j) (m + 1) =
+      η ^ (m + 1) - α / ρ * ((η ^ (m + 1) - lam ρ α ^ (m + 1)) / (η - lam ρ α))) ∧
+    (∀ z, |η * z| < 1 → |lam ρ α * z| < 1 →
+      HasSum (fun j => fbCoeff ρ α (fun j => η ^ j) j * z ^ j)
+        ((1 - z / ρ) / ((1 - η * z) * (1 - lam ρ α * z)))) ∧
+    gen (fbCoeff ρ α (fun j => η ^ j)) ρ = 0 ∧
+    gen (fun j => η ^ j) ρ = 1 / (1 - ρ * η) ∧ 1 < gen (fun j => η ^ j) ρ := by
+  have hsum : ∀ z, |η * z| < 1 → Summable fun j => |η ^ j * z ^ j| := fun z hz => by
+    simpa [← mul_pow, abs_pow] using summable_geometric_of_lt_one (abs_nonneg _) hz
+  refine ⟨(fbCoeff_ar1 hne).1, (fbCoeff_ar1 hne).2, fun z hz hlz => ?_,
+    gen_fbCoeff_rho hρ.ne' hα (hsum ρ (by rwa [mul_comm])), gen_ar1 hρη,
+    (one_lt_gen_ar1_iff hρ hρη).2 hη⟩
+  have h := hasSum_gen_fbCoeff hρ.ne' (hsum z hz) hlz
+  rw [gen_ar1 (by rwa [mul_comm])] at h
+  convert h using 1
+  have h1 : 1 - z * η ≠ 0 := by
+    intro h0
+    have : η * z = 1 := by linarith
+    rw [this, abs_one] at hz
+    exact lt_irrefl _ hz
+  have h2 : 1 - lam ρ α * z ≠ 0 := by
+    intro h0
+    have : lam ρ α * z = 1 := by linarith
+    rw [this, abs_one] at hlz
+    exact lt_irrefl _ hlz
+  rw [mul_comm η z]
+  field_simp
+
+end Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Conditioning down with integrable processes, and at `|ρ| = 1`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 4, §4.3, pp. 101–102, and
+Online Appendix Chapter 2, §2.1.7, eqs. (2.22)–(2.23), pp. 602–603; the identities conditioned
+down are (3.17)–(3.20), pp. 63–65, and (4.2), p. 87.
+
+`ConditioningDownMeasure` proved the conditioning-down results for essentially bounded
+processes and `|ρ| < 1`. Here the boundedness is replaced by integrability with discounted
+summability of the `L¹` norms, `∑_j |ρ|ʲ E|x_{k+j}| < ∞` (`DiscL1`), which holds
+
+* for `|ρ| < 1` and processes bounded in `L¹` (`DiscL1.of_integral_bdd`) or in `L²`
+  (`DiscL1.of_sq_bdd`), in particular for bounded processes (`DiscL1.of_bdd`), and
+* for every `|ρ| ≤ 1`, including `ρ = ±1`, when `∑_j E|x_j| < ∞` (`DiscL1.of_summable`).
+
+The key tool is that conditional expectations commute with `L¹`-summable series
+(`E_hasSum_L1`, from Mathlib's `condExp_tsum`). At `|ρ| = 1` with merely bounded processes the
+ex-post present value is false (`pv_unit_root_fails`: `x_t = ρᵗ`, no payoff); the correct
+statement for every `ρ` and integrable processes is that the present value converges iff the
+corresponding terminal condition holds (`pv_E_iff_tvc`, `innov_pv_iff_tvc`,
+`condDown_flow_iff_tvc`), as in the core's `ρ = 1` treatment with ordinary convergence of series,
+and with partial sums converging in `L¹` the econometrician's forecasts converge in `L¹` to
+`E(v_t|I_t)` (`condDown_valuation_tendsto_L1`).
+
+## Main results
+
+* Tools: `ae_summable_abs`, `E_hasSum_L1`, `DiscL1` and its constructors.
+* `|ρ|`-general `L¹` versions of `ConditioningDownMeasure`: `pv_ex_post_L1`, `pv_E_L1`,
+  `pv_agents_L1`, `condDown_valuation_L1`, `condDown_valuation_L1_iff`, `condDown_flow_iff_L1`,
+  `innov_pv_L1`, `unexpected_inflation_any_L1`, `unexpected_inflation_agents_L1`,
+  `simple_model_any_L1`, `simple_model_agents_L1`, `simple_model_econ_iff_L1`;
+  the bounded originals are special cases (`condDown_valuation_iff_of_bdd`).
+* Every `ρ`, integrable processes, exact characterisations: `E_rec_finite`, `pv_E_iff_tvc`,
+  `innov_pv_iff_tvc`, `condDown_flow_iff_tvc`; `L¹` convergence: `pv_E_tendsto_L1`,
+  `condDown_valuation_tendsto_L1`, `condDown_valuation_tendsto_L1_iff`.
+* `|ρ| = 1`: `pv_unit_root_fails` (the bounded statements fail), `condDown_flow_unit_root`
+  (the corrected statement under `∑E|x_j| < ∞`).
+-/
+
+namespace Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open Cochrane.DebtDeficitsInflation.ExpectationsMeasure
+open Cochrane.DebtDeficitsInflation.ConditioningDownMeasure
+open Cochrane.DebtDeficitsInflation.LinearizedIdentities (Recursion Flow rec_finite SeriesTo
+  seriesTo_of_hasSum flow_iff_recursion)
+
+variable {Ω : Type*} [mΩ : MeasurableSpace Ω]
+
+/-! ### Series of integrable random variables -/
+
+/-- Cochrane (2023), eq. (3.19), p. 64 (tool): for an integrable real variable,
+`∫⁻ ‖g‖ₑ = ENNReal.ofReal (E|g|)`. -/
+theorem lintegral_enorm_eq {μ : Measure Ω} {g : Ω → ℝ} (hg : Integrable g μ) :
+    ∫⁻ ω, ‖g ω‖ₑ ∂μ = ENNReal.ofReal (∫ ω, |g ω| ∂μ) := by
+  rw [← ofReal_integral_norm_eq_lintegral_enorm hg]
+  simp only [Real.norm_eq_abs]
+
+/-- Cochrane (2023), eq. (3.19), p. 64 (tool): `∑_j E|g_j| < ∞` in extended form. -/
+theorem tsum_lintegral_ne_top {μ : Measure Ω} {g : ℕ → Ω → ℝ} (hi : ∀ j, Integrable (g j) μ)
+    (hs : Summable fun j => ∫ ω, |g j ω| ∂μ) : ∑' j, ∫⁻ ω, ‖g j ω‖ₑ ∂μ ≠ ⊤ := by
+  simp_rw [lintegral_enorm_eq (hi _)]
+  rw [← ENNReal.ofReal_tsum_of_nonneg (fun j => integral_nonneg fun _ => abs_nonneg _) hs]
+  exact ENNReal.ofReal_ne_top
+
+/-- Cochrane (2023), eq. (3.19), p. 64 (tool): if `∑_j E|g_j| < ∞`, then `∑_j |g_j|` converges
+almost surely (monotone convergence). -/
+theorem ae_summable_abs {μ : Measure Ω} {g : ℕ → Ω → ℝ} (hi : ∀ j, Integrable (g j) μ)
+    (hs : Summable fun j => ∫ ω, |g j ω| ∂μ) : ∀ᵐ ω ∂μ, Summable fun j => |g j ω| := by
+  have hm : ∀ j, AEMeasurable (fun ω => ‖g j ω‖ₑ) μ := fun j => (hi j).aemeasurable.enorm
+  have hlt : ∫⁻ ω, ∑' j, ‖g j ω‖ₑ ∂μ ≠ ⊤ := by
+    rw [lintegral_tsum hm]
+    exact tsum_lintegral_ne_top hi hs
+  filter_upwards [ae_lt_top' (AEMeasurable.tsum hm) hlt] with ω hω
+  have h1 : ∑' j, ((‖g j ω‖₊ : NNReal) : ENNReal) ≠ ⊤ := by
+    simpa [enorm_eq_nnnorm] using hω.ne
+  have h2 := NNReal.summable_coe.2 (ENNReal.tsum_coe_ne_top_iff_summable.1 h1)
+  simpa [coe_nnnorm, Real.norm_eq_abs] using h2
+
+/-- Cochrane (2023), eq. (3.19), p. 64, and Online Appendix (2.23), p. 602 (survey "new
+infrastructure"): **conditional expectations commute with `L¹`-summable series**. If the `g_j`
+are integrable with `∑_j E|g_j| < ∞`, then a.e. `∑_j E_m g_j = E_m ∑_j g_j`, a genuine `HasSum`
+(no boundedness, any information). -/
+theorem E_hasSum_L1 (T : MeasExpectationSystem Ω) {g : ℕ → Ω → ℝ}
+    (hi : ∀ j, Integrable (g j) T.μ) (hs : Summable fun j => ∫ ω, |g j ω| ∂T.μ) (m : ℕ) :
+    ∀ᵐ ω ∂T.μ, HasSum (fun j => T.E m (g j) ω) (T.E m (fun ω' => ∑' j, g j ω') ω) := by
+  have hc := condExp_tsum (μ := T.μ) (m := T.𝓕 m) (fun j => (hi j).aestronglyMeasurable)
+    (tsum_lintegral_ne_top hi hs)
+  have hsE : Summable fun j => ∫ ω, |T.E m (g j) ω| ∂T.μ :=
+    Summable.of_nonneg_of_le (fun _ => integral_nonneg fun _ => abs_nonneg _)
+      (fun j => integral_abs_condExp_le _) hs
+  filter_upwards [hc, ae_summable_abs (fun j => T.integrable_E m (g j)) hsE] with ω h1 h2
+  have h3 : T.E m (fun ω' => ∑' j, g j ω') ω = ∑' j, T.E m (g j) ω := h1
+  rw [h3]
+  exact (Summable.of_norm (by simpa [Real.norm_eq_abs] using h2)).hasSum
+
+/-! ### Discounted `L¹` summability -/
+
+/-- Cochrane (2023), eq. (3.19), p. 64 ("assuming that the sums converge"), the integrable
+replacement for bounded processes: every `x_t` is integrable and the discounted `L¹` norms are
+summable from every date on, `∑_j |ρ|ʲ E|x_{k+j}| < ∞`. -/
+def DiscL1 (μ : Measure Ω) (ρ : ℝ) (x : ℕ → Ω → ℝ) : Prop :=
+  (∀ t, Integrable (x t) μ) ∧ ∀ k, Summable fun j => |ρ| ^ j * ∫ ω, |x (k + j) ω| ∂μ
+
+/-- Cochrane (2023), eq. (3.19), p. 64: for `|ρ| < 1` a process bounded in `L¹`
+(`E|x_t| ≤ K`) is `DiscL1`. -/
+theorem DiscL1.of_integral_bdd {μ : Measure Ω} {ρ : ℝ} (hρ : |ρ| < 1) {x : ℕ → Ω → ℝ}
+    (hi : ∀ t, Integrable (x t) μ) {K : ℝ} (hK : ∀ t, ∫ ω, |x t ω| ∂μ ≤ K) : DiscL1 μ ρ x :=
+  ⟨hi, fun k => Summable.of_nonneg_of_le
+    (fun _ => mul_nonneg (pow_nonneg (abs_nonneg _) _) (integral_nonneg fun _ => abs_nonneg _))
+    (fun j => mul_le_mul_of_nonneg_left (hK (k + j)) (pow_nonneg (abs_nonneg _) _))
+    ((summable_geometric_of_lt_one (abs_nonneg ρ) hρ).mul_right K)⟩
+
+/-- Cochrane (2023), eq. (3.19), p. 64: for `|ρ| < 1` a process bounded in `L²`
+(`E x_t² ≤ K`) on a probability space is `DiscL1` (`|x| ≤ 1 + x²`). -/
+theorem DiscL1.of_sq_bdd {μ : Measure Ω} [IsProbabilityMeasure μ] {ρ : ℝ} (hρ : |ρ| < 1)
+    {x : ℕ → Ω → ℝ} (hm : ∀ t, MemLp (x t) 2 μ) {K : ℝ} (hK : ∀ t, ∫ ω, x t ω ^ 2 ∂μ ≤ K) :
+    DiscL1 μ ρ x := by
+  refine DiscL1.of_integral_bdd hρ (fun t => (hm t).integrable one_le_two) (K := 1 + K)
+    fun t => ?_
+  have hsq : Integrable (fun ω => x t ω ^ 2) μ := (hm t).integrable_sq
+  calc ∫ ω, |x t ω| ∂μ ≤ ∫ ω, (1 + x t ω ^ 2) ∂μ := by
+        refine integral_mono ((hm t).integrable one_le_two).abs ((integrable_const 1).add hsq)
+          fun ω => ?_
+        nlinarith [abs_nonneg (x t ω), sq_abs (x t ω)]
+    _ = 1 + ∫ ω, x t ω ^ 2 ∂μ := by
+        rw [integral_add (integrable_const 1) hsq]
+        simp
+    _ ≤ 1 + K := by linarith [hK t]
+
+/-- Cochrane (2023), eq. (3.19), p. 64: for `|ρ| < 1` an essentially bounded measurable process
+on a probability space is `DiscL1` (so the results below contain those of
+`ConditioningDownMeasure`). -/
+theorem DiscL1.of_bdd {μ : Measure Ω} [IsProbabilityMeasure μ] {ρ : ℝ} (hρ : |ρ| < 1)
+    {x : ℕ → Ω → ℝ} (hm : ∀ t, AEStronglyMeasurable (x t) μ) {K : ℝ}
+    (hb : ∀ t, ∀ᵐ ω ∂μ, |x t ω| ≤ K) : DiscL1 μ ρ x := by
+  have hi : ∀ t, Integrable (x t) μ := fun t =>
+    Integrable.of_bound (hm t) K ((hb t).mono fun ω h => by rwa [Real.norm_eq_abs])
+  refine DiscL1.of_integral_bdd hρ hi (K := K) fun t => ?_
+  calc ∫ ω, |x t ω| ∂μ ≤ ∫ _, K ∂μ := integral_mono_ae (hi t).abs (integrable_const K) (hb t)
+    _ = K := by simp
+
+/-- Cochrane (2023), eq. (3.19), p. 64, at `|ρ| ≤ 1` (including `ρ = ±1`): a process with
+`∑_j E|x_j| < ∞` is `DiscL1`. -/
+theorem DiscL1.of_summable {μ : Measure Ω} {ρ : ℝ} (hρ : |ρ| ≤ 1) {x : ℕ → Ω → ℝ}
+    (hi : ∀ t, Integrable (x t) μ) (hs : Summable fun t => ∫ ω, |x t ω| ∂μ) : DiscL1 μ ρ x :=
+  ⟨hi, fun k => Summable.of_nonneg_of_le
+    (fun j => mul_nonneg (pow_nonneg (abs_nonneg _) _) (integral_nonneg fun _ => abs_nonneg _))
+    (fun j => mul_le_of_le_one_left (integral_nonneg fun _ => abs_nonneg _)
+      (pow_le_one₀ (abs_nonneg _) hρ))
+    (((summable_nat_add_iff k).2 hs).congr fun j => by rw [add_comm j k])⟩
+
+/-- Cochrane (2023), eq. (3.17), p. 63 (tool): `DiscL1` is closed under sums. -/
+theorem DiscL1.add {μ : Measure Ω} {ρ : ℝ} {x y : ℕ → Ω → ℝ} (hx : DiscL1 μ ρ x)
+    (hy : DiscL1 μ ρ y) : DiscL1 μ ρ (fun t => x t + y t) :=
+  ⟨fun t => (hx.1 t).add (hy.1 t), fun k => Summable.of_nonneg_of_le
+    (fun j => mul_nonneg (pow_nonneg (abs_nonneg _) _) (integral_nonneg fun _ => abs_nonneg _))
+    (fun j => by
+      rw [← mul_add]
+      refine mul_le_mul_of_nonneg_left ?_ (pow_nonneg (abs_nonneg _) _)
+      rw [← integral_add (hx.1 _).abs (hy.1 _).abs]
+      exact integral_mono ((hx.1 _).add (hy.1 _)).abs ((hx.1 _).abs.add (hy.1 _).abs)
+        fun ω => abs_add_le _ _)
+    ((hx.2 k).add (hy.2 k))⟩
+
+/-- Cochrane (2023), eq. (3.17), p. 63 (tool): `DiscL1` is closed under differences. -/
+theorem DiscL1.sub {μ : Measure Ω} {ρ : ℝ} {x y : ℕ → Ω → ℝ} (hx : DiscL1 μ ρ x)
+    (hy : DiscL1 μ ρ y) : DiscL1 μ ρ (fun t => x t - y t) :=
+  ⟨fun t => (hx.1 t).sub (hy.1 t), fun k => Summable.of_nonneg_of_le
+    (fun j => mul_nonneg (pow_nonneg (abs_nonneg _) _) (integral_nonneg fun _ => abs_nonneg _))
+    (fun j => by
+      rw [← mul_add]
+      refine mul_le_mul_of_nonneg_left ?_ (pow_nonneg (abs_nonneg _) _)
+      rw [← integral_add (hx.1 _).abs (hy.1 _).abs]
+      exact integral_mono ((hx.1 _).sub (hy.1 _)).abs ((hx.1 _).abs.add (hy.1 _).abs)
+        fun ω => abs_sub _ _)
+    ((hx.2 k).add (hy.2 k))⟩
+
+/-- Cochrane (2023), eq. (3.17), p. 63 (tool): the zero process is `DiscL1`. -/
+theorem DiscL1.zero (μ : Measure Ω) (ρ : ℝ) : DiscL1 μ ρ (fun _ => 0) :=
+  ⟨fun _ => integrable_zero _ _ _, fun _ => by simp⟩
+
+/-- Cochrane (2023), eq. (3.19), p. 64 (tool): the discounted terms `ρʲx_{k+j}` have summable
+`L¹` norms. -/
+theorem DiscL1.summable_integral {μ : Measure Ω} {ρ : ℝ} {x : ℕ → Ω → ℝ} (hx : DiscL1 μ ρ x)
+    (k : ℕ) : Summable fun j => ∫ ω, |ρ ^ j * x (k + j) ω| ∂μ :=
+  (hx.2 k).congr fun j => by
+    rw [← integral_const_mul]
+    exact integral_congr_ae (Eventually.of_forall fun ω => by
+      simp only [abs_mul, abs_pow])
+
+/-- Cochrane (2023), eq. (3.19), p. 64 (tool): a.e. `∑_j |ρʲx_{k+j}|` converges. -/
+theorem DiscL1.ae_summable {μ : Measure Ω} {ρ : ℝ} {x : ℕ → Ω → ℝ} (hx : DiscL1 μ ρ x)
+    (k : ℕ) : ∀ᵐ ω ∂μ, Summable fun j => |ρ ^ j * x (k + j) ω| :=
+  ae_summable_abs (fun _ => (hx.1 _).const_mul _) (hx.summable_integral k)
+
+/-! ### Present values with integrable processes, for every `ρ` -/
+
+/-- Cochrane (2023), eq. (3.18), p. 63, ex post, with integrable processes and any `ρ`: if
+`x_t = ρx_{t+1} + f_{t+1}` holds state by state and `x`, `f` are `DiscL1`, then a.e.
+`x_t = ∑_{j≥0} ρʲ f_{t+1+j}` (a genuine `HasSum`).
+The `L¹` version of `ConditioningDownMeasure.pv_ex_post`. -/
+theorem pv_ex_post_L1 {μ : Measure Ω} {ρ : ℝ} {x f : ℕ → Ω → ℝ} (hrec : Recursion ρ x f)
+    (hx : DiscL1 μ ρ x) (hf : DiscL1 μ ρ f) (t : ℕ) :
+    ∀ᵐ ω ∂μ, HasSum (fun j => ρ ^ j * f (t + 1 + j) ω) (x t ω) := by
+  filter_upwards [hx.ae_summable t, hf.ae_summable (t + 1)] with ω h1 h2
+  have htvc : Tendsto (fun T => ρ ^ T * x (t + T) ω) atTop (𝓝 0) :=
+    (Summable.of_norm (by simpa [Real.norm_eq_abs] using h1)).tendsto_atTop_zero
+  have hs : Summable fun j => ‖ρ ^ j * f (t + 1 + j) ω‖ := by
+    simpa [Real.norm_eq_abs] using h2
+  rw [hasSum_iff_tendsto_nat_of_summable_norm hs]
+  have hfin : (fun T => ∑ j ∈ Finset.range T, ρ ^ j * f (t + 1 + j) ω) =
+      fun T => x t ω - ρ ^ T * x (t + T) ω := by
+    funext T
+    have := congrFun (rec_finite hrec t T) ω
+    simp only [Pi.add_apply, Finset.sum_apply, Pi.smul_apply, smul_eq_mul] at this
+    linarith
+  rw [hfin]
+  simpa using tendsto_const_nhds.sub htvc
+
+/-- Cochrane (2023), eq. (3.19), p. 64, under ANY information, with integrable processes and any
+`ρ`: with the recursion holding ex post and `x`, `f` `DiscL1`, for every date `m`, a.e.
+`∑_{j≥0} ρʲ E_m f_{t+1+j} = E_m x_t`.
+The `L¹` version of `ConditioningDownMeasure.pv_E`. -/
+theorem pv_E_L1 (T : MeasExpectationSystem Ω) {ρ : ℝ} {x f : ℕ → Ω → ℝ} (hrec : Recursion ρ x f)
+    (hx : DiscL1 T.μ ρ x) (hf : DiscL1 T.μ ρ f) (t m : ℕ) :
+    ∀ᵐ ω ∂T.μ, HasSum (fun j => ρ ^ j * T.E m (f (t + 1 + j)) ω) (T.E m (x t) ω) := by
+  have hE := E_hasSum_L1 T (g := fun j ω => ρ ^ j * f (t + 1 + j) ω)
+    (fun _ => (hf.1 _).const_mul _) (hf.summable_integral (t + 1)) m
+  have hsmul : ∀ j, T.E m (fun ω => ρ ^ j * f (t + 1 + j) ω) =ᵐ[T.μ]
+      fun ω => ρ ^ j * T.E m (f (t + 1 + j)) ω := fun j => T.E_smul (ρ ^ j) (f (t + 1 + j)) m
+  have hX : (fun ω => ∑' j, ρ ^ j * f (t + 1 + j) ω) =ᵐ[T.μ] x t := by
+    filter_upwards [pv_ex_post_L1 hrec hx hf t] with ω hω
+    exact hω.tsum_eq
+  filter_upwards [hE, ae_all_iff.2 hsmul, T.E_congr hX m] with ω h1 h2 h3
+  rw [← h3]
+  exact h1.congr_fun fun j => (h2 j).symm
+
+/-- Cochrane (2023), eq. (3.19), p. 64, for the agents, with integrable processes and any `ρ`:
+the discounted forecasts of the payoff sum to `v_t` itself.
+The `L¹` version of `ConditioningDownMeasure.pv_agents`. -/
+theorem pv_agents_L1 (S : MeasExpectationSystem Ω) {ρ : ℝ} {v f : ℕ → Ω → ℝ}
+    (hrec : Recursion ρ v f) (hvm : StronglyAdapted S.𝓕 v) (hv : DiscL1 S.μ ρ v)
+    (hf : DiscL1 S.μ ρ f) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * S.E t (f (t + 1 + j)) ω) (v t ω) := by
+  have hE : S.E t (v t) = v t := S.E_of_stronglyMeasurable (hvm t) (hv.1 t)
+  filter_upwards [pv_E_L1 S hrec hv hf t t] with ω hω
+  rwa [hE] at hω
+
+/-- Cochrane (2023), eqs. (2.22)–(2.23), p. 602, and p. 101, with integrable surpluses and any
+`ρ` (including `ρ = ±1` when `∑E|s_j| < ∞`): if `v_t = E(∑ρʲs_{t+1+j}|Ω_t)` a.e. and `s` is
+`DiscL1`, the econometrician's discounted forecasts sum to `E(v_t|I_t)` a.e.
+The `L¹` version of `ConditioningDownMeasure.condDown_valuation`. -/
+theorem condDown_valuation_L1 {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ}
+    (h : Nested S 𝓖) {ρ : ℝ} {s : ℕ → Ω → ℝ} (hs : DiscL1 S.μ ρ s) {t : ℕ} {v : Ω → ℝ}
+    (hv : v =ᵐ[S.μ] S.E t (fun ω => ∑' j, ρ ^ j * s (t + 1 + j) ω)) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).E t (s (t + 1 + j)) ω)
+      ((coarsen S 𝓖).E t v ω) := by
+  set G := coarsen S 𝓖
+  have hE := E_hasSum_L1 G (g := fun j ω => ρ ^ j * s (t + 1 + j) ω)
+    (fun _ => (hs.1 _).const_mul _) (hs.summable_integral (t + 1)) t
+  have hsmul : ∀ j, G.E t (fun ω => ρ ^ j * s (t + 1 + j) ω) =ᵐ[S.μ]
+      fun ω => ρ ^ j * G.E t (s (t + 1 + j)) ω := fun j => G.E_smul (ρ ^ j) (s (t + 1 + j)) t
+  filter_upwards [hE, ae_all_iff.2 hsmul, condDown_general h hv] with ω h1 h2 h3
+  rw [← h3]
+  exact h1.congr_fun fun j => (h2 j).symm
+
+/-- Cochrane (2023), eqs. (2.22)–(2.23), p. 602, and p. 101 ("this conditioning down is valid, so
+long as `v_t ∈ I_t`"), with integrable surpluses and any `ρ`: the econometrician's discounted
+forecasts sum to `v_t` a.e. **iff** `v_t` is in the VAR information.
+The `L¹` version of `ConditioningDownMeasure.condDown_valuation_iff`. -/
+theorem condDown_valuation_L1_iff {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ}
+    (h : Nested S 𝓖) {ρ : ℝ} {s : ℕ → Ω → ℝ} (hs : DiscL1 S.μ ρ s) {t : ℕ} {v : Ω → ℝ}
+    (hv : v =ᵐ[S.μ] S.E t (fun ω => ∑' j, ρ ^ j * s (t + 1 + j) ω)) :
+    (∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).E t (s (t + 1 + j)) ω) (v ω)) ↔
+      KnownAE S.μ 𝓖 t v := by
+  have hi : Integrable v S.μ := (S.integrable_E t _).congr hv.symm
+  rw [← known_iff_E_eq S 𝓖 hi]
+  have hH := condDown_valuation_L1 h hs hv
+  constructor
+  · intro h1
+    filter_upwards [h1, hH] with ω a b
+    exact a.unique b
+  · intro h1
+    filter_upwards [h1, hH] with ω a b
+    rw [a]
+    exact b
+
+/-- Cochrane (2023), eqs. (2.22)–(2.23), p. 602, link: the bounded statement
+`ConditioningDownMeasure.condDown_valuation_iff` (`|ρ| < 1`, bounded measurable surpluses) is the
+special case `DiscL1.of_bdd` of `condDown_valuation_L1_iff`. -/
+theorem condDown_valuation_iff_of_bdd {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ}
+    (h : Nested S 𝓖) {ρ : ℝ} (hρ : |ρ| < 1) {s : ℕ → Ω → ℝ}
+    (hsm : ∀ j, AEStronglyMeasurable (s j) S.μ) {K : ℝ} (hs : ∀ j, ∀ᵐ ω ∂S.μ, |s j ω| ≤ K)
+    {t : ℕ} {v : Ω → ℝ} (hv : v =ᵐ[S.μ] S.E t (fun ω => ∑' j, ρ ^ j * s (t + 1 + j) ω)) :
+    DiscL1 S.μ ρ s ∧
+    ((∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).E t (s (t + 1 + j)) ω) (v ω)) ↔
+      KnownAE S.μ 𝓖 t v) :=
+  ⟨DiscL1.of_bdd hρ hsm hs, condDown_valuation_L1_iff h (DiscL1.of_bdd hρ hsm hs) hv⟩
+
+/-- Cochrane (2023), p. 101, and Online Appendix p. 602, with the flow identity (3.17) ex post,
+integrable `DiscL1` processes and any `ρ`: the econometrician's discounted forecasts of
+`s̃ + g − r` sum to `E(v_t|I_t)`, hence to `v_t` iff `v_t ∈ I_t`.
+The `L¹` version of `ConditioningDownMeasure.condDown_flow_iff`. -/
+theorem condDown_flow_iff_L1 {S : MeasExpectationSystem Ω} (𝓖 : Filtration ℕ mΩ) {ρ : ℝ}
+    {v r g s : ℕ → Ω → ℝ} (hflow : Flow ρ v r g s) (hv : DiscL1 S.μ ρ v)
+    (hf : DiscL1 S.μ ρ (fun t => s t + g t - r t)) (t : ℕ) :
+    (∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).E t
+      (s (t + 1 + j) + g (t + 1 + j) - r (t + 1 + j)) ω) ((coarsen S 𝓖).E t (v t) ω)) ∧
+    ((∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).E t
+      (s (t + 1 + j) + g (t + 1 + j) - r (t + 1 + j)) ω) (v t ω)) ↔ KnownAE S.μ 𝓖 t (v t)) := by
+  have hrec := (flow_iff_recursion ρ v r g s).1 hflow
+  have hH := pv_E_L1 (coarsen S 𝓖) hrec hv hf t t
+  refine ⟨hH, ?_⟩
+  rw [← known_iff_E_eq S 𝓖 (hv.1 t)]
+  constructor
+  · intro h1
+    filter_upwards [h1, hH] with ω a b
+    exact a.unique b
+  · intro h1
+    filter_upwards [h1, hH] with ω a b
+    rw [a]
+    exact b
+
+/-! ### Unexpected inflation with integrable processes, for every `ρ` -/
+
+/-- Cochrane (2023), eq. (3.20), p. 65 (tool): discounted news about a `DiscL1` process is
+summable a.e. (`E|Δ_{t+1}x| ≤ 2E|x|`).
+The `L¹` version of `ConditioningDownMeasure.summable_innov`. -/
+theorem summable_innov_L1 (T : MeasExpectationSystem Ω) {ρ : ℝ} {x : ℕ → Ω → ℝ}
+    (hx : DiscL1 T.μ ρ x) (t k : ℕ) :
+    ∀ᵐ ω ∂T.μ, Summable fun j => ρ ^ j * T.innov t (x (k + j)) ω := by
+  have hi : ∀ j, Integrable (fun ω => ρ ^ j * T.innov t (x (k + j)) ω) T.μ := fun j =>
+    ((T.integrable_E (t + 1) _).sub (T.integrable_E t _)).const_mul _
+  have hle : ∀ j, ∫ ω, |ρ ^ j * T.innov t (x (k + j)) ω| ∂T.μ ≤
+      2 * (|ρ| ^ j * ∫ ω, |x (k + j) ω| ∂T.μ) := fun j => by
+    have h1 : ∫ ω, |ρ ^ j * T.innov t (x (k + j)) ω| ∂T.μ =
+        |ρ| ^ j * ∫ ω, |T.innov t (x (k + j)) ω| ∂T.μ := by
+      rw [← integral_const_mul]
+      exact integral_congr_ae (Eventually.of_forall fun ω => by simp only [abs_mul, abs_pow])
+    have h2 : ∫ ω, |T.innov t (x (k + j)) ω| ∂T.μ ≤ 2 * ∫ ω, |x (k + j) ω| ∂T.μ := by
+      have hE1 := T.integrable_E (t + 1) (x (k + j))
+      have hE0 := T.integrable_E t (x (k + j))
+      calc ∫ ω, |T.innov t (x (k + j)) ω| ∂T.μ
+          ≤ ∫ ω, (|T.E (t + 1) (x (k + j)) ω| + |T.E t (x (k + j)) ω|) ∂T.μ :=
+            integral_mono (hE1.sub hE0).abs (hE1.abs.add hE0.abs) fun ω => abs_sub _ _
+        _ = ∫ ω, |T.E (t + 1) (x (k + j)) ω| ∂T.μ + ∫ ω, |T.E t (x (k + j)) ω| ∂T.μ :=
+            integral_add hE1.abs hE0.abs
+        _ ≤ ∫ ω, |x (k + j) ω| ∂T.μ + ∫ ω, |x (k + j) ω| ∂T.μ :=
+            add_le_add (integral_abs_condExp_le _) (integral_abs_condExp_le _)
+        _ = 2 * ∫ ω, |x (k + j) ω| ∂T.μ := by ring
+    rw [h1]
+    nlinarith [pow_nonneg (abs_nonneg ρ) j]
+  have hs : Summable fun j => ∫ ω, |ρ ^ j * T.innov t (x (k + j)) ω| ∂T.μ :=
+    Summable.of_nonneg_of_le (fun _ => integral_nonneg fun _ => abs_nonneg _) hle
+      ((hx.2 k).mul_left 2)
+  filter_upwards [ae_summable_abs hi hs] with ω h
+  exact Summable.of_norm (by simpa [Real.norm_eq_abs] using h)
+
+/-- Cochrane (2023), eq. (3.20), p. 65, under ANY information, with integrable processes and any
+`ρ`: with the recursion `x_t = ρx_{t+1} + f_{t+1}` ex post (`DiscL1` `x`, `f`), a.e.
+`∑_{j≥0} ρʲ Δ_{t+1} f_{t+1+j} = Δ_{t+1} x_t`.
+The `L¹` version of `ConditioningDownMeasure.innov_pv`. -/
+theorem innov_pv_L1 (T : MeasExpectationSystem Ω) {ρ : ℝ} {x f : ℕ → Ω → ℝ}
+    (hrec : Recursion ρ x f) (hx : DiscL1 T.μ ρ x) (hf : DiscL1 T.μ ρ f) (t : ℕ) :
+    ∀ᵐ ω ∂T.μ, HasSum (fun j => ρ ^ j * T.innov t (f (t + 1 + j)) ω) (T.innov t (x t) ω) := by
+  filter_upwards [pv_E_L1 T hrec hx hf t (t + 1), pv_E_L1 T hrec hx hf t t] with ω h1 h2
+  refine (h1.sub h2).congr_fun fun j => ?_
+  simp only [ExpectationsMeasure.MeasExpectationSystem.innov, Pi.sub_apply]
+  ring
+
+/-- Cochrane (2023), eq. (3.20), p. 65, under ANY information, with integrable (`DiscL1`)
+processes and any `ρ` (the `L¹` version of `ConditioningDownMeasure.unexpected_inflation_any`):
+if (3.17) holds ex post with `r = rⁿ − π`, then a.e.
+`Δπ_{t+1} − Δrⁿ_{t+1} = −∑ρʲΔs̃_{t+1+j} − ∑ρʲΔg_{t+1+j} + ∑_{j≥1}ρʲΔr_{t+1+j} + Δ_{t+1}v_t`. -/
+theorem unexpected_inflation_any_L1 (T : MeasExpectationSystem Ω) {ρ : ℝ}
+    {v r rn infl g s : ℕ → Ω → ℝ} (hflow : Flow ρ v r g s) (hr : ∀ t, r t = rn t - infl t)
+    (hv : DiscL1 T.μ ρ v) (hs : DiscL1 T.μ ρ s) (hg : DiscL1 T.μ ρ g) (hrb : DiscL1 T.μ ρ r)
+    (hrn : ∀ t, Integrable (rn t) T.μ) (t : ℕ) :
+    ∀ᵐ ω ∂T.μ, T.innov t (infl (t + 1)) ω - T.innov t (rn (t + 1)) ω =
+      -∑' j, ρ ^ j * T.innov t (s (t + 1 + j)) ω - ∑' j, ρ ^ j * T.innov t (g (t + 1 + j)) ω +
+        ∑' j, ρ ^ (j + 1) * T.innov t (r (t + 2 + j)) ω + T.innov t (v t) ω := by
+  have hsi := hs.1
+  have hgi := hg.1
+  have hri := hrb.1
+  have hfb : DiscL1 T.μ ρ (fun t => s t + g t - r t) := (hs.add hg).sub hrb
+  have hH := innov_pv_L1 T ((flow_iff_recursion ρ v r g s).1 hflow) hv hfb t
+  have hlin : ∀ j, ∀ᵐ ω ∂T.μ, T.innov t (s (t + 1 + j) + g (t + 1 + j) - r (t + 1 + j)) ω =
+      T.innov t (s (t + 1 + j)) ω + T.innov t (g (t + 1 + j)) ω -
+        T.innov t (r (t + 1 + j)) ω := fun j => by
+    have hsg := (hsi (t + 1 + j)).add (hgi (t + 1 + j))
+    filter_upwards [T.E_sub hsg (hri (t + 1 + j)) (t + 1), T.E_sub hsg (hri (t + 1 + j)) t,
+      T.E_add (hsi (t + 1 + j)) (hgi (t + 1 + j)) (t + 1),
+      T.E_add (hsi (t + 1 + j)) (hgi (t + 1 + j)) t] with ω h1 h2 h3 h4
+    simp only [ExpectationsMeasure.MeasExpectationSystem.innov, Pi.sub_apply, Pi.add_apply] at *
+    rw [h1, h2, h3, h4]
+    ring
+  have hinfl : ∀ᵐ ω ∂T.μ, T.innov t (r (t + 1)) ω =
+      T.innov t (rn (t + 1)) ω - T.innov t (infl (t + 1)) ω := by
+    have hii : Integrable (infl (t + 1)) T.μ := by
+      have : infl (t + 1) = rn (t + 1) - r (t + 1) := by rw [hr (t + 1)]; abel
+      rw [this]
+      exact (hrn (t + 1)).sub (hri (t + 1))
+    filter_upwards [T.E_sub (hrn (t + 1)) hii (t + 1), T.E_sub (hrn (t + 1)) hii t] with ω h1 h2
+    simp only [ExpectationsMeasure.MeasExpectationSystem.innov, Pi.sub_apply]
+    rw [hr (t + 1), h1, h2, Pi.sub_apply, Pi.sub_apply]
+    ring
+  filter_upwards [hH, ae_all_iff.2 hlin, hinfl, summable_innov_L1 T hs t (t + 1),
+    summable_innov_L1 T hg t (t + 1), summable_innov_L1 T hrb t (t + 1)]
+    with ω h1 h2 h3 h4 h5 h6
+  have hsum : HasSum (fun j => ρ ^ j * T.innov t (s (t + 1 + j)) ω +
+      ρ ^ j * T.innov t (g (t + 1 + j)) ω - ρ ^ j * T.innov t (r (t + 1 + j)) ω)
+      (T.innov t (v t) ω) := h1.congr_fun fun j => by rw [h2 j]; ring
+  have hsplit := (h4.hasSum.add h5.hasSum).sub h6.hasSum
+  have heq := hsum.unique hsplit
+  have hr0 := h6.tsum_eq_zero_add
+  simp only [pow_zero, one_mul, add_zero] at hr0
+  have hr1 : ∑' j, ρ ^ (j + 1) * T.innov t (r (t + 1 + (j + 1))) ω =
+      ∑' j, ρ ^ (j + 1) * T.innov t (r (t + 2 + j)) ω :=
+    tsum_congr fun j => by rw [show t + 1 + (j + 1) = t + 2 + j by omega]
+  rw [hr1, h3] at hr0
+  linarith
+
+/-- Cochrane (2023), eq. (3.20), p. 65 (the book's form, for the agents), with integrable
+processes and any `ρ`: when `v_t` is known at `t` the extra term vanishes.
+The `L¹` version of `ConditioningDownMeasure.unexpected_inflation_agents`. -/
+theorem unexpected_inflation_agents_L1 (S : MeasExpectationSystem Ω) {ρ : ℝ}
+    {v r rn infl g s : ℕ → Ω → ℝ} (hflow : Flow ρ v r g s) (hr : ∀ t, r t = rn t - infl t)
+    (hvm : StronglyAdapted S.𝓕 v) (hv : DiscL1 S.μ ρ v) (hs : DiscL1 S.μ ρ s)
+    (hg : DiscL1 S.μ ρ g) (hrb : DiscL1 S.μ ρ r) (hrn : ∀ t, Integrable (rn t) S.μ) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, S.innov t (infl (t + 1)) ω - S.innov t (rn (t + 1)) ω =
+      -∑' j, ρ ^ j * S.innov t (s (t + 1 + j)) ω - ∑' j, ρ ^ j * S.innov t (g (t + 1 + j)) ω +
+        ∑' j, ρ ^ (j + 1) * S.innov t (r (t + 2 + j)) ω := by
+  have h0 : S.innov t (v t) = 0 := by
+    rw [ExpectationsMeasure.MeasExpectationSystem.innov,
+      S.E_of_stronglyMeasurable ((hvm t).mono (S.𝓕.mono (Nat.le_succ t))) (hv.1 t),
+      S.E_of_stronglyMeasurable (hvm t) (hv.1 t), sub_self]
+  filter_upwards [unexpected_inflation_any_L1 S hflow hr hv hs hg hrb hrn t] with ω hω
+  rw [hω, h0, Pi.zero_apply, add_zero]
+
+/-- Cochrane (2023), eq. (4.2), p. 87, and (3.24), p. 66 (the simple model), under ANY
+information nested in the agents', with integrable processes and any `ρ`: a.e.
+`Δ^Iπ_{t+1} − Δ^Irⁿ_{t+1} = −∑ρʲΔ^I s̃_{t+1+j} + Δ^I_{t+1} v_t`.
+The `L¹` version of `ConditioningDownMeasure.simple_model_any`. -/
+theorem simple_model_any_L1 {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ}
+    (h : Nested S 𝓖) {ρ : ℝ} {v r rn infl s : ℕ → Ω → ℝ} (hflow : Flow ρ v r (fun _ => 0) s)
+    (hr : ∀ t, r t = rn t - infl t) {c : ℝ} (hc : ∀ t, S.E t (r (t + 1)) =ᵐ[S.μ] fun _ => c)
+    (hv : DiscL1 S.μ ρ v) (hs : DiscL1 S.μ ρ s) (hrb : DiscL1 S.μ ρ r)
+    (hrn : ∀ t, Integrable (rn t) S.μ) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, (coarsen S 𝓖).innov t (infl (t + 1)) ω - (coarsen S 𝓖).innov t (rn (t + 1)) ω =
+      -∑' j, ρ ^ j * (coarsen S 𝓖).innov t (s (t + 1 + j)) ω +
+        (coarsen S 𝓖).innov t (v t) ω := by
+  have hg0 : (coarsen S 𝓖).innov t 0 = 0 := by
+    rw [ExpectationsMeasure.MeasExpectationSystem.innov, (coarsen S 𝓖).E_zero,
+      (coarsen S 𝓖).E_zero, sub_self]
+  filter_upwards [unexpected_inflation_any_L1 (coarsen S 𝓖) hflow hr hv hs (DiscL1.zero _ ρ)
+    hrb hrn t, ae_all_iff.2 (innov_return_condDown h hc t)] with ω h1 h2
+  rw [h1]
+  have e1 : ∑' j, ρ ^ j * (coarsen S 𝓖).innov t ((fun _ => (0 : Ω → ℝ)) (t + 1 + j)) ω = 0 := by
+    simp [hg0]
+  have e2 : ∑' j, ρ ^ (j + 1) * (coarsen S 𝓖).innov t (r (t + 2 + j)) ω = 0 := by
+    simp only [h2, Pi.zero_apply, mul_zero, tsum_zero]
+  rw [e1, e2]
+  ring
+
+/-- Cochrane (2023), eq. (4.2), p. 87 (`Δπ_{t+1} = −∑ρʲΔs̃_{t+1+j}`), for the agents, with
+integrable processes and any `ρ`: in the simple model with one-period debt and `v_t` known at
+`t`, a.e. the discounted surplus news sums to minus unexpected inflation.
+The `L¹` version of `ConditioningDownMeasure.simple_model_agents`. -/
+theorem simple_model_agents_L1 (S : MeasExpectationSystem Ω) {ρ : ℝ}
+    {v r rn infl s : ℕ → Ω → ℝ} (hflow : Flow ρ v r (fun _ => 0) s)
+    (hr : ∀ t, r t = rn t - infl t) {c : ℝ} (hc : ∀ t, S.E t (r (t + 1)) =ᵐ[S.μ] fun _ => c)
+    (hvm : StronglyAdapted S.𝓕 v) (hrnm : ∀ t, StronglyMeasurable[S.𝓕 t] (rn (t + 1)))
+    (hv : DiscL1 S.μ ρ v) (hs : DiscL1 S.μ ρ s) (hrb : DiscL1 S.μ ρ r)
+    (hrn : ∀ t, Integrable (rn t) S.μ) (t : ℕ) :
+    ∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * S.innov t (s (t + 1 + j)) ω)
+      (-S.innov t (infl (t + 1)) ω) := by
+  have hN : Nested S S.𝓕 := fun _ => le_rfl
+  have hk : S.innov t (v t) =ᵐ[S.μ] 0 :=
+    innov_coarsen_of_known S S.𝓕 (hv.1 t) ⟨v t, hvm t, ae_eq_refl _⟩
+  have hkr : S.innov t (rn (t + 1)) =ᵐ[S.μ] 0 :=
+    innov_coarsen_of_known S S.𝓕 (hrn (t + 1)) ⟨rn (t + 1), hrnm t, ae_eq_refl _⟩
+  filter_upwards [simple_model_any_L1 hN hflow hr hc hv hs hrb hrn t, hk, hkr,
+    summable_innov_L1 S hs t (t + 1)] with ω h1 h2 h3 h4
+  change S.innov t (infl (t + 1)) ω - S.innov t (rn (t + 1)) ω =
+    -∑' j, ρ ^ j * S.innov t (s (t + 1 + j)) ω + S.innov t (v t) ω at h1
+  rw [h2, h3, Pi.zero_apply] at h1
+  have : -S.innov t (infl (t + 1)) ω = ∑' j, ρ ^ j * S.innov t (s (t + 1 + j)) ω := by linarith
+  rw [this]
+  exact h4.hasSum
+
+/-- Cochrane (2023), eq. (4.2), p. 87, p. 101 and Online Appendix p. 602, for the econometrician,
+with integrable processes and any `ρ`: the book's decomposition with the econometrician's news
+holds a.e. **iff** `Δ^I_{t+1} v_t = 0` a.e.
+The `L¹` version of `ConditioningDownMeasure.simple_model_econ_iff`. -/
+theorem simple_model_econ_iff_L1 {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ}
+    (h : Nested S 𝓖) {ρ : ℝ} {v r rn infl s : ℕ → Ω → ℝ}
+    (hflow : Flow ρ v r (fun _ => 0) s) (hr : ∀ t, r t = rn t - infl t) {c : ℝ}
+    (hc : ∀ t, S.E t (r (t + 1)) =ᵐ[S.μ] fun _ => c)
+    (hv : DiscL1 S.μ ρ v) (hs : DiscL1 S.μ ρ s) (hrb : DiscL1 S.μ ρ r)
+    (hrn : ∀ t, Integrable (rn t) S.μ) (t : ℕ) :
+    (∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).innov t (s (t + 1 + j)) ω)
+      (-((coarsen S 𝓖).innov t (infl (t + 1)) ω - (coarsen S 𝓖).innov t (rn (t + 1)) ω))) ↔
+      (coarsen S 𝓖).innov t (v t) =ᵐ[S.μ] 0 := by
+  have hid := simple_model_any_L1 h hflow hr hc hv hs hrb hrn t
+  have hsum := summable_innov_L1 (coarsen S 𝓖) hs t (t + 1)
+  constructor
+  · intro h1
+    filter_upwards [h1, hid, hsum] with ω a b c
+    rw [a.tsum_eq] at b
+    rw [Pi.zero_apply]
+    linarith
+  · intro h1
+    filter_upwards [h1, hid, hsum] with ω a b c
+    rw [Pi.zero_apply] at a
+    rw [b, a]
+    simpa using c.hasSum
+
+/-! ### Every `ρ`, integrable processes: present values iff terminal conditions -/
+
+/-- Cochrane (2023), eq. (3.18), p. 63 (tool): if `a = S_n + b_n` for every `n`, then `S_n → a`
+iff `b_n → 0`. -/
+theorem tendsto_iff_of_eq {a : ℝ} {S b : ℕ → ℝ} (h : ∀ n, a = S n + b n) :
+    Tendsto S atTop (𝓝 a) ↔ Tendsto b atTop (𝓝 0) := by
+  have hb : b = fun n => a - S n := funext fun n => by rw [h n]; ring
+  have hS : S = fun n => a - b n := funext fun n => by rw [h n]; ring
+  constructor
+  · intro h1
+    rw [hb]
+    have := (tendsto_const_nhds (x := a)).sub h1
+    rwa [sub_self] at this
+  · intro h1
+    rw [hS]
+    have := (tendsto_const_nhds (x := a)).sub h1
+    rwa [sub_zero] at this
+
+omit mΩ in
+/-- Cochrane (2023), eq. (3.18), p. 63, for every `ρ` (including `|ρ| = 1`), state by state: under
+the recursion `x_t = ρx_{t+1} + f_{t+1}`, the ex-post present value converges to `x_t` iff the
+terminal condition `ρᵀx_{t+T} → 0` holds. -/
+theorem pv_ex_post_iff_tvc {ρ : ℝ} {x f : ℕ → Ω → ℝ} (hrec : Recursion ρ x f) (t : ℕ) (ω : Ω) :
+    SeriesTo (fun j => ρ ^ j * f (t + 1 + j) ω) (x t ω) ↔
+      Tendsto (fun T => ρ ^ T * x (t + T) ω) atTop (𝓝 0) := by
+  refine tendsto_iff_of_eq fun T => ?_
+  have := congrFun (rec_finite hrec t T) ω
+  simpa [Finset.sum_apply, Pi.smul_apply, smul_eq_mul] using this
+
+/-- Cochrane (2023), eq. (3.19), p. 64 (tool), under ANY information, for every `ρ` and integrable
+processes: forward iteration of the forecasts, a.e.
+`E_m x_t = ∑_{j<T} ρʲE_m f_{t+1+j} + ρᵀE_m x_{t+T}` for all `T` simultaneously. -/
+theorem E_rec_finite (T : MeasExpectationSystem Ω) {ρ : ℝ} {x f : ℕ → Ω → ℝ}
+    (hrec : Recursion ρ x f) (hxi : ∀ t, Integrable (x t) T.μ) (hfi : ∀ t, Integrable (f t) T.μ)
+    (t m : ℕ) :
+    ∀ᵐ ω ∂T.μ, ∀ n, T.E m (x t) ω = ∑ j ∈ Finset.range n, ρ ^ j * T.E m (f (t + 1 + j)) ω +
+      ρ ^ n * T.E m (x (t + n)) ω := by
+  rw [ae_all_iff]
+  intro n
+  have h := rec_finite hrec t n
+  have hsi : Integrable (∑ j ∈ Finset.range n, ρ ^ j • f (t + 1 + j)) T.μ :=
+    integrable_finsetSum' _ fun j _ => (hfi (t + 1 + j)).smul (ρ ^ j)
+  have hsm : ∀ j, T.E m (ρ ^ j • f (t + 1 + j)) =ᵐ[T.μ] ρ ^ j • T.E m (f (t + 1 + j)) :=
+    fun j => T.E_smul (ρ ^ j) (f (t + 1 + j)) m
+  filter_upwards [T.E_add hsi ((hxi (t + n)).smul (ρ ^ n)) m,
+    condExp_finsetSum (μ := T.μ) (m := T.𝓕 m) (s := Finset.range n)
+      (fun j _ => (hfi (t + 1 + j)).smul (ρ ^ j)),
+    ae_all_iff.2 hsm, T.E_smul (ρ ^ n) (x (t + n)) m] with ω h1 h2 h3 h4
+  rw [h]
+  simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at h1 h4
+  rw [h1, h4]
+  congr 1
+  have h2' : T.E m (∑ j ∈ Finset.range n, ρ ^ j • f (t + 1 + j)) ω =
+      ∑ j ∈ Finset.range n, T.E m (ρ ^ j • f (t + 1 + j)) ω :=
+    h2.trans (Finset.sum_apply ω _ _)
+  rw [h2']
+  refine Finset.sum_congr rfl fun j _ => ?_
+  have := h3 j
+  simp only [Pi.smul_apply, smul_eq_mul] at this
+  exact this
+
+/-- Cochrane (2023), eq. (3.19), p. 64, **for every `ρ`, including `|ρ| = 1`**, under ANY
+information and with merely integrable processes: a.e., the discounted forecasts
+`∑ρʲE_m f_{t+1+j}` converge (as an ordinary series) to `E_m x_t` iff the forecast terminal
+condition `ρᵀE_m x_{t+T} → 0` holds. -/
+theorem pv_E_iff_tvc (T : MeasExpectationSystem Ω) {ρ : ℝ} {x f : ℕ → Ω → ℝ}
+    (hrec : Recursion ρ x f) (hxi : ∀ t, Integrable (x t) T.μ) (hfi : ∀ t, Integrable (f t) T.μ)
+    (t m : ℕ) :
+    ∀ᵐ ω ∂T.μ, (SeriesTo (fun j => ρ ^ j * T.E m (f (t + 1 + j)) ω) (T.E m (x t) ω) ↔
+      Tendsto (fun n => ρ ^ n * T.E m (x (t + n)) ω) atTop (𝓝 0)) := by
+  filter_upwards [E_rec_finite T hrec hxi hfi t m] with ω h
+  exact tendsto_iff_of_eq h
+
+/-- Cochrane (2023), eq. (3.20), p. 65, **for every `ρ`, including `|ρ| = 1`** (the measure
+analogue of the core's innovation terminal condition), with integrable processes: a.e.
+`∑ρʲΔ_{t+1}f_{t+1+j}` converges to `Δ_{t+1}x_t` iff `ρᵀΔ_{t+1}x_{t+T} → 0`. -/
+theorem innov_pv_iff_tvc (T : MeasExpectationSystem Ω) {ρ : ℝ} {x f : ℕ → Ω → ℝ}
+    (hrec : Recursion ρ x f) (hxi : ∀ t, Integrable (x t) T.μ) (hfi : ∀ t, Integrable (f t) T.μ)
+    (t : ℕ) :
+    ∀ᵐ ω ∂T.μ, (SeriesTo (fun j => ρ ^ j * T.innov t (f (t + 1 + j)) ω) (T.innov t (x t) ω) ↔
+      Tendsto (fun n => ρ ^ n * T.innov t (x (t + n)) ω) atTop (𝓝 0)) := by
+  filter_upwards [E_rec_finite T hrec hxi hfi t (t + 1), E_rec_finite T hrec hxi hfi t t]
+    with ω h1 h2
+  refine tendsto_iff_of_eq fun n => ?_
+  simp only [ExpectationsMeasure.MeasExpectationSystem.innov, Pi.sub_apply]
+  rw [h1 n, h2 n]
+  simp only [mul_sub, Finset.sum_sub_distrib]
+  ring
+
+/-- Cochrane (2023), p. 101, and Online Appendix p. 602, **for every `ρ`, including `|ρ| = 1`**,
+with the flow identity ex post and integrable processes: (i) a.e. the econometrician's discounted
+forecasts of `s̃ + g − r` converge to `E(v_t|I_t)` iff the econometrician's terminal condition
+`ρᵀE(v_{t+T}|I_t) → 0` holds; (ii) when that terminal condition holds a.e., they converge to `v_t`
+a.e. iff `v_t ∈ I_t`. -/
+theorem condDown_flow_iff_tvc {S : MeasExpectationSystem Ω} (𝓖 : Filtration ℕ mΩ) {ρ : ℝ}
+    {v r g s : ℕ → Ω → ℝ} (hflow : Flow ρ v r g s) (hvi : ∀ t, Integrable (v t) S.μ)
+    (hfi : ∀ t, Integrable (s t + g t - r t) S.μ) (t : ℕ) :
+    (∀ᵐ ω ∂S.μ, (SeriesTo (fun j => ρ ^ j * (coarsen S 𝓖).E t
+      (s (t + 1 + j) + g (t + 1 + j) - r (t + 1 + j)) ω) ((coarsen S 𝓖).E t (v t) ω) ↔
+      Tendsto (fun n => ρ ^ n * (coarsen S 𝓖).E t (v (t + n)) ω) atTop (𝓝 0))) ∧
+    ((∀ᵐ ω ∂S.μ, Tendsto (fun n => ρ ^ n * (coarsen S 𝓖).E t (v (t + n)) ω) atTop (𝓝 0)) →
+      ((∀ᵐ ω ∂S.μ, SeriesTo (fun j => ρ ^ j * (coarsen S 𝓖).E t
+        (s (t + 1 + j) + g (t + 1 + j) - r (t + 1 + j)) ω) (v t ω)) ↔
+        KnownAE S.μ 𝓖 t (v t))) := by
+  have hrec := (flow_iff_recursion ρ v r g s).1 hflow
+  have hH := pv_E_iff_tvc (coarsen S 𝓖) hrec hvi hfi t t
+  refine ⟨hH, fun htvc => ?_⟩
+  have hconv : ∀ᵐ ω ∂S.μ, SeriesTo (fun j => ρ ^ j * (coarsen S 𝓖).E t
+      (s (t + 1 + j) + g (t + 1 + j) - r (t + 1 + j)) ω) ((coarsen S 𝓖).E t (v t) ω) := by
+    filter_upwards [hH, htvc] with ω a b
+    exact a.2 b
+  rw [← known_iff_E_eq S 𝓖 (hvi t)]
+  constructor
+  · intro h1
+    filter_upwards [h1, hconv] with ω a b
+    exact tendsto_nhds_unique a b
+  · intro h1
+    filter_upwards [h1, hconv] with ω a b
+    rw [a]
+    exact b
+
+/-! ### Every `ρ`: convergence in `L¹` -/
+
+/-- Cochrane (2023), eq. (3.19), p. 64, **for every `ρ`**, in `L¹`: under the recursion with
+integrable processes, if the terminal condition holds in `L¹` (`E|ρᵀx_{t+T}| → 0`), then the
+discounted forecasts converge to `E_m x_t` in `L¹`, under ANY information. -/
+theorem pv_E_tendsto_L1 (T : MeasExpectationSystem Ω) {ρ : ℝ} {x f : ℕ → Ω → ℝ}
+    (hrec : Recursion ρ x f) (hxi : ∀ t, Integrable (x t) T.μ) (hfi : ∀ t, Integrable (f t) T.μ)
+    (t m : ℕ) (htvc : Tendsto (fun n => ∫ ω, |ρ ^ n * x (t + n) ω| ∂T.μ) atTop (𝓝 0)) :
+    Tendsto (fun n => ∫ ω, |T.E m (x t) ω -
+      ∑ j ∈ Finset.range n, ρ ^ j * T.E m (f (t + 1 + j)) ω| ∂T.μ) atTop (𝓝 0) := by
+  refine squeeze_zero (fun _ => integral_nonneg fun _ => abs_nonneg _) (fun n => ?_) htvc
+  have hEq : (fun ω => |T.E m (x t) ω - ∑ j ∈ Finset.range n, ρ ^ j * T.E m (f (t + 1 + j)) ω|)
+      =ᵐ[T.μ] fun ω => |ρ| ^ n * |T.E m (x (t + n)) ω| := by
+    filter_upwards [E_rec_finite T hrec hxi hfi t m] with ω h
+    rw [h n, add_sub_cancel_left, abs_mul, abs_pow]
+  rw [integral_congr_ae hEq, integral_const_mul]
+  have h2 : ∫ ω, |ρ ^ n * x (t + n) ω| ∂T.μ = |ρ| ^ n * ∫ ω, |x (t + n) ω| ∂T.μ := by
+    rw [← integral_const_mul]
+    exact integral_congr_ae (Eventually.of_forall fun ω => by simp only [abs_mul, abs_pow])
+  rw [h2]
+  exact mul_le_mul_of_nonneg_left (integral_abs_condExp_le _) (pow_nonneg (abs_nonneg _) _)
+
+/-- Cochrane (2023), eqs. (2.22)–(2.23), p. 602, and p. 101, **for every `ρ`** (the valuation
+equation with conditionally convergent present values, e.g. `ρ = 1`), in `L¹`: if the partial
+sums `∑_{j<n}ρʲs_{t+1+j}` converge in `L¹` to `X` and `v_t = E(X|Ω_t)`, then the econometrician's
+discounted forecasts converge in `L¹` to `E(v_t|I_t)`. -/
+theorem condDown_valuation_tendsto_L1 {S : MeasExpectationSystem Ω} {𝓖 : Filtration ℕ mΩ}
+    (h : Nested S 𝓖) {ρ : ℝ} {s : ℕ → Ω → ℝ} (hsi : ∀ j, Integrable (s j) S.μ) {t : ℕ}
+    {X : Ω → ℝ} (hXi : Integrable X S.μ)
+    (hX : Tendsto (fun n => ∫ ω, |∑ j ∈ Finset.range n, ρ ^ j * s (t + 1 + j) ω - X ω| ∂S.μ)
+      atTop (𝓝 0)) {v : Ω → ℝ} (hv : v =ᵐ[S.μ] S.E t X) :
+    Tendsto (fun n => ∫ ω, |∑ j ∈ Finset.range n, ρ ^ j * (coarsen S 𝓖).E t (s (t + 1 + j)) ω -
+      (coarsen S 𝓖).E t v ω| ∂S.μ) atTop (𝓝 0) := by
+  set G := coarsen S 𝓖
+  refine squeeze_zero (fun _ => integral_nonneg fun _ => abs_nonneg _) (fun n => ?_) hX
+  set P : Ω → ℝ := fun ω => ∑ j ∈ Finset.range n, ρ ^ j * s (t + 1 + j) ω with hP
+  have hPs : P = ∑ j ∈ Finset.range n, ρ ^ j • s (t + 1 + j) := by
+    funext ω
+    simp [hP, Finset.sum_apply]
+  have hPi : Integrable P S.μ := by
+    rw [hPs]
+    exact integrable_finsetSum' _ fun j _ => (hsi (t + 1 + j)).smul (ρ ^ j)
+  have hEP : G.E t P =ᵐ[S.μ] fun ω => ∑ j ∈ Finset.range n, ρ ^ j * G.E t (s (t + 1 + j)) ω := by
+    rw [hPs]
+    filter_upwards [condExp_finsetSum (μ := S.μ) (m := 𝓖 t) (s := Finset.range n)
+      (fun j _ => (hsi (t + 1 + j)).smul (ρ ^ j)),
+      ae_all_iff.2 fun j => G.E_smul (ρ ^ j) (s (t + 1 + j)) t] with ω h1 h2
+    have h1' : G.E t (∑ j ∈ Finset.range n, ρ ^ j • s (t + 1 + j)) ω =
+        ∑ j ∈ Finset.range n, G.E t (ρ ^ j • s (t + 1 + j)) ω :=
+      h1.trans (Finset.sum_apply ω _ _)
+    rw [h1']
+    refine Finset.sum_congr rfl fun j _ => ?_
+    have := h2 j
+    simp only [Pi.smul_apply, smul_eq_mul] at this
+    exact this
+  have hEq : (fun ω => |∑ j ∈ Finset.range n, ρ ^ j * G.E t (s (t + 1 + j)) ω - G.E t v ω|)
+      =ᵐ[S.μ] fun ω => |G.E t (P - X) ω| := by
+    filter_upwards [hEP, G.E_sub hPi hXi t, condDown_general h hv] with ω h1 h2 h3
+    rw [h2, Pi.sub_apply, h1, h3]
+  rw [integral_congr_ae hEq]
+  exact integral_abs_condExp_le _
+
+/-- Cochrane (2023), eqs. (2.22)–(2.23), p. 602, and p. 101 ("so long as `v_t ∈ I_t`"), **for
+every `ρ`**, in `L¹`: under the hypotheses of `condDown_valuation_tendsto_L1`, the
+econometrician's discounted forecasts converge in `L¹` to `v_t` **iff** `v_t ∈ I_t`. -/
+theorem condDown_valuation_tendsto_L1_iff {S : MeasExpectationSystem Ω}
+    {𝓖 : Filtration ℕ mΩ} (h : Nested S 𝓖) {ρ : ℝ} {s : ℕ → Ω → ℝ}
+    (hsi : ∀ j, Integrable (s j) S.μ) {t : ℕ} {X : Ω → ℝ} (hXi : Integrable X S.μ)
+    (hX : Tendsto (fun n => ∫ ω, |∑ j ∈ Finset.range n, ρ ^ j * s (t + 1 + j) ω - X ω| ∂S.μ)
+      atTop (𝓝 0)) {v : Ω → ℝ} (hv : v =ᵐ[S.μ] S.E t X) :
+    Tendsto (fun n => ∫ ω, |∑ j ∈ Finset.range n, ρ ^ j * (coarsen S 𝓖).E t (s (t + 1 + j)) ω -
+      v ω| ∂S.μ) atTop (𝓝 0) ↔ KnownAE S.μ 𝓖 t v := by
+  set G := coarsen S 𝓖
+  have hvi : Integrable v S.μ := (S.integrable_E t X).congr hv.symm
+  have hEv := condDown_valuation_tendsto_L1 h hsi hXi hX hv
+  rw [← known_iff_E_eq S 𝓖 hvi]
+  set Q : ℕ → Ω → ℝ := fun n ω => ∑ j ∈ Finset.range n, ρ ^ j * G.E t (s (t + 1 + j)) ω
+  have hQi : ∀ n, Integrable (Q n) S.μ := fun n => by
+    have hQs : Q n = ∑ j ∈ Finset.range n, ρ ^ j • G.E t (s (t + 1 + j)) := by
+      funext ω
+      simp [Q, Finset.sum_apply]
+    rw [hQs]
+    exact integrable_finsetSum' _ fun j _ => (G.integrable_E t (s (t + 1 + j))).smul (ρ ^ j)
+  have hGi : Integrable (G.E t v) S.μ := G.integrable_E t v
+  constructor
+  · intro h1
+    have hle : ∀ n, ∫ ω, |v ω - G.E t v ω| ∂S.μ ≤
+        ∫ ω, |Q n ω - v ω| ∂S.μ + ∫ ω, |Q n ω - G.E t v ω| ∂S.μ := fun n => by
+      refine le_trans (integral_mono (hvi.sub hGi).abs
+        (((hQi n).sub hvi).abs.add ((hQi n).sub hGi).abs) fun ω => ?_)
+        (le_of_eq (integral_add ((hQi n).sub hvi).abs ((hQi n).sub hGi).abs))
+      calc |v ω - G.E t v ω| = |(Q n ω - G.E t v ω) - (Q n ω - v ω)| := by ring_nf
+        _ ≤ |Q n ω - G.E t v ω| + |Q n ω - v ω| := abs_sub _ _
+        _ = _ := add_comm _ _
+    have hlim := h1.add hEv
+    rw [add_zero] at hlim
+    have h0 : ∫ ω, |v ω - G.E t v ω| ∂S.μ ≤ 0 :=
+      ge_of_tendsto hlim (Eventually.of_forall hle)
+    have h00 : ∫ ω, |v ω - G.E t v ω| ∂S.μ = 0 :=
+      le_antisymm h0 (integral_nonneg fun _ => abs_nonneg _)
+    have hz := (integral_eq_zero_iff_of_nonneg (fun _ => abs_nonneg _) (hvi.sub hGi).abs).1 h00
+    filter_upwards [hz] with ω hω
+    have : |v ω - G.E t v ω| = 0 := hω
+    linarith [abs_eq_zero.1 this]
+  · intro h1
+    refine hEv.congr fun n => integral_congr_ae ?_
+    filter_upwards [h1] with ω hω
+    rw [← hω]
+
+/-! ### `|ρ| = 1` -/
+
+/-- Cochrane (2023), eq. (3.18), p. 63, at `|ρ| = 1`, **counterexample**: the bounded-process
+statements of `ConditioningDownMeasure` (`ConditioningDownMeasure.pv_ex_post`,
+`ConditioningDownMeasure.pv_E`, `ConditioningDownMeasure.condDown_flow_iff`) need `|ρ| < 1`.
+With `ρ = ±1`, `x_t = ρᵗ` and no payoff, the recursion holds and `x` is bounded, but neither the
+ex-post nor the forecast present value equals `x_0 = 1`; and `x` is not `DiscL1`. -/
+theorem pv_unit_root_fails (T : MeasExpectationSystem Ω) {ρ : ℝ} (hρ : |ρ| = 1)
+    (m : ℕ) :
+    Recursion ρ (fun t (_ : Ω) => ρ ^ t) (fun _ _ => 0) ∧ (∀ t, |ρ ^ t| ≤ 1) ∧
+    ¬ (∀ᵐ _ω ∂T.μ, HasSum (fun j => ρ ^ j * (0 : ℝ)) (ρ ^ 0)) ∧
+    ¬ (∀ᵐ ω ∂T.μ, HasSum (fun j => ρ ^ j * T.E m (fun _ => (0 : ℝ)) ω)
+      (T.E m (fun _ => ρ ^ 0) ω)) ∧
+    ¬ DiscL1 T.μ ρ (fun t (_ : Ω) => ρ ^ t) := by
+  have hρ2 : ρ ^ 2 = 1 := by rw [← sq_abs, hρ, one_pow]
+  have hnot : ¬ HasSum (fun j => ρ ^ j * (0 : ℝ)) (ρ ^ 0) := by
+    intro h
+    have h0 : HasSum (fun j : ℕ => ρ ^ j * (0 : ℝ)) 0 := by
+      simp only [mul_zero]
+      exact hasSum_zero
+    have := h.unique h0
+    simp at this
+  refine ⟨fun t => ?_, fun t => by rw [abs_pow, hρ, one_pow], fun h => ?_, fun h => ?_,
+    fun h => ?_⟩
+  · funext ω
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, add_zero]
+    rw [show ρ * ρ ^ (t + 1) = ρ ^ t * ρ ^ 2 by ring, hρ2, mul_one]
+  · obtain ⟨ω, hω⟩ := h.exists
+    exact hnot hω
+  · obtain ⟨ω, hω⟩ := h.exists
+    rw [T.E_const, T.E_const] at hω
+    exact hnot hω
+  · have h1 := h.2 0
+    simp only [zero_add, abs_pow, hρ, one_pow, one_mul, integral_const, smul_eq_mul,
+      mul_one] at h1
+    have h2 : (T.μ.real Set.univ) = 1 := by simp
+    rw [h2] at h1
+    exact (summable_const_iff (1 : ℝ)).not.mpr one_ne_zero h1
+
+/-- Cochrane (2023), p. 101 and Online Appendix p. 602, **the corrected statement at `|ρ| = 1`**
+(`ρ = ±1`): with the flow identity ex post and `∑_t E|v_t| < ∞`, `∑_t E|s̃_t + g_t − r_t| < ∞`
+(integrable, not necessarily bounded), the econometrician's discounted forecasts sum to
+`E(v_t|I_t)`, and to `v_t` iff `v_t ∈ I_t`. -/
+theorem condDown_flow_unit_root {S : MeasExpectationSystem Ω} (𝓖 : Filtration ℕ mΩ) {ρ : ℝ}
+    (hρ : |ρ| = 1) {v r g s : ℕ → Ω → ℝ} (hflow : Flow ρ v r g s)
+    (hvi : ∀ t, Integrable (v t) S.μ) (hvs : Summable fun t => ∫ ω, |v t ω| ∂S.μ)
+    (hfi : ∀ t, Integrable (s t + g t - r t) S.μ)
+    (hfs : Summable fun t => ∫ ω, |(s t + g t - r t) ω| ∂S.μ) (t : ℕ) :
+    (∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).E t
+      (s (t + 1 + j) + g (t + 1 + j) - r (t + 1 + j)) ω) ((coarsen S 𝓖).E t (v t) ω)) ∧
+    ((∀ᵐ ω ∂S.μ, HasSum (fun j => ρ ^ j * (coarsen S 𝓖).E t
+      (s (t + 1 + j) + g (t + 1 + j) - r (t + 1 + j)) ω) (v t ω)) ↔ KnownAE S.μ 𝓖 t (v t)) :=
+  condDown_flow_iff_L1 𝓖 hflow (DiscL1.of_summable hρ.le hvi hvs)
+    (DiscL1.of_summable hρ.le hfi hfs) t
+
+end Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Conditional-expectation forecasts versus linear forecasts: Wold and Granger with `condExp`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 4, §4.3, p. 102, and Online
+Appendix Chapter 2, §§2.1.4–2.1.6, pp. 597–601 (the Wold representation, "the shock is not
+recoverable from the surplus history", "debt Granger-causes surpluses").
+
+`Wold` and `InvertibilityMeasure` prove these statements for best linear forecasts (orthogonal
+projections on closed linear spans in `L²`). Here they are related to Mathlib conditional
+expectations given the σ-algebra of the past.
+
+* **The general statement.** The conditional expectation `E(x|𝓖)` of `x ∈ L²` is the orthogonal
+  projection on the closed subspace `L²(𝓖)` (Mathlib's `lpMeas`, `condExpL2`). Any closed linear
+  span `K` of `𝓖`-measurable variables lies in `L²(𝓖)`, so the conditional-expectation forecast
+  error is never larger than the linear one, with the Pythagorean decomposition
+  `‖x − P_Kx‖² = ‖x − E(x|𝓖)‖² + ‖E(x|𝓖) − P_Kx‖²`, and the two forecasts coincide iff their
+  mean-square errors are equal iff `E(x|𝓖) ∈ K` (`condExp_beats_linear`).
+* **Conditional-expectation innovations form a martingale-difference sequence**
+  (`ceInnov_mds`, `ceInnov_orthogonal`), orthogonal to the whole past, and for a process indexed
+  by `ℤ` with its natural filtration they are the Wold innovations iff the linear and
+  conditional forecasts coincide (`ceInnov_eq_wold_iff`); then the Wold decomposition holds with
+  conditional-expectation innovations (`wold_decomposition_condExp`).
+* **Counterexample (non-Gaussian shocks).** For fair `±1` coin shocks and the book's `a(ρ) = 0`
+  surplus `s_t = e_t − ρ⁻¹e_{t−1}` (`0 < |ρ| < 1`), the shock is a measurable function of the
+  current surplus alone, `e_t = g(s_t)` (`Coin.coin_shock_eq`), so the conditional-expectation
+  forecast `E(s_{t+1}|σ(s_t, s_{t−1}, …)) = −ρ⁻¹e_t` has error variance `1`, while the best
+  linear forecast has error variance `ρ⁻² > 1` and the shock is not in the closed linear span
+  (`Coin.coin_condExp_beats_linear`). The Wold innovation is therefore not
+  `x_t − E(x_t|σ(x_{t−1}, …))` in general, and non-invertibility is a statement about linear
+  forecasts only.
+-/
+
+namespace Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open scoped RealInnerProductSpace
+
+/-! ### Nested projections -/
+
+namespace Hilbert
+
+variable {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): for closed subspaces `K ≤ M` with orthogonal
+projections, `‖x − P_Kx‖² = ‖x − P_Mx‖² + ‖P_Mx − P_Kx‖²`. -/
+theorem nested_pythagoras {K M : Submodule ℝ H} [K.HasOrthogonalProjection]
+    [M.HasOrthogonalProjection] (hKM : K ≤ M) (x : H) :
+    ‖x - K.starProjection x‖ ^ 2 =
+      ‖x - M.starProjection x‖ ^ 2 + ‖M.starProjection x - K.starProjection x‖ ^ 2 := by
+  have h1 : x - M.starProjection x ∈ Mᗮ := M.sub_starProjection_mem_orthogonal x
+  have h2 : M.starProjection x - K.starProjection x ∈ M :=
+    M.sub_mem (M.starProjection_apply_mem x) (hKM (K.starProjection_apply_mem x))
+  have h0 : ⟪x - M.starProjection x, M.starProjection x - K.starProjection x⟫ = 0 :=
+    Submodule.inner_left_of_mem_orthogonal h2 h1
+  rw [show x - K.starProjection x =
+    (x - M.starProjection x) + (M.starProjection x - K.starProjection x) by abel]
+  simpa only [sq] using norm_add_sq_eq_norm_sq_add_norm_sq_real h0
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): for `K ≤ M`, the projection on the larger
+subspace is the better forecast, and the two coincide iff `P_Mx ∈ K` iff the errors have the same
+norm. -/
+theorem nested_projection_eq_iff {K M : Submodule ℝ H} [K.HasOrthogonalProjection]
+    [M.HasOrthogonalProjection] (hKM : K ≤ M) (x : H) :
+    ‖x - M.starProjection x‖ ≤ ‖x - K.starProjection x‖ ∧
+    (M.starProjection x = K.starProjection x ↔ M.starProjection x ∈ K) ∧
+    (M.starProjection x = K.starProjection x ↔
+      ‖x - M.starProjection x‖ = ‖x - K.starProjection x‖) := by
+  have hp := nested_pythagoras hKM x
+  refine ⟨?_, ⟨fun h => h ▸ K.starProjection_apply_mem x, fun h => ?_⟩, ⟨fun h => by rw [h],
+    fun h => ?_⟩⟩
+  · have : ‖x - M.starProjection x‖ ^ 2 ≤ ‖x - K.starProjection x‖ ^ 2 := by
+      rw [hp]; nlinarith [sq_nonneg ‖M.starProjection x - K.starProjection x‖]
+    exact (pow_le_pow_iff_left₀ (norm_nonneg _) (norm_nonneg _) two_ne_zero).1 this
+  · have hperp : x - M.starProjection x ∈ Kᗮ :=
+      Submodule.orthogonal_le hKM (M.sub_starProjection_mem_orthogonal x)
+    exact (Submodule.eq_starProjection_of_mem_orthogonal h hperp).symm
+  · rw [h] at hp
+    have h0 : ‖M.starProjection x - K.starProjection x‖ = 0 := by
+      nlinarith [sq_nonneg ‖M.starProjection x - K.starProjection x‖,
+        norm_nonneg (M.starProjection x - K.starProjection x)]
+    exact sub_eq_zero.1 (norm_eq_zero.1 h0)
+
+end Hilbert
+
+/-! ### Conditional expectations as projections in `L²` -/
+
+variable {Ω : Type*} {G : MeasurableSpace Ω} [mΩ : MeasurableSpace Ω] {μ : Measure Ω}
+  [IsProbabilityMeasure μ]
+
+omit [IsProbabilityMeasure μ] in
+/-- Cochrane (2023), Online Appendix p. 597 (`E(s_t|s_{t−1}, …)` as a conditional expectation):
+the closed subspace `L²(𝓖)` of `𝓖`-measurable square-integrable variables (Mathlib's
+`lpMeas`) has an orthogonal projection. -/
+theorem hasOrthogonalProjection_lpMeas (hG : G ≤ mΩ) :
+    (lpMeas ℝ ℝ G 2 μ).HasOrthogonalProjection := by
+  have : Fact (G ≤ mΩ) := ⟨hG⟩
+  infer_instance
+
+/-- Cochrane (2023), Online Appendix p. 597: the projection on `L²(𝓖)` is Mathlib's conditional
+expectation, `P_{L²(𝓖)}x = E(x|𝓖)` a.e. -/
+theorem starProjection_lpMeas_ae_eq_condExp (hG : G ≤ mΩ) {f : Ω → ℝ}
+    (hf : MemLp f 2 μ) :
+    haveI := hasOrthogonalProjection_lpMeas (μ := μ) hG
+    ((lpMeas ℝ ℝ G 2 μ).starProjection (hf.toLp f) : Ω → ℝ) =ᵐ[μ] μ[f | G] := by
+  have : Fact (G ≤ mΩ) := ⟨hG⟩
+  exact hf.condExpL2_ae_eq_condExp hG
+
+omit [IsProbabilityMeasure μ] in
+/-- Cochrane (2023), Online Appendix p. 597 (tool): a closed linear span of `𝓖`-measurable
+square-integrable variables lies in `L²(𝓖)`. -/
+theorem closure_span_le_lpMeas (hG : G ≤ mΩ) {ι : Type*}
+    (y : ι → Lp ℝ 2 μ) (hy : ∀ i, AEStronglyMeasurable[G] (y i : Ω → ℝ) μ) :
+    (Submodule.span ℝ (Set.range y)).topologicalClosure ≤ lpMeas ℝ ℝ G 2 μ := by
+  have : Fact (G ≤ mΩ) := ⟨hG⟩
+  refine Submodule.topologicalClosure_minimal _ ?_ (isClosed_aestronglyMeasurable hG)
+  rw [Submodule.span_le]
+  rintro _ ⟨i, rfl⟩
+  exact mem_lpMeas_iff_aestronglyMeasurable.2 (hy i)
+
+omit [IsProbabilityMeasure μ] in
+/-- Cochrane (2023), §4.3, p. 102, and Online Appendix pp. 597–601, **the general statement**:
+let `K` be any closed subspace of `L²(𝓖)` (e.g. the closed linear span of the observed past).
+For every `F ∈ L²`, with `c = E(F|𝓖)` (the projection on `L²(𝓖)`, a.e. Mathlib's `condExp`) and
+`p = P_KF` (the best linear forecast):
+`‖F − p‖² = ‖F − c‖² + ‖c − p‖²`; so `‖F − c‖ ≤ ‖F − p‖`, and `c = p` iff `c ∈ K` iff the two
+mean-square errors are equal. -/
+theorem condExp_beats_linear (hG : G ≤ mΩ) (K : Submodule ℝ (Lp ℝ 2 μ))
+    [K.HasOrthogonalProjection] (hK : K ≤ lpMeas ℝ ℝ G 2 μ) (F : Lp ℝ 2 μ) :
+    haveI := hasOrthogonalProjection_lpMeas (μ := μ) hG
+    ‖F - K.starProjection F‖ ^ 2 = ‖F - (lpMeas ℝ ℝ G 2 μ).starProjection F‖ ^ 2 +
+        ‖(lpMeas ℝ ℝ G 2 μ).starProjection F - K.starProjection F‖ ^ 2 ∧
+      ‖F - (lpMeas ℝ ℝ G 2 μ).starProjection F‖ ≤ ‖F - K.starProjection F‖ ∧
+      ((lpMeas ℝ ℝ G 2 μ).starProjection F = K.starProjection F ↔
+        (lpMeas ℝ ℝ G 2 μ).starProjection F ∈ K) ∧
+      ((lpMeas ℝ ℝ G 2 μ).starProjection F = K.starProjection F ↔
+        ‖F - (lpMeas ℝ ℝ G 2 μ).starProjection F‖ = ‖F - K.starProjection F‖) := by
+  have := hasOrthogonalProjection_lpMeas (μ := μ) hG
+  obtain ⟨h1, h2, h3⟩ := Hilbert.nested_projection_eq_iff hK F
+  exact ⟨Hilbert.nested_pythagoras hK F, h1, h2, h3⟩
+
+/-! ### Conditional-expectation innovations: a martingale-difference sequence -/
+
+/-- Cochrane (2023), Online Appendix p. 597 ("`u_t = s_t − E(s_t|s_{t−1}, …)`" read with
+conditional expectations): for any filtration `𝓕` and integrable `x_{t+1}`, the forecast error
+`x_{t+1} − E(x_{t+1}|𝓕_t)` is `𝓕_{t+1}`-measurable when `x` is adapted, and has conditional mean
+zero given `𝓕_t`: the conditional-expectation innovations form a martingale-difference
+sequence. -/
+theorem ceInnov_mds (𝓕 : Filtration ℕ mΩ) {x : ℕ → Ω → ℝ} (hx : StronglyAdapted 𝓕 x)
+    (hi : ∀ t, Integrable (x t) μ) (t : ℕ) :
+    StronglyMeasurable[𝓕 (t + 1)] (x (t + 1) - μ[x (t + 1) | 𝓕 t]) ∧
+    μ[x (t + 1) - μ[x (t + 1) | 𝓕 t] | 𝓕 t] =ᵐ[μ] 0 := by
+  refine ⟨(hx (t + 1)).sub (stronglyMeasurable_condExp.mono (𝓕.mono (Nat.le_succ t))), ?_⟩
+  filter_upwards [condExp_sub (hi (t + 1)) integrable_condExp (𝓕 t),
+    (condExp_condExp_of_le (le_refl (𝓕 t)) (𝓕.le t) : μ[μ[x (t + 1) | 𝓕 t] | 𝓕 t] =ᵐ[μ] _)]
+    with ω h1 h2
+  rw [h1, Pi.sub_apply, h2, sub_self, Pi.zero_apply]
+
+omit [IsProbabilityMeasure μ] in
+/-- Cochrane (2023), Online Appendix p. 597: in `L²`, the conditional-expectation innovation is
+orthogonal to every square-integrable function of the past, `x − E(x|𝓖) ⟂ L²(𝓖)`; in particular
+it is uncorrelated with every earlier innovation and with the closed linear span of the past. -/
+theorem ceInnov_orthogonal (hG : G ≤ mΩ) (F : Lp ℝ 2 μ) :
+    haveI := hasOrthogonalProjection_lpMeas (μ := μ) hG
+    F - (lpMeas ℝ ℝ G 2 μ).starProjection F ∈ (lpMeas ℝ ℝ G 2 μ)ᗮ := by
+  have := hasOrthogonalProjection_lpMeas (μ := μ) hG
+  exact (lpMeas ℝ ℝ G 2 μ).sub_starProjection_mem_orthogonal F
+
+/-! ### Processes indexed by `ℤ`: the natural filtration and the Wold innovations -/
+
+/-- Cochrane (2023), Online Appendix p. 597 (`σ(s_t, s_{t−1}, …)`, `σ(s, v)`): the σ-algebra
+generated by a family of real random variables. -/
+abbrev genSigma {ι : Type*} (Y : ι → Ω → ℝ) : MeasurableSpace Ω :=
+  ⨆ i, MeasurableSpace.comap (Y i) inferInstance
+
+/-- Cochrane (2023), Online Appendix p. 597 (`σ(s_t, s_{t−1}, …)`): the σ-algebra generated by the
+current and past values of a process. -/
+abbrev pastSigma (x : ℤ → Ω → ℝ) (t : ℤ) : MeasurableSpace Ω :=
+  genSigma fun k : ℕ => x (t - k)
+
+omit [IsProbabilityMeasure μ] in
+/-- Cochrane (2023), Online Appendix p. 597 (tool): for measurable `x` the past σ-algebra is a
+sub-σ-algebra. -/
+theorem pastSigma_le {x : ℤ → Ω → ℝ} (hx : ∀ t, Measurable (x t)) (t : ℤ) :
+    pastSigma x t ≤ mΩ :=
+  iSup_le fun k => (hx (t - k)).comap_le
+
+omit mΩ [IsProbabilityMeasure μ] in
+/-- Cochrane (2023), Online Appendix p. 597 (tool): `x_{t−k}` is measurable for the past
+σ-algebra at `t`. -/
+theorem measurable_pastSigma (x : ℤ → Ω → ℝ) (t : ℤ) (k : ℕ) :
+    Measurable[pastSigma x t] (x (t - k)) :=
+  Measurable.of_comap_le (le_iSup (fun k : ℕ => MeasurableSpace.comap (x (t - k))
+    inferInstance) k)
+
+/-- Cochrane (2023), Online Appendix p. 597: the process as a sequence in `L²`. -/
+noncomputable def toL2 {x : ℤ → Ω → ℝ} (hx2 : ∀ t, MemLp (x t) 2 μ) (t : ℤ) : Lp ℝ 2 μ :=
+  (hx2 t).toLp (x t)
+
+omit [IsProbabilityMeasure μ] in
+/-- Cochrane (2023), Online Appendix p. 597: the closed linear span of the past, `H_t`, lies in
+`L²(σ(x_t, x_{t−1}, …))`. -/
+theorem past_le_lpMeas {x : ℤ → Ω → ℝ} (hx : ∀ t, Measurable (x t))
+    (hx2 : ∀ t, MemLp (x t) 2 μ) (t : ℤ) :
+    Wold.past (toL2 hx2) t ≤ lpMeas ℝ ℝ (pastSigma x t) 2 μ :=
+  closure_span_le_lpMeas (pastSigma_le hx t) (fun k : ℕ => toL2 hx2 (t - k)) fun k =>
+    ((measurable_pastSigma x t k).stronglyMeasurable.aestronglyMeasurable).congr
+      (MemLp.coeFn_toLp _).symm
+
+/-- Cochrane (2023), Online Appendix p. 597 ("`u_t = s_t − E(s_t|s_{t−1}, s_{t−2}, …)`" with
+conditional expectations): the conditional-expectation innovation, as an element of `L²`. -/
+noncomputable def ceInnov {x : ℤ → Ω → ℝ} (hx : ∀ t, Measurable (x t))
+    (hx2 : ∀ t, MemLp (x t) 2 μ) (t : ℤ) : Lp ℝ 2 μ :=
+  haveI := hasOrthogonalProjection_lpMeas (μ := μ) (pastSigma_le hx (t - 1))
+  toL2 hx2 t - (lpMeas ℝ ℝ (pastSigma x (t - 1)) 2 μ).starProjection (toL2 hx2 t)
+
+/-- Cochrane (2023), Online Appendix p. 597: `ceInnov` is a.e. `x_t − E(x_t|σ(x_{t−1}, …))` with
+Mathlib's `condExp`. -/
+theorem ceInnov_ae_eq {x : ℤ → Ω → ℝ} (hx : ∀ t, Measurable (x t))
+    (hx2 : ∀ t, MemLp (x t) 2 μ) (t : ℤ) :
+    (ceInnov hx hx2 t : Ω → ℝ) =ᵐ[μ] fun ω => x t ω - μ[x t | pastSigma x (t - 1)] ω := by
+  have := hasOrthogonalProjection_lpMeas (μ := μ) (pastSigma_le hx (t - 1))
+  filter_upwards [Lp.coeFn_sub (toL2 hx2 t)
+      ((lpMeas ℝ ℝ (pastSigma x (t - 1)) 2 μ).starProjection (toL2 hx2 t)),
+    MemLp.coeFn_toLp (hx2 t), starProjection_lpMeas_ae_eq_condExp (pastSigma_le hx (t - 1))
+      (hx2 t)] with ω h1 h2 h3
+  simp only [ceInnov]
+  rw [h1, Pi.sub_apply, toL2, h2, h3]
+
+omit [IsProbabilityMeasure μ] in
+/-- Cochrane (2023), Online Appendix pp. 597 and 600, **Wold with conditional expectations**: the
+conditional-expectation innovation never has a larger norm than the Wold (linear) innovation,
+`‖x_t − E(x_t|σ(past))‖ ≤ ‖x_t − P_{H_{t−1}}x_t‖`, and the two innovations are equal iff the
+conditional forecast lies in the closed linear span `H_{t−1}` iff the two forecast errors have
+the same variance. -/
+theorem ceInnov_eq_wold_iff {x : ℤ → Ω → ℝ} (hx : ∀ t, Measurable (x t))
+    (hx2 : ∀ t, MemLp (x t) 2 μ) (t : ℤ) :
+    haveI := hasOrthogonalProjection_lpMeas (μ := μ) (pastSigma_le hx (t - 1))
+    ‖ceInnov hx hx2 t‖ ≤ ‖Wold.innov (toL2 hx2) t‖ ∧
+    (ceInnov hx hx2 t = Wold.innov (toL2 hx2) t ↔
+      (lpMeas ℝ ℝ (pastSigma x (t - 1)) 2 μ).starProjection (toL2 hx2 t) ∈
+        Wold.past (toL2 hx2) (t - 1)) ∧
+    (ceInnov hx hx2 t = Wold.innov (toL2 hx2) t ↔
+      ‖ceInnov hx hx2 t‖ = ‖Wold.innov (toL2 hx2) t‖) := by
+  have := hasOrthogonalProjection_lpMeas (μ := μ) (pastSigma_le hx (t - 1))
+  obtain ⟨h1, h2, h3⟩ := Hilbert.nested_projection_eq_iff (past_le_lpMeas hx hx2 (t - 1))
+    (toL2 hx2 t)
+  have he : ceInnov hx hx2 t = Wold.innov (toL2 hx2) t ↔
+      (lpMeas ℝ ℝ (pastSigma x (t - 1)) 2 μ).starProjection (toL2 hx2 t) =
+        (Wold.past (toL2 hx2) (t - 1)).starProjection (toL2 hx2 t) := by
+    simp only [ceInnov, Wold.innov]
+    exact sub_right_inj
+  refine ⟨h1, he.trans h2, he.trans h3⟩
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 600, **the Wold decomposition with
+conditional-expectation innovations**: for a covariance-stationary `x` (`U x_t = x_{t+1}`, `U` a
+linear isometry, as in `Wold.wold_decomposition`) whose conditional forecasts lie in the closed
+linear span of the past at every date, the conditional-expectation innovations are the Wold
+innovations; hence they are white noise, `x_t = ∑_j c_j e_{t−j} + d_t` with them, and they are a
+martingale-difference sequence for the natural filtration. -/
+theorem wold_decomposition_condExp {x : ℤ → Ω → ℝ} (hx : ∀ t, Measurable (x t))
+    (hx2 : ∀ t, MemLp (x t) 2 μ) {U : Lp ℝ 2 μ →ₗᵢ[ℝ] Lp ℝ 2 μ}
+    (hU : ∀ t, U (toL2 hx2 t) = toL2 hx2 (t + 1))
+    (hco : ∀ t, haveI := hasOrthogonalProjection_lpMeas (μ := μ) (pastSigma_le hx (t - 1))
+      (lpMeas ℝ ℝ (pastSigma x (t - 1)) 2 μ).starProjection (toL2 hx2 t) ∈
+        Wold.past (toL2 hx2) (t - 1)) :
+    (∀ t, ceInnov hx hx2 t = Wold.innov (toL2 hx2) t) ∧
+    Invertibility.Hilbert.WhiteNoise (ceInnov hx hx2) (‖ceInnov hx hx2 0‖ ^ 2) ∧
+    (∀ t, HasSum (fun j : ℕ => Wold.woldCoeff (toL2 hx2) j • ceInnov hx hx2 (t - j))
+      (toL2 hx2 t - Wold.detPart (toL2 hx2) t)) ∧
+    (∀ t, μ[fun ω => x t ω - μ[x t | pastSigma x (t - 1)] ω | pastSigma x (t - 1)] =ᵐ[μ] 0) := by
+  have heq : ∀ t, ceInnov hx hx2 t = Wold.innov (toL2 hx2) t := fun t =>
+    ((ceInnov_eq_wold_iff hx hx2 t).2.1).2 (hco t)
+  have hfun : ceInnov hx hx2 = Wold.innov (toL2 hx2) := funext heq
+  obtain ⟨-, -, hwn, -, -, -, -, hsum, -, -⟩ := Wold.wold_decomposition hU
+  refine ⟨heq, by rw [hfun]; exact hwn, fun t => by rw [hfun]; exact hsum t, fun t => ?_⟩
+  have hG := pastSigma_le hx (t - 1)
+  have hi : Integrable (x t) μ := (hx2 t).integrable one_le_two
+  filter_upwards [condExp_sub hi integrable_condExp (pastSigma x (t - 1)),
+    (condExp_condExp_of_le (le_refl (pastSigma x (t - 1))) hG :
+      μ[μ[x t | pastSigma x (t - 1)] | pastSigma x (t - 1)] =ᵐ[μ] _)] with ω h1 h2
+  have h1' : μ[fun ω => x t ω - μ[x t | pastSigma x (t - 1)] ω | pastSigma x (t - 1)] ω =
+      μ[x t | pastSigma x (t - 1)] ω - μ[μ[x t | pastSigma x (t - 1)] | pastSigma x (t - 1)] ω :=
+    h1
+  rw [h1', h2, sub_self, Pi.zero_apply]
+
+/-! ### The i.i.d. economy: the MA(1) surplus and its σ-algebra of past surpluses -/
+
+namespace IID
+
+open Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID
+
+variable {ν : ProbabilityMeasure ℝ}
+
+/-- Cochrane (2023), p. 102 and Online Appendix p. 597: the `ℤ`-indexed i.i.d. shock
+`e_t = ε_{φ(t)}` (`φ : ℤ ≃ ℕ`), as a function on `Ω = ℕ → ℝ`. -/
+def eps (t : ℤ) (ω : ℕ → ℝ) : ℝ := ω (Equiv.intEquivNat t)
+
+/-- Cochrane (2023), p. 102 ("`s_t = ε_t − ρ⁻¹ε_{t−1}`") and Online Appendix (2.4), p. 597: the
+MA(1) surplus `s_t = e_t − θe_{t−1}` (`θ = ρ⁻¹`). -/
+def surp (θ : ℝ) (t : ℤ) (ω : ℕ → ℝ) : ℝ := eps t ω - θ * eps (t - 1) ω
+
+/-- Cochrane (2023), p. 102 (tool): `s_{t+1} = e_{t+1} − θe_t`. -/
+theorem surp_succ (θ : ℝ) (t : ℤ) : surp θ (t + 1) = fun ω => eps (t + 1) ω - θ * eps t ω := by
+  funext ω
+  simp [surp]
+
+/-- Cochrane (2023), p. 102 (tool): the shock is measurable. -/
+theorem measurable_eps (t : ℤ) : Measurable (eps t) := measurable_pi_apply _
+
+/-- Cochrane (2023), p. 102 (tool): the surplus is measurable. -/
+theorem measurable_surp (θ : ℝ) (t : ℤ) : Measurable (surp θ t) :=
+  (measurable_eps t).sub ((measurable_eps (t - 1)).const_mul θ)
+
+/-- Cochrane (2023), p. 102 (tool): with an integrable law the shock is integrable. -/
+theorem integrable_eps (hi : Integrable (fun x : ℝ => x) (ν : Measure ℝ)) (t : ℤ) :
+    Integrable (eps t) (iidSystem ν).μ :=
+  ((measurePreserving_eval_infinitePi (fun _ => (ν : Measure ℝ))
+    (Equiv.intEquivNat t)).integrable_comp hi.aestronglyMeasurable).2 hi
+
+/-- Cochrane (2023), p. 102 (tool): the σ-algebra of all shocks other than `ε_j`. -/
+abbrev avoidSigma (j : ℕ) : MeasurableSpace (ℕ → ℝ) := ⨆ i ∈ {i : ℕ | i ≠ j}, coordSigma i
+
+/-- Cochrane (2023), p. 102 (tool): `ε_j` is independent of all the other shocks. -/
+theorem indep_avoid (j : ℕ) : Indep (coordSigma j) (avoidSigma j) (iidSystem ν).μ := by
+  have h := indep_iSup_of_disjoint coordSigma_le (iIndep_coord ν) (S := {j})
+    (T := {i : ℕ | i ≠ j}) (Set.disjoint_left.2 fun i hi hT => hT (Set.mem_singleton_iff.1 hi))
+  simpa only [iSup_singleton] using h
+
+/-- Cochrane (2023), p. 102 (tool): the other shocks are measurable for `avoidSigma j`. -/
+theorem measurable_avoid {i j : ℕ} (h : i ≠ j) : Measurable[avoidSigma j] (fun ω : ℕ → ℝ => ω i) :=
+  Measurable.of_comap_le (le_iSup₂ (f := fun i (_ : i ∈ {i : ℕ | i ≠ j}) => coordSigma i) i h)
+
+/-- Cochrane (2023), p. 102: the σ-algebra of current and past MA(1) surpluses at `t` does not
+involve the next shock `e_{t+1}`. -/
+theorem measurable_surp_avoid (θ : ℝ) (t : ℤ) (k : ℕ) :
+    Measurable[avoidSigma (Equiv.intEquivNat (t + 1))] (surp θ (t - k)) := by
+  have h1 : Equiv.intEquivNat (t - k) ≠ Equiv.intEquivNat (t + 1) :=
+    (Equiv.intEquivNat).injective.ne (by omega)
+  have h2 : Equiv.intEquivNat (t - k - 1) ≠ Equiv.intEquivNat (t + 1) :=
+    (Equiv.intEquivNat).injective.ne (by omega)
+  exact (measurable_avoid h1).sub ((measurable_avoid h2).const_mul θ)
+
+/-- Cochrane (2023), p. 102: given any information that does not involve `e_{t+1}`, the next
+shock is unforecastable, `E(e_{t+1}|𝓖) = 0`. -/
+theorem condExp_eps_next (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) {t : ℤ} {ι : Type*}
+    {Y : ι → (ℕ → ℝ) → ℝ} (hY : ∀ i, Measurable (Y i))
+    (hYa : ∀ i, Measurable[avoidSigma (Equiv.intEquivNat (t + 1))] (Y i)) :
+    (iidSystem ν).μ[eps (t + 1) | genSigma Y] =ᵐ[(iidSystem ν).μ] 0 := by
+  have hGle : genSigma Y ≤ MeasurableSpace.pi := iSup_le fun i => (hY i).comap_le
+  have hG : genSigma Y ≤ avoidSigma (Equiv.intEquivNat (t + 1)) :=
+    iSup_le fun i => (hYa i).comap_le
+  have hind := indep_of_indep_of_le_right (indep_avoid (ν := ν) (Equiv.intEquivNat (t + 1))) hG
+  have hsm : StronglyMeasurable[coordSigma (Equiv.intEquivNat (t + 1))] (eps (t + 1)) :=
+    (Measurable.of_comap_le le_rfl).stronglyMeasurable
+  have h := condExp_indep_eq (coordSigma_le _) hGle hsm hind
+  have h0 : ∫ ω, eps (t + 1) ω ∂(iidSystem ν).μ = 0 := by
+    have := integral_shock_fun ν (Equiv.intEquivNat (t + 1)) (f := id) measurable_id
+    simpa [eps, hmean] using this
+  filter_upwards [h] with ω hω
+  rw [hω, h0, Pi.zero_apply]
+
+/-- Cochrane (2023), p. 102, and Online Appendix (2.20)–(2.21), p. 601 (tool): if the information
+`𝓖` reveals `e_t` and does not involve `e_{t+1}`, the conditional forecast of the MA(1) surplus is
+`E(s_{t+1}|𝓖) = −θe_t`, and its error is `e_{t+1}`, with mean square `E ε²`. -/
+theorem condExp_surp_of_known (hi : Integrable (fun x : ℝ => x) (ν : Measure ℝ))
+    (hmean : ∫ x, x ∂(ν : Measure ℝ) = 0) (θ : ℝ) {t : ℤ} {ι : Type*}
+    {Y : ι → (ℕ → ℝ) → ℝ} (hY : ∀ i, Measurable (Y i))
+    (hYa : ∀ i, Measurable[avoidSigma (Equiv.intEquivNat (t + 1))] (Y i))
+    (hk : AEStronglyMeasurable[genSigma Y] (eps t) (iidSystem ν).μ) :
+    (iidSystem ν).μ[surp θ (t + 1) | genSigma Y] =ᵐ[(iidSystem ν).μ]
+      (fun ω => -θ * eps t ω) ∧
+    ∫ ω, (surp θ (t + 1) ω - (iidSystem ν).μ[surp θ (t + 1) | genSigma Y] ω) ^ 2
+      ∂(iidSystem ν).μ = ∫ x, x ^ 2 ∂(ν : Measure ℝ) := by
+  have hGle : genSigma Y ≤ MeasurableSpace.pi := iSup_le fun i => (hY i).comap_le
+  have hi1 := integrable_eps hi (t + 1)
+  have hi0 := (integrable_eps hi t).const_mul θ
+  have hk' : (iidSystem ν).μ[fun ω => θ * eps t ω | genSigma Y] =ᵐ[(iidSystem ν).μ]
+      fun ω => θ * eps t ω := condExp_of_aestronglyMeasurable' hGle (hk.const_mul θ) hi0
+  have hce : (iidSystem ν).μ[surp θ (t + 1) | genSigma Y] =ᵐ[(iidSystem ν).μ]
+      (fun ω => -θ * eps t ω) := by
+    rw [surp_succ]
+    filter_upwards [condExp_sub hi1 hi0 (genSigma Y), condExp_eps_next hmean hY hYa, hk']
+      with ω h1 h2 h3
+    have h1' : (iidSystem ν).μ[fun ω => eps (t + 1) ω - θ * eps t ω | genSigma Y] ω =
+        (iidSystem ν).μ[eps (t + 1) | genSigma Y] ω -
+          (iidSystem ν).μ[fun ω => θ * eps t ω | genSigma Y] ω := h1
+    rw [h1', h2, h3, Pi.zero_apply]
+    ring
+  refine ⟨hce, ?_⟩
+  have herr : (fun ω => (surp θ (t + 1) ω - (iidSystem ν).μ[surp θ (t + 1) | genSigma Y] ω) ^ 2)
+      =ᵐ[(iidSystem ν).μ] fun ω => (eps (t + 1) ω) ^ 2 := by
+    filter_upwards [hce] with ω hω
+    rw [hω, surp_succ]
+    ring
+  rw [integral_congr_ae herr]
+  exact integral_shock_fun ν (Equiv.intEquivNat (t + 1)) (f := fun x => x ^ 2)
+    (measurable_id.pow_const 2)
+
+end IID
+
+/-! ### The fair coin: the shock is a function of the current surplus -/
+
+namespace Coin
+
+open Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID
+open Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2
+open Cochrane.DebtDeficitsInflation.InvertibilityMeasure
+open Cochrane.DebtDeficitsInflation.Invertibility
+open Cochrane.DebtDeficitsInflation.Invertibility.Hilbert
+open Cochrane.DebtDeficitsInflation.Innovations (gen)
+open IID
+
+/-- Cochrane (2023), p. 102 (counterexample): the decoding map `g(y) = 1` if `y ∈ {1 − θ, 1 + θ}`
+and `−1` otherwise. -/
+noncomputable def decode (θ : ℝ) (y : ℝ) : ℝ := if y = 1 - θ ∨ y = 1 + θ then 1 else -1
+
+/-- Cochrane (2023), p. 102 (tool): the decoding map is measurable. -/
+theorem measurable_decode (θ : ℝ) : Measurable (decode θ) :=
+  Measurable.ite ((measurableSet_singleton _).union (measurableSet_singleton _))
+    measurable_const measurable_const
+
+/-- Cochrane (2023), p. 102 (tool): the fair coin takes the values `±1` almost surely. -/
+theorem coin_ae : ∀ᵐ x ∂(coin : Measure ℝ), x = 1 ∨ x = -1 := by
+  have hS : MeasurableSet {x : ℝ | ¬(x = 1 ∨ x = -1)} :=
+    ((measurableSet_singleton (1 : ℝ)).union (measurableSet_singleton (-1 : ℝ))).compl
+  rw [ae_iff]
+  change coinMeasure {x : ℝ | ¬(x = 1 ∨ x = -1)} = 0
+  simp only [coinMeasure, Measure.smul_apply, Measure.add_apply, Measure.dirac_apply' _ hS,
+    smul_eq_mul]
+  simp
+
+/-- Cochrane (2023), p. 102 (tool): every coin shock is `±1` almost surely. -/
+theorem eps_pm (t : ℤ) : ∀ᵐ ω ∂(iidSystem coin).μ, eps t ω = 1 ∨ eps t ω = -1 :=
+  (measurePreserving_eval_infinitePi (fun _ => (coin : Measure ℝ))
+    (Equiv.intEquivNat t)).quasiMeasurePreserving.ae coin_ae
+
+/-- Cochrane (2023), p. 102 (tool): for `θ ≠ ±1`, `g(a − θb) = a` for `a, b ∈ {±1}`. -/
+theorem decode_sub {θ : ℝ} (h1 : θ ≠ 1) (h2 : θ ≠ -1) {a b : ℝ} (ha : a = 1 ∨ a = -1)
+    (hb : b = 1 ∨ b = -1) : decode θ (a - θ * b) = a := by
+  unfold decode
+  rcases ha with rfl | rfl <;> rcases hb with rfl | rfl
+  · simp
+  · have h : (1 : ℝ) - θ * -1 = 1 - θ ∨ (1 : ℝ) - θ * -1 = 1 + θ := Or.inr (by ring)
+    simp only [h, ↓reduceIte]
+  · have h : ¬((-1 : ℝ) - θ * 1 = 1 - θ ∨ (-1 : ℝ) - θ * 1 = 1 + θ) := by
+      rintro (h | h)
+      · linarith
+      · exact h2 (by linarith)
+    simp only [h, ↓reduceIte]
+  · have h : ¬((-1 : ℝ) - θ * -1 = 1 - θ ∨ (-1 : ℝ) - θ * -1 = 1 + θ) := by
+      rintro (h | h)
+      · exact h1 (by linarith)
+      · linarith
+    simp only [h, ↓reduceIte]
+
+/-- Cochrane (2023), p. 102 and Online Appendix p. 597, **correction**: with fair-coin shocks and
+`θ ≠ ±1`, the structural shock is a measurable function of the current surplus alone,
+`e_t = g(s_t)` a.e.; so it is measurable for the σ-algebra of current and past surpluses. -/
+theorem coin_shock_eq {θ : ℝ} (h1 : θ ≠ 1) (h2 : θ ≠ -1) (t : ℤ) :
+    (eps t =ᵐ[(iidSystem coin).μ] fun ω => decode θ (surp θ t ω)) ∧
+    AEStronglyMeasurable[pastSigma (surp θ) t] (eps t) (iidSystem coin).μ := by
+  have heq : eps t =ᵐ[(iidSystem coin).μ] fun ω => decode θ (surp θ t ω) := by
+    filter_upwards [eps_pm t, eps_pm (t - 1)] with ω ha hb
+    rw [surp, decode_sub h1 h2 ha hb]
+  refine ⟨heq, ?_⟩
+  have hm : Measurable[pastSigma (surp θ) t] (surp θ t) := by
+    simpa using measurable_pastSigma (surp θ) t 0
+  exact ((measurable_decode θ).comp hm).stronglyMeasurable.aestronglyMeasurable.congr heq.symm
+
+/-- Cochrane (2023), p. 102 (tool): the coin shocks are square integrable. -/
+theorem memLp_eps (t : ℤ) : MemLp (eps t) 2 (iidSystem coin).μ :=
+  memLp_coord coin_bdd (Equiv.intEquivNat t)
+
+/-- Cochrane (2023), p. 102 (tool): the coin MA(1) surplus is square integrable. -/
+theorem memLp_surp (θ : ℝ) (t : ℤ) : MemLp (surp θ t) 2 (iidSystem coin).μ :=
+  (memLp_eps t).sub ((memLp_eps (t - 1)).const_mul θ)
+
+/-- Cochrane (2023), p. 102 (tool): the `L²` class of the surplus is the `L²` moving average of
+`InvertibilityMeasureL2` with coefficients `(1 − θL)·1`. -/
+theorem toL2_surp (θ : ℝ) :
+    toL2 (memLp_surp θ) = maProc (factorCoeff θ (fun k => if k = 0 then 1 else 0))
+      (shockL2 coin_bdd) := by
+  funext t
+  rw [factorCoeff_delta, maProc_armaCoeff_zero (iid_whiteNoise coin_mean coin_var coin_bdd)]
+  refine Lp.ext ?_
+  filter_upwards [MemLp.coeFn_toLp (memLp_surp θ t),
+    Lp.coeFn_sub (shockL2 coin_bdd t) (θ • shockL2 coin_bdd (t - 1)),
+    Lp.coeFn_smul θ (shockL2 coin_bdd (t - 1)),
+    MemLp.coeFn_toLp (memLp_coord coin_bdd (Equiv.intEquivNat t)),
+    MemLp.coeFn_toLp (memLp_coord coin_bdd (Equiv.intEquivNat (t - 1)))] with ω h1 h2 h3 h4 h5
+  rw [toL2, h1, maOne, h2, Pi.sub_apply, h3, Pi.smul_apply, smul_eq_mul]
+  change surp θ t ω = shockL2 coin_bdd t ω - θ * shockL2 coin_bdd (t - 1) ω
+  rw [shockL2, h4, shockL2, h5]
+  rfl
+
+/-- Cochrane (2023), p. 102 (tool): in `L²`, `‖F‖² = E F²`. -/
+theorem norm_sq_eq_integral {μ : Measure (ℕ → ℝ)} (F : Lp ℝ 2 μ) :
+    ‖F‖ ^ 2 = ∫ ω, (F ω) ^ 2 ∂μ := by
+  rw [← real_inner_self_eq_norm_sq, L2.inner_def]
+  exact integral_congr_ae (Eventually.of_forall fun ω => by
+    simp only [real_inner_self_eq_norm_sq, Real.norm_eq_abs, sq_abs])
+
+/-- Cochrane (2023), §4.3, p. 102, and Online Appendix pp. 597–601, **counterexample: for
+non-Gaussian shocks the conditional-expectation forecast beats the linear one**. Fair `±1` coin
+shocks, the book's `a(ρ) = 0` MA(1) `s_t = e_t − θe_{t−1}` with `θ = ρ⁻¹`, `|θ| > 1`:
+(i) `a(ρ) = 0`; (ii) the shock is a function of the current surplus, `e_t = g(s_t)` a.e.;
+(iii) `E(s_{t+1}|σ(s_t, s_{t−1}, …)) = −θe_t` a.e., with mean-square error `1`;
+(iv) the best linear forecast from the closed linear span of the surplus history has error
+variance `θ² > 1`, and the shock is not in that span; (v) hence the conditional-expectation
+innovation `s_{t+1} − E(s_{t+1}|σ(past))` is not the Wold innovation. -/
+theorem coin_condExp_beats_linear {θ : ℝ} (hθ : 1 < |θ|) (t : ℤ) :
+    gen (factorCoeff θ (fun k => if k = 0 then 1 else 0)) θ⁻¹ = 0 ∧
+    (eps t =ᵐ[(iidSystem coin).μ] fun ω => decode θ (surp θ t ω)) ∧
+    ((iidSystem coin).μ[surp θ (t + 1) | pastSigma (surp θ) t] =ᵐ[(iidSystem coin).μ]
+      fun ω => -θ * eps t ω) ∧
+    ∫ ω, (surp θ (t + 1) ω - (iidSystem coin).μ[surp θ (t + 1) | pastSigma (surp θ) t] ω) ^ 2
+      ∂(iidSystem coin).μ = 1 ∧
+    (haveI : (pastSpan (toL2 (memLp_surp θ)) t).HasOrthogonalProjection := by
+        unfold pastSpan; infer_instance
+      ‖toL2 (memLp_surp θ) (t + 1) - (pastSpan (toL2 (memLp_surp θ)) t).starProjection
+        (toL2 (memLp_surp θ) (t + 1))‖ ^ 2 = θ ^ 2) ∧
+    (1 : ℝ) < θ ^ 2 ∧
+    shockL2 coin_bdd t ∉ pastSpan (toL2 (memLp_surp θ)) t ∧
+    ceInnov (measurable_surp θ) (memLp_surp θ) (t + 1) ≠
+      Wold.innov (toL2 (memLp_surp θ)) (t + 1) := by
+  have hθ1 : θ ≠ 1 := by intro h; rw [h, abs_one] at hθ; exact lt_irrefl _ hθ
+  have hθ2 : θ ≠ -1 := by intro h; rw [h, abs_neg, abs_one] at hθ; exact lt_irrefl _ hθ
+  have hδ : Summable (fun k : ℕ => |(if k = 0 then (1 : ℝ) else 0)|) :=
+    summable_of_ne_finset_zero (s := {0}) fun n hn => by simp_all
+  obtain ⟨-, -, hgen, -, hnot, -⟩ :=
+    iid_wold_factor coin_mean coin_var one_pos coin_bdd hθ hδ (by simp) recoverable_delta t
+  obtain ⟨-, hPS, -, hlt⟩ :=
+    iid_granger_factor coin_mean coin_var one_pos coin_bdd hθ hδ (by simp) recoverable_delta t
+  rw [← toL2_surp θ] at hPS hnot
+  have hmean := coin_mean
+  have hint : Integrable (fun x : ℝ => x) (coin : Measure ℝ) :=
+    Integrable.of_bound measurable_id.aestronglyMeasurable 1
+      (coin_bdd.mono fun x h => by rwa [Real.norm_eq_abs])
+  have hk := (coin_shock_eq hθ1 hθ2 t).2
+  obtain ⟨hce, hmse⟩ := condExp_surp_of_known hint hmean θ (fun k : ℕ => measurable_surp θ (t - k))
+    (measurable_surp_avoid θ t) hk
+  rw [coin_var] at hmse
+  refine ⟨hgen, (coin_shock_eq hθ1 hθ2 t).1, hce, hmse, by simpa using hPS, by simpa using hlt,
+    hnot, fun heq => ?_⟩
+  have hn1 : ‖ceInnov (measurable_surp θ) (memLp_surp θ) (t + 1)‖ ^ 2 = 1 := by
+    rw [norm_sq_eq_integral, ← hmse]
+    refine integral_congr_ae ?_
+    filter_upwards [ceInnov_ae_eq (measurable_surp θ) (memLp_surp θ) (t + 1)] with ω hω
+    rw [hω, add_sub_cancel_right]
+  have hn2 : ‖Wold.innov (toL2 (memLp_surp θ)) (t + 1)‖ ^ 2 = θ ^ 2 := by
+    have := hPS
+    simp only [mul_one] at this
+    simpa [Wold.innov, Wold.past_eq_pastSpan] using this
+  rw [heq, hn2] at hn1
+  rw [hn1] at hlt
+  simp at hlt
+
+end Coin
+
+end Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Gaussian processes: conditional-expectation forecasts are linear
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 4, §4.3, p. 102, and Online
+Appendix Chapter 2, §§2.1.4–2.1.6, pp. 597–601.
+
+For jointly Gaussian processes the conditional expectation given the σ-algebra of the past equals
+the best linear forecast, so the Wold and Granger statements of `Wold` and `InvertibilityMeasure`
+hold verbatim with Mathlib conditional expectations.
+
+## Main results
+
+* The Gaussian Hilbert space: real Gaussian laws are closed under `L²` limits
+  (`hasGaussianLaw_of_tendsto`), so every element of the closed linear span of a Gaussian process
+  is Gaussian (`hasGaussianLaw_of_mem_closure`) and the closed span is itself a Gaussian process
+  (`isGaussianProcess_closure`).
+* `condExp_eq_linear_of_gaussian`: for a centered Gaussian process, `E(X_τ|σ(X_i : i ∈ past))`
+  is a.e. the orthogonal projection of `X_τ` on the closed linear span of the past (the linear
+  forecast error is uncorrelated with, hence independent of, the past).
+* `gaussian_condExp_mse`, `gaussian_granger`: conditional and linear (`linForecast`) forecast
+  error variances coincide, so every linear Granger-causality statement (e.g.
+  `InvertibilityMeasure.granger_general`) holds with conditional expectations.
+* `gaussian_ceInnov_eq_wold`, `gaussian_wold_condExp`: for a centered Gaussian process indexed by
+  `ℤ`, the conditional-expectation innovations are the Wold innovations, and the Wold
+  decomposition holds with them.
+* The i.i.d. Gaussian economy (`GaussEconomy.gaussLaw`): coordinates form a Gaussian process
+  (`GaussEconomy.isGaussianProcess_coord`), and for the book's `a(ρ) = 0` surplus
+  `s_t = e_t − θe_{t−1}`, `θ = ρ⁻¹` (`GaussEconomy.gaussian_noninvertible_condExp`): the
+  conditional forecast `E(s_{t+1}|σ(s_t, s_{t−1}, …))` is the linear one, with error variance
+  `θ²σ²`; the shock is not even a nonlinear function of the surplus history; and, with debt
+  `v_t = −θe_t`, the conditional forecast given surpluses and debt has error variance
+  `σ² < θ²σ²` (debt Granger-causes surpluses with conditional expectations).
+-/
+
+namespace Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast
+
+open MeasureTheory ProbabilityTheory Filter Topology Complex
+open scoped RealInnerProductSpace
+
+variable {Ω : Type*} [mΩ : MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+
+/-! ### `L²` tools -/
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): on a probability space `E|F| ≤ ‖F‖_{L²}`. -/
+theorem integral_abs_le_norm (F : Lp ℝ 2 μ) : ∫ ω, |F ω| ∂μ ≤ ‖F‖ := by
+  have h1 : ∫ ω, |F ω| ∂μ = (eLpNorm F 1 μ).toReal := by
+    rw [eLpNorm_one_eq_lintegral_enorm, ← integral_norm_eq_lintegral_enorm
+      (Lp.aestronglyMeasurable F)]
+    · simp only [Real.norm_eq_abs]
+    · exact Lp.aestronglyMeasurable F
+  rw [h1, Lp.norm_def]
+  exact ENNReal.toReal_mono (Lp.eLpNorm_ne_top F)
+    (eLpNorm_le_eLpNorm_of_exponent_le (by norm_num))
+
+omit [IsProbabilityMeasure μ] in
+/-- Cochrane (2023), Online Appendix p. 597 (tool): in `L²`, `‖F‖² = E F²`.
+Generalises `TidyR6CondExpForecast.Coin.norm_sq_eq_integral` to any measure space. -/
+theorem norm_sq_eq_integral (F : Lp ℝ 2 μ) : ‖F‖ ^ 2 = ∫ ω, (F ω) ^ 2 ∂μ := by
+  rw [← real_inner_self_eq_norm_sq, L2.inner_def]
+  exact integral_congr_ae (Eventually.of_forall fun ω => by
+    simp only [real_inner_self_eq_norm_sq, Real.norm_eq_abs, sq_abs])
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): `|e^{ia} − e^{ib}| ≤ |a − b|`. -/
+theorem norm_cexp_sub_le (a b : ℝ) : ‖cexp (a * I) - cexp (b * I)‖ ≤ |a - b| := by
+  have h : cexp (a * I) - cexp (b * I) = cexp (b * I) * (cexp (I * ((a - b : ℝ) : ℂ)) - 1) := by
+    rw [mul_sub, ← Complex.exp_add, mul_one]
+    congr 2
+    push_cast
+    ring
+  rw [h, norm_mul, Complex.norm_exp_ofReal_mul_I, one_mul, ← Real.norm_eq_abs]
+  exact Real.norm_exp_I_mul_ofReal_sub_one_le
+
+/-! ### Gaussian laws are closed under `L²` limits -/
+
+omit [IsProbabilityMeasure μ] in
+/-- Cochrane (2023), Online Appendix p. 597 (tool): the characteristic function of the law of a
+random variable, `φ(t) = E e^{itY}`. -/
+theorem charFun_map_eq {Y : Ω → ℝ} (hY : AEMeasurable Y μ) (t : ℝ) :
+    charFun (μ.map Y) t = ∫ ω, cexp (t * Y ω * I) ∂μ := by
+  rw [charFun_apply_real, integral_map hY (by fun_prop)]
+
+/-- Cochrane (2023), Online Appendix p. 597, **the Gaussian Hilbert space** (tool): if `W_n → W`
+in `L²` and every `W_n` has a Gaussian law, so does `W` (characteristic functions converge, and
+the means and variances converge). -/
+theorem hasGaussianLaw_of_tendsto {W : ℕ → Lp ℝ 2 μ} {W' : Lp ℝ 2 μ}
+    (hW : Tendsto W atTop (𝓝 W')) (hG : ∀ n, HasGaussianLaw (W n : Ω → ℝ) μ) :
+    HasGaussianLaw (W' : Ω → ℝ) μ := by
+  have hmeas : ∀ F : Lp ℝ 2 μ, AEMeasurable (F : Ω → ℝ) μ := fun F =>
+    (Lp.aestronglyMeasurable F).aemeasurable
+  have hnorm : Tendsto (fun n => ‖W n - W'‖) atTop (𝓝 0) := tendsto_iff_norm_sub_tendsto_zero.1 hW
+  have hint : ∀ F : Lp ℝ 2 μ, Integrable (F : Ω → ℝ) μ := fun F =>
+    (Lp.memLp F).integrable one_le_two
+  have habs : ∀ n, ∫ ω, |W n ω - W' ω| ∂μ ≤ ‖W n - W'‖ := fun n => by
+    calc ∫ ω, |W n ω - W' ω| ∂μ = ∫ ω, |(W n - W') ω| ∂μ := by
+          refine integral_congr_ae ?_
+          filter_upwards [Lp.coeFn_sub (W n) W'] with ω h
+          rw [h, Pi.sub_apply]
+      _ ≤ ‖W n - W'‖ := integral_abs_le_norm _
+  -- the means converge
+  have hm : Tendsto (fun n => ∫ ω, W n ω ∂μ) atTop (𝓝 (∫ ω, W' ω ∂μ)) := by
+    rw [tendsto_iff_norm_sub_tendsto_zero]
+    refine squeeze_zero (fun _ => norm_nonneg _) (fun n => ?_) hnorm
+    rw [← integral_sub (hint _) (hint _), Real.norm_eq_abs]
+    exact (abs_integral_le_integral_abs).trans (habs n)
+  -- the second moments converge
+  have hsq : Tendsto (fun n => ∫ ω, (W n ω) ^ 2 ∂μ) atTop (𝓝 (∫ ω, (W' ω) ^ 2 ∂μ)) := by
+    simp_rw [← norm_sq_eq_integral]
+    exact (continuous_norm.tendsto W').comp hW |>.pow 2
+  have hv : Tendsto (fun n => Var[(W n : Ω → ℝ); μ]) atTop (𝓝 (Var[(W' : Ω → ℝ); μ])) := by
+    simp_rw [variance_eq_sub (Lp.memLp _)]
+    exact hsq.sub (hm.pow 2)
+  -- the characteristic functions converge
+  have hcf : ∀ t : ℝ, Tendsto (fun n => charFun (μ.map (W n)) t) atTop
+      (𝓝 (charFun (μ.map W') t)) := fun t => by
+    simp_rw [charFun_map_eq (hmeas _)]
+    rw [tendsto_iff_norm_sub_tendsto_zero]
+    have hb : ∀ F : Lp ℝ 2 μ, Integrable (fun ω => cexp (t * F ω * I)) μ := fun F =>
+      Integrable.of_bound (by
+        have : AEMeasurable (fun ω => cexp (t * F ω * I)) μ := by fun_prop
+        exact this.aestronglyMeasurable) 1 (Eventually.of_forall fun ω => by
+          rw [show (t : ℂ) * (F ω : ℂ) * I = ((t * F ω : ℝ) : ℂ) * I by push_cast; ring,
+            Complex.norm_exp_ofReal_mul_I])
+    have hlim : Tendsto (fun n => |t| * ‖W n - W'‖) atTop (𝓝 0) := by
+      simpa using hnorm.const_mul |t|
+    refine squeeze_zero (fun _ => norm_nonneg _) (fun n => ?_) hlim
+    rw [← integral_sub (hb _) (hb _)]
+    refine (norm_integral_le_integral_norm _).trans ?_
+    calc ∫ ω, ‖cexp (t * W n ω * I) - cexp (t * W' ω * I)‖ ∂μ
+        ≤ ∫ ω, |t| * |W n ω - W' ω| ∂μ := by
+          refine integral_mono ((hb _).sub (hb _)).norm
+            (((hint _).sub (hint _)).abs.const_mul _) fun ω => ?_
+          have := norm_cexp_sub_le (t * W n ω) (t * W' ω)
+          push_cast at this
+          calc _ ≤ |t * W n ω - t * W' ω| := this
+            _ = |t| * |W n ω - W' ω| := by rw [← mul_sub, abs_mul]
+      _ ≤ |t| * ‖W n - W'‖ := by
+          rw [integral_const_mul]
+          exact mul_le_mul_of_nonneg_left (habs n) (abs_nonneg t)
+  -- identify the limit
+  have hlaw : ∀ n, μ.map (W n) = gaussianReal (∫ ω, W n ω ∂μ) (Var[(W n : Ω → ℝ); μ]).toNNReal :=
+    fun n => (hG n).map_eq_gaussianReal
+  have hcf2 : ∀ t : ℝ, Tendsto (fun n => charFun (μ.map (W n)) t) atTop
+      (𝓝 (cexp (t * (∫ ω, W' ω ∂μ) * I - (Var[(W' : Ω → ℝ); μ]) * t ^ 2 / 2))) := fun t => by
+    simp_rw [hlaw, charFun_gaussianReal, Real.coe_toNNReal _ (variance_nonneg _ _)]
+    refine (Complex.continuous_exp.tendsto _).comp ?_
+    have h1 : Tendsto (fun n => ((∫ ω, W n ω ∂μ : ℝ) : ℂ)) atTop
+        (𝓝 ((∫ ω, W' ω ∂μ : ℝ) : ℂ)) := (Complex.continuous_ofReal.tendsto _).comp hm
+    have h2 : Tendsto (fun n => ((Var[(W n : Ω → ℝ); μ] : ℝ) : ℂ)) atTop
+        (𝓝 ((Var[(W' : Ω → ℝ); μ] : ℝ) : ℂ)) := (Complex.continuous_ofReal.tendsto _).comp hv
+    exact ((h1.const_mul (t : ℂ)).mul_const I).sub ((h2.mul_const ((t : ℂ) ^ 2)).div_const 2)
+  have heq : μ.map W' = gaussianReal (∫ ω, W' ω ∂μ) (Var[(W' : Ω → ℝ); μ]).toNNReal := by
+    have : IsFiniteMeasure (μ.map W') := Measure.isFiniteMeasure_map _ _
+    refine Measure.ext_of_charFun (funext fun t => ?_)
+    rw [tendsto_nhds_unique (hcf t) (hcf2 t), charFun_gaussianReal,
+      Real.coe_toNNReal _ (variance_nonneg _ _)]
+  exact ⟨hmeas W', by rw [heq]; infer_instance⟩
+
+/-! ### The closed linear span of a Gaussian process -/
+
+variable {T : Type*}
+
+/-- Cochrane (2023), Online Appendix p. 597: a family of square-integrable variables as elements
+of `L²`.
+Generalises `TidyR6CondExpForecast.toL2` to an arbitrary index type. -/
+noncomputable def toLpFam {X : T → Ω → ℝ} (hm2 : ∀ t, MemLp (X t) 2 μ) (t : T) : Lp ℝ 2 μ :=
+  (hm2 t).toLp (X t)
+
+omit [IsProbabilityMeasure μ] in
+/-- Cochrane (2023), Online Appendix p. 597 (tool): every finite linear combination of a Gaussian
+process has a Gaussian law. -/
+theorem hasGaussianLaw_of_mem_span {X : T → Ω → ℝ} (hX : IsGaussianProcess X μ)
+    (hm2 : ∀ t, MemLp (X t) 2 μ) {W : Lp ℝ 2 μ}
+    (hW : W ∈ Submodule.span ℝ (Set.range (toLpFam hm2))) :
+    HasGaussianLaw (W : Ω → ℝ) μ := by
+  obtain ⟨c, rfl⟩ := Finsupp.mem_span_range_iff_exists_finsupp.1 hW
+  set s := c.support
+  have hae : ((c.sum fun i a => a • toLpFam hm2 i : Lp ℝ 2 μ) : Ω → ℝ) =ᵐ[μ]
+      fun ω => ∑ i ∈ s, c i * X i ω := by
+    rw [Finsupp.sum]
+    have hs : ∀ᵐ ω ∂μ, ∀ i ∈ s, (c i • toLpFam hm2 i : Lp ℝ 2 μ) ω = c i * X i ω :=
+      (eventually_all_finset s).2 fun i _ => by
+        filter_upwards [Lp.coeFn_smul (c i) (toLpFam hm2 i), MemLp.coeFn_toLp (hm2 i)]
+          with ω h1 h2
+        rw [h1, Pi.smul_apply, smul_eq_mul, toLpFam, h2]
+    filter_upwards [Lp.coeFn_fun_finsetSum s (fun i => c i • toLpFam hm2 i), hs] with ω h1 h2
+    rw [h1]
+    exact Finset.sum_congr rfl h2
+  let L : (s → ℝ) →L[ℝ] ℝ := ∑ i : s, c i • ContinuousLinearMap.proj i
+  have hL := (hX.hasGaussianLaw s).map L
+  have hfun : (L ∘ fun ω => s.restrict (X · ω)) = fun ω => ∑ i ∈ s, c i * X i ω := by
+    funext ω
+    simp only [L, Function.comp_apply, Finset.univ_eq_attach, sum_apply, smul_apply,
+      ContinuousLinearMap.proj_apply, Finset.restrict, smul_eq_mul]
+    exact Finset.sum_attach s (fun i => c i * X i ω)
+  rw [hfun] at hL
+  exact hL.congr hae.symm
+
+/-- Cochrane (2023), Online Appendix p. 597, **the Gaussian Hilbert space**: every element of the
+closed linear span (in `L²`) of a Gaussian process has a Gaussian law. -/
+theorem hasGaussianLaw_of_mem_closure {X : T → Ω → ℝ} (hX : IsGaussianProcess X μ)
+    (hm2 : ∀ t, MemLp (X t) 2 μ) {W : Lp ℝ 2 μ}
+    (hW : W ∈ (Submodule.span ℝ (Set.range (toLpFam hm2))).topologicalClosure) :
+    HasGaussianLaw (W : Ω → ℝ) μ := by
+  rw [← SetLike.mem_coe, Submodule.topologicalClosure_coe] at hW
+  obtain ⟨seq, hseq, hlim⟩ := mem_closure_iff_seq_limit.1 hW
+  exact hasGaussianLaw_of_tendsto hlim fun n => hasGaussianLaw_of_mem_span hX hm2 (hseq n)
+
+/-- Cochrane (2023), Online Appendix p. 597, **the Gaussian Hilbert space**: the closed linear span
+of a Gaussian process, indexed by its own elements, is a Gaussian process (all finite families are
+jointly Gaussian). -/
+theorem isGaussianProcess_closure {X : T → Ω → ℝ} (hX : IsGaussianProcess X μ)
+    (hm2 : ∀ t, MemLp (X t) 2 μ) :
+    IsGaussianProcess (fun W : (Submodule.span ℝ (Set.range (toLpFam hm2))).topologicalClosure =>
+      ((W : Lp ℝ 2 μ) : Ω → ℝ)) μ := by
+  classical
+  set K := (Submodule.span ℝ (Set.range (toLpFam hm2))).topologicalClosure
+  refine ⟨fun I => ?_⟩
+  have hYm : Measurable fun ω => I.restrict (fun W : K => ((W : Lp ℝ 2 μ) : Ω → ℝ) ω) :=
+    measurable_pi_iff.2 fun i => (Lp.stronglyMeasurable ((i : K) : Lp ℝ 2 μ)).measurable
+  refine ⟨hYm.aemeasurable, isGaussian_of_map_eq_gaussianReal fun L => ?_⟩
+  set Y := fun ω => I.restrict (fun W : K => ((W : Lp ℝ 2 μ) : Ω → ℝ) ω)
+  set Z : Lp ℝ 2 μ := ∑ i : I, L (fun j => if i = j then 1 else 0) • ((i : K) : Lp ℝ 2 μ)
+  have hZ : Z ∈ K := K.sum_mem fun i _ => K.smul_mem _ (i : K).2
+  have hae : (Z : Ω → ℝ) =ᵐ[μ] L ∘ Y := by
+    have hs : ∀ᵐ ω ∂μ, ∀ i ∈ (Finset.univ : Finset I),
+        (L (fun j => if i = j then 1 else 0) • ((i : K) : Lp ℝ 2 μ) : Lp ℝ 2 μ) ω =
+          L (fun j => if i = j then 1 else 0) * ((i : K) : Lp ℝ 2 μ) ω :=
+      (eventually_all_finset _).2 fun i _ => by
+        filter_upwards [Lp.coeFn_smul (L (fun j => if i = j then 1 else 0))
+          ((i : K) : Lp ℝ 2 μ)] with ω h1
+        rw [h1, Pi.smul_apply, smul_eq_mul]
+    filter_upwards [Lp.coeFn_fun_finsetSum Finset.univ
+      (fun i : I => L (fun j => if i = j then 1 else 0) • ((i : K) : Lp ℝ 2 μ)), hs]
+      with ω h1 h2
+    have hpi := LinearMap.pi_apply_eq_sum_univ (L : (I → ℝ) →ₗ[ℝ] ℝ) (Y ω)
+    simp only [ContinuousLinearMap.coe_coe] at hpi
+    rw [h1, Finset.sum_congr rfl h2, Function.comp_apply, hpi]
+    refine Finset.sum_congr rfl fun i _ => ?_
+    simp only [Y, Finset.restrict, smul_eq_mul]
+    ring
+  have hmap : (μ.map Y).map L = μ.map (Z : Ω → ℝ) := by
+    rw [Measure.map_map L.continuous.measurable hYm]
+    exact Measure.map_congr hae.symm
+  rw [hmap, (hasGaussianLaw_of_mem_closure hX hm2 hZ).map_eq_gaussianReal]
+  exact ⟨_, _, rfl⟩
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): `⟪1, F⟫ = E F` in `L²`. -/
+theorem inner_one_eq_integral (F : Lp ℝ 2 μ) :
+    ⟪(memLp_const (1 : ℝ)).toLp (fun _ : Ω => (1 : ℝ)), F⟫ = ∫ ω, F ω ∂μ := by
+  rw [L2.inner_def]
+  refine integral_congr_ae ?_
+  filter_upwards [MemLp.coeFn_toLp (memLp_const (1 : ℝ) (μ := μ) (p := 2))] with ω h
+  rw [h]
+  simp
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): every element of the closed linear span of a
+centered process has mean zero. -/
+theorem integral_eq_zero_of_mem_closure {X : T → Ω → ℝ} (hm2 : ∀ t, MemLp (X t) 2 μ)
+    (h0 : ∀ t, ∫ ω, X t ω ∂μ = 0) {W : Lp ℝ 2 μ}
+    (hW : W ∈ (Submodule.span ℝ (Set.range (toLpFam hm2))).topologicalClosure) :
+    ∫ ω, W ω ∂μ = 0 := by
+  set one : Lp ℝ 2 μ := (memLp_const (1 : ℝ)).toLp (fun _ : Ω => (1 : ℝ))
+  have hle : (Submodule.span ℝ (Set.range (toLpFam hm2))).topologicalClosure ≤ (ℝ ∙ one)ᗮ := by
+    refine Submodule.topologicalClosure_minimal _ ?_ (Submodule.isClosed_orthogonal _)
+    rw [Submodule.span_le]
+    rintro _ ⟨t, rfl⟩
+    rw [SetLike.mem_coe, Submodule.mem_orthogonal_singleton_iff_inner_right,
+      inner_one_eq_integral, ← h0 t]
+    exact integral_congr_ae (MemLp.coeFn_toLp (hm2 t))
+  rw [← inner_one_eq_integral]
+  exact Submodule.mem_orthogonal_singleton_iff_inner_right.1 (hle hW)
+
+/-! ### Gaussian processes: the conditional forecast is the linear forecast -/
+
+/-- Cochrane (2023), §4.3, p. 102, and Online Appendix pp. 597–601, **for jointly Gaussian
+processes the conditional-expectation forecast is the best linear forecast**: if `X` is a
+centered Gaussian process of measurable variables, then for any family of observed past values
+`X_{past(i)}` and any target `X_τ`, a.e.
+`E(X_τ|σ(X_{past(i)} : i)) = P_K X_τ`, `K` the closed linear span of the observed values. The
+linear forecast error is uncorrelated with the past, hence (joint Gaussianity) independent of
+it. -/
+theorem condExp_eq_linear_of_gaussian {X : T → Ω → ℝ} (hX : IsGaussianProcess X μ)
+    (hXm : ∀ t, Measurable (X t)) (h0 : ∀ t, ∫ ω, X t ω ∂μ = 0) (hm2 : ∀ t, MemLp (X t) 2 μ)
+    {ι : Type*} (past : ι → T) (τ : T) :
+    μ[X τ | TidyR6CondExpForecast.genSigma fun i => X (past i)] =ᵐ[μ]
+      ((Submodule.span ℝ (Set.range fun i => toLpFam hm2 (past i))).topologicalClosure
+        |>.starProjection (toLpFam hm2 τ) : Ω → ℝ) := by
+  set KS := (Submodule.span ℝ (Set.range fun i => toLpFam hm2 (past i))).topologicalClosure
+  set KA := (Submodule.span ℝ (Set.range (toLpFam hm2))).topologicalClosure
+  have hG : TidyR6CondExpForecast.genSigma (fun i => X (past i)) ≤ mΩ :=
+    iSup_le fun i => (hXm _).comap_le
+  set p := KS.starProjection (toLpFam hm2 τ)
+  set e := toLpFam hm2 τ - p
+  have hKSA : KS ≤ KA := Submodule.topologicalClosure_mono (Submodule.span_mono
+    (by rintro _ ⟨i, rfl⟩; exact ⟨past i, rfl⟩))
+  have hxA : ∀ t, toLpFam hm2 t ∈ KA := fun t =>
+    Submodule.le_topologicalClosure _ (Submodule.subset_span ⟨t, rfl⟩)
+  have heA : e ∈ KA := KA.sub_mem (hxA τ) (hKSA (KS.starProjection_apply_mem _))
+  have hperp : e ∈ KSᗮ := KS.sub_starProjection_mem_orthogonal _
+  have he0 : ∫ ω, e ω ∂μ = 0 := integral_eq_zero_of_mem_closure hm2 h0 heA
+  -- the linear forecast error is uncorrelated with the past
+  have hcov : ∀ (_ : Unit) (i : ι), cov[(e : Ω → ℝ), X (past i); μ] = 0 := fun _ i => by
+    have hin : ⟪toLpFam hm2 (past i), e⟫ = 0 :=
+      Submodule.inner_right_of_mem_orthogonal (Submodule.le_topologicalClosure _
+        (Submodule.subset_span (Set.mem_range_self (f := fun i => toLpFam hm2 (past i)) i)))
+        hperp
+    rw [covariance, he0, h0]
+    simp only [sub_zero]
+    rw [← hin, L2.inner_def]
+    refine integral_congr_ae ?_
+    filter_upwards [MemLp.coeFn_toLp (hm2 (past i))] with ω h
+    simp only [toLpFam] at h ⊢
+    rw [h]
+    simp only [RCLike.inner_apply, conj_trivial]
+  -- joint Gaussianity of the error and the past
+  have hK := isGaussianProcess_closure hX hm2
+  let f : Unit ⊕ ι → KA := Sum.elim (γ := KA) (fun _ => ⟨e, heA⟩)
+    fun i => ⟨toLpFam hm2 (past i), hxA _⟩
+  have hZ : IsGaussianProcess (Sum.elim (fun _ : Unit => (e : Ω → ℝ)) fun i => X (past i)) μ := by
+    refine (hK.comp_right f).congr fun j => ?_
+    rcases j with _ | i
+    · exact ae_eq_refl _
+    · exact MemLp.coeFn_toLp (hm2 (past i))
+  have hind := hZ.indepFun_of_covariance_eq_zero
+    (fun _ => (Lp.stronglyMeasurable e).measurable.aemeasurable)
+    (fun i => (hXm (past i)).aemeasurable) hcov
+  rw [IndepFun_iff_Indep] at hind
+  have hle1 : MeasurableSpace.comap (e : Ω → ℝ) inferInstance ≤
+      MeasurableSpace.comap (fun ω (_ : Unit) => (e : Ω → ℝ) ω) MeasurableSpace.pi := by
+    have hm : Measurable[MeasurableSpace.comap (fun ω (_ : Unit) => (e : Ω → ℝ) ω)
+        MeasurableSpace.pi] (e : Ω → ℝ) := (measurable_pi_apply (X := fun _ : Unit => ℝ) ()).comp
+      (comap_measurable (fun ω (_ : Unit) => (e : Ω → ℝ) ω))
+    exact hm.comap_le
+  have hle2 : TidyR6CondExpForecast.genSigma (fun i => X (past i)) ≤
+      MeasurableSpace.comap (fun ω i => X (past i) ω) MeasurableSpace.pi := by
+    refine iSup_le fun i => ?_
+    have hm : Measurable[MeasurableSpace.comap (fun ω i => X (past i) ω) MeasurableSpace.pi]
+        (X (past i)) := (measurable_pi_apply (X := fun _ : ι => ℝ) i).comp
+      (comap_measurable (fun ω i => X (past i) ω))
+    exact hm.comap_le
+  have hind' := indep_of_indep_of_le_right (indep_of_indep_of_le_left hind hle1) hle2
+  have hce : μ[(e : Ω → ℝ) | TidyR6CondExpForecast.genSigma fun i => X (past i)] =ᵐ[μ] 0 := by
+    have := condExp_indep_eq (Lp.stronglyMeasurable e).measurable.comap_le hG
+      (comap_measurable (e : Ω → ℝ)).stronglyMeasurable hind'
+    filter_upwards [this] with ω hω
+    rw [hω, he0, Pi.zero_apply]
+  -- the linear forecast is measurable for the past
+  have hKS : KS ≤ lpMeas ℝ ℝ (TidyR6CondExpForecast.genSigma fun i => X (past i)) 2 μ :=
+    TidyR6CondExpForecast.closure_span_le_lpMeas hG (fun i => toLpFam hm2 (past i)) fun i =>
+      ((Measurable.of_comap_le (le_iSup (fun i => MeasurableSpace.comap (X (past i))
+        inferInstance) i)).stronglyMeasurable.aestronglyMeasurable).congr
+        (MemLp.coeFn_toLp (hm2 (past i))).symm
+  have hpm : AEStronglyMeasurable[TidyR6CondExpForecast.genSigma fun i => X (past i)]
+      (p : Ω → ℝ) μ :=
+    mem_lpMeas_iff_aestronglyMeasurable.1 (hKS (KS.starProjection_apply_mem _))
+  have hint : ∀ F : Lp ℝ 2 μ, Integrable (F : Ω → ℝ) μ := fun F =>
+    (Lp.memLp F).integrable one_le_two
+  have hsplit : X τ =ᵐ[μ] fun ω => p ω + e ω := by
+    filter_upwards [MemLp.coeFn_toLp (hm2 τ), Lp.coeFn_sub (toLpFam hm2 τ) p] with ω h1 h2
+    rw [show e ω = (toLpFam hm2 τ - p) ω from rfl, h2, Pi.sub_apply, toLpFam, h1]
+    ring
+  filter_upwards [condExp_congr_ae (m := TidyR6CondExpForecast.genSigma fun i => X (past i))
+      hsplit, condExp_add (hint p) (hint e) (TidyR6CondExpForecast.genSigma fun i => X (past i)),
+    condExp_of_aestronglyMeasurable' hG hpm (hint p), hce] with ω h1 h2 h3 h4
+  rw [h1]
+  have h2' : μ[fun ω => p ω + e ω | TidyR6CondExpForecast.genSigma fun i => X (past i)] ω =
+      μ[(p : Ω → ℝ) | TidyR6CondExpForecast.genSigma fun i => X (past i)] ω +
+        μ[(e : Ω → ℝ) | TidyR6CondExpForecast.genSigma fun i => X (past i)] ω := h2
+  rw [h2', h3, h4, Pi.zero_apply, add_zero]
+
+/-- Cochrane (2023), Online Appendix p. 597: the best linear forecast of `X_τ` from the closed
+linear span of the observed values `X_{past(i)}`. -/
+noncomputable def linForecast {X : T → Ω → ℝ} (hm2 : ∀ t, MemLp (X t) 2 μ) {ι : Type*}
+    (past : ι → T) (τ : T) : Lp ℝ 2 μ :=
+  (Submodule.span ℝ (Set.range fun i => toLpFam hm2 (past i))).topologicalClosure.starProjection
+    (toLpFam hm2 τ)
+
+/-- Cochrane (2023), Online Appendix p. 601 (tool for Granger causality): for a centered Gaussian
+process, the mean-square error of the conditional-expectation forecast of `X_τ` given
+`σ(X_{past(i)} : i)` equals the linear forecast error variance `‖X_τ − P_KX_τ‖²`. -/
+theorem gaussian_condExp_mse {X : T → Ω → ℝ} (hX : IsGaussianProcess X μ)
+    (hXm : ∀ t, Measurable (X t)) (h0 : ∀ t, ∫ ω, X t ω ∂μ = 0) (hm2 : ∀ t, MemLp (X t) 2 μ)
+    {ι : Type*} (past : ι → T) (τ : T) :
+    ∫ ω, (X τ ω - μ[X τ | TidyR6CondExpForecast.genSigma fun i => X (past i)] ω) ^ 2 ∂μ =
+      ‖toLpFam hm2 τ - linForecast hm2 past τ‖ ^ 2 := by
+  rw [norm_sq_eq_integral]
+  refine integral_congr_ae ?_
+  filter_upwards [condExp_eq_linear_of_gaussian hX hXm h0 hm2 past τ, MemLp.coeFn_toLp (hm2 τ),
+    Lp.coeFn_sub (toLpFam hm2 τ) (linForecast hm2 past τ)] with ω h1 h2 h3
+  rw [h1, h3, Pi.sub_apply, toLpFam, h2]
+  rfl
+
+/-- Cochrane (2023), Online Appendix eq. (2.21), p. 601 ("debt Granger-causes surpluses"), **with
+conditional expectations, for any centered Gaussian process**: if the best linear forecast of
+`X_τ` from a family of observables (e.g. surpluses and debt) has strictly smaller error variance
+than from another (surpluses alone) — as `InvertibilityMeasure.granger_general` proves for every
+absolutely summable `a(L)` with `a(ρ) = 0` — then so does the conditional-expectation forecast
+given the generated σ-algebras. -/
+theorem gaussian_granger {X : T → Ω → ℝ} (hX : IsGaussianProcess X μ)
+    (hXm : ∀ t, Measurable (X t)) (h0 : ∀ t, ∫ ω, X t ω ∂μ = 0) (hm2 : ∀ t, MemLp (X t) 2 μ)
+    {ι₁ ι₂ : Type*} (past₁ : ι₁ → T) (past₂ : ι₂ → T) (τ : T)
+    (hlt : ‖toLpFam hm2 τ - linForecast hm2 past₂ τ‖ < ‖toLpFam hm2 τ - linForecast hm2 past₁ τ‖) :
+    ∫ ω, (X τ ω - μ[X τ | TidyR6CondExpForecast.genSigma fun i => X (past₂ i)] ω) ^ 2 ∂μ <
+      ∫ ω, (X τ ω - μ[X τ | TidyR6CondExpForecast.genSigma fun i => X (past₁ i)] ω) ^ 2 ∂μ := by
+  rw [gaussian_condExp_mse hX hXm h0 hm2, gaussian_condExp_mse hX hXm h0 hm2]
+  exact pow_lt_pow_left₀ hlt (norm_nonneg _) two_ne_zero
+
+/-! ### Wold and Granger with conditional expectations for Gaussian processes -/
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 600, **Wold with conditional expectations for
+Gaussian processes**: for a centered Gaussian process `x` indexed by `ℤ`, the
+conditional-expectation innovation `x_t − E(x_t|σ(x_{t−1}, x_{t−2}, …))` is the Wold innovation
+`x_t − P_{H_{t−1}}x_t` at every date. -/
+theorem gaussian_ceInnov_eq_wold {x : ℤ → Ω → ℝ} (hX : IsGaussianProcess x μ)
+    (hx : ∀ t, Measurable (x t)) (h0 : ∀ t, ∫ ω, x t ω ∂μ = 0) (hx2 : ∀ t, MemLp (x t) 2 μ)
+    (t : ℤ) :
+    TidyR6CondExpForecast.ceInnov hx hx2 t = Wold.innov (TidyR6CondExpForecast.toL2 hx2) t := by
+  have hG := TidyR6CondExpForecast.pastSigma_le hx (t - 1)
+  have := TidyR6CondExpForecast.hasOrthogonalProjection_lpMeas (μ := μ) hG
+  refine ((TidyR6CondExpForecast.ceInnov_eq_wold_iff hx hx2 t).2.1).2 ?_
+  have heq : (lpMeas ℝ ℝ (TidyR6CondExpForecast.pastSigma x (t - 1)) 2 μ).starProjection
+      (TidyR6CondExpForecast.toL2 hx2 t) =
+      (Wold.past (TidyR6CondExpForecast.toL2 hx2) (t - 1)).starProjection
+        (TidyR6CondExpForecast.toL2 hx2 t) := by
+    refine Lp.ext ?_
+    filter_upwards [TidyR6CondExpForecast.starProjection_lpMeas_ae_eq_condExp hG (hx2 t),
+      condExp_eq_linear_of_gaussian hX hx h0 hx2 (fun k : ℕ => t - 1 - k) t] with ω h1 h2
+    exact h1.trans h2
+  rw [heq]
+  exact Submodule.starProjection_apply_mem _ _
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 600, **the Wold decomposition with conditional
+expectations for Gaussian processes**: for a centered, covariance-stationary Gaussian process
+indexed by `ℤ`, the conditional-expectation innovations are white noise, `x_t = ∑c_je_{t−j} + d_t`
+with them, and they form a martingale-difference sequence for the natural filtration. -/
+theorem gaussian_wold_condExp {x : ℤ → Ω → ℝ} (hX : IsGaussianProcess x μ)
+    (hx : ∀ t, Measurable (x t)) (h0 : ∀ t, ∫ ω, x t ω ∂μ = 0) (hx2 : ∀ t, MemLp (x t) 2 μ)
+    {U : Lp ℝ 2 μ →ₗᵢ[ℝ] Lp ℝ 2 μ}
+    (hU : ∀ t, U (TidyR6CondExpForecast.toL2 hx2 t) = TidyR6CondExpForecast.toL2 hx2 (t + 1)) :
+    (∀ t, TidyR6CondExpForecast.ceInnov hx hx2 t =
+      Wold.innov (TidyR6CondExpForecast.toL2 hx2) t) ∧
+    Invertibility.Hilbert.WhiteNoise (TidyR6CondExpForecast.ceInnov hx hx2)
+      (‖TidyR6CondExpForecast.ceInnov hx hx2 0‖ ^ 2) ∧
+    (∀ t, HasSum (fun j : ℕ => Wold.woldCoeff (TidyR6CondExpForecast.toL2 hx2) j •
+      TidyR6CondExpForecast.ceInnov hx hx2 (t - j))
+      (TidyR6CondExpForecast.toL2 hx2 t - Wold.detPart (TidyR6CondExpForecast.toL2 hx2) t)) ∧
+    (∀ t, μ[fun ω => x t ω - μ[x t | TidyR6CondExpForecast.pastSigma x (t - 1)] ω |
+      TidyR6CondExpForecast.pastSigma x (t - 1)] =ᵐ[μ] 0) := by
+  refine TidyR6CondExpForecast.wold_decomposition_condExp hx hx2 hU fun t => ?_
+  have := TidyR6CondExpForecast.hasOrthogonalProjection_lpMeas (μ := μ)
+    (TidyR6CondExpForecast.pastSigma_le hx (t - 1))
+  have h := ((TidyR6CondExpForecast.ceInnov_eq_wold_iff hx hx2 t).2.1).1
+    (gaussian_ceInnov_eq_wold hX hx h0 hx2 t)
+  exact h
+
+/-! ### The i.i.d. Gaussian economy and the non-invertible surplus -/
+
+namespace GaussEconomy
+
+open Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID
+open Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast
+open Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID
+open Cochrane.DebtDeficitsInflation.InvertibilityMeasure
+open Cochrane.DebtDeficitsInflation.Invertibility
+open Cochrane.DebtDeficitsInflation.Invertibility.Hilbert
+open Cochrane.DebtDeficitsInflation.Innovations (gen)
+open scoped NNReal
+
+/-- Cochrane (2023), p. 102 and Online Appendix p. 597 (Gaussian shocks): the law `N(0, σ²)` as a
+probability measure. -/
+noncomputable def gaussLaw (v : ℝ≥0) : ProbabilityMeasure ℝ := ⟨gaussianReal 0 v, inferInstance⟩
+
+/-- Cochrane (2023), p. 102 (tool): the Gaussian shock has mean zero. -/
+theorem gauss_mean (v : ℝ≥0) : ∫ x, x ∂(gaussLaw v : Measure ℝ) = 0 :=
+  integral_id_gaussianReal
+
+/-- Cochrane (2023), p. 102 (tool): the Gaussian shock is square integrable. -/
+theorem gauss_memLp (v : ℝ≥0) : MemLp (fun x : ℝ => x) 2 (gaussLaw v : Measure ℝ) :=
+  memLp_id_gaussianReal' 2 (by norm_num)
+
+/-- Cochrane (2023), p. 102 (tool): the Gaussian shock has variance `σ²`. -/
+theorem gauss_var (v : ℝ≥0) : ∫ x, x ^ 2 ∂(gaussLaw v : Measure ℝ) = v := by
+  have h := variance_eq_sub (gauss_memLp v)
+  have hv : Var[fun x : ℝ => x; (gaussLaw v : Measure ℝ)] = v := variance_fun_id_gaussianReal
+  rw [hv, gauss_mean] at h
+  rw [show (fun x : ℝ => x) ^ 2 = fun x => x ^ 2 from rfl] at h
+  linarith
+
+/-- Cochrane (2023), p. 102 (tool): the Gaussian shock is integrable. -/
+theorem gauss_integrable (v : ℝ≥0) : Integrable (fun x : ℝ => x) (gaussLaw v : Measure ℝ) :=
+  (gauss_memLp v).integrable one_le_two
+
+/-- Cochrane (2023), p. 102 (tool): the shocks of the Gaussian economy are square integrable. -/
+theorem memLp_eps (v : ℝ≥0) (t : ℤ) : MemLp (eps t) 2 (iidSystem (gaussLaw v)).μ :=
+  (gauss_memLp v).comp_measurePreserving
+    (measurePreserving_eval_infinitePi (fun _ => (gaussLaw v : Measure ℝ)) (Equiv.intEquivNat t))
+
+/-- Cochrane (2023), p. 102 (tool): the coordinates of the Gaussian economy are square
+integrable. -/
+theorem memLp_coord (v : ℝ≥0) (i : ℕ) :
+    MemLp (fun ω : ℕ → ℝ => ω i) 2 (iidSystem (gaussLaw v)).μ :=
+  (gauss_memLp v).comp_measurePreserving
+    (measurePreserving_eval_infinitePi (fun _ => (gaussLaw v : Measure ℝ)) i)
+
+/-- Cochrane (2023), p. 102 (tool): the MA(1) surplus of the Gaussian economy is square
+integrable. -/
+theorem memLp_surp (v : ℝ≥0) (θ : ℝ) (t : ℤ) : MemLp (surp θ t) 2 (iidSystem (gaussLaw v)).μ :=
+  (memLp_eps v t).sub ((memLp_eps v (t - 1)).const_mul θ)
+
+/-- Cochrane (2023), p. 102: the i.i.d. Gaussian shocks form a Gaussian process. -/
+theorem isGaussianProcess_coord (v : ℝ≥0) :
+    IsGaussianProcess (fun (i : ℕ) (ω : ℕ → ℝ) => ω i) (iidSystem (gaussLaw v)).μ := by
+  refine ⟨fun I => ?_⟩
+  have hind : iIndepFun (fun (i : I) (ω : ℕ → ℝ) => ω i) (iidSystem (gaussLaw v)).μ :=
+    (iIndepFun_infinitePi (P := fun _ => (gaussLaw v : Measure ℝ)) (X := fun _ => id)
+      (fun _ => measurable_id)).precomp Subtype.val_injective
+  have hg : ∀ i : I, HasGaussianLaw (fun ω : ℕ → ℝ => ω i) (iidSystem (gaussLaw v)).μ :=
+    fun i => HasLaw.hasGaussianLaw (μ := gaussianReal 0 v)
+      ⟨(measurable_pi_apply _).aemeasurable,
+        (measurePreserving_eval_infinitePi (fun _ => (gaussLaw v : Measure ℝ)) (i : ℕ)).map_eq⟩
+  exact iIndepFun.hasGaussianLaw hg hind
+
+/-- Cochrane (2023), p. 102: the MA(1) surplus of the Gaussian economy is a centered Gaussian
+process (every finite family of surpluses is jointly Gaussian). -/
+theorem isGaussianProcess_surp (v : ℝ≥0) (θ : ℝ) :
+    IsGaussianProcess (surp θ) (iidSystem (gaussLaw v)).μ ∧
+      ∀ t, ∫ ω, surp θ t ω ∂(iidSystem (gaussLaw v)).μ = 0 := by
+  have hK := isGaussianProcess_closure (isGaussianProcess_coord v) (memLp_coord v)
+  set K := (Submodule.span ℝ (Set.range (toLpFam (memLp_coord v)))).topologicalClosure
+  have hmem : ∀ i, toLpFam (memLp_coord v) i ∈ K := fun i =>
+    Submodule.le_topologicalClosure _ (Submodule.subset_span ⟨i, rfl⟩)
+  let sL : ℤ → K := fun k => ⟨toLpFam (memLp_coord v) (Equiv.intEquivNat k) -
+    θ • toLpFam (memLp_coord v) (Equiv.intEquivNat (k - 1)),
+    K.sub_mem (hmem _) (K.smul_mem _ (hmem _))⟩
+  refine ⟨(hK.comp_right sL).congr fun k => ?_, fun t => ?_⟩
+  · filter_upwards [Lp.coeFn_sub (toLpFam (memLp_coord v) (Equiv.intEquivNat k))
+      (θ • toLpFam (memLp_coord v) (Equiv.intEquivNat (k - 1))),
+      Lp.coeFn_smul θ (toLpFam (memLp_coord v) (Equiv.intEquivNat (k - 1))),
+      MemLp.coeFn_toLp (memLp_coord v (Equiv.intEquivNat k)),
+      MemLp.coeFn_toLp (memLp_coord v (Equiv.intEquivNat (k - 1)))] with ω h1 h2 h3 h4
+    change (toLpFam (memLp_coord v) (Equiv.intEquivNat k) -
+      θ • toLpFam (memLp_coord v) (Equiv.intEquivNat (k - 1)) : Lp ℝ 2 _) ω = surp θ k ω
+    rw [h1, Pi.sub_apply, h2, Pi.smul_apply, smul_eq_mul, toLpFam, toLpFam, h3, h4]
+    rfl
+  · have h1 := integrable_eps (gauss_integrable v) t
+    have h2 := (integrable_eps (gauss_integrable v) (t - 1)).const_mul θ
+    have hz : ∀ s : ℤ, ∫ ω, eps s ω ∂(iidSystem (gaussLaw v)).μ = 0 := fun s => by
+      have := integral_shock_fun (gaussLaw v) (Equiv.intEquivNat s) (f := id) measurable_id
+      simpa [eps, gauss_mean] using this
+    simp only [surp]
+    rw [integral_sub h1 h2, integral_const_mul, hz, hz, mul_zero, sub_zero]
+
+/-- Cochrane (2023), p. 102 and Online Appendix p. 597: the Gaussian shocks are white noise with
+variance `σ²` in `L²`. -/
+theorem gauss_whiteNoise (v : ℝ≥0) :
+    WhiteNoise (fun t => (memLp_eps v t).toLp (eps t)) v := by
+  intro t u
+  rw [L2.inner_def]
+  have hcongr : (fun ω => ⟪((memLp_eps v t).toLp (eps t) : (ℕ → ℝ) → ℝ) ω,
+      ((memLp_eps v u).toLp (eps u) : (ℕ → ℝ) → ℝ) ω⟫) =ᵐ[(iidSystem (gaussLaw v)).μ]
+      fun ω => ω (Equiv.intEquivNat t) * ω (Equiv.intEquivNat u) := by
+    filter_upwards [MemLp.coeFn_toLp (memLp_eps v t), MemLp.coeFn_toLp (memLp_eps v u)]
+      with ω h1 h2
+    rw [h1, h2]
+    simp only [eps, RCLike.inner_apply, conj_trivial]
+    ring
+  rw [integral_congr_ae hcongr]
+  by_cases htu : t = u
+  · subst htu
+    simp only [↓reduceIte]
+    have h := integral_shock_fun (gaussLaw v) (Equiv.intEquivNat t) (f := fun x => x ^ 2)
+      (measurable_id.pow_const 2)
+    rw [gauss_var] at h
+    rw [← h]
+    exact integral_congr_ae (Eventually.of_forall fun ω => by ring)
+  · simp only [htu, ↓reduceIte]
+    exact InvertibilityMeasureL2.integral_coord_mul ((Equiv.intEquivNat).injective.ne htu)
+      (gauss_mean v)
+
+/-- Cochrane (2023), p. 102 (tool): the `L²` class of the Gaussian MA(1) surplus is the `L²`
+moving average `(1 − θL)·1` of the Gaussian shocks. -/
+theorem toL2_surp (v : ℝ≥0) (θ : ℝ) :
+    toL2 (memLp_surp v θ) = maProc (factorCoeff θ (fun k => if k = 0 then 1 else 0))
+      (fun t => (memLp_eps v t).toLp (eps t)) := by
+  funext t
+  rw [factorCoeff_delta, maProc_armaCoeff_zero (gauss_whiteNoise v)]
+  refine Lp.ext ?_
+  filter_upwards [MemLp.coeFn_toLp (memLp_surp v θ t),
+    Lp.coeFn_sub ((memLp_eps v t).toLp (eps t)) (θ • (memLp_eps v (t - 1)).toLp (eps (t - 1))),
+    Lp.coeFn_smul θ ((memLp_eps v (t - 1)).toLp (eps (t - 1))),
+    MemLp.coeFn_toLp (memLp_eps v t), MemLp.coeFn_toLp (memLp_eps v (t - 1))]
+    with ω h1 h2 h3 h4 h5
+  rw [toL2, h1, maOne, h2, Pi.sub_apply, h3, Pi.smul_apply, smul_eq_mul, h4, h5]
+  rfl
+
+/-- Cochrane (2023), p. 102 ("`v_t = −ρ⁻¹ε_t`"): the value of debt for the MA(1) surplus
+`s_t = e_t − θe_{t−1}`, `v_t = −θe_t` (the Hansen–Sargent value,
+`InvertibilityMeasure.hsCoeff_factor`). -/
+def debt (θ : ℝ) (t : ℤ) (ω : ℕ → ℝ) : ℝ := -θ * eps t ω
+
+/-- Cochrane (2023), §4.3, p. 102, and Online Appendix pp. 597–601, **Wold, non-invertibility
+and Granger causality with conditional expectations, for Gaussian shocks**. In the i.i.d.
+`N(0, σ²)` economy (`σ² > 0`) with the book's `a(ρ) = 0` surplus `s_t = e_t − θe_{t−1}`,
+`θ = ρ⁻¹`, `|θ| > 1`: (i) `a(ρ) = 0`; (ii) `E(s_{t+1}|σ(s_t, s_{t−1}, …))` is a.e. the best
+linear forecast; (iii) its mean-square error is `θ²σ²`; (iv) the shock `e_t` is not a.e. a
+measurable function of the surplus history (non-invertibility holds for σ-algebras, unlike for
+coin shocks, `TidyR6CondExpForecast.Coin.coin_condExp_beats_linear`); (v) adding the value of
+debt `v_t = −θe_t` to the information, `E(s_{t+1}|σ(s, v history)) = −θe_t` with mean-square
+error `σ² < θ²σ²` (debt Granger-causes surpluses); (vi) at every date the
+conditional-expectation innovation is the Wold innovation. -/
+theorem gaussian_noninvertible_condExp {v : ℝ≥0} (hv : (v : ℝ) ≠ 0) {θ : ℝ} (hθ : 1 < |θ|)
+    (t : ℤ) :
+    gen (factorCoeff θ (fun k => if k = 0 then 1 else 0)) θ⁻¹ = 0 ∧
+    ((iidSystem (gaussLaw v)).μ[surp θ (t + 1) | pastSigma (surp θ) t]
+      =ᵐ[(iidSystem (gaussLaw v)).μ]
+      (((Submodule.span ℝ (Set.range fun k : ℕ => toL2 (memLp_surp v θ) (t - k))).topologicalClosure
+        |>.starProjection (toL2 (memLp_surp v θ) (t + 1)) : Lp ℝ 2 _) : (ℕ → ℝ) → ℝ)) ∧
+    ∫ ω, (surp θ (t + 1) ω - (iidSystem (gaussLaw v)).μ[surp θ (t + 1) | pastSigma (surp θ) t] ω)
+      ^ 2 ∂(iidSystem (gaussLaw v)).μ = θ ^ 2 * v ∧
+    ¬ AEStronglyMeasurable[pastSigma (surp θ) t] (eps t) (iidSystem (gaussLaw v)).μ ∧
+    ((iidSystem (gaussLaw v)).μ[surp θ (t + 1) | genSigma (Sum.elim
+      (fun k : ℕ => surp θ (t - k)) (fun k : ℕ => debt θ (t - k)))] =ᵐ[(iidSystem (gaussLaw v)).μ]
+      fun ω => -θ * eps t ω) ∧
+    ∫ ω, (surp θ (t + 1) ω - (iidSystem (gaussLaw v)).μ[surp θ (t + 1) | genSigma (Sum.elim
+      (fun k : ℕ => surp θ (t - k)) (fun k : ℕ => debt θ (t - k)))] ω) ^ 2
+      ∂(iidSystem (gaussLaw v)).μ = v ∧
+    (v : ℝ) < θ ^ 2 * v ∧
+    ∀ τ, ceInnov (measurable_surp θ) (memLp_surp v θ) τ = Wold.innov (toL2 (memLp_surp v θ)) τ := by
+  have hθ0 : θ ≠ 0 := by intro h; rw [h, abs_zero] at hθ; linarith
+  have hδ : Summable (fun k : ℕ => |(if k = 0 then (1 : ℝ) else 0)|) :=
+    summable_of_ne_finset_zero (s := {0}) fun n hn => by simp_all
+  have he := gauss_whiteNoise v
+  obtain ⟨-, -, -, -, hgen, -, -, -, -⟩ := wold_factor he hv hθ hδ (by simp) recoverable_delta t
+  obtain ⟨-, hPS, -, hlt⟩ := granger_factor he hv hθ hδ (by simp) recoverable_delta t
+  rw [← toL2_surp v θ] at hPS
+  obtain ⟨hG, h0⟩ := isGaussianProcess_surp v θ
+  have hlin := condExp_eq_linear_of_gaussian hG (measurable_surp θ) h0 (memLp_surp v θ)
+    (fun k : ℕ => t - k) (t + 1)
+  have hwold : ∀ τ, ceInnov (measurable_surp θ) (memLp_surp v θ) τ =
+      Wold.innov (toL2 (memLp_surp v θ)) τ :=
+    gaussian_ceInnov_eq_wold hG (measurable_surp θ) h0 (memLp_surp v θ)
+  have hmse : ∫ ω, (surp θ (t + 1) ω - (iidSystem (gaussLaw v)).μ[surp θ (t + 1) |
+      pastSigma (surp θ) t] ω) ^ 2 ∂(iidSystem (gaussLaw v)).μ = θ ^ 2 * v := by
+    have hn : ‖ceInnov (measurable_surp θ) (memLp_surp v θ) (t + 1)‖ ^ 2 = θ ^ 2 * v := by
+      rw [hwold]
+      simpa [Wold.innov, Wold.past_eq_pastSpan] using hPS
+    rw [← hn, norm_sq_eq_integral]
+    refine integral_congr_ae ?_
+    filter_upwards [ceInnov_ae_eq (measurable_surp θ) (memLp_surp v θ) (t + 1)] with ω hω
+    rw [hω, add_sub_cancel_right]
+  -- debt reveals the shock
+  set Y : ℕ ⊕ ℕ → (ℕ → ℝ) → ℝ := Sum.elim (fun k : ℕ => surp θ (t - k))
+    (fun k : ℕ => debt θ (t - k))
+  have hYm : ∀ i, Measurable (Y i) := fun i => by
+    rcases i with k | k
+    · exact measurable_surp θ _
+    · exact (measurable_eps _).const_mul _
+  have hYa : ∀ i, Measurable[avoidSigma (Equiv.intEquivNat (t + 1))] (Y i) := fun i => by
+    rcases i with k | k
+    · exact measurable_surp_avoid θ t k
+    · have h1 : Equiv.intEquivNat (t - k) ≠ Equiv.intEquivNat (t + 1) :=
+        (Equiv.intEquivNat).injective.ne (by omega)
+      exact (measurable_avoid h1).const_mul _
+  have hkY : AEStronglyMeasurable[genSigma Y] (eps t) (iidSystem (gaussLaw v)).μ := by
+    have hd : Measurable[genSigma Y] (Y (Sum.inr 0)) :=
+      Measurable.of_comap_le (le_iSup (fun i => MeasurableSpace.comap (Y i) inferInstance)
+        (Sum.inr 0))
+    have : eps t = fun ω => -θ⁻¹ * Y (Sum.inr 0) ω := by
+      funext ω
+      simp only [Y, Sum.elim_inr, debt, Nat.cast_zero, sub_zero]
+      field_simp
+    rw [this]
+    exact (hd.const_mul _).stronglyMeasurable.aestronglyMeasurable
+  obtain ⟨hceY, hmseY⟩ := condExp_surp_of_known (gauss_integrable v) (gauss_mean v) θ hYm hYa
+    hkY
+  rw [gauss_var] at hmseY
+  refine ⟨hgen, hlin, hmse, fun hk => ?_, hceY, hmseY, by simpa using hlt, hwold⟩
+  obtain ⟨-, hm2⟩ := condExp_surp_of_known (gauss_integrable v) (gauss_mean v) θ
+    (fun k : ℕ => measurable_surp θ (t - k)) (measurable_surp_avoid θ t) hk
+  rw [gauss_var] at hm2
+  have : (v : ℝ) = θ ^ 2 * v := hm2.symm.trans hmse
+  linarith
+
+end GaussEconomy
+
+end Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Gaussian moving averages: Wold and Granger with conditional expectations for every `a(L)`
+
+Cochrane (2023), *The Fiscal Theory of the Price Level*, Chapter 4, §4.3, p. 102, and Online
+Appendix Chapter 2, §§2.1.4–2.1.6, eqs. (2.18)–(2.21), pp. 597–601.
+
+In the i.i.d. `N(0, σ²)` economy (unbounded shocks, so not `InvertibilityMeasureL2.shockL2`) the
+structural shocks `e_t = ε_{φ(t)}` are white noise in `L²` (`GaussEconomy.gauss_whiteNoise`), and
+every absolutely summable moving average `s = a(L)e` (`InvertibilityMeasure` / `maProc`) has a
+measurable representative `maRep` which is a centered Gaussian process, jointly with the debt
+`v = c(L)e` (Hansen–Sargent coefficients `c = hsCoeff a ρ`, the ex-post present value of
+surpluses when `a(ρ) = 0`, `debt_expost`).
+
+## Main results
+
+* `isGaussianProcess_pair`, `integral_maRep`: the surplus and debt representatives are jointly a
+  centered Gaussian process.
+* `condExp_mse_ma`: the conditional-expectation forecast errors of `s_{t+1}` given
+  `σ(s_t, s_{t−1}, …)` and given `σ(s_t, v_t, s_{t−1}, v_{t−1}, …)` have the linear-forecast
+  variances.
+* `gaussian_granger_ma`: **debt Granger-causes surpluses with Mathlib conditional expectations**
+  for every absolutely summable `a(L)` with `a₀ ≠ 0`, `a(ρ) = 0`, `|ρ| < 1` (the non-invertible
+  case), from `InvertibilityMeasure.granger_general`.
+* `gaussian_wold_ma`: **the Wold statement with conditional expectations** for every absolutely
+  summable `a(L)`: the conditional-expectation innovations are the Wold innovations, white noise,
+  a martingale-difference sequence, and `s_t = ∑_j c_j e^{CE}_{t−j}` (no deterministic part).
+* `ma1_special_case`: the factorised MA(1) `1 − θL` of
+  `GaussEconomy.gaussian_noninvertible_condExp` is the special case `a = (1 − θL)·1`, `ρ = θ⁻¹`:
+  the same `L²` process, mean-square errors `θ²σ²` (surpluses) and `σ²` (surpluses and debt).
+-/
+
+namespace Cochrane.DebtDeficitsInflation.TidyR6GaussianMA
+
+open MeasureTheory ProbabilityTheory Filter Topology
+open scoped RealInnerProductSpace NNReal
+open Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID
+open Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast
+open Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID
+open Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast
+open Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy
+open Cochrane.DebtDeficitsInflation.InvertibilityMeasure
+open Cochrane.DebtDeficitsInflation.Invertibility
+open Cochrane.DebtDeficitsInflation.Invertibility.Hilbert
+open Cochrane.DebtDeficitsInflation.Innovations (gen)
+
+/-! ### The Gaussian `L²` moving average and its representative -/
+
+/-- Cochrane (2023), p. 102 and Online Appendix p. 597: the Gaussian structural shocks
+`e_t = ε_{φ(t)}` in `L²(ν^ℕ)`, `ν = N(0, σ²)`. -/
+noncomputable def shockG (v : ℝ≥0) (t : ℤ) : Lp ℝ 2 (iidSystem (gaussLaw v)).μ :=
+  (memLp_eps v t).toLp (eps t)
+
+/-- Cochrane (2023), eq. (4.1), p. 87: the moving average `s_t = ∑_k a_k e_{t−k}` of the Gaussian
+shocks in `L²`. -/
+noncomputable def maL2 (v : ℝ≥0) (a : ℕ → ℝ) (t : ℤ) : Lp ℝ 2 (iidSystem (gaussLaw v)).μ :=
+  maProc a (shockG v) t
+
+/-- Cochrane (2023), eq. (4.1), p. 87: a measurable representative of the Gaussian moving
+average, a genuine random variable on `ℕ → ℝ`. -/
+noncomputable def maRep (v : ℝ≥0) (a : ℕ → ℝ) (t : ℤ) : (ℕ → ℝ) → ℝ :=
+  (maL2 v a t : (ℕ → ℝ) → ℝ)
+
+/-- Cochrane (2023), p. 102 (tool): the Gaussian shocks are white noise with variance `σ²`.
+Restates `TidyR6GaussianForecast.GaussEconomy.gauss_whiteNoise`. -/
+theorem shockG_whiteNoise (v : ℝ≥0) : WhiteNoise (shockG v) v := gauss_whiteNoise v
+
+/-- Cochrane (2023), p. 102 (tool): the representative is measurable. -/
+theorem measurable_maRep (v : ℝ≥0) (a : ℕ → ℝ) (t : ℤ) : Measurable (maRep v a t) :=
+  (Lp.stronglyMeasurable _).measurable
+
+/-- Cochrane (2023), p. 102 (tool): the representative is square integrable. -/
+theorem memLp_maRep (v : ℝ≥0) (a : ℕ → ℝ) (t : ℤ) :
+    MemLp (maRep v a t) 2 (iidSystem (gaussLaw v)).μ :=
+  Lp.memLp _
+
+/-- Cochrane (2023), p. 102 (tool): the `L²` class of the representative is the moving average. -/
+theorem toL2_maRep (v : ℝ≥0) (a : ℕ → ℝ) : toL2 (memLp_maRep v a) = maL2 v a :=
+  funext fun _ => Lp.toLp_coeFn _ _
+
+/-- Cochrane (2023), p. 102 (tool): every absolutely summable moving average of the shocks lies in
+the closed linear span of the i.i.d. Gaussian coordinates. -/
+theorem maL2_mem (v : ℝ≥0) {a : ℕ → ℝ} (ha : Summable fun k => |a k|) (t : ℤ) :
+    maL2 v a t ∈ (Submodule.span ℝ (Set.range (toLpFam (memLp_coord v)))).topologicalClosure := by
+  have h := maProc_mem_eSpan (shockG_whiteNoise v) ha t
+  refine Submodule.topologicalClosure_mono (Submodule.span_mono ?_) h
+  rintro _ ⟨s, rfl⟩
+  exact ⟨Equiv.intEquivNat s, rfl⟩
+
+/-- Cochrane (2023), p. 102 (tool): the moving averages of the Gaussian shocks have mean zero. -/
+theorem integral_maRep (v : ℝ≥0) {a : ℕ → ℝ} (ha : Summable fun k => |a k|) (t : ℤ) :
+    ∫ ω, maRep v a t ω ∂(iidSystem (gaussLaw v)).μ = 0 := by
+  refine integral_eq_zero_of_mem_closure (memLp_coord v) (fun i => ?_) (maL2_mem v ha t)
+  have := integral_shock_fun (gaussLaw v) i (f := id) measurable_id
+  simpa [gauss_mean] using this
+
+/-- Cochrane (2023), p. 102 and Online Appendix p. 601: two moving averages of the Gaussian shocks
+(surpluses `a(L)e` and debt `b(L)e`), indexed by `ℤ ⊕ ℤ`, are jointly a Gaussian process. -/
+theorem isGaussianProcess_pair (v : ℝ≥0) {a b : ℕ → ℝ} (ha : Summable fun k => |a k|)
+    (hb : Summable fun k => |b k|) :
+    IsGaussianProcess (Sum.elim (maRep v a) (maRep v b)) (iidSystem (gaussLaw v)).μ := by
+  have hK := isGaussianProcess_closure (isGaussianProcess_coord v) (memLp_coord v)
+  refine (hK.comp_right (Sum.elim (fun t => ⟨maL2 v a t, maL2_mem v ha t⟩)
+    fun t => ⟨maL2 v b t, maL2_mem v hb t⟩)).congr fun j => ?_
+  rcases j with t | t <;> exact ae_eq_refl _
+
+/-- Cochrane (2023), p. 102: a single moving average of the Gaussian shocks is a Gaussian
+process. -/
+theorem isGaussianProcess_maRep (v : ℝ≥0) {a : ℕ → ℝ} (ha : Summable fun k => |a k|) :
+    IsGaussianProcess (maRep v a) (iidSystem (gaussLaw v)).μ :=
+  (isGaussianProcess_pair v ha ha).comp_right Sum.inl
+
+/-- Cochrane (2023), Online Appendix eq. (2.18), p. 600 ("debt equals the ex-post present value
+of surpluses"), for Gaussian shocks: if `a(ρ) = 0`, `|ρ| < 1`, the debt `v_t = c(L)e_t`
+(`c = hsCoeff a ρ`) is the mean-square limit `∑_j ρʲ s_{t+1+j}`.
+An instance of `InvertibilityMeasure.debt_hasSum_expost`. -/
+theorem debt_expost (v : ℝ≥0) {a : ℕ → ℝ} (ha : Summable fun k => |a k|) {ρ : ℝ} (hρ : |ρ| < 1)
+    (h0 : gen a ρ = 0) (t : ℤ) :
+    HasSum (fun j : ℕ => ρ ^ j • maL2 v a (t + 1 + j)) (maL2 v (hsCoeff a ρ) t) :=
+  debt_hasSum_expost (shockG_whiteNoise v) ha hρ h0 t
+
+/-! ### Conditional-expectation forecast errors -/
+
+/-- Cochrane (2023), Online Appendix p. 597 (tool): projections on equal subspaces agree. -/
+theorem starProjection_congr {H : Type*} [NormedAddCommGroup H] [InnerProductSpace ℝ H]
+    {K K' : Submodule ℝ H} [K.HasOrthogonalProjection] [K'.HasOrthogonalProjection] (h : K = K')
+    (x : H) : K.starProjection x = K'.starProjection x := by
+  subst h
+  rfl
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 601, for Gaussian shocks and every absolutely
+summable `a(L)`, `b(L)`: the mean-square error of `E(s_{t+1}|σ(s_t, s_{t−1}, …))` is the linear
+forecast error variance from `H_t = span(s_t, s_{t−1}, …)`, and that of
+`E(s_{t+1}|σ(s_t, v_t, s_{t−1}, v_{t−1}, …))` is the linear error variance from the joint span. -/
+theorem condExp_mse_ma (v : ℝ≥0) {a b : ℕ → ℝ} (ha : Summable fun k => |a k|)
+    (hb : Summable fun k => |b k|) (t : ℤ) :
+    (haveI : (pastSpan (maL2 v a) t).HasOrthogonalProjection := by
+        unfold pastSpan; infer_instance
+      ∫ ω, (maRep v a (t + 1) ω - (iidSystem (gaussLaw v)).μ[maRep v a (t + 1) |
+        genSigma fun k : ℕ => maRep v a (t - k)] ω) ^ 2 ∂(iidSystem (gaussLaw v)).μ =
+      ‖maL2 v a (t + 1) - (pastSpan (maL2 v a) t).starProjection (maL2 v a (t + 1))‖ ^ 2) ∧
+    (haveI : (jointSpan (maL2 v a) (maL2 v b) t).HasOrthogonalProjection := by
+        unfold jointSpan; infer_instance
+      ∫ ω, (maRep v a (t + 1) ω - (iidSystem (gaussLaw v)).μ[maRep v a (t + 1) |
+        genSigma (Sum.elim (fun k : ℕ => maRep v a (t - k)) fun k : ℕ => maRep v b (t - k))] ω)
+        ^ 2 ∂(iidSystem (gaussLaw v)).μ =
+      ‖maL2 v a (t + 1) - (jointSpan (maL2 v a) (maL2 v b) t).starProjection
+        (maL2 v a (t + 1))‖ ^ 2) := by
+  set X := Sum.elim (maRep v a) (maRep v b)
+  have hX := isGaussianProcess_pair v ha hb
+  have hXm : ∀ i, Measurable (X i) := fun i => by
+    rcases i with s | s <;> exact measurable_maRep _ _ _
+  have h0 : ∀ i, ∫ ω, X i ω ∂(iidSystem (gaussLaw v)).μ = 0 := fun i => by
+    rcases i with s | s
+    · exact integral_maRep v ha s
+    · exact integral_maRep v hb s
+  have hm2 : ∀ i, MemLp (X i) 2 (iidSystem (gaussLaw v)).μ := fun i => by
+    rcases i with s | s <;> exact memLp_maRep _ _ _
+  have hT : toLpFam hm2 = Sum.elim (maL2 v a) (maL2 v b) := by
+    funext i
+    rcases i with s | s <;> exact Lp.toLp_coeFn _ _
+  have hτ : toLpFam hm2 (Sum.inl (t + 1)) = maL2 v a (t + 1) := congrFun hT _
+  have hP : (Submodule.span ℝ (Set.range fun k : ℕ => toLpFam hm2 (Sum.inl (t - k)))
+      ).topologicalClosure = pastSpan (maL2 v a) t := by
+    rw [hT]
+    rfl
+  have hJ : (Submodule.span ℝ (Set.range fun i : ℕ ⊕ ℕ => toLpFam hm2
+      (Sum.elim (fun k : ℕ => (Sum.inl (t - k) : ℤ ⊕ ℤ)) (fun k : ℕ => Sum.inr (t - k)) i))
+      ).topologicalClosure = jointSpan (maL2 v a) (maL2 v b) t := by
+    rw [hT, jointSpan]
+    congr 2
+    ext y
+    constructor
+    · rintro ⟨i | i, rfl⟩
+      · exact Or.inl ⟨i, rfl⟩
+      · exact Or.inr ⟨i, rfl⟩
+    · rintro (⟨k, rfl⟩ | ⟨k, rfl⟩)
+      · exact ⟨Sum.inl k, rfl⟩
+      · exact ⟨Sum.inr k, rfl⟩
+  have m1 := gaussian_condExp_mse hX hXm h0 hm2 (fun k : ℕ => (Sum.inl (t - k) : ℤ ⊕ ℤ))
+    (Sum.inl (t + 1))
+  have m2 := gaussian_condExp_mse hX hXm h0 hm2
+    (Sum.elim (fun k : ℕ => (Sum.inl (t - k) : ℤ ⊕ ℤ)) (fun k : ℕ => Sum.inr (t - k)))
+    (Sum.inl (t + 1))
+  have hfun : (fun i => X (Sum.elim (fun k : ℕ => (Sum.inl (t - k) : ℤ ⊕ ℤ))
+      (fun k : ℕ => Sum.inr (t - k)) i)) =
+      Sum.elim (fun k : ℕ => maRep v a (t - k)) fun k : ℕ => maRep v b (t - k) := by
+    funext i
+    rcases i with k | k <;> rfl
+  rw [hfun] at m2
+  have hS : (pastSpan (maL2 v a) t).HasOrthogonalProjection := by
+    unfold pastSpan; infer_instance
+  have hJS : (jointSpan (maL2 v a) (maL2 v b) t).HasOrthogonalProjection := by
+    unfold jointSpan; infer_instance
+  refine ⟨?_, ?_⟩
+  · refine m1.trans ?_
+    simp only [linForecast, hτ]
+    rw [starProjection_congr hP]
+  · refine m2.trans ?_
+    simp only [linForecast, hτ]
+    rw [starProjection_congr hJ]
+
+/-! ### Granger causality and Wold with conditional expectations, every `a(L)` -/
+
+/-- Cochrane (2023), Online Appendix eq. (2.21), p. 601 ("debt Granger-causes surpluses"), **with
+Mathlib conditional expectations, Gaussian shocks and an arbitrary absolutely summable `a(L)`**
+with `a₀ ≠ 0`, `a(ρ) = 0`, `|ρ| < 1` (the non-invertible case): the mean-square error of
+`E(s_{t+1}|σ(s_t, v_t, s_{t−1}, v_{t−1}, …))` is strictly smaller than that of
+`E(s_{t+1}|σ(s_t, s_{t−1}, …))`, where `v = c(L)e` is the debt (`c = hsCoeff a ρ`, the ex-post
+present value `debt_expost`). -/
+theorem gaussian_granger_ma {v : ℝ≥0} (hv : (v : ℝ) ≠ 0) {a : ℕ → ℝ}
+    (ha : Summable fun k => |a k|) (ha0 : a 0 ≠ 0) {ρ : ℝ} (hρ : |ρ| < 1) (h0 : gen a ρ = 0)
+    (t : ℤ) :
+    ∫ ω, (maRep v a (t + 1) ω - (iidSystem (gaussLaw v)).μ[maRep v a (t + 1) |
+      genSigma (Sum.elim (fun k : ℕ => maRep v a (t - k))
+        fun k : ℕ => maRep v (hsCoeff a ρ) (t - k))] ω) ^ 2 ∂(iidSystem (gaussLaw v)).μ <
+    ∫ ω, (maRep v a (t + 1) ω - (iidSystem (gaussLaw v)).μ[maRep v a (t + 1) |
+      genSigma fun k : ℕ => maRep v a (t - k)] ω) ^ 2 ∂(iidSystem (gaussLaw v)).μ := by
+  obtain ⟨m1, m2⟩ := condExp_mse_ma v ha (summable_abs_hsCoeff ha hρ) t
+  rw [m1, m2]
+  exact pow_lt_pow_left₀ (granger_general (shockG_whiteNoise v) hv ha ha0 hρ h0 t).2
+    (norm_nonneg _) two_ne_zero
+
+/-- Cochrane (2023), Online Appendix pp. 597 and 600, **the Wold statement with Mathlib
+conditional expectations for every absolutely summable moving average of Gaussian shocks**
+(including `a(ρ) = 0`): the conditional-expectation innovations
+`s_t − E(s_t|σ(s_{t−1}, s_{t−2}, …))` are the Wold innovations, white noise, a
+martingale-difference sequence for the natural filtration, and `s_t = ∑_j c_j e^{CE}_{t−j}` in
+mean square with the Wold coefficients (the deterministic part vanishes). -/
+theorem gaussian_wold_ma {v : ℝ≥0} (hv : (v : ℝ) ≠ 0) {a : ℕ → ℝ}
+    (ha : Summable fun k => |a k|) :
+    (∀ t, ceInnov (measurable_maRep v a) (memLp_maRep v a) t = Wold.innov (maL2 v a) t) ∧
+    WhiteNoise (ceInnov (measurable_maRep v a) (memLp_maRep v a))
+      (‖ceInnov (measurable_maRep v a) (memLp_maRep v a) 0‖ ^ 2) ∧
+    (∀ t, HasSum (fun j : ℕ => Wold.woldCoeff (maL2 v a) j •
+      ceInnov (measurable_maRep v a) (memLp_maRep v a) (t - j)) (maL2 v a t)) ∧
+    (∀ t, (iidSystem (gaussLaw v)).μ[fun ω => maRep v a t ω -
+      (iidSystem (gaussLaw v)).μ[maRep v a t | pastSigma (maRep v a) (t - 1)] ω |
+        pastSigma (maRep v a) (t - 1)] =ᵐ[(iidSystem (gaussLaw v)).μ] 0) := by
+  obtain ⟨U, hU⟩ := Wold.maProc_shift (shockG_whiteNoise v) hv ha
+  have hU' : ∀ t, U (toL2 (memLp_maRep v a) t) = toL2 (memLp_maRep v a) (t + 1) := by
+    rw [toL2_maRep]
+    exact hU
+  obtain ⟨h1, h2, h3, h4⟩ := gaussian_wold_condExp (isGaussianProcess_maRep v ha)
+    (measurable_maRep v a) (integral_maRep v ha) (memLp_maRep v a) hU'
+  have hreg := Wold.maProc_regular (shockG_whiteNoise v) ha
+  have hdet : ∀ t, Wold.detPart (maL2 v a) t = 0 := fun t => by
+    have h := Wold.detPart_mem_remote (maL2 v a) t
+    rw [show Wold.remote (maL2 v a) = ⊥ from hreg] at h
+    exact (Submodule.mem_bot ℝ).1 h
+  rw [toL2_maRep] at h1 h3
+  refine ⟨h1, h2, fun t => ?_, h4⟩
+  have := h3 t
+  rwa [hdet, sub_zero] at this
+
+/-! ### The factorised MA(1) as a special case -/
+
+/-- Cochrane (2023), p. 102 and Online Appendix pp. 597–601, **link**: the MA(1)
+`s_t = e_t − θe_{t−1}` (`|θ| > 1`) of `GaussEconomy.gaussian_noninvertible_condExp` is the case
+`a = (1 − θL)·1`, `ρ = θ⁻¹` of `gaussian_granger_ma`: the same `L²` process
+(`GaussEconomy.toL2_surp`), the representatives agree a.e. with `surp θ`, the hypotheses
+`a₀ ≠ 0`, `a(ρ) = 0`, `|ρ| < 1` hold, and the conditional mean-square errors are `θ²σ²` from
+surpluses (as in `GaussEconomy.gaussian_noninvertible_condExp`) and `σ²` from surpluses and debt. -/
+theorem ma1_special_case {v : ℝ≥0} (hv : (v : ℝ) ≠ 0) {θ : ℝ} (hθ : 1 < |θ|) (t : ℤ) :
+    maL2 v (factorCoeff θ (fun k => if k = 0 then 1 else 0)) = toL2 (memLp_surp v θ) ∧
+    (∀ s, maRep v (factorCoeff θ (fun k => if k = 0 then 1 else 0)) s
+      =ᵐ[(iidSystem (gaussLaw v)).μ] surp θ s) ∧
+    factorCoeff θ (fun k => if k = 0 then 1 else 0) 0 ≠ 0 ∧
+    gen (factorCoeff θ (fun k => if k = 0 then 1 else 0)) θ⁻¹ = 0 ∧ |θ⁻¹| < 1 ∧
+    ∫ ω, (maRep v (factorCoeff θ (fun k => if k = 0 then 1 else 0)) (t + 1) ω -
+      (iidSystem (gaussLaw v)).μ[maRep v (factorCoeff θ (fun k => if k = 0 then 1 else 0))
+        (t + 1) | genSigma fun k : ℕ =>
+          maRep v (factorCoeff θ (fun k => if k = 0 then 1 else 0)) (t - k)] ω) ^ 2
+      ∂(iidSystem (gaussLaw v)).μ = θ ^ 2 * v ∧
+    ∫ ω, (surp θ (t + 1) ω - (iidSystem (gaussLaw v)).μ[surp θ (t + 1) |
+      pastSigma (surp θ) t] ω) ^ 2 ∂(iidSystem (gaussLaw v)).μ = θ ^ 2 * v ∧
+    ∫ ω, (maRep v (factorCoeff θ (fun k => if k = 0 then 1 else 0)) (t + 1) ω -
+      (iidSystem (gaussLaw v)).μ[maRep v (factorCoeff θ (fun k => if k = 0 then 1 else 0))
+        (t + 1) | genSigma (Sum.elim (fun k : ℕ =>
+          maRep v (factorCoeff θ (fun k => if k = 0 then 1 else 0)) (t - k)) fun k : ℕ =>
+          maRep v (hsCoeff (factorCoeff θ (fun k => if k = 0 then 1 else 0)) θ⁻¹) (t - k))] ω)
+        ^ 2 ∂(iidSystem (gaussLaw v)).μ = v := by
+  have hδ : Summable (fun k : ℕ => |(if k = 0 then (1 : ℝ) else 0)|) :=
+    summable_of_ne_finset_zero (s := {0}) fun n hn => by simp_all
+  have hq : |θ⁻¹| < 1 := by rw [abs_inv]; exact inv_lt_one_of_one_lt₀ hθ
+  have ha := summable_factorCoeff θ hδ
+  have he := shockG_whiteNoise v
+  have hL : maL2 v (factorCoeff θ (fun k => if k = 0 then 1 else 0)) = toL2 (memLp_surp v θ) :=
+    (toL2_surp v θ).symm
+  obtain ⟨-, -, -, -, hgen, -, -, -, -⟩ := wold_factor he hv hθ hδ (by simp) recoverable_delta t
+  obtain ⟨hPJ, hPS, hσn, -⟩ := granger_factor he hv hθ hδ (by simp) recoverable_delta t
+  obtain ⟨m1, m2⟩ := condExp_mse_ma v ha (summable_abs_hsCoeff ha hq) t
+  have hmse := (gaussian_noninvertible_condExp hv hθ t).2.2.1
+  refine ⟨hL, fun s => ?_, by simp [factorCoeff], hgen, hq, ?_, hmse, ?_⟩
+  · rw [maRep, hL]
+    exact MemLp.coeFn_toLp _
+  · rw [m1]
+    exact hPS
+  · rw [m2]
+    unfold maL2
+    rw [hPJ, sub_sub_cancel, hσn]
+
+end Cochrane.DebtDeficitsInflation.TidyR6GaussianMA
+
 set_option linter.style.longLine false
 #print axioms Cochrane.DebtDeficitsInflation.SchurStable
 #print axioms Cochrane.DebtDeficitsInflation.disc
@@ -9299,3 +16812,470 @@ set_option linter.style.longLine false
 #print axioms Cochrane.DebtDeficitsInflation.Links.pt_pv_revision_via_ar1
 #print axioms Cochrane.DebtDeficitsInflation.Links.pt_innov_infl
 #print axioms Cochrane.DebtDeficitsInflation.Links.condDown_flow
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.mk
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.P
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.𝓕
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.μ
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddProc
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.integrable
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_add
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_sub
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_smul
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_const
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_zero
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_mono
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_tower
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_E
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.integrable_E
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_of_stronglyMeasurable
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_of_aestronglyMeasurable
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_known
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_E_self
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_congr
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.integral_E
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_pullOut
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.abs_E_le
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.of_stronglyMeasurable
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.const
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.add
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.smul
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.sub
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.mul
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.E
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.innov
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.stronglyMeasurable_innov
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_innov
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_mul_innov
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_sub_E_eq_sum_innov
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.eq_E_add_innov
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.E_hasSum
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.discSum
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.summable_geom_mul
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.abs_tsum_geom_mul_le
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.discSum_succ
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.discSum_bdd
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.discSum_rec
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.aestronglyMeasurable_discSum
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.Solves
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol_adapted
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol_bdd
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol_solves
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forwardSol_hasSum
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.iterate_homog
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.forward_unique
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.existsUnique_forward
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_succ
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_adapted
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_bdd
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_solves
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.solves_add
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.sunspot_not_predictable
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.not_unique_of_one_le
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.solves_zero
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.unique_iff
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.existsUnique_iff
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.BddRV.sq
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ar1_E
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ar1_E_sq_dev
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ar1_condVar_closed
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.eq_of_ae_eq
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.le_of_ae_le
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.ELin
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_E
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.trivialFirst
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.sum_prob_condE
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeMeasure
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeMeasure_singleton
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeMeasure_univ
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeProb
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.integral_treeProb
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeFiltration
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.stronglyMeasurable_condE
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeSystem
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeSystem_fullSupport
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeSystem_E
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasure.TreeBridge.treeSystem_toExpectationSystem_E
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iidProb
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iidSystem
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.shock
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.measurable_shock
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coordSigma
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.futureSigma
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coordSigma_le
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.futureSigma_le
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iIndep_coord
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.filtration_le_past
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.indep_future
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_future
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.measurable_future_fun
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.integral_shock_fun
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock_fun
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock_sq
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.shock_ae_bdd
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock_zero
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.E_shock_sq_eq
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.condVar_shock
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.shock_not_ae_E
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.singleton_lt_one
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.exists_singleton_le
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_singleton
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_countable_null
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_not_finitely_supported
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_news
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_existsUnique_iff
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_sunspot
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.ar1
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.ar1_succ
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.ar1_adapted
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.ar1_bdd
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_ar1_E
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_ar1_condVar
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.iid_ar1_condVar_closed
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coinMeasure
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coinMeasure_univ
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.integral_coin
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin_mean
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin_var
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin_bdd
+#print axioms Cochrane.DebtDeficitsInflation.ExpectationsMeasureIID.coin_economy
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarsen
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Nested
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.MeasCoarser
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.eq_coarsen
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.KnownAE
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarsen_μ
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarsen_E
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.E_coarsen_tower
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_general
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.known_iff_E_eq
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_iff
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.known_of_same
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.E_coarsen_innov
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_valuation
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_valuation_iff
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.pv_ex_post
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.pv_E
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.pv_agents
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_flow_iff
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.abs_innov_le
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.summable_innov
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.innov_pv
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.unexpected_inflation_any
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.unexpected_inflation_agents
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.innov_coarsen_of_known
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.constExp_condDown
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.innov_return_condDown
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.simple_model_any
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.simple_model_agents
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.simple_model_econ_iff
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.lagFiltration
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.nested_lag
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exS
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exV
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exR
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exInfl
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.exRn
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.ex_flow
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.ex_fisher
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.Example.econ_decomp_counterexample
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarsen_toExpectationSystem_E
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.coarser_core
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.condDown_iff_core
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.forall_of_ae
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.core_innov_eq
+#print axioms Cochrane.DebtDeficitsInflation.ConditioningDownMeasure.unexpected_inflation_core
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.eSpan
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.inner_e_maProc_future
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.inner_e_maProc_int
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.hasSum_mem_eSpan
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.e_mem_eSpan
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.maProc_mem_eSpan
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.eq_of_inner_e
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.norm_maProc_le
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.cconv
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.summable_cconv
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mk_cconv
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.hasSum_filter_maProc
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.not_filter_of_aRho_eq_zero
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.maProc_armaCoeff_zero
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.inner_sum_e
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mem_pastSpan_unit_root
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.factorCoeff
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mk_factorCoeff
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.summable_factorCoeff
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.gen_factorCoeff
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mk_mul_eq_one
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mk_geom_factor
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.eq_of_mk_eq
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.wold_factor
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.summable_abs_hsCoeff
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.debt_hasSum_expost
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.maProc_delta
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.hsCoeff_factor
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.shock_mem_debtSpan
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.debt_not_invertible_example
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.exists_shift
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.jointSpan
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.pastSpan_le_jointSpan
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.debt_mem_jointSpan
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.pastSpan_debt_le_jointSpan
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.map_pastSpan
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.granger_general
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.mem_orthogonal_jointSpan
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.granger_factor
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.factorCoeff_delta
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.recoverable_delta
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasure.wold_factor_ma1
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.memLp_coord
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.shockL2
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.integral_coord_mul
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_whiteNoise
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_not_filter
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_unit_root
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_wold_factor
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_granger_general
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_granger_factor
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.coin_L2
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.iid_not_mem_pastSpan
+#print axioms Cochrane.DebtDeficitsInflation.InvertibilityMeasureL2.closedSpan_fails_at_unit_root
+#print axioms Cochrane.DebtDeficitsInflation.Wold.past
+#print axioms Cochrane.DebtDeficitsInflation.Wold.past_eq_pastSpan
+#print axioms Cochrane.DebtDeficitsInflation.Wold.remote
+#print axioms Cochrane.DebtDeficitsInflation.Wold.innov
+#print axioms Cochrane.DebtDeficitsInflation.Wold.woldCoeff
+#print axioms Cochrane.DebtDeficitsInflation.Wold.detPart
+#print axioms Cochrane.DebtDeficitsInflation.Wold.Deterministic
+#print axioms Cochrane.DebtDeficitsInflation.Wold.Regular
+#print axioms Cochrane.DebtDeficitsInflation.Wold.mem_past
+#print axioms Cochrane.DebtDeficitsInflation.Wold.self_mem_past
+#print axioms Cochrane.DebtDeficitsInflation.Wold.past_mono
+#print axioms Cochrane.DebtDeficitsInflation.Wold.mem_past_of_le
+#print axioms Cochrane.DebtDeficitsInflation.Wold.remote_eq
+#print axioms Cochrane.DebtDeficitsInflation.Wold.remote_le
+#print axioms Cochrane.DebtDeficitsInflation.Wold.mem_remote_iff
+#print axioms Cochrane.DebtDeficitsInflation.Wold.innov_mem
+#print axioms Cochrane.DebtDeficitsInflation.Wold.innov_mem_orthogonal
+#print axioms Cochrane.DebtDeficitsInflation.Wold.inner_innov_of_mem
+#print axioms Cochrane.DebtDeficitsInflation.Wold.inner_innov_lt
+#print axioms Cochrane.DebtDeficitsInflation.Wold.x_eq_innov_add
+#print axioms Cochrane.DebtDeficitsInflation.Wold.innov_eq_zero_iff
+#print axioms Cochrane.DebtDeficitsInflation.Wold.mem_past_pred
+#print axioms Cochrane.DebtDeficitsInflation.Wold.map_past
+#print axioms Cochrane.DebtDeficitsInflation.Wold.starProjection_shift
+#print axioms Cochrane.DebtDeficitsInflation.Wold.innov_shift
+#print axioms Cochrane.DebtDeficitsInflation.Wold.inner_shift
+#print axioms Cochrane.DebtDeficitsInflation.Wold.norm_innov
+#print axioms Cochrane.DebtDeficitsInflation.Wold.innov_whiteNoise
+#print axioms Cochrane.DebtDeficitsInflation.Wold.innov_eq_zero_of
+#print axioms Cochrane.DebtDeficitsInflation.Wold.inner_x_innov
+#print axioms Cochrane.DebtDeficitsInflation.Wold.woldCoeff_eq
+#print axioms Cochrane.DebtDeficitsInflation.Wold.inner_innov_x
+#print axioms Cochrane.DebtDeficitsInflation.Wold.woldCoeff_zero
+#print axioms Cochrane.DebtDeficitsInflation.Wold.orthonormal_innov
+#print axioms Cochrane.DebtDeficitsInflation.Wold.woldCoeff_smul
+#print axioms Cochrane.DebtDeficitsInflation.Wold.hasSum_wold
+#print axioms Cochrane.DebtDeficitsInflation.Wold.norm_inner_sq
+#print axioms Cochrane.DebtDeficitsInflation.Wold.summable_sq_woldCoeff
+#print axioms Cochrane.DebtDeficitsInflation.Wold.tsum_sq_woldCoeff_le
+#print axioms Cochrane.DebtDeficitsInflation.Wold.regPart_mem
+#print axioms Cochrane.DebtDeficitsInflation.Wold.inner_innov_hasSum
+#print axioms Cochrane.DebtDeficitsInflation.Wold.innov_mem_orthogonal_remote
+#print axioms Cochrane.DebtDeficitsInflation.Wold.regPart_mem_orthogonal_remote
+#print axioms Cochrane.DebtDeficitsInflation.Wold.sub_regPart_mem_remote
+#print axioms Cochrane.DebtDeficitsInflation.Wold.detPart_eq
+#print axioms Cochrane.DebtDeficitsInflation.Wold.x_eq_regPart_add_detPart
+#print axioms Cochrane.DebtDeficitsInflation.Wold.detPart_mem_remote
+#print axioms Cochrane.DebtDeficitsInflation.Wold.wold_decomposition
+#print axioms Cochrane.DebtDeficitsInflation.Wold.wold_unique
+#print axioms Cochrane.DebtDeficitsInflation.Wold.deterministic_iff
+#print axioms Cochrane.DebtDeficitsInflation.Wold.deterministic_iff_detPart
+#print axioms Cochrane.DebtDeficitsInflation.Wold.regular_iff
+#print axioms Cochrane.DebtDeficitsInflation.Wold.regular_iff_hasSum
+#print axioms Cochrane.DebtDeficitsInflation.Wold.past_le_of_mem
+#print axioms Cochrane.DebtDeficitsInflation.Wold.remote_eq_past_detPart
+#print axioms Cochrane.DebtDeficitsInflation.Wold.wold_dichotomy
+#print axioms Cochrane.DebtDeficitsInflation.Wold.eq_zero_of_regular_deterministic
+#print axioms Cochrane.DebtDeficitsInflation.Wold.stationary_of_shift
+#print axioms Cochrane.DebtDeficitsInflation.Wold.exists_shift_of_stationary
+#print axioms Cochrane.DebtDeficitsInflation.Wold.stationary_iff_exists_shift
+#print axioms Cochrane.DebtDeficitsInflation.Wold.wold_of_stationary
+#print axioms Cochrane.DebtDeficitsInflation.Wold.mixed_example
+#print axioms Cochrane.DebtDeficitsInflation.Wold.maProc_shift
+#print axioms Cochrane.DebtDeficitsInflation.Wold.maProc_regular
+#print axioms Cochrane.DebtDeficitsInflation.Wold.wold_factor_is_wold
+#print axioms Cochrane.DebtDeficitsInflation.Wold.wold_unit_root
+#print axioms Cochrane.DebtDeficitsInflation.Wold.IIDEconomy.oneL2
+#print axioms Cochrane.DebtDeficitsInflation.Wold.IIDEconomy.inner_oneL2
+#print axioms Cochrane.DebtDeficitsInflation.Wold.IIDEconomy.oneL2_ne_zero
+#print axioms Cochrane.DebtDeficitsInflation.Wold.IIDEconomy.inner_shockL2_one
+#print axioms Cochrane.DebtDeficitsInflation.Wold.IIDEconomy.iid_wold
+#print axioms Cochrane.DebtDeficitsInflation.Wold.IIDEconomy.iid_wold_factor_is_wold
+#print axioms Cochrane.DebtDeficitsInflation.Wold.IIDEconomy.iid_mixed
+#print axioms Cochrane.DebtDeficitsInflation.Wold.IIDEconomy.coin_wold
+#print axioms Cochrane.DebtDeficitsInflation.Wold.IIDEconomy.coin_wold_unit_root
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.lam
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.debtCoeff
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.fbCoeff
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.fbFactor
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.debtCoeff_zero
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.debtCoeff_succ
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.fbCoeff_eq_conv
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.summable_abs_debtCoeff
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.summable_abs_fbCoeff
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.hasSum_gen_debtCoeff
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.hasSum_gen_fbCoeff
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.gen_fbCoeff_rho
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.maSeries
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.statValue
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.summable_ma_term
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.isMA_maSeries
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.isMA_statValue
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.statValue_apply
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.tsum_ma_succ
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.statValue_succ
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.fbValue_eq_statValue
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.fbSurplus_eq_maSeries
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.feedback_ma_repaid
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.feedback_ma_link
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.debtCoeff_ar1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.debtCoeff_ar1_eq
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.fbCoeff_ar1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6FeedbackMA.feedback_ar1_closed_form
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.lintegral_enorm_eq
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.tsum_lintegral_ne_top
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.ae_summable_abs
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.E_hasSum_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.DiscL1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.DiscL1.of_integral_bdd
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.DiscL1.of_sq_bdd
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.DiscL1.of_bdd
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.DiscL1.of_summable
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.DiscL1.add
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.DiscL1.sub
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.DiscL1.zero
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.DiscL1.summable_integral
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.DiscL1.ae_summable
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.pv_ex_post_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.pv_E_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.pv_agents_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.condDown_valuation_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.condDown_valuation_L1_iff
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.condDown_valuation_iff_of_bdd
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.condDown_flow_iff_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.summable_innov_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.innov_pv_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.unexpected_inflation_any_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.unexpected_inflation_agents_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.simple_model_any_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.simple_model_agents_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.simple_model_econ_iff_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.tendsto_iff_of_eq
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.pv_ex_post_iff_tvc
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.E_rec_finite
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.pv_E_iff_tvc
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.innov_pv_iff_tvc
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.condDown_flow_iff_tvc
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.pv_E_tendsto_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.condDown_valuation_tendsto_L1
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.condDown_valuation_tendsto_L1_iff
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.pv_unit_root_fails
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6ConditioningDownL1.condDown_flow_unit_root
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Hilbert.nested_pythagoras
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Hilbert.nested_projection_eq_iff
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.hasOrthogonalProjection_lpMeas
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.starProjection_lpMeas_ae_eq_condExp
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.closure_span_le_lpMeas
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.condExp_beats_linear
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.ceInnov_mds
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.ceInnov_orthogonal
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.genSigma
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.pastSigma
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.pastSigma_le
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.measurable_pastSigma
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.toL2
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.past_le_lpMeas
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.ceInnov
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.ceInnov_ae_eq
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.ceInnov_eq_wold_iff
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.wold_decomposition_condExp
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID.eps
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID.surp
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID.surp_succ
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID.measurable_eps
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID.measurable_surp
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID.integrable_eps
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID.avoidSigma
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID.indep_avoid
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID.measurable_avoid
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID.measurable_surp_avoid
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID.condExp_eps_next
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.IID.condExp_surp_of_known
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Coin.decode
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Coin.measurable_decode
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Coin.coin_ae
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Coin.eps_pm
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Coin.decode_sub
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Coin.coin_shock_eq
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Coin.memLp_eps
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Coin.memLp_surp
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Coin.toL2_surp
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Coin.norm_sq_eq_integral
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6CondExpForecast.Coin.coin_condExp_beats_linear
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.integral_abs_le_norm
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.norm_sq_eq_integral
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.norm_cexp_sub_le
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.charFun_map_eq
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.hasGaussianLaw_of_tendsto
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.toLpFam
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.hasGaussianLaw_of_mem_span
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.hasGaussianLaw_of_mem_closure
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.isGaussianProcess_closure
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.inner_one_eq_integral
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.integral_eq_zero_of_mem_closure
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.condExp_eq_linear_of_gaussian
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.linForecast
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.gaussian_condExp_mse
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.gaussian_granger
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.gaussian_ceInnov_eq_wold
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.gaussian_wold_condExp
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.gaussLaw
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.gauss_mean
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.gauss_memLp
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.gauss_var
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.gauss_integrable
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.memLp_eps
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.memLp_coord
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.memLp_surp
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.isGaussianProcess_coord
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.isGaussianProcess_surp
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.gauss_whiteNoise
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.toL2_surp
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.debt
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianForecast.GaussEconomy.gaussian_noninvertible_condExp
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.shockG
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.maL2
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.maRep
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.shockG_whiteNoise
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.measurable_maRep
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.memLp_maRep
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.toL2_maRep
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.maL2_mem
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.integral_maRep
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.isGaussianProcess_pair
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.isGaussianProcess_maRep
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.debt_expost
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.starProjection_congr
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.condExp_mse_ma
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.gaussian_granger_ma
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.gaussian_wold_ma
+#print axioms Cochrane.DebtDeficitsInflation.TidyR6GaussianMA.ma1_special_case

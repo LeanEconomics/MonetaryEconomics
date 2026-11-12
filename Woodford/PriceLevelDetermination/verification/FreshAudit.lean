@@ -55,6 +55,13 @@ import Mathlib.LinearAlgebra.Matrix.Block
 import Mathlib.Algebra.Order.Field.GeomSum
 import Mathlib.Analysis.Calculus.Implicit
 import Mathlib.Analysis.LocallyConvex.HahnBanach
+import Mathlib.Analysis.Normed.Operator.Banach
+import Mathlib.Analysis.PSeries
+import Mathlib.Analysis.SpecialFunctions.SmoothTransition
+import Mathlib.Analysis.Analytic.IsolatedZeros
+import Mathlib.Analysis.Analytic.Composition
+import Mathlib.MeasureTheory.Function.ConditionalExpectation.Real
+import Mathlib.MeasureTheory.Constructions.Polish.StronglyMeasurable
 set_option autoImplicit false
 
 /-
@@ -37578,6 +37585,8821 @@ theorem random_sunspot_of_opS {Ω : Type*} [Nonempty Ω] (𝔼 : ExpectationSyst
 
 end Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots
 
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Sunspots when (A.8) is not onto: the bounded-below criterion
+
+Woodford (2003), *Interest and Prices*, Appendix A.3, pp. 632–634 (indeterminacy of
+`E_t[G(x_{t−1}, x_t, x_{t+1}, e_t)] = 0`). `LocalIFTSystemsStochasticSunspots` proves that genuinely
+random equilibria exist near the steady state when the operator (A.8) of the linearisation is
+onto but not one-to-one. This module treats the case where (A.8) is **not onto**.
+
+## Main results
+
+* `BoundedBelow`, `boundedBelow_iff`: `‖v‖ ≤ C ‖L v‖`, equivalently `L` one-to-one with closed
+  range (Banach); `boundedBelow_of_isUnit`.
+* `opS_boundedBelow` (**the linear transfer**): if the perfect-foresight operator (A.8) is
+  bounded below with constant `C`, the stochastic operator (A.12) is bounded below on adapted
+  processes, for every expectation system, with constant `C (1 + 2C‖f₃‖)`. The proof projects an
+  adapted solution on date-`k` forecasts (`phi_identity`); the innovations
+  `x_{k+1} − E_k x_{k+1}` are first bounded by the perfect-foresight problem they solve
+  (`innov_bound`). `sysOp_boundedBelow_of_opS` is the converse.
+* `unique_of_boundedBelow` (**nonlinear local uniqueness**): if `G` is `C¹` near the steady state
+  and (A.8) is bounded below (one-to-one with closed range — onto or not), then for every
+  expectation system there is `ε > 0` such that for every `(x_{−1}, e)` with `‖(x_{−1}, e)‖ < ε`
+  there is **at most one** bounded adapted equilibrium within `ε` of the steady state.
+  `no_sunspot_of_boundedBelow`: in particular there are no sunspot equilibria (random or
+  deterministic) near the steady state.
+* `sunspot_iff_of_surjective`: when (A.8) is onto, random sunspot equilibria near the steady
+  state exist (on the coin tree, at every scale) **iff** (A.8) is not one-to-one.
+* `eq_zero_of_push`: the elementary supremum argument behind the non-existence results of
+  `SunspotsNotOntoExamples` and `InertialBoundary`.
+
+So the linearisation decides the sunspot question exactly when (A.8) is onto or bounded below;
+`SunspotsNotOntoExamples` shows that in the remaining cases it may not decide it.
+-/
+
+namespace Woodford.PriceLevelDetermination.SunspotsBoundedBelow
+
+open scoped Topology Matrix
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic SystemsBK.GeneralBKForward
+open LocalIFTSystems (Arg linOp M1 M2 M3 cutoff cutoff_eq contDiff_cutoff
+  exists_ball_contDiffAt lin_cutoff)
+
+/-! ### Bounded-below operators -/
+
+/-- Woodford (2003), App. A.3, p. 632: a continuous linear map is **bounded below** when
+`‖v‖ ≤ C ‖L v‖` for some `C ≥ 0` (for Banach spaces: one-to-one with closed range,
+`boundedBelow_iff`). -/
+def BoundedBelow {V W : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V] [NormedAddCommGroup W]
+    [NormedSpace ℝ W] (L : V →L[ℝ] W) : Prop :=
+  ∃ C : ℝ, 0 ≤ C ∧ ∀ v, ‖v‖ ≤ C * ‖L v‖
+
+/-- Woodford (2003), App. A.3, p. 632: between Banach spaces, **bounded below ⟺ one-to-one with
+closed range** (open mapping theorem). -/
+theorem boundedBelow_iff {V W : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V]
+    [NormedAddCommGroup W] [NormedSpace ℝ W] [CompleteSpace V] [CompleteSpace W]
+    (L : V →L[ℝ] W) : BoundedBelow L ↔ Function.Injective L ∧ IsClosed (Set.range L) := by
+  constructor
+  · rintro ⟨C, hC0, hC⟩
+    have hinj : Function.Injective L := by
+      intro a b hab
+      have h := hC (a - b)
+      rw [map_sub, hab, sub_self, norm_zero, mul_zero] at h
+      exact sub_eq_zero.mp (norm_le_zero_iff.mp h)
+    refine ⟨hinj, (L.isClosed_range_iff_antilipschitz_of_injective hinj).mpr
+      ⟨Real.toNNReal C, L.antilipschitz_of_bound fun v => ?_⟩⟩
+    rw [Real.coe_toNNReal C hC0]
+    exact hC v
+  · rintro ⟨hinj, hcl⟩
+    obtain ⟨K, hK⟩ := L.antilipschitz_of_injective_of_isClosed_range hinj hcl
+    refine ⟨K, K.2, fun v => ?_⟩
+    have h := hK.le_mul_dist v 0
+    rwa [map_zero, dist_zero_right, dist_zero_right] at h
+
+/-- Woodford (2003), App. A.3, p. 632: an invertible operator is bounded below. -/
+theorem boundedBelow_of_isUnit {V : Type*} [NormedAddCommGroup V] [NormedSpace ℝ V]
+    {L : V →L[ℝ] V} (h : IsUnit L) : BoundedBelow L := by
+  obtain ⟨u, rfl⟩ := h
+  refine ⟨‖(↑u⁻¹ : V →L[ℝ] V)‖, norm_nonneg _, fun v => ?_⟩
+  have e : (↑u⁻¹ : V →L[ℝ] V) ((u : V →L[ℝ] V) v) = v := by
+    change ((↑u⁻¹ * ↑u : V →L[ℝ] V)) v = v
+    rw [Units.inv_mul]
+    rfl
+  calc ‖v‖ = ‖(↑u⁻¹ : V →L[ℝ] V) ((u : V →L[ℝ] V) v)‖ := by rw [e]
+    _ ≤ _ := ContinuousLinearMap.le_opNorm _ _
+
+/-! ### The supremum argument -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool, the "push" argument): if a bounded family satisfies
+`|a_j|³ ≤ K (B − |a_j|)` for **every** uniform bound `B` of `|a|`, it vanishes (look at an index
+where `|a_j|` is within `δ` of the supremum). -/
+theorem eq_zero_of_push {J : Type*} (a : J → ℝ) (hb : ∃ B, ∀ j, |a j| ≤ B) {K : ℝ} (hK : 0 < K)
+    (h : ∀ B, (∀ j, |a j| ≤ B) → ∀ j, |a j| ^ 3 ≤ K * (B - |a j|)) (j : J) : a j = 0 := by
+  by_contra hne
+  have hpos : 0 < |a j| := abs_pos.mpr hne
+  obtain ⟨B, hB⟩ := hb
+  have hbdd : BddAbove (Set.range fun k => |a k|) := ⟨B, by rintro _ ⟨k, rfl⟩; exact hB k⟩
+  set S := ⨆ k, |a k| with hS
+  have hle : ∀ k, |a k| ≤ S := fun k => le_ciSup hbdd k
+  have hSpos : 0 < S := hpos.trans_le (hle j)
+  set δ := min (S / 2) (S ^ 3 / (8 * K)) with hδ
+  have hδpos : 0 < δ := lt_min (by positivity) (by positivity)
+  have : Nonempty J := ⟨j⟩
+  obtain ⟨k, hk⟩ := exists_lt_of_lt_ciSup (show S - δ < S by linarith)
+  have h1 := h S hle k
+  have hk2 : S / 2 ≤ |a k| := by
+    have := min_le_left (S / 2) (S ^ 3 / (8 * K))
+    linarith
+  have h3 : S ^ 3 / 8 ≤ |a k| ^ 3 := by
+    have := pow_le_pow_left₀ (by positivity) hk2 3
+    have e : (S / 2) ^ 3 = S ^ 3 / 8 := by ring
+    linarith
+  have h4 : K * (S - |a k|) < K * δ := mul_lt_mul_of_pos_left (by linarith) hK
+  have h5 : K * δ ≤ S ^ 3 / 8 := by
+    calc K * δ ≤ K * (S ^ 3 / (8 * K)) := mul_le_mul_of_nonneg_left (min_le_right _ _) hK.le
+      _ = S ^ 3 / 8 := by field_simp
+  linarith
+
+/-! ### The linear transfer: perfect foresight bounded below ⟹ uncertainty bounded below -/
+
+variable {ι : Type*} [Fintype ι] [DecidableEq ι]
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+omit [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): a linear functional of random variables commutes
+with a constant matrix. -/
+theorem phi_mv (Φ : (Ω → ℝ) →ₗ[ℝ] ℝ) (M : Matrix ι ι ℝ) (b : ι → Ω → ℝ) (i : ι) :
+    Φ (mv M b i) = (M *ᵥ fun j => Φ (b j)) i := by
+  simp only [mv, map_sum, map_smul, Matrix.mulVec, dotProduct, smul_eq_mul]
+
+/-- Woodford (2003), App. A.3, p. 634 (**projection identity**): for an adapted `x` with
+`z = (A.12) x` and any linear functional `Φ` of date-`·` random variables, the sequence
+`s ↦ Φ(x_s)` satisfies the perfect-foresight equations with forcing `Φ(z_t)` plus the
+forecast-error term `f₃ Φ(x_{t+1} − E_t x_{t+1})`. -/
+theorem phi_identity (f₁ f₂ f₃ : Matrix ι ι ℝ) (x : SProcV ι Ω) (hx : AdaptedV 𝔼 (toP x))
+    (Φ : (Ω → ℝ) →ₗ[ℝ] ℝ) (t : ℕ) :
+    f₁ *ᵥ (fun i => Φ (lagP 0 (toP x) t i)) + f₂ *ᵥ (fun i => Φ (toP x t i)) +
+      f₃ *ᵥ (fun i => Φ (toP x (t + 1) i)) =
+    (fun i => Φ (toP (opS 𝔼 f₁ f₂ f₃ x) t i)) +
+      f₃ *ᵥ (fun i => Φ (toP x (t + 1) i - 𝔼.E t (toP x (t + 1) i))) := by
+  have hz : (fun i => Φ (toP (opS 𝔼 f₁ f₂ f₃ x) t i)) =
+      f₁ *ᵥ (fun i => Φ (lagP 0 (toP x) t i)) + f₂ *ᵥ (fun i => Φ (toP x t i)) +
+        f₃ *ᵥ (fun i => Φ (𝔼.E t (toP x (t + 1) i))) := by
+    rw [toP_opS_of_adapted 𝔼 f₁ f₂ f₃ x hx t]
+    funext i
+    simp only [Pi.add_apply, map_add]
+    rw [phi_mv, phi_mv, phi_mv]
+  have hs : (fun i => Φ (toP x (t + 1) i - 𝔼.E t (toP x (t + 1) i))) =
+      (fun i => Φ (toP x (t + 1) i)) - fun i => Φ (𝔼.E t (toP x (t + 1) i)) := by
+    funext i
+    simp only [map_sub, Pi.sub_apply]
+  rw [hz, hs, Matrix.mulVec_sub]
+  abel
+
+/-- Woodford (2003), App. A.3, p. 632 (tool): a bounded-below perfect-foresight operator bounds
+every bounded solution of the perfect-foresight equations by its forcing. -/
+theorem pf_bound {f₁ f₂ f₃ : Matrix ι ι ℝ} {C : ℝ} (hC0 : 0 ≤ C)
+    (hC : ∀ v, ‖v‖ ≤ C * ‖sysOp f₁ f₂ f₃ v‖) {y : ℕ → ι → ℝ} (hy : LinearSystems.BoundedSeq y)
+    {R : ℝ} (hR : 0 ≤ R) (h : ∀ s, ‖f₁ *ᵥ lagV 0 y s + f₂ *ᵥ y s + f₃ *ᵥ y (s + 1)‖ ≤ R) (s : ℕ) :
+    ‖y s‖ ≤ C * R := by
+  set Y := toSeqV y hy with hY
+  have hn : ‖sysOp f₁ f₂ f₃ Y‖ ≤ R := LocalIFT.norm_seq_le hR fun t => by
+    rw [sysOp_apply]
+    exact h t
+  calc ‖y s‖ = ‖Y s‖ := rfl
+    _ ≤ ‖Y‖ := LocalIFT.norm_seq_apply_le Y s
+    _ ≤ C * ‖sysOp f₁ f₂ f₃ Y‖ := hC Y
+    _ ≤ C * R := mul_le_mul_of_nonneg_left hn hC0
+
+omit [Fintype ι] [DecidableEq ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): `|E_{k+1} y − E_k y| ≤ 2M` when `|y| ≤ M`. -/
+theorem abs_innov_le {y : Ω → ℝ} {M : ℝ} (hy : ∀ ω, |y ω| ≤ M) (k : ℕ) (ω : Ω) :
+    |𝔼.E (k + 1) y ω - 𝔼.E k y ω| ≤ 2 * M := by
+  have h1 := abs_le.mp (𝔼.abs_E_le hy (k + 1) ω)
+  have h2 := abs_le.mp (𝔼.abs_E_le hy k ω)
+  exact abs_le.mpr ⟨by linarith [h1.1, h2.2], by linarith [h1.2, h2.1]⟩
+
+/-- Woodford (2003), App. A.3, p. 634: **the forecast errors are pinned down**: if (A.8) is
+bounded below with constant `C`, every adapted `x` has innovations
+`|x_{k+1} − E_k x_{k+1}| ≤ 2C ‖(A.12) x‖` (the innovation path `E_{k+1} x_{k+1+s} − E_k x_{k+1+s}`
+solves the perfect-foresight equations with zero initial condition and forcing
+`E_{k+1} z − E_k z`). -/
+theorem innov_bound {f₁ f₂ f₃ : Matrix ι ι ℝ} {C : ℝ} (hC0 : 0 ≤ C)
+    (hC : ∀ v, ‖v‖ ≤ C * ‖sysOp f₁ f₂ f₃ v‖) (x : SProcV ι Ω) (hx : AdaptedV 𝔼 (toP x))
+    (k : ℕ) (i : ι) (ω : Ω) :
+    |toP x (k + 1) i ω - 𝔼.E k (toP x (k + 1) i) ω| ≤ C * (2 * ‖opS 𝔼 f₁ f₂ f₃ x‖) := by
+  set B := ‖opS 𝔼 f₁ f₂ f₃ x‖ with hB
+  set Φ : (Ω → ℝ) →ₗ[ℝ] ℝ := (LinearMap.proj ω).comp (𝔼.E (k + 1) - 𝔼.E k) with hΦ
+  have hΦa : ∀ y, Φ y = 𝔼.E (k + 1) y ω - 𝔼.E k y ω := fun y => rfl
+  set e : ℕ → ι → ℝ := fun s i => Φ (toP x (k + 1 + s) i) with he
+  have heb : LinearSystems.BoundedSeq e := ⟨2 * ‖x‖, fun s i => by
+    change |Φ (toP x (k + 1 + s) i)| ≤ 2 * ‖x‖
+    rw [hΦa]
+    exact abs_innov_le 𝔼 (fun ω' => abs_apply_le x _ ω' i) k ω⟩
+  have hknown : ∀ i, 𝔼.E (k + 1) (toP x k i) = toP x k i := fun i => by
+    rw [← hx k i, 𝔼.known (Nat.le_succ k)]
+  have hlag : ∀ s, lagV 0 e s = fun i => Φ (lagP 0 (toP x) (k + 1 + s) i) := by
+    intro s
+    cases s with
+    | zero =>
+      funext i
+      change (0 : ι → ℝ) i = Φ (toP x k i)
+      rw [hΦa, hknown i, hx k i, sub_self]
+      rfl
+    | succ s => rfl
+  have heta : ∀ s, (fun i => Φ (toP x (k + 1 + s + 1) i -
+      𝔼.E (k + 1 + s) (toP x (k + 1 + s + 1) i))) = 0 := by
+    intro s
+    funext i
+    rw [hΦa, map_sub, map_sub, 𝔼.tower (by omega : k + 1 ≤ k + 1 + s),
+      𝔼.tower (by omega : k ≤ k + 1 + s)]
+    simp
+  have hR : ∀ s, ‖f₁ *ᵥ lagV 0 e s + f₂ *ᵥ e s + f₃ *ᵥ e (s + 1)‖ ≤ 2 * B := by
+    intro s
+    have hid := phi_identity 𝔼 f₁ f₂ f₃ x hx Φ (k + 1 + s)
+    rw [heta s, Matrix.mulVec_zero, add_zero] at hid
+    rw [hlag s]
+    change ‖f₁ *ᵥ (fun i => Φ (lagP 0 (toP x) (k + 1 + s) i)) +
+      f₂ *ᵥ (fun i => Φ (toP x (k + 1 + s) i)) +
+      f₃ *ᵥ (fun i => Φ (toP x (k + 1 + s + 1) i))‖ ≤ 2 * B
+    rw [hid]
+    refine (pi_norm_le_iff_of_nonneg (by positivity)).mpr fun i => ?_
+    rw [Real.norm_eq_abs, hΦa]
+    exact abs_innov_le 𝔼 (fun ω' => abs_apply_le _ _ ω' i) k ω
+  have h0 := pf_bound hC0 hC heb (by positivity) hR 0
+  have hcomp : |e 0 i| ≤ ‖e 0‖ := by rw [← Real.norm_eq_abs]; exact norm_le_pi_norm (e 0) i
+  have he0 : e 0 i = toP x (k + 1) i ω - 𝔼.E k (toP x (k + 1) i) ω := by
+    change Φ (toP x (k + 1) i) = _
+    rw [hΦa, hx (k + 1) i]
+  rw [← he0]
+  exact hcomp.trans h0
+
+/-- **Linear transfer** (Woodford (2003), App. A.3, pp. 632–634): if the perfect-foresight
+operator (A.8) `x ↦ f₁ x_{t−1} + f₂ x_t + f₃ x_{t+1}` is bounded below with constant `C`, then
+for **every** expectation system the stochastic operator (A.12) is bounded below on adapted
+processes: `‖x‖ ≤ C (1 + 2C‖f₃‖) ‖(A.12) x‖`. (Project on date-`k` forecasts `s ↦ E_k x_s(ω)`;
+the forecast errors that appear are bounded by `innov_bound`.) -/
+theorem opS_boundedBelow {f₁ f₂ f₃ : Matrix ι ι ℝ} {C : ℝ} (hC0 : 0 ≤ C)
+    (hC : ∀ v, ‖v‖ ≤ C * ‖sysOp f₁ f₂ f₃ v‖) (x : SProcV ι Ω) (hx : AdaptedV 𝔼 (toP x)) :
+    ‖x‖ ≤ C * ((1 + ‖mclm f₃‖ * (2 * C)) * ‖opS 𝔼 f₁ f₂ f₃ x‖) := by
+  set B := ‖opS 𝔼 f₁ f₂ f₃ x‖ with hB
+  have hB0 : 0 ≤ B := norm_nonneg _
+  refine LocalIFTStochastic.norm_le_of_forall (by positivity) fun p => ?_
+  obtain ⟨k, ω⟩ := p
+  set Φ : (Ω → ℝ) →ₗ[ℝ] ℝ := (LinearMap.proj ω).comp (𝔼.E k) with hΦ
+  have hΦa : ∀ y, Φ y = 𝔼.E k y ω := fun y => rfl
+  set y : ℕ → ι → ℝ := fun s i => Φ (toP x s i) with hy
+  have hyb : LinearSystems.BoundedSeq y := ⟨‖x‖, fun s i => by
+    change |Φ (toP x s i)| ≤ ‖x‖
+    rw [hΦa]
+    exact 𝔼.abs_E_le (fun ω' => abs_apply_le x _ ω' i) k ω⟩
+  have hlag : ∀ s, lagV 0 y s = fun i => Φ (lagP 0 (toP x) s i) := by
+    intro s
+    cases s with
+    | zero =>
+      funext i
+      change (0 : ι → ℝ) i = Φ (fun _ => 0)
+      rw [hΦa, 𝔼.const]
+      rfl
+    | succ s => rfl
+  have hR : ∀ s, ‖f₁ *ᵥ lagV 0 y s + f₂ *ᵥ y s + f₃ *ᵥ y (s + 1)‖ ≤
+      (1 + ‖mclm f₃‖ * (2 * C)) * B := by
+    intro s
+    rw [hlag s]
+    change ‖f₁ *ᵥ (fun i => Φ (lagP 0 (toP x) s i)) + f₂ *ᵥ (fun i => Φ (toP x s i)) +
+      f₃ *ᵥ (fun i => Φ (toP x (s + 1) i))‖ ≤ _
+    rw [phi_identity 𝔼 f₁ f₂ f₃ x hx Φ s]
+    have h1 : ‖(fun i => Φ (toP (opS 𝔼 f₁ f₂ f₃ x) s i) : ι → ℝ)‖ ≤ B :=
+      (pi_norm_le_iff_of_nonneg hB0).mpr fun i => by
+        rw [Real.norm_eq_abs, hΦa]
+        exact 𝔼.abs_E_le (fun ω' => abs_apply_le _ _ ω' i) k ω
+    have h2 : ‖(fun i => Φ (toP x (s + 1) i - 𝔼.E s (toP x (s + 1) i)) : ι → ℝ)‖ ≤
+        C * (2 * B) := (pi_norm_le_iff_of_nonneg (by positivity)).mpr fun i => by
+      rw [Real.norm_eq_abs, hΦa]
+      exact 𝔼.abs_E_le (fun ω' => innov_bound 𝔼 hC0 hC x hx s i ω') k ω
+    have h3 : ‖f₃ *ᵥ (fun i => Φ (toP x (s + 1) i - 𝔼.E s (toP x (s + 1) i)))‖ ≤
+        ‖mclm f₃‖ * (C * (2 * B)) := by
+      rw [← mclm_apply]
+      exact ((mclm f₃).le_opNorm _).trans (mul_le_mul_of_nonneg_left h2 (norm_nonneg _))
+    calc _ ≤ _ := norm_add_le _ _
+      _ ≤ B + ‖mclm f₃‖ * (C * (2 * B)) := add_le_add h1 h3
+      _ = (1 + ‖mclm f₃‖ * (2 * C)) * B := by ring
+  have hk := pf_bound hC0 hC hyb (by positivity) hR k
+  have hyk : y k = x (k, ω) := by
+    funext i
+    change Φ (toP x k i) = _
+    rw [hΦa]
+    exact congrFun (hx k i) ω
+  rw [← hyk]
+  exact hk
+
+/-- Woodford (2003), App. A.3, p. 634: **the converse transfer**: on a nonempty state space, if
+(A.12) is bounded below on adapted processes, so is (A.8) (embed deterministic paths). -/
+theorem sysOp_boundedBelow_of_opS [Nonempty Ω] {f₁ f₂ f₃ : Matrix ι ι ℝ} {C : ℝ}
+    (hC : ∀ x : SProcV ι Ω, AdaptedV 𝔼 (toP x) → ‖x‖ ≤ C * ‖opS 𝔼 f₁ f₂ f₃ x‖)
+    (v : SeqV ι) : ‖v‖ ≤ C * ‖sysOp f₁ f₂ f₃ v‖ := by
+  have hX := hC (embG (ι → ℝ) v) (adaptedV_embG 𝔼 v)
+  have he : opS 𝔼 f₁ f₂ f₃ (embG (Ω := Ω) (ι → ℝ) v) = embG (ι → ℝ) (sysOp f₁ f₂ f₃ v) := by
+    apply toP_injective
+    funext t i ω
+    change toP (opS 𝔼 f₁ f₂ f₃ (embG (ι → ℝ) v)) t i ω = sysOp f₁ f₂ f₃ v t i
+    rw [toP_opS_of_adapted 𝔼 f₁ f₂ f₃ _ (adaptedV_embG 𝔼 v) t, toP_embG, sysOp_apply]
+    have hl : lagP 0 (fun t i (_ : Ω) => v t i) t = fun i _ => lagV 0 (fun s => v s) t i := by
+      cases t <;> rfl
+    have hE : (fun i => 𝔼.E t (fun (_ : Ω) => v (t + 1) i)) = fun i _ => v (t + 1) i := by
+      funext i
+      exact 𝔼.const t _
+    rw [hl, hE, mv_cst, mv_cst, mv_cst]
+    rfl
+  rwa [he, norm_embG, norm_embG] at hX
+
+/-- Woodford (2003), App. A.3, pp. 632–634: on a nonempty state space, **(A.12) is bounded below
+on adapted processes iff (A.8) is bounded below**. -/
+theorem opS_boundedBelow_iff [Nonempty Ω] (f₁ f₂ f₃ : Matrix ι ι ℝ) :
+    (∃ C, 0 ≤ C ∧ ∀ x : SProcV ι Ω, AdaptedV 𝔼 (toP x) → ‖x‖ ≤ C * ‖opS 𝔼 f₁ f₂ f₃ x‖) ↔
+      BoundedBelow (sysOp f₁ f₂ f₃) := by
+  constructor
+  · rintro ⟨C, hC0, hC⟩
+    exact ⟨C, hC0, sysOp_boundedBelow_of_opS 𝔼 hC⟩
+  · rintro ⟨C, hC0, hC⟩
+    refine ⟨C * (1 + ‖mclm f₃‖ * (2 * C)), by positivity, fun x hx => ?_⟩
+    rw [mul_assoc]
+    exact opS_boundedBelow 𝔼 hC0 hC x hx
+
+/-! ### Nonlinear local uniqueness when (A.8) is bounded below -/
+
+variable {E : Type*} [NormedAddCommGroup E] [NormedSpace ℝ E] [FiniteDimensional ℝ E]
+
+/-- **Local uniqueness without surjectivity** (Woodford (2003), App. A.3, pp. 632–634): if `G` is
+`C¹` near the steady state and the operator (A.8) of its linearisation is bounded below
+(one-to-one with closed range, `boundedBelow_iff`; it need **not** be onto), then for every
+expectation system there is `ε > 0` such that for every initial condition and disturbance
+process with `‖(x_{−1}, e)‖ < ε` the conditions `E_t[G(x_{t−1}, x_t, x_{t+1}, e_t)] = 0` have
+**at most one** bounded adapted solution within `ε` of the steady state. -/
+theorem unique_of_boundedBelow {G : Arg ι E → (ι → ℝ)} (hG : ContDiffAt ℝ 1 G 0)
+    (hbb : BoundedBelow (linOp G)) :
+    ∃ ε > 0, ∀ (u : ParS ι E Ω) (x y : SProcV ι Ω), ‖u‖ < ε → ‖x‖ < ε → ‖y‖ < ε →
+      SolvesSV 𝔼 G u x → SolvesSV 𝔼 G u y → x = y := by
+  obtain ⟨r, hr, hball⟩ := exists_ball_contDiffAt hG
+  set F := cutoff G r hr with hFdef
+  have hF1 : ContDiff ℝ 1 F := contDiff_cutoff hr hball
+  obtain ⟨hlo, -, -⟩ := lin_cutoff G hr
+  obtain ⟨C, hC0, hC⟩ := hbb
+  have hCF : ∀ v, ‖v‖ ≤ C * ‖sysOp (M1 F) (M2 F) (M3 F) v‖ := by
+    intro v
+    have h := hC v
+    rw [← hlo] at h
+    exact h
+  set K := C * (1 + ‖mclm (M3 F)‖ * (2 * C)) with hK
+  have hK0 : 0 ≤ K := by positivity
+  have hstrict := hasStrictFDerivAt_eqMapS 𝔼 hF1 0
+  rw [eqDS_zero 𝔼 hF1] at hstrict
+  have hlit := (hasStrictFDerivAt_iff_isLittleO.mp hstrict).def
+    (by positivity : (0 : ℝ) < 1 / (2 * (K + 1)))
+  obtain ⟨ρ, hρ, hρP⟩ := Metric.eventually_nhds_iff.mp hlit
+  refine ⟨min ρ (r / 4), lt_min hρ (by positivity), fun u x y hu hx hy hsx hsy => ?_⟩
+  have hu4 : ‖u‖ ≤ r / 4 := (hu.trans_le (min_le_right _ _)).le
+  have hx4 : ‖x‖ ≤ r / 4 := (hx.trans_le (min_le_right _ _)).le
+  have hy4 : ‖y‖ ≤ r / 4 := (hy.trans_le (min_le_right _ _)).le
+  have hzx : eqMapS 𝔼 F hF1.continuous (u, x) = 0 :=
+    (eqMapS_eq_zero_iff 𝔼 F hF1.continuous u x).mpr
+      ((solvesSV_cutoff_iff 𝔼 hr hu4 hx4).mpr hsx)
+  have hzy : eqMapS 𝔼 F hF1.continuous (u, y) = 0 :=
+    (eqMapS_eq_zero_iff 𝔼 F hF1.continuous u y).mpr
+      ((solvesSV_cutoff_iff 𝔼 hr hu4 hy4).mpr hsy)
+  have hd : dist (((u, x), (u, y)) : (ParS ι E Ω × SProcV ι Ω) × (ParS ι E Ω × SProcV ι Ω))
+      (0, 0) < ρ := by
+    rw [Prod.dist_eq, dist_zero_right, dist_zero_right, Prod.norm_def, Prod.norm_def]
+    have h1 : ‖u‖ < ρ := hu.trans_le (min_le_left _ _)
+    have h2 : ‖x‖ < ρ := hx.trans_le (min_le_left _ _)
+    have h3 : ‖y‖ < ρ := hy.trans_le (min_le_left _ _)
+    exact max_lt (max_lt h1 h2) (max_lt h1 h3)
+  have hest := hρP hd
+  simp only [hzx, hzy, sub_zero, zero_sub, norm_neg] at hest
+  have hdiff : ((u, x) : ParS ι E Ω × SProcV ι Ω) - (u, y) = (0, x - y) := by
+    rw [Prod.mk_sub_mk, sub_self]
+  rw [hdiff] at hest
+  have hD : eqD0S 𝔼 F ((0 : ParS ι E Ω), x - y) = linOpS 𝔼 F (x - y) := by
+    simp [eqD0S]
+  rw [hD, Prod.norm_def, norm_zero, max_eq_right (norm_nonneg _)] at hest
+  have had : AdaptedV 𝔼 (toP (x - y)) := by
+    intro t i
+    rw [toP_sub]
+    change 𝔼.E t (toP x t i - toP y t i) = toP x t i - toP y t i
+    rw [map_sub, hsx.1 t i, hsy.1 t i]
+  have htr := opS_boundedBelow 𝔼 hC0 hCF (x - y) had
+  change ‖x - y‖ ≤ C * ((1 + ‖mclm (M3 F)‖ * (2 * C)) * ‖linOpS 𝔼 F (x - y)‖) at htr
+  rw [← mul_assoc, ← hK] at htr
+  have hK1 : K * (1 / (2 * (K + 1))) ≤ 1 / 2 := by
+    rw [mul_one_div, div_le_div_iff₀ (by positivity) (by norm_num)]
+    linarith
+  have hle : ‖x - y‖ ≤ 1 / 2 * ‖x - y‖ := by
+    calc ‖x - y‖ ≤ K * ‖linOpS 𝔼 F (x - y)‖ := htr
+      _ ≤ K * (1 / (2 * (K + 1)) * ‖x - y‖) := mul_le_mul_of_nonneg_left hest hK0
+      _ = (K * (1 / (2 * (K + 1)))) * ‖x - y‖ := by ring
+      _ ≤ 1 / 2 * ‖x - y‖ := mul_le_mul_of_nonneg_right hK1 (norm_nonneg _)
+  have h0 : ‖x - y‖ = 0 := by linarith [norm_nonneg (x - y)]
+  exact sub_eq_zero.mp (norm_eq_zero.mp h0)
+
+/-- **No sunspots when (A.8) is bounded below** (Woodford (2003), App. A.3, pp. 632–634): under
+the hypotheses of `unique_of_boundedBelow` and `G(0) = 0`, for every expectation system the
+steady state is the only bounded adapted equilibrium within `ε` of it when `x_{−1} = x̄` and
+there are no disturbances — no sunspot equilibria, random or deterministic. -/
+theorem no_sunspot_of_boundedBelow {G : Arg ι E → (ι → ℝ)} (hG : ContDiffAt ℝ 1 G 0)
+    (h0 : G 0 = 0) (hbb : BoundedBelow (linOp G)) :
+    ∃ ε > 0, ∀ x : SProcV ι Ω, ‖x‖ < ε → SolvesSV 𝔼 G 0 x → x = 0 := by
+  obtain ⟨ε, hε, h⟩ := unique_of_boundedBelow 𝔼 hG hbb
+  exact ⟨ε, hε, fun x hx hs => h 0 x 0 (by rwa [norm_zero]) hx (by rwa [norm_zero]) hs
+    (solvesSV_zero 𝔼 h0)⟩
+
+/-- **When (A.8) is onto, the linearisation decides the sunspot question exactly** (Woodford
+(2003), App. A.3, pp. 632–634): for `G` `C¹` near the steady state with `G(0) = 0` and (A.8)
+onto, the exact model has bounded adapted equilibria on the core coin tree at every scale whose
+date-1 value differs across the first flip **iff** (A.8) is not one-to-one. -/
+theorem sunspot_iff_of_surjective {G : Arg ι E → (ι → ℝ)} (hG : ContDiffAt ℝ 1 G 0)
+    (h0 : G 0 = 0) (hs : Function.Surjective (linOp G)) :
+    (∀ ε > 0, ∃ x : SProcV ι (Bool × Bool),
+      SolvesSV ExpectationsFiniteTree.coinSystem G 0 x ∧ ‖x‖ ≤ ε ∧
+        x (1, (true, true)) ≠ x (1, (false, true))) ↔ ¬ Function.Injective (linOp G) := by
+  constructor
+  · intro hsun hinj
+    have hU : IsUnit (linOp G) := ContinuousLinearMap.isUnit_iff_bijective.mpr ⟨hinj, hs⟩
+    obtain ⟨ε, hε, hno⟩ := no_sunspot_of_boundedBelow ExpectationsFiniteTree.coinSystem hG h0
+      (boundedBelow_of_isUnit hU)
+    obtain ⟨x, hx, hxn, hxr⟩ := hsun (ε / 2) (by positivity)
+    have h := hno x (by linarith) hx
+    rw [h] at hxr
+    exact hxr rfl
+  · intro hni ε hε
+    obtain ⟨x, hx, hxn, -, hxr⟩ :=
+      LocalIFTSystemsStochasticSunspots.random_sunspot_nonlinear hG h0 hs hni hε
+    exact ⟨x, hx, hxn, hxr⟩
+
+end Woodford.PriceLevelDetermination.SunspotsBoundedBelow
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Sunspots when (A.8) is not onto: examples
+
+Woodford (2003), *Interest and Prices*, Appendix A.3, pp. 632–634. `SunspotsBoundedBelow` shows
+that the linearisation decides whether random sunspot equilibria exist near the steady state
+when the operator (A.8) is onto (they exist iff (A.8) is not one-to-one) or bounded below (they
+never exist). This module gives explicit scalar (`n = 1`) examples for the other cases.
+
+## Main results
+
+* **Bounded below but not onto** (too few stable roots): `Glag`,
+  `E_t[x_t + 2x_{t−1} + x_{t+1}² − e_t] = 0`. (A.8) is `v_t + 2v_{t−1}` (root `−2`, no stable
+  root): `boundedBelow_linOp_Glag`, `not_surjective_linOp_Glag`. Hence `Glag_unique`: for every
+  expectation system, local uniqueness for every small `(x_{−1}, e)`, and no sunspots.
+* **A unit root: the linearisation does not decide.** `Gatt` (`E_t x_{t+1} = x_t − x_t³`) and
+  `Grep` (`E_t x_{t+1} = x_t + x_t³`) have the **same** operator (A.8), `v_{t+1} − v_t`, with root
+  `1` on the unit circle; it is neither one-to-one (`not_injective_linOp_unit`) nor onto
+  (`not_surjective_linOp_unit`), and its range is **not closed** (`not_isClosed_range_unit`), so
+  it is not Fredholm. Yet `Gatt_random_sunspot`: random sunspots at every scale on the coin tree;
+  `Grep_unique`: under informational closure (perfect foresight, every finite tree) the steady
+  state is the **only** bounded adapted equilibrium, for any `(x_{−1}, e)`.
+* **A singular pencil with closed range: the linearisation does not decide.** `Gcub`
+  (`E_t[x_{t+1}³ − x_t³] = 0`) and `Gsta` (`E_t[x_t³] = 0`) both have (A.8) `= 0` (closed range,
+  `det(f₃λ² + f₂λ + f₁) ≡ 0`); `Gcub_random_sunspot` and `Gsta_unique`.
+
+So outside "(A.8) onto" and "(A.8) bounded below" the existence of random sunspots near the
+steady state is decided by higher-order terms, not by (A.8) (correction: a unit root does not
+give a closed range of finite codimension).
+-/
+
+namespace Woodford.PriceLevelDetermination.SunspotsNotOntoExamples
+
+open scoped Topology Matrix
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic SunspotsBoundedBelow
+open LocalIFTSystems (Arg linOp linOp_apply d1 d2 d3 projB projE)
+
+/-! ### Tools -/
+
+/-- Woodford (2003), App. A.3, p. 633 (tool): under informational closure a function of a variable
+known at `t` is known at `t`. -/
+theorem known_comp {Ω : Type*} {𝔼 : ExpectationSystem Ω} (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼)
+    {t : ℕ} {y : Ω → ℝ} (hy : 𝔼.E t y = y) (f : ℝ → ℝ) :
+    𝔼.E t (fun ω => f (y ω)) = fun ω => f (y ω) :=
+  hcl t _ fun ω ω' h => by rw [LocalIFTStochastic.Ops.cellConst_of_known 𝔼 hy ω ω' h]
+
+/-- Woodford (2003), App. A.3, p. 633 (tool): the coordinate `x_{t−1}` of the scalar argument. -/
+noncomputable def pA : Arg (Fin 1) ℝ →L[ℝ] ℝ :=
+  (ContinuousLinearMap.proj 0).comp
+    (ContinuousLinearMap.fst ℝ (Fin 1 → ℝ) ((Fin 1 → ℝ) × (Fin 1 → ℝ) × ℝ))
+
+/-- Woodford (2003), App. A.3, p. 633 (tool): the coordinate `x_{t+1}` of the scalar argument. -/
+noncomputable def pC : Arg (Fin 1) ℝ →L[ℝ] ℝ :=
+  (ContinuousLinearMap.proj 0).comp ((ContinuousLinearMap.fst ℝ (Fin 1 → ℝ) ℝ).comp
+    ((ContinuousLinearMap.snd ℝ (Fin 1 → ℝ) ((Fin 1 → ℝ) × ℝ)).comp
+      (ContinuousLinearMap.snd ℝ (Fin 1 → ℝ) ((Fin 1 → ℝ) × (Fin 1 → ℝ) × ℝ))))
+
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632 (tool): a scalar condition whose derivative at
+the steady state is `a x_{t−1} + b x_t + c x_{t+1} + d e_t` has the operator (A.8)
+`v ↦ a v_{t−1} + b v_t + c v_{t+1}`. -/
+theorem linOp_of_fderiv {G : Arg (Fin 1) ℝ → (Fin 1 → ℝ)} {a b c d : ℝ}
+    (hG : ∀ p : Arg (Fin 1) ℝ,
+      fderiv ℝ G 0 p = fun _ => a * p.1 0 + b * p.2.1 0 + c * p.2.2.1 0 + d * p.2.2.2)
+    (v : SeqV (Fin 1)) (t : ℕ) :
+    linOp G v t = fun _ => a * lagV 0 (fun s => v s) t 0 + b * v t 0 + c * v (t + 1) 0 := by
+  rw [linOp_apply]
+  simp only [d1, d2, d3, ContinuousLinearMap.comp_apply, ContinuousLinearMap.inl_apply,
+    ContinuousLinearMap.inr_apply, hG]
+  funext i
+  simp
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the two-branch process on the coin tree,
+`x_0 = 0` and `x_{t+1} = y_b(t)` after first flip `b`. -/
+noncomputable def brProc (y : Bool → ℕ → ℝ) {M : ℝ} (hM : ∀ b t, |y b t| ≤ M) :
+    SProcV (Fin 1) (Bool × Bool) :=
+  LocalIFTStochastic.mkB (fun p _ => lagV 0 (y p.2.1) p.1) ⟨max M 0, fun p => by
+    refine (pi_norm_le_iff_of_nonneg (le_max_right _ _)).mpr fun _ => ?_
+    rw [Real.norm_eq_abs]
+    obtain ⟨t, ω⟩ := p
+    cases t with
+    | zero => simp
+    | succ t => exact (hM _ t).trans (le_max_left _ _)⟩
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the two-branch process is within `M` of the
+steady state. -/
+theorem norm_brProc_le {y : Bool → ℕ → ℝ} {M : ℝ} (hM : ∀ b t, |y b t| ≤ M) (hM0 : 0 ≤ M) :
+    ‖brProc y hM‖ ≤ M := by
+  refine LocalIFTStochastic.norm_le_of_forall hM0 fun p => ?_
+  refine (pi_norm_le_iff_of_nonneg hM0).mpr fun _ => ?_
+  rw [Real.norm_eq_abs]
+  obtain ⟨t, ω⟩ := p
+  cases t with
+  | zero =>
+    change |lagV 0 (y ω.1) 0| ≤ M
+    simpa using hM0
+  | succ t => exact hM _ t
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): **the two-branch process is an equilibrium** of a
+scalar condition `φ(x_t, x_{t+1})` on the coin tree if each branch solves it from date 1 on and
+the date-0 condition holds on average over the first flip. -/
+theorem solvesSV_brProc {G : Arg (Fin 1) ℝ → (Fin 1 → ℝ)} {φ : ℝ → ℝ → ℝ}
+    (hG : ∀ p : Arg (Fin 1) ℝ, G p = fun _ => φ (p.2.1 0) (p.2.2.1 0))
+    {y : Bool → ℕ → ℝ} {M : ℝ} (hM : ∀ b t, |y b t| ≤ M)
+    (h0 : φ 0 (y true 0) + φ 0 (y false 0) = 0) (hstep : ∀ b t, φ (y b t) (y b (t + 1)) = 0) :
+    SolvesSV ExpectationsFiniteTree.coinSystem G 0 (brProc y hM) := by
+  refine ⟨fun t i => ?_, fun t i => ?_⟩
+  · cases t with
+    | zero =>
+      change ExpectationsFiniteTree.coinSystem.E 0 (fun _ => 0) = fun _ => 0
+      exact ExpectationsFiniteTree.coinSystem.const 0 0
+    | succ t =>
+      change ExpectationsFiniteTree.coinSystem.E (t + 1) (fun ω => y ω.1 t) = fun ω => y ω.1 t
+      exact LocalIFTStochasticModels.coin_known_fst t (fun b => y b t)
+  · cases t with
+    | zero =>
+      have hf : (fun ω => G (ptS ((0 : ParS (Fin 1) ℝ (Bool × Bool)), brProc y hM) (0, ω)) i) =
+          fun ω => φ 0 (y ω.1 0) := by
+        funext ω
+        rw [hG]
+        rfl
+      rw [hf]
+      funext ω
+      rw [LocalIFTStochasticModels.coin_E0]
+      simp only [Pi.zero_apply]
+      linarith
+    | succ t =>
+      have hf : (fun ω => G (ptS ((0 : ParS (Fin 1) ℝ (Bool × Bool)), brProc y hM)
+          (t + 1, ω)) i) = 0 := by
+        funext ω
+        rw [hG]
+        exact hstep ω.1 t
+      rw [hf]
+      exact map_zero _
+
+/-! ### Bounded below but not onto: too few stable roots -/
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the condition `x_t + 2x_{t−1} + x_{t+1}² − e_t`
+(characteristic root `−2`: no stable root, one predetermined variable). -/
+def Glag (p : Arg (Fin 1) ℝ) : Fin 1 → ℝ := fun _ => p.2.1 0 + 2 * p.1 0 + p.2.2.1 0 ^ 2 - p.2.2.2
+
+/-- Woodford (2003), App. A.3, p. 632 (example): `Glag` is `C^∞`. -/
+theorem contDiff_Glag (k : ℕ) : ContDiff ℝ k Glag :=
+  contDiff_pi.mpr fun _ =>
+    ((projB.contDiff.add (contDiff_const.mul pA.contDiff)).add (pC.contDiff.pow 2)).sub
+      projE.contDiff
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the derivative of `Glag` at the steady state. -/
+theorem fderiv_Glag (p : Arg (Fin 1) ℝ) :
+    fderiv ℝ Glag 0 p = fun _ => 2 * p.1 0 + 1 * p.2.1 0 + 0 * p.2.2.1 0 + (-1) * p.2.2.2 := by
+  have hA : HasFDerivAt (pA : Arg (Fin 1) ℝ → ℝ) pA 0 := pA.hasFDerivAt
+  have hB : HasFDerivAt (projB : Arg (Fin 1) ℝ → ℝ) projB 0 := projB.hasFDerivAt
+  have hC : HasFDerivAt (pC : Arg (Fin 1) ℝ → ℝ) pC 0 := pC.hasFDerivAt
+  have hE : HasFDerivAt (projE : Arg (Fin 1) ℝ → ℝ) projE 0 := projE.hasFDerivAt
+  have h : HasFDerivAt Glag (ContinuousLinearMap.pi fun _ : Fin 1 =>
+      projB + (2 : ℝ) • pA - projE) 0 := by
+    refine hasFDerivAt_pi'' fun _ => ?_
+    have h1 := ((hB.add (hA.const_mul (2 : ℝ))).add (hC.pow 2)).sub hE
+    refine h1.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+    simp [pC]
+  rw [h.fderiv]
+  funext i
+  simp [projB, projE, pA]
+  ring
+
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632 (example): the operator (A.8) of `Glag` is
+`v ↦ v_t + 2v_{t−1}`. -/
+theorem linOp_Glag (v : SeqV (Fin 1)) (t : ℕ) :
+    linOp Glag v t = fun _ => 2 * lagV 0 (fun s => v s) t 0 + 1 * v t 0 + 0 * v (t + 1) 0 :=
+  linOp_of_fderiv fderiv_Glag v t
+
+/-- Woodford (2003), App. A.3, p. 632 (example): **the operator (A.8) of `Glag` is bounded below**,
+`‖v‖ ≤ ‖(A.8) v‖` (from `v_t = ((A.8)v)_{t+1}/2 − v_{t+1}/2`). -/
+theorem boundedBelow_linOp_Glag : BoundedBelow (linOp Glag) := by
+  refine ⟨1, zero_le_one, fun v => ?_⟩
+  rw [one_mul]
+  have hc : ∀ t, |v t 0| ≤ (‖linOp Glag v‖ + ‖v‖) / 2 := by
+    intro t
+    have h := congrFun (linOp_Glag v (t + 1)) 0
+    simp only [lagV_succ] at h
+    have h1 : |linOp Glag v (t + 1) 0| ≤ ‖linOp Glag v‖ := by
+      rw [← Real.norm_eq_abs]
+      exact (norm_le_pi_norm _ 0).trans (LocalIFT.norm_seq_apply_le _ _)
+    have h2 : |v (t + 1) 0| ≤ ‖v‖ := by
+      rw [← Real.norm_eq_abs]
+      exact (norm_le_pi_norm _ 0).trans (LocalIFT.norm_seq_apply_le _ _)
+    rw [h] at h1
+    rw [abs_le] at h1 h2 ⊢
+    constructor <;> linarith
+  have hv : ‖v‖ ≤ (‖linOp Glag v‖ + ‖v‖) / 2 :=
+    LocalIFT.norm_seq_le (by positivity) fun t =>
+      (pi_norm_le_iff_of_nonneg (by positivity)).mpr fun i => by
+        rw [Real.norm_eq_abs, Subsingleton.elim i 0]
+        exact hc t
+  linarith
+
+/-- Woodford (2003), App. A.3, p. 632 (example): **the operator (A.8) of `Glag` is not onto**:
+the impulse `(1, 0, 0, …)` would need `v_t = (−2)ᵗ`. -/
+theorem not_surjective_linOp_Glag : ¬ Function.Surjective (linOp Glag) := by
+  intro hs
+  have hb : LinearSystems.BoundedSeq (fun (t : ℕ) (_ : Fin 1) => if t = 0 then (1 : ℝ) else 0) :=
+    ⟨1, fun t _ => by
+      change |(if t = 0 then (1 : ℝ) else 0)| ≤ 1
+      split_ifs <;> simp⟩
+  obtain ⟨v, hv⟩ := hs (toSeqV _ hb)
+  have hval : ∀ t, v t 0 = (-2) ^ t := by
+    intro t
+    induction t with
+    | zero =>
+      have h := congrFun (congrArg (fun w : SeqV (Fin 1) => w 0) hv) 0
+      rw [linOp_Glag] at h
+      simpa using h
+    | succ t ih =>
+      have h := congrFun (congrArg (fun w : SeqV (Fin 1) => w (t + 1)) hv) 0
+      rw [linOp_Glag] at h
+      simp only [lagV_succ, toSeqV_apply, Nat.add_one_ne_zero, ↓reduceIte] at h
+      rw [pow_succ]
+      linarith
+  obtain ⟨t, ht⟩ := pow_unbounded_of_one_lt ‖v‖ (by norm_num : (1 : ℝ) < 2)
+  have h1 : |v t 0| ≤ ‖v‖ := by
+    rw [← Real.norm_eq_abs]
+    exact (norm_le_pi_norm _ 0).trans (LocalIFT.norm_seq_apply_le _ _)
+  rw [hval, abs_pow, abs_neg, abs_two] at h1
+  linarith
+
+/-- **Bounded below, not onto: local uniqueness and no sunspots** (Woodford (2003), App. A.3,
+pp. 632–634, example): the linearisation of `E_t[x_t + 2x_{t−1} + x_{t+1}² − e_t] = 0` has no
+stable root, so (A.8) is not onto, but it is bounded below; hence for every expectation system
+there is `ε > 0` with at most one bounded adapted equilibrium within `ε` of the steady state for
+every `‖(x_{−1}, e)‖ < ε`, and the steady state is the only one when `x_{−1} = 0, e = 0`. -/
+theorem Glag_unique {Ω : Type*} (𝔼 : ExpectationSystem Ω) :
+    ¬ Function.Surjective (linOp Glag) ∧
+      (∃ ε > 0, ∀ (u : ParS (Fin 1) ℝ Ω) (x y : SProcV (Fin 1) Ω), ‖u‖ < ε → ‖x‖ < ε →
+        ‖y‖ < ε → SolvesSV 𝔼 Glag u x → SolvesSV 𝔼 Glag u y → x = y) ∧
+      ∃ ε > 0, ∀ x : SProcV (Fin 1) Ω, ‖x‖ < ε → SolvesSV 𝔼 Glag 0 x → x = 0 := by
+  have hc : ContDiffAt ℝ 1 Glag 0 := (contDiff_Glag 1).contDiffAt
+  have h0 : Glag 0 = 0 := by
+    funext i
+    simp [Glag]
+  exact ⟨not_surjective_linOp_Glag, unique_of_boundedBelow 𝔼 hc boundedBelow_linOp_Glag,
+    no_sunspot_of_boundedBelow 𝔼 hc h0 boundedBelow_linOp_Glag⟩
+
+/-! ### A unit root: the same linearisation, opposite answers -/
+
+/-- Woodford (2003), App. A.3, p. 632 (example): `E_t x_{t+1} = x_t − x_t³` (attracting cubic). -/
+def Gatt (p : Arg (Fin 1) ℝ) : Fin 1 → ℝ := fun _ => p.2.2.1 0 - p.2.1 0 + p.2.1 0 ^ 3
+
+/-- Woodford (2003), App. A.3, p. 632 (example): `E_t x_{t+1} = x_t + x_t³` (repelling cubic). -/
+def Grep (p : Arg (Fin 1) ℝ) : Fin 1 → ℝ := fun _ => p.2.2.1 0 - p.2.1 0 - p.2.1 0 ^ 3
+
+/-- Woodford (2003), App. A.3, p. 632 (example): `Gatt` and `Grep` are `C^∞`. -/
+theorem contDiff_Gatt_Grep (k : ℕ) : ContDiff ℝ k Gatt ∧ ContDiff ℝ k Grep :=
+  ⟨contDiff_pi.mpr fun _ => (pC.contDiff.sub projB.contDiff).add (projB.contDiff.pow 3),
+    contDiff_pi.mpr fun _ => (pC.contDiff.sub projB.contDiff).sub (projB.contDiff.pow 3)⟩
+
+/-- Woodford (2003), App. A.3, p. 632 (example): **both have the derivative `x_{t+1} − x_t`** at
+the steady state. -/
+theorem fderiv_Gatt_Grep (p : Arg (Fin 1) ℝ) :
+    fderiv ℝ Gatt 0 p = (fun _ => 0 * p.1 0 + (-1) * p.2.1 0 + 1 * p.2.2.1 0 + 0 * p.2.2.2) ∧
+      fderiv ℝ Grep 0 p = (fun _ => 0 * p.1 0 + (-1) * p.2.1 0 + 1 * p.2.2.1 0 + 0 * p.2.2.2) := by
+  have hA : HasFDerivAt (pA : Arg (Fin 1) ℝ → ℝ) pA 0 := pA.hasFDerivAt
+  have hB : HasFDerivAt (projB : Arg (Fin 1) ℝ → ℝ) projB 0 := projB.hasFDerivAt
+  have hC : HasFDerivAt (pC : Arg (Fin 1) ℝ → ℝ) pC 0 := pC.hasFDerivAt
+  have hE : HasFDerivAt (projE : Arg (Fin 1) ℝ → ℝ) projE 0 := projE.hasFDerivAt
+  have ha : HasFDerivAt Gatt (ContinuousLinearMap.pi fun _ : Fin 1 => pC - projB) 0 := by
+    refine hasFDerivAt_pi'' fun _ => ?_
+    have h1 := (hC.sub hB).add (hB.pow 3)
+    refine h1.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+    simp [projB]
+  have hr : HasFDerivAt Grep (ContinuousLinearMap.pi fun _ : Fin 1 => pC - projB) 0 := by
+    refine hasFDerivAt_pi'' fun _ => ?_
+    have h1 := (hC.sub hB).sub (hB.pow 3)
+    refine h1.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+    simp [projB]
+  rw [ha.fderiv, hr.fderiv]
+  refine ⟨?_, ?_⟩ <;> funext i <;> simp [projB, pC] <;> ring
+
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632 (example): **`Gatt` and `Grep` have the same
+operator (A.8)**, `v ↦ v_{t+1} − v_t` (characteristic root `1`, on the unit circle). -/
+theorem linOp_Gatt_Grep : linOp Gatt = linOp Grep ∧ ∀ (v : SeqV (Fin 1)) (t : ℕ),
+    linOp Gatt v t = fun _ => 0 * lagV 0 (fun s => v s) t 0 + (-1) * v t 0 + 1 * v (t + 1) 0 := by
+  have hA := fun v t => linOp_of_fderiv (fun p => (fderiv_Gatt_Grep p).1) v t
+  have hR := fun v t => linOp_of_fderiv (fun p => (fderiv_Gatt_Grep p).2) v t
+  exact ⟨ContinuousLinearMap.ext fun v => seq_ext fun t => by rw [hA, hR], hA⟩
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the unit-root operator `v_{t+1} − v_t` is not
+one-to-one (constants). -/
+theorem not_injective_linOp_unit : ¬ Function.Injective (linOp Gatt) := by
+  intro hinj
+  have hb : LinearSystems.BoundedSeq (fun (_ : ℕ) (_ : Fin 1) => (1 : ℝ)) := ⟨1, fun _ _ => by simp⟩
+  have h : linOp Gatt (toSeqV _ hb) = linOp Gatt 0 := by
+    rw [map_zero]
+    refine seq_ext fun t => ?_
+    rw [linOp_Gatt_Grep.2]
+    funext i
+    simp
+  have h1 := congrFun (congrArg (fun w : SeqV (Fin 1) => w 0) (hinj h)) 0
+  simp at h1
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the unit-root operator is not onto (the constant
+forcing `1` needs `v_t = v_0 + t`). -/
+theorem not_surjective_linOp_unit : ¬ Function.Surjective (linOp Gatt) := by
+  intro hs
+  have hb : LinearSystems.BoundedSeq (fun (_ : ℕ) (_ : Fin 1) => (1 : ℝ)) := ⟨1, fun _ _ => by simp⟩
+  obtain ⟨v, hv⟩ := hs (toSeqV _ hb)
+  have hval : ∀ t : ℕ, v t 0 = v 0 0 + t := by
+    intro t
+    induction t with
+    | zero => simp
+    | succ t ih =>
+      have h := congrFun (congrArg (fun w : SeqV (Fin 1) => w t) hv) 0
+      rw [linOp_Gatt_Grep.2] at h
+      simp only [toSeqV_apply] at h
+      push_cast
+      linarith
+  have hn : ∀ t, |v t 0| ≤ ‖v‖ := fun t => by
+    rw [← Real.norm_eq_abs]
+    exact (norm_le_pi_norm _ 0).trans (LocalIFT.norm_seq_apply_le _ _)
+  obtain ⟨t, ht⟩ := exists_nat_gt (2 * ‖v‖)
+  have h1 := hn t
+  have h2 := hn 0
+  rw [hval, abs_le] at h1
+  rw [abs_le] at h2
+  linarith [h1.2, h2.1]
+
+/-- **A unit root does not give a closed range** (Woodford (2003), App. A.3, p. 632; correction):
+the range of the unit-root operator `v ↦ v_{t+1} − v_t` on `ℓ∞` is not closed (`1/(t+1)` is a limit
+of truncations in the range but is not in it, the harmonic series diverging), so (A.8) is not
+Fredholm here. -/
+theorem not_isClosed_range_unit : ¬ IsClosed (Set.range (linOp Gatt)) := by
+  intro hcl
+  have hwb : LinearSystems.BoundedSeq (fun (t : ℕ) (_ : Fin 1) => 1 / ((t : ℝ) + 1)) :=
+    ⟨1, fun t _ => by
+      rw [abs_of_pos (by positivity)]
+      exact div_le_one_of_le₀ (by linarith [(Nat.cast_nonneg t : (0 : ℝ) ≤ t)]) (by positivity)⟩
+  set w := toSeqV _ hwb with hw
+  have hmem : w ∈ closure (Set.range (linOp Gatt)) := by
+    refine Metric.mem_closure_iff.mpr fun ε hε => ?_
+    obtain ⟨N, hN⟩ := exists_nat_one_div_lt hε
+    have hvb : LinearSystems.BoundedSeq (fun (t : ℕ) (_ : Fin 1) =>
+        ∑ s ∈ Finset.range (min t N), 1 / ((s : ℝ) + 1)) := ⟨N, fun t _ => by
+      rw [abs_of_nonneg (Finset.sum_nonneg fun s _ => by positivity)]
+      calc _ ≤ ∑ _s ∈ Finset.range (min t N), (1 : ℝ) := Finset.sum_le_sum fun s _ =>
+            div_le_one_of_le₀ (by linarith [(Nat.cast_nonneg s : (0 : ℝ) ≤ s)]) (by positivity)
+        _ = (min t N : ℕ) := by simp
+        _ ≤ N := by exact_mod_cast min_le_right t N⟩
+    refine ⟨linOp Gatt (toSeqV _ hvb), ⟨_, rfl⟩, ?_⟩
+    rw [dist_eq_norm]
+    refine lt_of_le_of_lt (LocalIFT.norm_seq_le (by positivity) fun t =>
+      (pi_norm_le_iff_of_nonneg (by positivity)).mpr fun i => ?_) hN
+    rw [Real.norm_eq_abs]
+    change |(w - linOp Gatt (toSeqV _ hvb)) t i| ≤ 1 / ((N : ℝ) + 1)
+    rw [lp.coeFn_sub, Pi.sub_apply, linOp_Gatt_Grep.2, hw, toSeqV_apply, Pi.sub_apply]
+    simp only [toSeqV_apply]
+    by_cases htN : t < N
+    · rw [min_eq_left (by omega : t + 1 ≤ N), min_eq_left htN.le, Finset.sum_range_succ]
+      simp only [one_div, zero_mul, neg_mul, one_mul, zero_add, neg_add_cancel_left, sub_self,
+        abs_zero, inv_nonneg]
+      positivity
+    · push Not at htN
+      rw [min_eq_right (by omega : N ≤ t + 1), min_eq_right htN]
+      simp only [zero_mul, zero_add, neg_mul, one_mul, neg_add_cancel, sub_zero]
+      rw [abs_of_pos (by positivity)]
+      exact one_div_le_one_div_of_le (by positivity) (by exact_mod_cast Nat.succ_le_succ htN)
+  rw [hcl.closure_eq] at hmem
+  obtain ⟨v, hv⟩ := hmem
+  have hval : ∀ t : ℕ, v t 0 = v 0 0 + ∑ s ∈ Finset.range t, 1 / ((s : ℝ) + 1) := by
+    intro t
+    induction t with
+    | zero => simp
+    | succ t ih =>
+      have h := congrFun (congrArg (fun w' : SeqV (Fin 1) => w' t) hv) 0
+      rw [linOp_Gatt_Grep.2, hw] at h
+      simp only [toSeqV_apply] at h
+      rw [Finset.sum_range_succ]
+      linarith
+  have hn : ∀ t, |v t 0| ≤ ‖v‖ := fun t => by
+    rw [← Real.norm_eq_abs]
+    exact (norm_le_pi_norm _ 0).trans (LocalIFT.norm_seq_apply_le _ _)
+  obtain ⟨t, ht⟩ := (Real.tendsto_sum_range_one_div_nat_succ_atTop.eventually_gt_atTop
+    (2 * ‖v‖)).exists
+  have h1 := hn t
+  have h2 := hn 0
+  rw [hval, abs_le] at h1
+  rw [abs_le] at h2
+  linarith [h1.2, h2.1]
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the attracting cubic `z ↦ z − z³` maps
+`[−1, 1]` into itself and does not increase `|z|`. -/
+theorem abs_att_le {z : ℝ} (hz : |z| ≤ 1) : |z - z ^ 3| ≤ |z| := by
+  have h : z - z ^ 3 = z * (1 - z ^ 2) := by ring
+  rw [h, abs_mul]
+  have h2 : z ^ 2 ≤ 1 := by
+    rw [← sq_abs]
+    nlinarith [abs_nonneg z]
+  rw [abs_of_nonneg (a := 1 - z ^ 2) (by linarith)]
+  calc |z| * (1 - z ^ 2) ≤ |z| * 1 :=
+        mul_le_mul_of_nonneg_left (by nlinarith [sq_nonneg z]) (abs_nonneg z)
+    _ = |z| := mul_one _
+
+/-- Woodford (2003), App. A.3, p. 634 (example): the deterministic path `x_{t+1} = x_t − x_t³`
+from `x_0 = c`. -/
+noncomputable def attPath (c : ℝ) : ℕ → ℝ
+  | 0 => c
+  | t + 1 => attPath c t - attPath c t ^ 3
+
+/-- Woodford (2003), App. A.3, p. 634 (example): the attracting path stays within `|c| ≤ 1`. -/
+theorem abs_attPath_le {c : ℝ} (hc : |c| ≤ 1) (t : ℕ) : |attPath c t| ≤ |c| := by
+  induction t with
+  | zero => exact le_rfl
+  | succ t ih => exact (abs_att_le (ih.trans hc)).trans ih
+
+/-- **Random sunspots at a unit root** (Woodford (2003), App. A.3, pp. 632–634, example): for
+`E_t x_{t+1} = x_t − x_t³`, whose operator (A.8) has the unit root `1` (neither one-to-one nor
+onto, range not closed), on the core coin tree and for every `ε > 0` there is a bounded adapted
+equilibrium with `x_{−1} = 0`, no disturbances, `‖x‖ ≤ ε`, whose date-1 value differs across
+the first flip (`x_1 = ±a`, then `x_{t+1} = x_t − x_t³` converges back). -/
+theorem Gatt_random_sunspot {ε : ℝ} (hε : 0 < ε) :
+    ∃ x : SProcV (Fin 1) (Bool × Bool), SolvesSV ExpectationsFiniteTree.coinSystem Gatt 0 x ∧
+      ‖x‖ ≤ ε ∧ x (1, (true, true)) ≠ x (1, (false, true)) := by
+  set a := min ε 1 with ha
+  have ha0 : 0 < a := lt_min hε one_pos
+  have ha1 : a ≤ 1 := min_le_right _ _
+  set y : Bool → ℕ → ℝ := fun b => attPath (if b then a else -a) with hy
+  have habs : ∀ b : Bool, |(if b then a else -a)| = a := fun b => by
+    cases b <;> simp [abs_of_pos ha0]
+  have hM : ∀ b t, |y b t| ≤ a := fun b t =>
+    (abs_attPath_le (by rw [habs]; exact ha1) t).trans_eq (habs b)
+  refine ⟨brProc y hM, solvesSV_brProc (φ := fun z z' => z' - z + z ^ 3) (fun p => rfl) hM ?_
+    (fun b t => ?_), (norm_brProc_le hM ha0.le).trans (min_le_left _ _), fun h => ?_⟩
+  · simp [hy, attPath]
+  · change attPath _ (t + 1) - attPath _ t + attPath _ t ^ 3 = 0
+    simp only [attPath]
+    ring
+  · have := congrFun h 0
+    change a = -a at this
+    linarith
+
+/-- Woodford (2003), App. A.3, p. 634 (example, tool): an equilibrium of `Grep` satisfies
+`E_t x_{t+1} = x_t + x_t³` (informational closure makes `x_t³` known). -/
+theorem Grep_E {Ω : Type*} {𝔼 : ExpectationSystem Ω} (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼)
+    {u : ParS (Fin 1) ℝ Ω} {x : SProcV (Fin 1) Ω} (hx : SolvesSV 𝔼 Grep u x) (t : ℕ) :
+    𝔼.E t (toP x (t + 1) 0) = fun ω => toP x t 0 ω + toP x t 0 ω ^ 3 := by
+  have h := hx.2 t 0
+  have hf : (fun ω => Grep (ptS (u, x) (t, ω)) 0) =
+      toP x (t + 1) 0 - toP x t 0 - fun ω => toP x t 0 ω ^ 3 := rfl
+  rw [hf, map_sub, map_sub, hx.1 t 0, known_comp hcl (hx.1 t 0) (fun z => z ^ 3)] at h
+  funext ω
+  have := congrFun h ω
+  simp only [Pi.sub_apply, Pi.zero_apply] at this
+  linarith
+
+/-- **No sunspots at the same unit root** (Woodford (2003), App. A.3, pp. 632–634, example): for
+`E_t x_{t+1} = x_t + x_t³` — the same operator (A.8) as `Gatt` — under informational closure
+(perfect foresight, every finite event tree) **every** bounded adapted equilibrium, for any
+`(x_{−1}, e)`, is the steady state: `|x_t| + |x_t|³ = |E_t x_{t+1}| ≤ sup |x|` forces `x = 0`. -/
+theorem Grep_unique {Ω : Type*} {𝔼 : ExpectationSystem Ω}
+    (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {u : ParS (Fin 1) ℝ Ω} {x : SProcV (Fin 1) Ω}
+    (hx : SolvesSV 𝔼 Grep u x) : x = 0 := by
+  have hz : ∀ p : ℕ × Ω, x p 0 = 0 := by
+    refine eq_zero_of_push (fun p : ℕ × Ω => x p 0) ⟨‖x‖, fun p => abs_apply_le x p.1 p.2 0⟩
+      one_pos fun B hB p => ?_
+    obtain ⟨t, ω⟩ := p
+    have hE := congrFun (Grep_E hcl hx t) ω
+    have hb := 𝔼.abs_E_le (fun ω' => hB (t + 1, ω')) t ω
+    change |𝔼.E t (toP x (t + 1) 0) ω| ≤ B at hb
+    rw [hE] at hb
+    change |x (t, ω) 0 + x (t, ω) 0 ^ 3| ≤ B at hb
+    have e : |x (t, ω) 0 + x (t, ω) 0 ^ 3| = |x (t, ω) 0| + |x (t, ω) 0| ^ 3 := by
+      rw [show x (t, ω) 0 + x (t, ω) 0 ^ 3 = x (t, ω) 0 * (1 + x (t, ω) 0 ^ 2) by ring, abs_mul,
+        abs_of_pos (by positivity : (0 : ℝ) < 1 + x (t, ω) 0 ^ 2), ← sq_abs]
+      ring
+    change |x (t, ω) 0| ^ 3 ≤ 1 * (B - |x (t, ω) 0|)
+    linarith
+  ext p i
+  rw [Subsingleton.elim i 0]
+  exact hz p
+
+/-- **The unit-root case is not decided by the linearisation** (Woodford (2003), App. A.3,
+pp. 632–634, correction): `Gatt` and `Grep` have the same operator (A.8), which is neither onto
+nor bounded below (not one-to-one, range not closed); the first has genuinely random sunspot
+equilibria at every scale on the coin tree, the second has none (indeed a unique bounded
+equilibrium, the steady state) on the coin tree. -/
+theorem unit_root_undecided :
+    linOp Gatt = linOp Grep ∧ ¬ Function.Surjective (linOp Gatt) ∧
+      ¬ Function.Injective (linOp Gatt) ∧ ¬ IsClosed (Set.range (linOp Gatt)) ∧
+      (∀ ε > 0, ∃ x : SProcV (Fin 1) (Bool × Bool),
+        SolvesSV ExpectationsFiniteTree.coinSystem Gatt 0 x ∧ ‖x‖ ≤ ε ∧
+          x (1, (true, true)) ≠ x (1, (false, true))) ∧
+      ∀ x : SProcV (Fin 1) (Bool × Bool),
+        SolvesSV ExpectationsFiniteTree.coinSystem Grep 0 x → x = 0 :=
+  ⟨linOp_Gatt_Grep.1, not_surjective_linOp_unit, not_injective_linOp_unit,
+    not_isClosed_range_unit, fun _ hε => Gatt_random_sunspot hε,
+    fun _ hx => Grep_unique (LocalIFTStochastic.finiteTree_infoClosed _) hx⟩
+
+/-! ### A singular pencil (closed range): the same linearisation, opposite answers -/
+
+/-- Woodford (2003), App. A.3, p. 632 (example): `E_t[x_{t+1}³ − x_t³] = 0`. -/
+def Gcub (p : Arg (Fin 1) ℝ) : Fin 1 → ℝ := fun _ => p.2.2.1 0 ^ 3 - p.2.1 0 ^ 3
+
+/-- Woodford (2003), App. A.3, p. 632 (example): `E_t[x_t³] = 0`. -/
+def Gsta (p : Arg (Fin 1) ℝ) : Fin 1 → ℝ := fun _ => p.2.1 0 ^ 3
+
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632 (example): **both `Gcub` and `Gsta` have
+operator (A.8) equal to zero** (`det(f₃λ² + f₂λ + f₁) ≡ 0`; the range `{0}` is closed). -/
+theorem linOp_Gcub_Gsta : linOp Gcub = 0 ∧ linOp Gsta = 0 := by
+  have hA : HasFDerivAt (pA : Arg (Fin 1) ℝ → ℝ) pA 0 := pA.hasFDerivAt
+  have hB : HasFDerivAt (projB : Arg (Fin 1) ℝ → ℝ) projB 0 := projB.hasFDerivAt
+  have hC : HasFDerivAt (pC : Arg (Fin 1) ℝ → ℝ) pC 0 := pC.hasFDerivAt
+  have hE : HasFDerivAt (projE : Arg (Fin 1) ℝ → ℝ) projE 0 := projE.hasFDerivAt
+  have hc : HasFDerivAt Gcub (0 : Arg (Fin 1) ℝ →L[ℝ] (Fin 1 → ℝ)) 0 := by
+    refine hasFDerivAt_pi'' fun _ => ?_
+    have h1 := (hC.pow 3).sub (hB.pow 3)
+    refine h1.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+    simp [projB, pC]
+  have hs : HasFDerivAt Gsta (0 : Arg (Fin 1) ℝ →L[ℝ] (Fin 1 → ℝ)) 0 := by
+    refine hasFDerivAt_pi'' fun _ => ?_
+    have h1 := hB.pow 3
+    refine h1.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+    simp [projB]
+  have hz : ∀ G : Arg (Fin 1) ℝ → (Fin 1 → ℝ), fderiv ℝ G 0 = 0 → linOp G = 0 := by
+    intro G hG
+    refine ContinuousLinearMap.ext fun v => seq_ext fun t => ?_
+    rw [linOp_of_fderiv (a := 0) (b := 0) (c := 0) (d := 0) (fun p => by
+      rw [hG]; funext i; simp) v t]
+    funext i
+    simp
+  exact ⟨hz _ hc.fderiv, hz _ hs.fderiv⟩
+
+/-- **Random sunspots with a singular pencil** (Woodford (2003), App. A.3, p. 634, example): for
+`E_t[x_{t+1}³ − x_t³] = 0` (operator (A.8) zero), on the coin tree, for every `ε > 0`, the path
+`x_0 = 0`, `x_t = ±a` (`t ≥ 1`) is a bounded adapted equilibrium within `ε` whose date-1 value
+differs across the first flip. -/
+theorem Gcub_random_sunspot {ε : ℝ} (hε : 0 < ε) :
+    ∃ x : SProcV (Fin 1) (Bool × Bool), SolvesSV ExpectationsFiniteTree.coinSystem Gcub 0 x ∧
+      ‖x‖ ≤ ε ∧ x (1, (true, true)) ≠ x (1, (false, true)) := by
+  set y : Bool → ℕ → ℝ := fun b _ => if b then ε else -ε with hy
+  have hM : ∀ b t, |y b t| ≤ ε := fun b t => by cases b <;> simp [hy, abs_of_pos hε]
+  refine ⟨brProc y hM, solvesSV_brProc (φ := fun z z' => z' ^ 3 - z ^ 3) (fun p => rfl) hM ?_
+    (fun b t => ?_), norm_brProc_le hM hε.le, fun h => ?_⟩
+  · simp [hy]
+    ring
+  · simp [hy]
+  · have := congrFun h 0
+    change ε = -ε at this
+    linarith
+
+/-- **No sunspots with the same (zero) linearisation** (Woodford (2003), App. A.3, p. 634,
+example): under informational closure, every equilibrium of `E_t[x_t³] = 0` is the steady
+state. -/
+theorem Gsta_unique {Ω : Type*} {𝔼 : ExpectationSystem Ω}
+    (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {u : ParS (Fin 1) ℝ Ω} {x : SProcV (Fin 1) Ω}
+    (hx : SolvesSV 𝔼 Gsta u x) : x = 0 := by
+  ext ⟨t, ω⟩ i
+  rw [Subsingleton.elim i 0]
+  have h := hx.2 t 0
+  have hf : (fun ω => Gsta (ptS (u, x) (t, ω)) 0) = fun ω => toP x t 0 ω ^ 3 := rfl
+  rw [hf, known_comp hcl (hx.1 t 0) (fun z => z ^ 3)] at h
+  have h1 := congrFun h ω
+  exact pow_eq_zero_iff (n := 3) (by norm_num) |>.mp h1
+
+/-- **A closed range does not decide either** (Woodford (2003), App. A.3, pp. 632–634,
+correction): `Gcub` and `Gsta` have the same operator (A.8), zero (closed range, neither onto nor
+one-to-one, singular pencil); the first has random sunspots at every scale on the coin tree, the
+second has the steady state as its only bounded equilibrium there. -/
+theorem singular_pencil_undecided :
+    linOp Gcub = 0 ∧ linOp Gsta = 0 ∧
+      (∀ ε > 0, ∃ x : SProcV (Fin 1) (Bool × Bool),
+        SolvesSV ExpectationsFiniteTree.coinSystem Gcub 0 x ∧ ‖x‖ ≤ ε ∧
+          x (1, (true, true)) ≠ x (1, (false, true))) ∧
+      ∀ x : SProcV (Fin 1) (Bool × Bool),
+        SolvesSV ExpectationsFiniteTree.coinSystem Gsta 0 x → x = 0 :=
+  ⟨linOp_Gcub_Gsta.1, linOp_Gcub_Gsta.2, fun _ hε => Gcub_random_sunspot hε,
+    fun _ hx => Gsta_unique (LocalIFTStochastic.finiteTree_infoClosed _) hx⟩
+
+end Woodford.PriceLevelDetermination.SunspotsNotOntoExamples
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The inertial rule on the boundary of the determinacy region: the exact model
+
+Woodford (2003), *Interest and Prices*, Prop. 2.8, p. 96, and App. A.3, pp. 632–634. The exact
+model is the Fisher equation `E_t[î_t − π_{t+1} − r̂_t] = 0` and a nonlinear inertial rule
+`E_t[î_t − Ψ(π_t, î_{t−1}) − ν_t] = 0` (`LocalIFTSystemsApps.Finert`), with slopes
+`φ_π = ∂Ψ/∂π`, `ρ = ∂Ψ/∂î_{−1}` at the steady state. (A.22) — `φ_π ≠ 0` and `|φ_π + ρ| > 1` — is
+exactly local determinacy with a differentiable solution map (`inertial_iffS`), and for
+`|φ_π + ρ| < 1` the exact model has random sunspots (`inertial_random_sunspot`; this includes
+`φ_π = 0, |ρ| < 1`). This module settles the **boundary** `|φ_π + ρ| = 1` (any `φ_π`) and
+`φ_π = 0, |ρ| > 1`.
+
+## Answer: the linearisation does not decide; the higher-order terms do
+
+* **Sunspots** (on the coin tree, `î_{−1} = 0`, no shocks, at every scale):
+  `random_sunspot_of_diag` whenever the diagonal map `i ↦ Ψ(i, i)` does not increase `|i|` near
+  `0` (e.g. the linear rule on `|φ_π + ρ| = 1`, or the attracting cubic `ruleCubI`);
+  `random_sunspot_of_flat` whenever `Ψ(π, 0) = 0` for small `π` (e.g. `Ψ = ρ î_{−1}`).
+* **Uniqueness and existence** (under informational closure: perfect foresight, every finite
+  event tree): `unique_affine` — for a rule `φ_π π + h(î_{−1})` with `φ_π ≠ 0` whose diagonal
+  `i ↦ φ_π i + h(i)` is uniformly expanding, `|g(i) − g(i')| ≥ |i − i'| + κ|i − i'|³`, there is
+  **at most one** bounded equilibrium for every initial rate and disturbance process (globally,
+  not only near the steady state); `unique_cube` — the same for `ρ î_{−1} + σπ³` with `φ_π = 0`,
+  `σ² = 1`, `σρ ≥ 1`. With no shocks the equilibrium exists for every `î_{−1}`
+  (`solvesSV_jump`), so there are no sunspots of any kind.
+* **Non-existence**: `no_eq_flat` — `Ψ = ρ î_{−1}` with `|ρ| > 1` has no bounded equilibrium at
+  all for any `î_{−1} ≠ 0`; `no_eq_unit` — the linear rule with `|φ_π + ρ| = 1` has no bounded
+  equilibrium for the deterministic disturbance `ν_t = δ(φ_π + ρ)ᵗ`, for every `δ ≠ 0` (so for
+  arbitrarily small shocks).
+* Summaries with rules having **identical slopes**: `boundary_unit_circle` (`|φ_π + ρ| = 1`) and
+  `boundary_flat` (`φ_π = 0`, `|ρ| > 1`).
+
+Throughout, `inertial_iffS` (`LocalIFTSystemsStochasticApps`) already shows that on the boundary
+there is never a locally unique equilibrium map that exists for all small disturbances and is
+differentiable at the steady state; the results here say what does and does not survive.
+-/
+
+namespace Woodford.PriceLevelDetermination.InertialBoundary
+
+open scoped Topology Matrix
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic SunspotsBoundedBelow
+open SunspotsNotOntoExamples (known_comp abs_att_le)
+open LocalIFTSystems (Arg cbrt cbrt_pow)
+open LocalIFTSystemsApps (Finert ruleD)
+open LocalIFTSystemsStochasticApps (inertIter inertI inertPi inertSun abs_inertIter_le)
+
+variable {Ω : Type*} {𝔼 : ExpectationSystem Ω}
+
+/-! ### The two conditions in closed form -/
+
+/-- Woodford (2003), eq. (1.32), p. 79, under uncertainty (tool): in an equilibrium the Fisher
+equation reads `E_t π_{t+1} = î_t − E_t r̂_t`. -/
+theorem eq0_of_solves {Ψ : ℝ × ℝ → ℝ} {u : ParS (Fin 2) (Fin 2 → ℝ) Ω} {x : SProcV (Fin 2) Ω}
+    (hx : SolvesSV 𝔼 (Finert Ψ) u x) (t : ℕ) :
+    𝔼.E t (toP x (t + 1) 0) = toP x t 1 - 𝔼.E t (fun ω => u.2 (t, ω) 0) := by
+  have h := hx.2 t 0
+  have hf : (fun ω => Finert Ψ (ptS (u, x) (t, ω)) 0) =
+      toP x t 1 - toP x (t + 1) 0 - fun ω => u.2 (t, ω) 0 := rfl
+  rw [hf, map_sub, map_sub, hx.1 t 1] at h
+  linear_combination -h
+
+/-- Woodford (2003), eq. (2.12), p. 96, under uncertainty (tool): in an equilibrium the rule reads
+`î_t = E_t Ψ(π_t, î_{t−1}) + E_t ν_t`. -/
+theorem eq1_of_solves {Ψ : ℝ × ℝ → ℝ} {u : ParS (Fin 2) (Fin 2 → ℝ) Ω} {x : SProcV (Fin 2) Ω}
+    (hx : SolvesSV 𝔼 (Finert Ψ) u x) (t : ℕ) :
+    toP x t 1 = 𝔼.E t (fun ω => Ψ (x (t, ω) 0, lagV u.1 (fun s => x (s, ω)) t 1)) +
+      𝔼.E t (fun ω => u.2 (t, ω) 1) := by
+  have h := hx.2 t 1
+  have hf : (fun ω => Finert Ψ (ptS (u, x) (t, ω)) 1) = toP x t 1 -
+      (fun ω => Ψ (x (t, ω) 0, lagV u.1 (fun s => x (s, ω)) t 1)) - fun ω => u.2 (t, ω) 1 := rfl
+  rw [hf, map_sub, map_sub, hx.1 t 1] at h
+  linear_combination h
+
+/-- Woodford (2003), (2.12), p. 96 (tool): the lagged interest rate `î_{t−1}` is known at `t`. -/
+theorem lag_known {Ψ : ℝ × ℝ → ℝ} {u : ParS (Fin 2) (Fin 2 → ℝ) Ω} {x : SProcV (Fin 2) Ω}
+    (hx : SolvesSV 𝔼 (Finert Ψ) u x) (t : ℕ) :
+    𝔼.E t (fun ω => lagV u.1 (fun s => x (s, ω)) t 1) =
+      fun ω => lagV u.1 (fun s => x (s, ω)) t 1 := by
+  cases t with
+  | zero => exact 𝔼.const 0 _
+  | succ s =>
+    change 𝔼.E (s + 1) (toP x s 1) = toP x s 1
+    conv_lhs => rw [← hx.1 s 1]
+    rw [𝔼.known (Nat.le_succ s), hx.1 s 1]
+
+/-! ### Sunspots on the boundary -/
+
+/-- **Random sunspots when the diagonal does not expand** (Woodford (2003), Prop. 2.8, p. 96;
+App. A.3, pp. 633–634): for a rule `Ψ` continuous at the steady state with `Ψ(0) = 0` and
+`|Ψ(i, i)| ≤ |i|` for small `i` — whatever its slopes, in particular on `|φ_π + ρ| = 1` — on the
+core coin tree, for every `ε > 0`, the exact model with `î_{−1} = 0` and no fundamental shocks has
+a bounded adapted equilibrium within `ε` of the steady state, starting at it, whose date-1 value
+differs across the first flip (`π_1 = ±a`, then `î_{t+1} = Ψ(î_t, î_t)` stays small). -/
+theorem random_sunspot_of_diag {Ψ : ℝ × ℝ → ℝ} (hc : ContinuousAt Ψ 0) (hΨ0 : Ψ 0 = 0)
+    (hdiag : ∃ r > 0, ∀ i : ℝ, |i| ≤ r → |Ψ (i, i)| ≤ |i|) {ε : ℝ} (hε : 0 < ε) :
+    ∃ x : SProcV (Fin 2) (Bool × Bool),
+      SolvesSV ExpectationsFiniteTree.coinSystem (Finert Ψ) 0 x ∧ ‖x‖ ≤ ε ∧
+      (∀ ω, x (0, ω) = 0) ∧ x (1, (true, true)) ≠ x (1, (false, true)) := by
+  obtain ⟨r, hr, hrP⟩ := hdiag
+  have h00 : Ψ ((0 : ℝ), (0 : ℝ)) = 0 := by rw [Prod.mk_zero_zero]; exact hΨ0
+  set m := min r ε with hm
+  have hm0 : 0 < m := lt_min hr hε
+  obtain ⟨d, hd, hdP⟩ := Metric.continuousAt_iff.mp hc m hm0
+  set a := min (d / 2) ε with ha
+  have ha0 : 0 < a := lt_min (by positivity) hε
+  have haε : a ≤ ε := min_le_right _ _
+  have hsmall : ∀ b : Bool, |Ψ ((if b then a else -a), 0)| ≤ m := by
+    intro b
+    have hdist : dist (((if b then a else -a), (0 : ℝ)) : ℝ × ℝ) 0 < d := by
+      rw [dist_zero_right, Prod.norm_mk, norm_zero, max_eq_left (norm_nonneg _),
+        Real.norm_eq_abs]
+      have : |(if b then a else -a)| = a := by cases b <;> simp [abs_of_pos ha0]
+      rw [this]
+      linarith [min_le_left (d / 2) ε]
+    have h := hdP hdist
+    rw [hΨ0, dist_zero_right, Real.norm_eq_abs] at h
+    simpa using h.le
+  have hiter : ∀ (b : Bool) (t : ℕ), |inertIter Ψ (if b then a else -a) t| ≤ m := fun b t =>
+    abs_inertIter_le (min_le_left r ε) hrP (hsmall b) t
+  have hmε : m ≤ ε := min_le_right _ _
+  have hbound : ∀ t ω, ‖inertSun Ψ a t ω‖ ≤ ε := by
+    intro t ω
+    refine (pi_norm_le_iff_of_nonneg hε.le).mpr fun i => ?_
+    rw [Real.norm_eq_abs]
+    fin_cases i
+    · change |inertPi Ψ (if ω.1 then a else -a) t| ≤ ε
+      rcases t with _ | _ | t
+      · change |(0 : ℝ)| ≤ ε
+        rw [abs_zero]
+        exact hε.le
+      · change |(if ω.1 then a else -a)| ≤ ε
+        cases ω.1 <;> simp [abs_of_pos ha0, haε]
+      · exact (hiter ω.1 t).trans hmε
+    · change |inertI Ψ (if ω.1 then a else -a) t| ≤ ε
+      rcases t with _ | t
+      · change |(0 : ℝ)| ≤ ε
+        rw [abs_zero]
+        exact hε.le
+      · exact (hiter ω.1 t).trans hmε
+  set x : SProcV (Fin 2) (Bool × Bool) :=
+    LocalIFTStochastic.mkB (fun p => inertSun Ψ a p.1 p.2) ⟨ε, fun p => hbound p.1 p.2⟩ with hx
+  have hxv : ∀ t ω, x (t, ω) = inertSun Ψ a t ω := fun _ _ => rfl
+  refine ⟨x, ⟨?_, ?_⟩, LocalIFTStochastic.norm_le_of_forall hε.le fun p => hbound p.1 p.2,
+    fun ω => ?_, ?_⟩
+  · intro t i
+    rcases t with _ | t
+    · have h0 : toP x 0 i = fun _ => 0 := by
+        funext ω
+        fin_cases i <;> rfl
+      rw [h0]
+      exact ExpectationsFiniteTree.coinSystem.const 0 0
+    · have h1 : toP x (t + 1) i =
+          fun ω => (fun b : Bool => inertSun Ψ a (t + 1) (b, b) i) ω.1 := by
+        funext ω
+        rfl
+      rw [h1]
+      exact LocalIFTStochasticModels.coin_known_fst t
+        (fun b : Bool => inertSun Ψ a (t + 1) (b, b) i)
+  · have hfis0 : ∀ t, ExpectationsFiniteTree.coinSystem.E t (fun ω => Finert Ψ
+        (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x) (t, ω)) 0) = 0 := by
+      intro t
+      rcases t with _ | t
+      · have hf : (fun ω => Finert Ψ (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x)
+            (0, ω)) 0) = fun ω => -(if ω.1 then a else -a) := by
+          funext ω
+          simp [Finert, ptS, hxv, inertSun, inertI, inertPi]
+        rw [hf]
+        funext ω
+        rw [LocalIFTStochasticModels.coin_E0]
+        simp
+      · have hf : (fun ω => Finert Ψ (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x)
+            (t + 1, ω)) 0) = 0 := by
+          funext ω
+          simp [Finert, ptS, hxv, inertSun, inertI, inertPi]
+        rw [hf]
+        exact map_zero _
+    have hfis1 : ∀ t, ExpectationsFiniteTree.coinSystem.E t (fun ω => Finert Ψ
+        (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x) (t, ω)) 1) = 0 := by
+      intro t
+      have hf : (fun ω => Finert Ψ (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x)
+          (t, ω)) 1) = 0 := by
+        funext ω
+        rcases t with _ | _ | t
+        · simp [Finert, ptS, hxv, inertSun, inertI, inertPi, h00]
+        · simp [Finert, ptS, hxv, inertSun, inertI, inertPi, inertIter]
+        · simp [Finert, ptS, hxv, inertSun, inertI, inertPi, inertIter]
+      rw [hf]
+      exact map_zero _
+    intro t i
+    fin_cases i
+    · exact hfis0 t
+    · exact hfis1 t
+  · funext i
+    fin_cases i <;> rfl
+  · intro h
+    have := congrFun h 0
+    simp only [hxv, inertSun] at this
+    change a = -a at this
+    linarith
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (sunspot construction for a rule flat in inflation): the
+path `x_0 = 0`, `(π_1, î_1) = (s, 0)`, `x_t = 0` for `t ≥ 2`. -/
+noncomputable def flatSun (a : ℝ) (t : ℕ) (ω : Bool × Bool) : Fin 2 → ℝ :=
+  if t = 1 then ![if ω.1 then a else -a, 0] else 0
+
+/-- **Random sunspots when the rule ignores inflation at the steady-state rate** (Woodford (2003),
+Prop. 2.8, p. 96; App. A.3, p. 634): if `Ψ(0) = 0` and `Ψ(π, 0) = 0` for small `π` (so
+`φ_π = 0`; e.g. `Ψ = ρ î_{−1}` with any `ρ`), then on the coin tree, for every `ε > 0`, the exact
+model with `î_{−1} = 0` and no shocks has a bounded adapted equilibrium within `ε`, starting at the
+steady state, with `π_1 = ±a` and the interest rate never moving. -/
+theorem random_sunspot_of_flat {Ψ : ℝ × ℝ → ℝ} (hΨ0 : Ψ 0 = 0)
+    (hflat : ∃ r > 0, ∀ π : ℝ, |π| ≤ r → Ψ (π, 0) = 0) {ε : ℝ} (hε : 0 < ε) :
+    ∃ x : SProcV (Fin 2) (Bool × Bool),
+      SolvesSV ExpectationsFiniteTree.coinSystem (Finert Ψ) 0 x ∧ ‖x‖ ≤ ε ∧
+      (∀ ω, x (0, ω) = 0) ∧ x (1, (true, true)) ≠ x (1, (false, true)) := by
+  obtain ⟨r, hr, hrP⟩ := hflat
+  have h00 : Ψ ((0 : ℝ), (0 : ℝ)) = 0 := by rw [Prod.mk_zero_zero]; exact hΨ0
+  set a := min r ε with ha
+  have ha0 : 0 < a := lt_min hr hε
+  have hab : ∀ b : Bool, |(if b then a else -a)| = a := fun b => by
+    cases b <;> simp [abs_of_pos ha0]
+  have hbound : ∀ t ω, ‖flatSun a t ω‖ ≤ ε := by
+    intro t ω
+    refine (pi_norm_le_iff_of_nonneg hε.le).mpr fun i => ?_
+    rw [Real.norm_eq_abs]
+    unfold flatSun
+    by_cases ht : t = 1
+    · simp only [ht, ↓reduceIte]
+      fin_cases i
+      · change |(if ω.1 then a else -a)| ≤ ε
+        rw [hab]
+        exact min_le_right _ _
+      · change |(0 : ℝ)| ≤ ε
+        rw [abs_zero]
+        exact hε.le
+    · simp only [ht, ↓reduceIte, Pi.zero_apply, abs_zero]
+      exact hε.le
+  set x : SProcV (Fin 2) (Bool × Bool) :=
+    LocalIFTStochastic.mkB (fun p => flatSun a p.1 p.2) ⟨ε, fun p => hbound p.1 p.2⟩ with hx
+  have hxv : ∀ t ω, x (t, ω) = flatSun a t ω := fun _ _ => rfl
+  have hΨa : ∀ b : Bool, Ψ ((if b then a else -a), 0) = 0 := fun b =>
+    hrP _ ((hab b).trans_le (min_le_left _ _))
+  refine ⟨x, ⟨?_, fun t i => ?_⟩,
+    LocalIFTStochastic.norm_le_of_forall hε.le fun p => hbound p.1 p.2, fun ω => ?_, ?_⟩
+  · intro t i
+    rcases t with _ | t
+    · have h0 : toP x 0 i = fun _ => 0 := by
+        funext ω
+        simp [toP, hxv, flatSun]
+      rw [h0]
+      exact ExpectationsFiniteTree.coinSystem.const 0 0
+    · have h1 : toP x (t + 1) i =
+          fun ω => (fun b : Bool => flatSun a (t + 1) (b, b) i) ω.1 := by
+        funext ω
+        rfl
+      rw [h1]
+      exact LocalIFTStochasticModels.coin_known_fst t (fun b : Bool => flatSun a (t + 1) (b, b) i)
+  · fin_cases i
+    · rcases t with _ | t
+      · have hf : (fun ω => Finert Ψ (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x)
+            (0, ω)) 0) = fun ω => -(if ω.1 then a else -a) := by
+          funext ω
+          simp [Finert, ptS, hxv, flatSun]
+        change ExpectationsFiniteTree.coinSystem.E 0 (fun ω => Finert Ψ
+          (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x) (0, ω)) 0) = 0
+        rw [hf]
+        funext ω
+        rw [LocalIFTStochasticModels.coin_E0]
+        simp
+      · have hf : (fun ω => Finert Ψ (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x)
+            (t + 1, ω)) 0) = 0 := by
+          funext ω
+          have e1 : flatSun a (t + 1 + 1) ω = 0 := by simp [flatSun]
+          have e2 : flatSun a (t + 1) ω 1 = 0 := by
+            unfold flatSun
+            split_ifs <;> simp
+          simp [Finert, ptS, hxv, e1, e2]
+        change ExpectationsFiniteTree.coinSystem.E (t + 1) (fun ω => Finert Ψ
+          (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x) (t + 1, ω)) 0) = 0
+        rw [hf]
+        exact map_zero _
+    · have hf : (fun ω => Finert Ψ (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x)
+          (t, ω)) 1) = 0 := by
+        funext ω
+        rcases t with _ | _ | t
+        · simp [Finert, ptS, hxv, flatSun, h00]
+        · simp [Finert, ptS, hxv, flatSun, hΨa ω.1]
+        · have e1 : flatSun a (t + 1 + 1) ω = 0 := by simp [flatSun]
+          have e2 : flatSun a (t + 1) ω 1 = 0 := by
+            unfold flatSun
+            split_ifs <;> simp
+          simp [Finert, ptS, hxv, e1, e2, h00]
+      change ExpectationsFiniteTree.coinSystem.E t (fun ω => Finert Ψ
+        (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x) (t, ω)) 1) = 0
+      rw [hf]
+      exact map_zero _
+  · simp [hxv, flatSun]
+  · intro h
+    have := congrFun h 0
+    simp only [hxv, flatSun, ↓reduceIte, Matrix.cons_val_zero] at this
+    simp at this
+    linarith
+
+/-! ### Existence without shocks -/
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): the path `x_0 = (c, 0)`, `x_t = 0` for `t ≥ 1`. -/
+noncomputable def jumpSeq (c : ℝ) (t : ℕ) : Fin 2 → ℝ := if t = 0 then ![c, 0] else 0
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): `jumpSeq` as a bounded process. -/
+noncomputable def jumpP (c : ℝ) : SProcV (Fin 2) Ω :=
+  LocalIFTStochastic.mkB (fun p => jumpSeq c p.1) ⟨|c|, fun p => by
+    refine (pi_norm_le_iff_of_nonneg (abs_nonneg c)).mpr fun i => ?_
+    rw [Real.norm_eq_abs, jumpSeq]
+    split_ifs
+    · fin_cases i <;> simp
+    · simp⟩
+
+/-- **Existence without shocks** (Woodford (2003), Prop. 2.8, p. 96): if `Ψ(0, 0) = 0` and
+`Ψ(c, î_{−1}) = 0`, then for every expectation system the path that sets `π_0 = c` (so that
+`î_0 = 0`) and stays at the steady state afterwards is a bounded adapted equilibrium with initial
+rate `î_{−1}` and no disturbances. -/
+theorem solvesSV_jump {Ψ : ℝ × ℝ → ℝ} (h00 : Ψ (0, 0) = 0) {xm : Fin 2 → ℝ} {c : ℝ}
+    (hc : Ψ (c, xm 1) = 0) :
+    SolvesSV 𝔼 (Finert Ψ) (xm, 0) (jumpP (Ω := Ω) c) := by
+  have hv : ∀ t ω, (jumpP (Ω := Ω) c) (t, ω) = jumpSeq c t := fun _ _ => rfl
+  refine ⟨fun t i => ?_, fun t i => ?_⟩
+  · change 𝔼.E t (fun _ => jumpSeq c t i) = fun _ => jumpSeq c t i
+    exact 𝔼.const t _
+  · have hf : (fun ω => Finert Ψ (ptS (((xm, 0) : ParS (Fin 2) (Fin 2 → ℝ) Ω), jumpP c)
+        (t, ω)) i) = fun _ => 0 := by
+      funext ω
+      fin_cases i
+      · rcases t with _ | t
+        · simp [Finert, ptS, hv, jumpSeq]
+        · simp [Finert, ptS, hv, jumpSeq]
+      · rcases t with _ | _ | t
+        · simp [Finert, ptS, hv, jumpSeq, hc]
+        · simp [Finert, ptS, hv, jumpSeq, h00]
+        · simp [Finert, ptS, hv, jumpSeq, h00]
+    rw [hf]
+    exact 𝔼.const t 0
+
+/-! ### Uniqueness: a rule affine in inflation with an expanding diagonal -/
+
+/-- **Uniqueness on the boundary, `φ_π ≠ 0`** (Woodford (2003), Prop. 2.8, p. 96; App. A.3,
+p. 634): under informational closure, for a rule `Ψ(π, i) = φ_π π + h(i)` with `φ_π ≠ 0` whose
+diagonal `g(i) = φ_π i + h(i)` is uniformly expanding,
+`|g(i) − g(i')| ≥ |i − i'| + κ|i − i'|³` (`κ > 0`), any two bounded adapted equilibria with the
+same initial rate and disturbances coincide. (`E_t(î_{t+1} − î'_{t+1}) = g(î_t) − g(î'_t)`, so the
+gap would grow beyond its supremum.) -/
+theorem unique_affine (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {Ψ : ℝ × ℝ → ℝ}
+    {φ κ : ℝ} {h : ℝ → ℝ} (hΨ : ∀ π i, Ψ (π, i) = φ * π + h i) (hφ : φ ≠ 0) (hκ : 0 < κ)
+    (hexp : ∀ i i', |i - i'| + κ * |i - i'| ^ 3 ≤ |(φ * i + h i) - (φ * i' + h i')|)
+    {u : ParS (Fin 2) (Fin 2 → ℝ) Ω} {x y : SProcV (Fin 2) Ω}
+    (hx : SolvesSV 𝔼 (Finert Ψ) u x) (hy : SolvesSV 𝔼 (Finert Ψ) u y) : x = y := by
+  have hrule : ∀ z : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert Ψ) u z → ∀ t,
+      toP z t 1 = φ • toP z t 0 + (fun ω => h (lagV u.1 (fun s => z (s, ω)) t 1)) +
+        𝔼.E t (fun ω => u.2 (t, ω) 1) := by
+    intro z hz t
+    rw [eq1_of_solves hz t]
+    have e : (fun ω => Ψ (z (t, ω) 0, lagV u.1 (fun s => z (s, ω)) t 1)) =
+        φ • toP z t 0 + fun ω => h (lagV u.1 (fun s => z (s, ω)) t 1) := by
+      funext ω
+      simp only [hΨ, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      rfl
+    have hk := known_comp hcl (lag_known hz t) h
+    beta_reduce at hk
+    rw [e, map_add, map_smul, hz.1 t 0, hk]
+  set D : ℕ → Ω → ℝ := fun t => toP x t 1 - toP y t 1 with hD
+  have hED : ∀ t, 𝔼.E t (D (t + 1)) = fun ω =>
+      (φ * toP x t 1 ω + h (toP x t 1 ω)) - (φ * toP y t 1 ω + h (toP y t 1 ω)) := by
+    intro t
+    have hdiff : D (t + 1) = φ • (toP x (t + 1) 0 - toP y (t + 1) 0) +
+        ((fun ω => h (toP x t 1 ω)) - fun ω => h (toP y t 1 ω)) := by
+      change toP x (t + 1) 1 - toP y (t + 1) 1 = _
+      rw [hrule x hx (t + 1), hrule y hy (t + 1)]
+      funext ω
+      simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul, lagV_succ]
+      change _ = _ + (h (x (t, ω) 1) - h (y (t, ω) 1))
+      ring
+    have hkx := known_comp hcl (hx.1 t 1) h
+    have hky := known_comp hcl (hy.1 t 1) h
+    rw [hdiff, map_add, map_smul, map_sub, map_sub, eq0_of_solves hx t, eq0_of_solves hy t, hkx,
+      hky]
+    funext ω
+    simp only [Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  have hD0 : ∀ p : ℕ × Ω, D p.1 p.2 = 0 := by
+    refine eq_zero_of_push (fun p : ℕ × Ω => D p.1 p.2) ⟨‖x‖ + ‖y‖, fun p => ?_⟩
+      (inv_pos.mpr hκ) fun B hB p => ?_
+    · have h1 := abs_le.mp (abs_apply_le x p.1 p.2 1)
+      have h2 := abs_le.mp (abs_apply_le y p.1 p.2 1)
+      change |x p 1 - y p 1| ≤ _
+      exact abs_le.mpr ⟨by linarith [h1.1, h2.2], by linarith [h1.2, h2.1]⟩
+    · obtain ⟨t, ω⟩ := p
+      have hb := 𝔼.abs_E_le (fun ω' => hB (t + 1, ω')) t ω
+      change |𝔼.E t (D (t + 1)) ω| ≤ B at hb
+      rw [hED t] at hb
+      have he := hexp (toP x t 1 ω) (toP y t 1 ω)
+      change |D t ω| ^ 3 ≤ κ⁻¹ * (B - |D t ω|)
+      change |toP x t 1 ω - toP y t 1 ω| + κ * |toP x t 1 ω - toP y t 1 ω| ^ 3 ≤ _ at he
+      change |toP x t 1 ω - toP y t 1 ω| ^ 3 ≤ κ⁻¹ * (B - |toP x t 1 ω - toP y t 1 ω|)
+      rw [inv_mul_eq_div, le_div_iff₀ hκ]
+      linarith
+  have hI : ∀ t, toP x t 1 = toP y t 1 := fun t => funext fun ω => sub_eq_zero.mp (hD0 (t, ω))
+  have hlag : ∀ t ω, lagV u.1 (fun s => x (s, ω)) t 1 = lagV u.1 (fun s => y (s, ω)) t 1 := by
+    intro t ω
+    cases t with
+    | zero => rfl
+    | succ s => exact congrFun (hI s) ω
+  have hπ : ∀ t, toP x t 0 = toP y t 0 := by
+    intro t
+    have e1 := hrule x hx t
+    have e2 := hrule y hy t
+    rw [hI t] at e1
+    have hl : (fun ω => h (lagV u.1 (fun s => x (s, ω)) t 1)) =
+        fun ω => h (lagV u.1 (fun s => y (s, ω)) t 1) := funext fun ω => by rw [hlag t ω]
+    rw [hl] at e1
+    have hs : φ • toP x t 0 = φ • toP y t 0 :=
+      add_right_cancel (add_right_cancel (e1.symm.trans e2))
+    exact smul_right_injective _ hφ hs
+  ext ⟨t, ω⟩ i
+  fin_cases i
+  · exact congrFun (hπ t) ω
+  · exact congrFun (hI t) ω
+
+/-! ### Uniqueness: `φ_π = 0` with a cubic response to inflation -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `(a − b)³ ≤ 4(a³ − b³)` when `a ≥ b`. -/
+theorem cube_gap {a b : ℝ} (h : b ≤ a) : (a - b) ^ 3 ≤ 4 * (a ^ 3 - b ^ 3) := by
+  nlinarith [mul_nonneg (sub_nonneg.mpr h) (sq_nonneg (a + b))]
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `∛y ≥ 0` for `y ≥ 0`. -/
+theorem cbrt_nonneg {y : ℝ} (hy : 0 ≤ y) : 0 ≤ cbrt y := by
+  simp only [cbrt, hy, ↓reduceIte]
+  exact Real.rpow_nonneg hy _
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `a³ − b³ ≤ m` implies `a − b ≤ ∛(4 max(m, 0))`. -/
+theorem sub_le_cbrt {a b m : ℝ} (h : a ^ 3 - b ^ 3 ≤ m) : a - b ≤ cbrt (4 * max m 0) := by
+  have hc0 : 0 ≤ cbrt (4 * max m 0) := cbrt_nonneg (by positivity)
+  by_cases hab : b ≤ a
+  · have h1 : (a - b) ^ 3 ≤ cbrt (4 * max m 0) ^ 3 := by
+      rw [cbrt_pow]
+      have := cube_gap hab
+      have := le_max_left m 0
+      linarith
+    exact (pow_le_pow_iff_left₀ (sub_nonneg.mpr hab) hc0 (by norm_num)).mp h1
+  · push Not at hab
+    linarith
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `0 ≤ d ≤ ∛(4 max(m, 0))` implies
+`d³ ≤ 4 max(m, 0)`. -/
+theorem pow_le_of_le_cbrt {d m : ℝ} (hd : 0 ≤ d) (h : d ≤ cbrt (4 * max m 0)) :
+    d ^ 3 ≤ 4 * max m 0 := by
+  have := pow_le_pow_left₀ hd h 3
+  rwa [cbrt_pow] at this
+
+/-- **Uniqueness on the boundary, `φ_π = 0`** (Woodford (2003), Prop. 2.8, p. 96; App. A.3,
+p. 634): under informational closure, for the rule `Ψ(π, i) = ρ i + σ π³` with `σ² = 1` and
+`σρ ≥ 1` (slopes `φ_π = 0`, `ρ`, `|ρ| ≥ 1`), any two bounded adapted equilibria with the same
+initial rate and disturbances coincide. -/
+theorem unique_cube (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {Ψ : ℝ × ℝ → ℝ} {ρ σ : ℝ}
+    (hΨ : ∀ π i, Ψ (π, i) = ρ * i + σ * π ^ 3) (hσ : σ * σ = 1) (hτ : 1 ≤ σ * ρ)
+    {u : ParS (Fin 2) (Fin 2 → ℝ) Ω} {x y : SProcV (Fin 2) Ω}
+    (hx : SolvesSV 𝔼 (Finert Ψ) u x) (hy : SolvesSV 𝔼 (Finert Ψ) u y) : x = y := by
+  have hrule : ∀ z : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert Ψ) u z → ∀ t,
+      toP z t 1 = ρ • (fun ω => lagV u.1 (fun s => z (s, ω)) t 1) +
+        σ • (fun ω => toP z t 0 ω ^ 3) + 𝔼.E t (fun ω => u.2 (t, ω) 1) := by
+    intro z hz t
+    rw [eq1_of_solves hz t]
+    have e : (fun ω => Ψ (z (t, ω) 0, lagV u.1 (fun s => z (s, ω)) t 1)) =
+        ρ • (fun ω => lagV u.1 (fun s => z (s, ω)) t 1) + σ • (fun ω => toP z t 0 ω ^ 3) := by
+      funext ω
+      simp only [hΨ, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      rfl
+    have hk := known_comp hcl (hz.1 t 0) (fun w => w ^ 3)
+    beta_reduce at hk
+    rw [e, map_add, map_smul, map_smul, lag_known hz t, hk]
+  set D : ℕ → Ω → ℝ := fun t => toP x t 1 - toP y t 1 with hD
+  set τ := σ * ρ with hτdef
+  -- the cubic gap of inflation at `t + 1`
+  have hgap : ∀ t ω, toP x (t + 1) 0 ω ^ 3 - toP y (t + 1) 0 ω ^ 3 =
+      σ * D (t + 1) ω - τ * D t ω := by
+    intro t ω
+    have e1 := congrFun (hrule x hx (t + 1)) ω
+    have e2 := congrFun (hrule y hy (t + 1)) ω
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, lagV_succ] at e1 e2
+    change σ * σ = 1 at hσ
+    change _ = σ * (toP x (t + 1) 1 ω - toP y (t + 1) 1 ω) -
+      σ * ρ * (toP x t 1 ω - toP y t 1 ω)
+    change toP x (t + 1) 1 ω = ρ * toP x t 1 ω + σ * toP x (t + 1) 0 ω ^ 3 + _ at e1
+    change toP y (t + 1) 1 ω = ρ * toP y t 1 ω + σ * toP y (t + 1) 0 ω ^ 3 + _ at e2
+    rw [e1, e2]
+    linear_combination (toP y (t + 1) 0 ω ^ 3 - toP x (t + 1) 0 ω ^ 3) * hσ
+  have hEπ : ∀ t, 𝔼.E t (toP x (t + 1) 0 - toP y (t + 1) 0) = D t := by
+    intro t
+    rw [map_sub, eq0_of_solves hx t, eq0_of_solves hy t]
+    change _ = toP x t 1 - toP y t 1
+    abel
+  have hDk : ∀ t, 𝔼.E t (D t) = D t := fun t => by
+    change 𝔼.E t (toP x t 1 - toP y t 1) = toP x t 1 - toP y t 1
+    rw [map_sub, hx.1 t 1, hy.1 t 1]
+  have hD0 : ∀ p : ℕ × Ω, D p.1 p.2 = 0 := by
+    refine eq_zero_of_push (fun p : ℕ × Ω => D p.1 p.2) ⟨‖x‖ + ‖y‖, fun p => ?_⟩
+      (by norm_num : (0 : ℝ) < 4) fun B hB p => ?_
+    · have h1 := abs_le.mp (abs_apply_le x p.1 p.2 1)
+      have h2 := abs_le.mp (abs_apply_le y p.1 p.2 1)
+      change |x p 1 - y p 1| ≤ _
+      exact abs_le.mpr ⟨by linarith [h1.1, h2.2], by linarith [h1.2, h2.1]⟩
+    · obtain ⟨t, ω⟩ := p
+      have hBn : ∀ ω', |σ * D (t + 1) ω'| ≤ B := fun ω' => by
+        rw [abs_mul, show |σ| = 1 by nlinarith [abs_mul_abs_self σ, abs_nonneg σ], one_mul]
+        exact hB (t + 1, ω')
+      -- upper bound
+      have hup : ∀ ω', (toP x (t + 1) 0 - toP y (t + 1) 0) ω' ≤
+          cbrt (4 * max (B - τ * D t ω') 0) := fun ω' => by
+        refine sub_le_cbrt ?_
+        rw [hgap t ω']
+        linarith [(abs_le.mp (hBn ω')).2]
+      have hlo : ∀ ω', (toP y (t + 1) 0 - toP x (t + 1) 0) ω' ≤
+          cbrt (4 * max (B + τ * D t ω') 0) := fun ω' => by
+        refine sub_le_cbrt ?_
+        have := hgap t ω'
+        linarith [(abs_le.mp (hBn ω')).1]
+      have hU := 𝔼.mono t (show (toP x (t + 1) 0 - toP y (t + 1) 0) ≤
+        fun ω' => cbrt (4 * max (B - τ * D t ω') 0) from hup)
+      have hL := 𝔼.mono t (show (toP y (t + 1) 0 - toP x (t + 1) 0) ≤
+        fun ω' => cbrt (4 * max (B + τ * D t ω') 0) from hlo)
+      have hkU := known_comp hcl (hDk t) (fun w => cbrt (4 * max (B - τ * w) 0))
+      have hkL := known_comp hcl (hDk t) (fun w => cbrt (4 * max (B + τ * w) 0))
+      beta_reduce at hkU hkL
+      rw [hEπ, hkU] at hU
+      rw [show toP y (t + 1) 0 - toP x (t + 1) 0 = -(toP x (t + 1) 0 - toP y (t + 1) 0) by abel,
+        map_neg, hEπ, hkL] at hL
+      have hU' := hU ω
+      have hL' := hL ω
+      simp only [Pi.neg_apply] at hL'
+      change |D t ω| ^ 3 ≤ 4 * (B - |D t ω|)
+      set d := D t ω with hd
+      have hdB : |d| ≤ B := hB (t, ω)
+      change |d| ^ 3 ≤ 4 * (B - |d|)
+      rcases le_or_gt 0 d with h0 | h0
+      · have h3 := pow_le_of_le_cbrt h0 hU'
+        have hm : max (B - τ * d) 0 ≤ B - |d| := by
+          rw [abs_of_nonneg h0]
+          refine max_le (by nlinarith) (by linarith [le_abs_self d])
+        rw [abs_of_nonneg h0] at hm ⊢
+        linarith
+      · have h3 := pow_le_of_le_cbrt (by linarith) hL'
+        have hm : max (B + τ * d) 0 ≤ B - |d| := by
+          rw [abs_of_neg h0]
+          refine max_le (by nlinarith) (by linarith [neg_abs_le d, abs_of_neg h0])
+        rw [abs_of_neg h0]
+        rw [abs_of_neg h0] at hm
+        nlinarith
+  have hI : ∀ t, toP x t 1 = toP y t 1 := fun t => funext fun ω => sub_eq_zero.mp (hD0 (t, ω))
+  have hπ : ∀ t, toP x t 0 = toP y t 0 := by
+    intro t
+    funext ω
+    have e1 := congrFun (hrule x hx t) ω
+    have e2 := congrFun (hrule y hy t) ω
+    have hl : lagV u.1 (fun s => x (s, ω)) t 1 = lagV u.1 (fun s => y (s, ω)) t 1 := by
+      cases t with
+      | zero => rfl
+      | succ s => exact congrFun (hI s) ω
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e1 e2
+    rw [congrFun (hI t) ω, hl] at e1
+    have hcube : toP x t 0 ω ^ 3 = toP y t 0 ω ^ 3 := by
+      have h3 : σ * toP x t 0 ω ^ 3 = σ * toP y t 0 ω ^ 3 := by linarith
+      have := congrArg (fun w => σ * w) h3
+      rw [← mul_assoc, ← mul_assoc, hσ, one_mul, one_mul] at this
+      exact this
+    exact (Odd.pow_injective (by decide : Odd 3)) hcube
+  ext ⟨t, ω⟩ i
+  fin_cases i
+  · exact congrFun (hπ t) ω
+  · exact congrFun (hI t) ω
+
+/-! ### Non-existence on the boundary -/
+
+/-- **Non-existence for `φ_π = 0`, `|ρ| > 1`** (Woodford (2003), Prop. 2.8, p. 96): for the rule
+`Ψ(π, i) = ρ i` with `|ρ| > 1`, for every expectation system on a nonempty state space and every
+initial rate `î_{−1} ≠ 0` there is no bounded adapted equilibrium without shocks
+(`î_t = ρ^{t+1} î_{−1}`). -/
+theorem no_eq_flat [Nonempty Ω] {ρ : ℝ} (hρ : 1 < |ρ|) {xm : Fin 2 → ℝ} (hxm : xm 1 ≠ 0) :
+    ¬ ∃ x : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert fun p => ρ * p.2) (xm, 0) x := by
+  rintro ⟨x, hx⟩
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  have hval : ∀ t, toP x t 1 = fun _ => ρ ^ (t + 1) * xm 1 := by
+    intro t
+    induction t with
+    | zero =>
+      rw [eq1_of_solves hx 0]
+      change 𝔼.E 0 (fun _ => ρ * xm 1) + 𝔼.E 0 (fun _ => 0) = _
+      rw [𝔼.const, 𝔼.const]
+      funext ω
+      simp
+    | succ t ih =>
+      rw [eq1_of_solves hx (t + 1)]
+      change 𝔼.E (t + 1) (fun ω => ρ * toP x t 1 ω) + 𝔼.E (t + 1) (fun _ => 0) = _
+      rw [ih, 𝔼.const, 𝔼.const]
+      funext ω
+      simp only [Pi.add_apply, add_zero]
+      ring
+  obtain ⟨t, ht⟩ := pow_unbounded_of_one_lt (‖x‖ / |xm 1|) hρ
+  have h1 := abs_apply_le x t ω₀ 1
+  change |toP x t 1 ω₀| ≤ ‖x‖ at h1
+  rw [hval t, abs_mul, abs_pow] at h1
+  have hx0 : 0 < |xm 1| := abs_pos.mpr hxm
+  rw [div_lt_iff₀ hx0] at ht
+  have : |ρ| ^ t ≤ |ρ| ^ (t + 1) := pow_le_pow_right₀ hρ.le (Nat.le_succ t)
+  nlinarith
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): the deterministic policy shock `ν_t = δ σᵗ`
+(`r̂ = 0`) as a bounded disturbance process, for `σ² = 1`. -/
+noncomputable def resShock (δ σ : ℝ) (hσ : σ * σ = 1) :
+    LocalIFTStochastic.BFun (ℕ × Ω) (Fin 2 → ℝ) :=
+  LocalIFTStochastic.mkB (fun p => ![0, δ * σ ^ p.1]) ⟨|δ|, fun p => by
+    have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+    refine (pi_norm_le_iff_of_nonneg (abs_nonneg δ)).mpr fun i => ?_
+    fin_cases i
+    · simp
+    · simp [hs]⟩
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): the resonant shock has norm at most `|δ|`. -/
+theorem norm_resShock_le (δ σ : ℝ) (hσ : σ * σ = 1) : ‖resShock (Ω := Ω) δ σ hσ‖ ≤ |δ| := by
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  refine LocalIFTStochastic.norm_le_of_forall (abs_nonneg δ) fun p => ?_
+  refine (pi_norm_le_iff_of_nonneg (abs_nonneg δ)).mpr fun i => ?_
+  fin_cases i
+  · simp [resShock]
+  · simp [resShock, hs]
+
+/-- **Non-existence for arbitrarily small shocks on `|φ_π + ρ| = 1`** (Woodford (2003),
+Prop. 2.8, p. 96): for the linear rule `Ψ = φ_π π + ρ i` with `σ = φ_π + ρ`, `σ² = 1`, for every
+expectation system on a nonempty state space, every initial rate and every `δ ≠ 0`, the
+deterministic policy shock `ν_t = δ σᵗ` (`‖ν‖ = |δ|`) admits no bounded adapted equilibrium:
+`E_0[σᵗ î_t] = î_0 + t δ`. -/
+theorem no_eq_unit [Nonempty Ω] {φ ρ : ℝ} (hσ : (φ + ρ) * (φ + ρ) = 1) {δ : ℝ} (hδ : δ ≠ 0)
+    (xm : Fin 2 → ℝ) :
+    ¬ ∃ x : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert fun p => φ * p.1 + ρ * p.2)
+      (xm, resShock δ (φ + ρ) hσ) x := by
+  rintro ⟨x, hx⟩
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  set σ := φ + ρ with hσdef
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  have hr : ∀ t, 𝔼.E t (fun ω => (resShock (Ω := Ω) δ σ hσ) (t, ω) 0) = 0 := fun t => by
+    change 𝔼.E t (fun _ => 0) = 0
+    exact 𝔼.const t 0
+  have hn : ∀ t, 𝔼.E t (fun ω => (resShock (Ω := Ω) δ σ hσ) (t, ω) 1) = fun _ => δ * σ ^ t :=
+    fun t => by
+      change 𝔼.E t (fun _ => δ * σ ^ t) = _
+      exact 𝔼.const t _
+  -- `E_t î_{t+1} = σ î_t + δ σ^{t+1}`
+  have hstep : ∀ t, 𝔼.E t (toP x (t + 1) 1) = σ • toP x t 1 + fun _ => δ * σ ^ (t + 1) := by
+    intro t
+    have e1 := eq1_of_solves hx (t + 1)
+    have e : (fun ω => (fun p : ℝ × ℝ => φ * p.1 + ρ * p.2)
+        (x (t + 1, ω) 0, lagV xm (fun s => x (s, ω)) (t + 1) 1)) =
+        φ • toP x (t + 1) 0 + ρ • toP x t 1 := by
+      funext ω
+      rfl
+    rw [e, map_add, map_smul, map_smul, hx.1 (t + 1) 0, (hx.1 t 1 ▸
+      (𝔼.known (Nat.le_succ t) (toP x t 1)) : 𝔼.E (t + 1) (toP x t 1) = toP x t 1), hn] at e1
+    rw [e1, map_add, map_add, map_smul, map_smul, eq0_of_solves hx t, hr, sub_zero,
+      hx.1 t 1, 𝔼.const]
+    funext ω
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+    rw [hσdef]
+    ring
+  -- `E_0 [σ^t î_t] = î_0 + t δ`
+  have hmean : ∀ t, 𝔼.E 0 (σ ^ t • toP x t 1) = toP x 0 1 + fun _ => (t : ℝ) * δ := by
+    intro t
+    induction t with
+    | zero =>
+      rw [pow_zero, one_smul, hx.1 0 1]
+      funext ω
+      simp
+    | succ t ih =>
+      rw [← 𝔼.tower (Nat.zero_le t), map_smul, hstep t, smul_add, smul_smul,
+        show σ ^ (t + 1) * σ = σ ^ t by rw [pow_succ, mul_assoc, hσ, mul_one],
+        map_add, ih, map_smul, 𝔼.const]
+      have hσ2 : σ ^ (t + 1) * σ ^ (t + 1) = 1 := by
+        rw [← mul_pow, hσ, one_pow]
+      funext ω
+      simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      rw [show σ ^ (t + 1) * (δ * σ ^ (t + 1)) = δ * (σ ^ (t + 1) * σ ^ (t + 1)) by ring, hσ2]
+      push_cast
+      ring
+  obtain ⟨t, ht⟩ := exists_nat_gt (2 * ‖x‖ / |δ|)
+  have hb : |𝔼.E 0 (σ ^ t • toP x t 1) ω₀| ≤ ‖x‖ := by
+    refine 𝔼.abs_E_le (fun ω => ?_) 0 ω₀
+    rw [Pi.smul_apply, smul_eq_mul, abs_mul, abs_pow, hs, one_pow, one_mul]
+    exact abs_apply_le x t ω 1
+  rw [hmean t] at hb
+  have h0 := abs_apply_le x 0 ω₀ 1
+  change |toP x 0 1 ω₀| ≤ ‖x‖ at h0
+  simp only [Pi.add_apply] at hb
+  have hδ0 : 0 < |δ| := abs_pos.mpr hδ
+  rw [div_lt_iff₀ hδ0] at ht
+  have h3 : |(t : ℝ) * δ| ≤ 2 * ‖x‖ := by
+    calc |(t : ℝ) * δ| = |(toP x 0 1 ω₀ + t * δ) - toP x 0 1 ω₀| := by ring_nf
+      _ ≤ |toP x 0 1 ω₀ + t * δ| + |toP x 0 1 ω₀| := abs_sub _ _
+      _ ≤ 2 * ‖x‖ := by linarith
+  rw [abs_mul, Nat.abs_cast] at h3
+  linarith
+
+/-! ### The explicit rules and the summaries -/
+
+/-- Woodford (2003), (2.12), p. 96: the linear inertial rule `φ_π π + ρ î_{−1}`. -/
+def ruleLin (φ ρ : ℝ) (p : ℝ × ℝ) : ℝ := φ * p.1 + ρ * p.2
+
+/-- Woodford (2003), (2.12), p. 96 (with a cubic term in the lagged rate):
+`φ_π π + ρ î_{−1} + κ î_{−1}³`. -/
+def ruleCubI (φ ρ κ : ℝ) (p : ℝ × ℝ) : ℝ := φ * p.1 + ρ * p.2 + κ * p.2 ^ 3
+
+/-- Woodford (2003), (2.12), p. 96 (with a cubic response to inflation): `ρ î_{−1} + σ π³`
+(`φ_π = 0`). -/
+def ruleCubPi (ρ σ : ℝ) (p : ℝ × ℝ) : ℝ := ρ * p.2 + σ * p.1 ^ 3
+
+/-- Woodford (2003), (2.12), p. 96: **all three rules have the slopes of the linear rule**:
+`ruleLin φ ρ` and `ruleCubI φ ρ κ` have derivative `ruleD φ ρ`, `ruleCubPi ρ σ` has
+`ruleD 0 ρ`; all are `C^∞` and vanish at the steady state. -/
+theorem rules_slopes (φ ρ κ σ : ℝ) :
+    HasFDerivAt (ruleLin φ ρ) (ruleD φ ρ) 0 ∧ HasFDerivAt (ruleCubI φ ρ κ) (ruleD φ ρ) 0 ∧
+      HasFDerivAt (ruleCubPi ρ σ) (ruleD 0 ρ) 0 ∧
+      (∀ k : ℕ, ContDiff ℝ k (ruleLin φ ρ) ∧ ContDiff ℝ k (ruleCubI φ ρ κ) ∧
+        ContDiff ℝ k (ruleCubPi ρ σ)) ∧
+      ruleLin φ ρ 0 = 0 ∧ ruleCubI φ ρ κ 0 = 0 ∧ ruleCubPi ρ σ 0 = 0 := by
+  have h1 : HasFDerivAt (fun p : ℝ × ℝ => p.1) (ContinuousLinearMap.fst ℝ ℝ ℝ) 0 :=
+    hasFDerivAt_fst
+  have h2 : HasFDerivAt (fun p : ℝ × ℝ => p.2) (ContinuousLinearMap.snd ℝ ℝ ℝ) 0 :=
+    hasFDerivAt_snd
+  have hlin : ruleLin φ ρ = ruleD φ ρ := by
+    funext p
+    simp [ruleLin, ruleD]
+  refine ⟨?_, ?_, ?_, fun k => ⟨?_, ?_, ?_⟩, ?_, ?_, ?_⟩
+  · rw [hlin]
+    exact (ruleD φ ρ).hasFDerivAt
+  · have h := (((h1.const_mul φ).add (h2.const_mul ρ)).add ((h2.pow 3).const_mul κ))
+    refine h.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+    simp [ruleD]
+  · have h := (h2.const_mul ρ).add ((h1.pow 3).const_mul σ)
+    refine h.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+    simp [ruleD]
+  · exact (contDiff_const.mul contDiff_fst).add (contDiff_const.mul contDiff_snd)
+  · exact ((contDiff_const.mul contDiff_fst).add (contDiff_const.mul contDiff_snd)).add
+      (contDiff_const.mul (contDiff_snd.pow 3))
+  · exact (contDiff_const.mul contDiff_snd).add (contDiff_const.mul (contDiff_fst.pow 3))
+  · simp [ruleLin]
+  · simp [ruleCubI]
+  · simp [ruleCubPi]
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the expanding cubic diagonal
+`g(i) = σ(i + i³)` (`σ² = 1`) satisfies `|g(i) − g(i')| ≥ |i − i'| + |i − i'|³/4`. -/
+theorem expand_cubic {σ : ℝ} (hσ : σ * σ = 1) (i i' : ℝ) :
+    |i - i'| + 1 / 4 * |i - i'| ^ 3 ≤ |σ * (i + i ^ 3) - σ * (i' + i' ^ 3)| := by
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  have e : σ * (i + i ^ 3) - σ * (i' + i' ^ 3) =
+      σ * ((i - i') * (1 + i ^ 2 + i * i' + i' ^ 2)) := by
+    ring
+  have hq : 1 + (i - i') ^ 2 / 4 ≤ 1 + i ^ 2 + i * i' + i' ^ 2 := by nlinarith [sq_nonneg (i + i')]
+  rw [e, abs_mul, hs, one_mul, abs_mul, abs_of_pos (by linarith [sq_nonneg (i - i')] :
+    (0 : ℝ) < 1 + i ^ 2 + i * i' + i' ^ 2)]
+  have h3 : |i - i'| ^ 3 = |i - i'| * (i - i') ^ 2 := by
+    rw [pow_succ', ← sq_abs (i - i')]
+  rw [h3]
+  nlinarith [abs_nonneg (i - i')]
+
+/-- **The boundary `|φ_π + ρ| = 1`: the linearisation does not decide** (Woodford (2003),
+Prop. 2.8, p. 96; App. A.3, pp. 632–634). Let `σ = φ_π + ρ` with `σ² = 1`. Then:
+(a) the linear rule has genuinely random sunspot equilibria at every scale (coin tree, `î_{−1} = 0`,
+no shocks) **and** no bounded equilibrium at all for the shock `ν_t = δσᵗ`, any `δ ≠ 0`;
+(b) the rule `φ_π π + ρ i − σ i³`, with the same slopes, also has random sunspots;
+(c) if `φ_π ≠ 0`, the rule `φ_π π + ρ i + σ i³`, with the same slopes, has under informational
+closure at most one bounded equilibrium for every initial rate and disturbance process, and
+exactly one (no sunspots) for every initial rate without shocks; (d) if `φ_π = 0` (so `ρ = σ`),
+the same holds for `ρ i + ρ π³`. -/
+theorem boundary_unit_circle {φ ρ : ℝ} (hσ : (φ + ρ) * (φ + ρ) = 1) :
+    -- (a)
+    (∀ ε > 0, ∃ x : SProcV (Fin 2) (Bool × Bool),
+      SolvesSV ExpectationsFiniteTree.coinSystem (Finert (ruleLin φ ρ)) 0 x ∧ ‖x‖ ≤ ε ∧
+        x (1, (true, true)) ≠ x (1, (false, true))) ∧
+    (∀ {Ω : Type*} [Nonempty Ω] (𝔼 : ExpectationSystem Ω) (δ : ℝ), δ ≠ 0 → ∀ xm : Fin 2 → ℝ,
+      ¬ ∃ x : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert (ruleLin φ ρ))
+        (xm, resShock δ (φ + ρ) hσ) x) ∧
+    -- (b)
+    (∀ ε > 0, ∃ x : SProcV (Fin 2) (Bool × Bool),
+      SolvesSV ExpectationsFiniteTree.coinSystem (Finert (ruleCubI φ ρ (-(φ + ρ)))) 0 x ∧
+        ‖x‖ ≤ ε ∧ x (1, (true, true)) ≠ x (1, (false, true))) ∧
+    -- (c)
+    (φ ≠ 0 → ∀ {Ω : Type*} (𝔼 : ExpectationSystem Ω), LocalIFTStochastic.Ops.InfoClosed 𝔼 →
+      ∀ xm : Fin 2 → ℝ, ∃! x : SProcV (Fin 2) Ω,
+        SolvesSV 𝔼 (Finert (ruleCubI φ ρ (φ + ρ))) (xm, 0) x) ∧
+    -- (d)
+    (φ = 0 → ∀ {Ω : Type*} (𝔼 : ExpectationSystem Ω), LocalIFTStochastic.Ops.InfoClosed 𝔼 →
+      ∀ xm : Fin 2 → ℝ, ∃! x : SProcV (Fin 2) Ω,
+        SolvesSV 𝔼 (Finert (ruleCubPi ρ ρ)) (xm, 0) x) := by
+  obtain ⟨-, -, -, hcd, -, -, -⟩ := rules_slopes φ ρ 0 0
+  have hs : |φ + ρ| = 1 := by nlinarith [abs_mul_abs_self (φ + ρ), abs_nonneg (φ + ρ)]
+  refine ⟨fun ε hε => ?_, fun 𝔼 δ hδ xm => ?_, fun ε hε => ?_, fun hφ Ω 𝔼 hcl xm => ?_,
+    fun hφ Ω 𝔼 hcl xm => ?_⟩
+  · obtain ⟨x, h1, h2, -, h3⟩ := random_sunspot_of_diag (Ψ := ruleLin φ ρ)
+      ((hcd 1).1.continuous.continuousAt) (by simp [ruleLin])
+      ⟨1, one_pos, fun i _ => by
+        rw [show ruleLin φ ρ (i, i) = (φ + ρ) * i by simp [ruleLin]; ring, abs_mul, hs,
+          one_mul]⟩ hε
+    exact ⟨x, h1, h2, h3⟩
+  · exact no_eq_unit (𝔼 := 𝔼) hσ hδ xm
+  · obtain ⟨x, h1, h2, -, h3⟩ := random_sunspot_of_diag (Ψ := ruleCubI φ ρ (-(φ + ρ)))
+      ((rules_slopes φ ρ (-(φ + ρ)) 0).2.2.2.1 1).2.1.continuous.continuousAt
+      (by simp [ruleCubI])
+      ⟨1, one_pos, fun i hi => by
+        rw [show ruleCubI φ ρ (-(φ + ρ)) (i, i) = (φ + ρ) * (i - i ^ 3) by
+          simp [ruleCubI]; ring, abs_mul, hs, one_mul]
+        exact abs_att_le hi⟩ hε
+    exact ⟨x, h1, h2, h3⟩
+  · have hΨ : ∀ π i, ruleCubI φ ρ (φ + ρ) (π, i) = φ * π + (ρ * i + (φ + ρ) * i ^ 3) :=
+      fun π i => by simp [ruleCubI]; ring
+    have hexp : ∀ i i', |i - i'| + 1 / 4 * |i - i'| ^ 3 ≤
+        |(φ * i + (ρ * i + (φ + ρ) * i ^ 3)) - (φ * i' + (ρ * i' + (φ + ρ) * i' ^ 3))| := by
+      intro i i'
+      have := expand_cubic hσ i i'
+      convert this using 2
+      ring
+    refine ⟨jumpP (-(ρ * xm 1 + (φ + ρ) * xm 1 ^ 3) / φ), solvesSV_jump (by simp [ruleCubI]) ?_,
+      fun y hy => unique_affine hcl hΨ hφ (by norm_num) hexp hy
+        (solvesSV_jump (by simp [ruleCubI]) ?_)⟩
+    · rw [hΨ]
+      field_simp
+      ring
+    · rw [hΨ]
+      field_simp
+      ring
+  · have hρ : ρ * ρ = 1 := by rw [hφ, zero_add] at hσ; exact hσ
+    have hΨ : ∀ π i, ruleCubPi ρ ρ (π, i) = ρ * i + ρ * π ^ 3 := fun π i => rfl
+    have hroot : ruleCubPi ρ ρ (cbrt (-(xm 1)), xm 1) = 0 := by
+      rw [hΨ, cbrt_pow]
+      ring
+    refine ⟨jumpP (cbrt (-(xm 1))), solvesSV_jump (by simp [ruleCubPi]) hroot,
+      fun y hy => unique_cube hcl hΨ hρ hρ.ge hy (solvesSV_jump (by simp [ruleCubPi]) hroot)⟩
+
+/-- **The boundary `φ_π = 0`, `|ρ| > 1`: the linearisation does not decide** (Woodford (2003),
+Prop. 2.8, p. 96; App. A.3, pp. 632–634): (a) the linear rule `ρ î_{−1}` has random sunspot
+equilibria at every scale when `î_{−1} = 0` (coin tree, no shocks) and no bounded equilibrium at
+all for any `î_{−1} ≠ 0`; (b) the rule `ρ î_{−1} + σπ³` with `σ = sign ρ` — the same slopes — has,
+under informational closure, exactly one bounded equilibrium for every initial rate without
+shocks (no sunspots), and at most one for every disturbance process. -/
+theorem boundary_flat {ρ : ℝ} (hρ : 1 < |ρ|) :
+    (∀ ε > 0, ∃ x : SProcV (Fin 2) (Bool × Bool),
+      SolvesSV ExpectationsFiniteTree.coinSystem (Finert (ruleLin 0 ρ)) 0 x ∧ ‖x‖ ≤ ε ∧
+        x (1, (true, true)) ≠ x (1, (false, true))) ∧
+    (∀ {Ω : Type*} [Nonempty Ω] (𝔼 : ExpectationSystem Ω) (xm : Fin 2 → ℝ), xm 1 ≠ 0 →
+      ¬ ∃ x : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert (ruleLin 0 ρ)) (xm, 0) x) ∧
+    ∃ σ : ℝ, σ * σ = 1 ∧ 1 ≤ σ * ρ ∧
+      (∀ {Ω : Type*} (𝔼 : ExpectationSystem Ω), LocalIFTStochastic.Ops.InfoClosed 𝔼 →
+        (∀ xm : Fin 2 → ℝ, ∃! x : SProcV (Fin 2) Ω,
+          SolvesSV 𝔼 (Finert (ruleCubPi ρ σ)) (xm, 0) x) ∧
+        ∀ (u : ParS (Fin 2) (Fin 2 → ℝ) Ω) (x y : SProcV (Fin 2) Ω),
+          SolvesSV 𝔼 (Finert (ruleCubPi ρ σ)) u x → SolvesSV 𝔼 (Finert (ruleCubPi ρ σ)) u y →
+            x = y) := by
+  refine ⟨fun ε hε => ?_, fun 𝔼 xm hxm => ?_, ?_⟩
+  · obtain ⟨x, h1, h2, -, h3⟩ := random_sunspot_of_flat (Ψ := ruleLin 0 ρ) (by simp [ruleLin])
+      ⟨1, one_pos, fun π _ => by simp [ruleLin]⟩ hε
+    exact ⟨x, h1, h2, h3⟩
+  · have e : (Finert (ruleLin 0 ρ)) = Finert fun p => ρ * p.2 := by
+      congr 1
+      funext p
+      simp [ruleLin]
+    rw [e]
+    exact no_eq_flat (𝔼 := 𝔼) hρ hxm
+  · set σ : ℝ := if 0 < ρ then 1 else -1 with hσdef
+    have hσ : σ * σ = 1 := by rw [hσdef]; split_ifs <;> norm_num
+    have hτ : 1 ≤ σ * ρ := by
+      rw [hσdef]
+      split_ifs with h
+      · rw [abs_of_pos h] at hρ
+        linarith
+      · push Not at h
+        rcases h.lt_or_eq with h' | h'
+        · rw [abs_of_neg h'] at hρ
+          linarith
+        · rw [h', abs_zero] at hρ
+          linarith
+    have hΨ : ∀ π i, ruleCubPi ρ σ (π, i) = ρ * i + σ * π ^ 3 := fun π i => rfl
+    refine ⟨σ, hσ, hτ, fun 𝔼 hcl => ⟨fun xm => ?_, fun u x y hx hy => unique_cube hcl hΨ hσ hτ
+      hx hy⟩⟩
+    have hroot : ruleCubPi ρ σ (cbrt (-(σ * ρ * xm 1)), xm 1) = 0 := by
+      rw [hΨ, cbrt_pow]
+      linear_combination (-(ρ * xm 1)) * hσ
+    exact ⟨jumpP (cbrt (-(σ * ρ * xm 1))), solvesSV_jump (by simp [ruleCubPi]) hroot,
+      fun y hy => unique_cube hcl hΨ hσ hτ hy (solvesSV_jump (by simp [ruleCubPi]) hroot)⟩
+
+end Woodford.PriceLevelDetermination.InertialBoundary
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Sunspots when (A.8) is not onto: the remaining two shapes of (A.8)
+
+Woodford (2003), *Interest and Prices*, Appendix A.3, pp. 632–634. `SunspotsBoundedBelow` and
+`SunspotsNotOntoExamples` settle the sunspot question when (A.8) is onto or bounded below, and
+show that a unit root or a singular pencil leaves it undecided. This module treats the two
+remaining shapes of (A.8), each with a pair of `C^∞` two-dimensional systems with the **same**
+linearisation and opposite answers (so neither shape is decided by the linearisation).
+
+## (A.8) one-to-one with a non-closed range
+
+`Hdamp` and `Hgrow` (`x_t` forward-looking, `y_t` its cumulated sum):
+`E_t x_{t+1} = x_t(1 − y_t²)` resp. `x_t + x_t³`, and `y_t = y_{t−1} + x_t`. Their common (A.8)
+is one-to-one (`injective_linOp_H`: a constant `x` makes `y` grow linearly) but not bounded
+below (`not_boundedBelow_linOp_H`), so its range is not closed (`not_isClosed_range_linOp_H`).
+`Hdamp_random_sunspot`: random sunspots at every scale on the coin tree (the damping
+`x_t y_t²` brings `x` back to zero before `y` grows: `y³ + 3x(1 − y²)` does not increase);
+`Hgrow_unique`: under informational closure the steady state is the only equilibrium.
+
+## (A.8) Fredholm, neither one-to-one nor onto
+
+`Fsun` and `Fnone`: `E_t x_{t+1} = x_t/2` and `y_t = 2y_{t−1}` resp. `y_t = 2y_{t−1} + x_t²`.
+Their common (A.8) is Fredholm: its kernel is the line spanned by `((1/2)ᵗ, 0)`
+(`ker_linOp_F`) and its range is the kernel of the nonzero continuous functional
+`w ↦ Σ_s 2^{−(s+1)} w_{s,2}` (`range_linOp_F`), hence closed of codimension one.
+`Fsun_random_sunspot`: random sunspots (the `x` block alone); `Fnone_unique`: under
+informational closure only the steady state (the unstable `y` block, forced by `x_t² ≥ 0`, can
+stay bounded only if `x ≡ 0`).
+
+Summaries: `injective_nonclosed_undecided`, `fredholm_linOp_F`, `fredholm_undecided`. So for every
+shape of (A.8) other than "onto" or "bounded below" the sunspot question is decided by the
+higher-order terms.
+-/
+
+namespace Woodford.PriceLevelDetermination.SunspotsNotOntoMore
+
+open scoped Topology Matrix
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic SunspotsBoundedBelow
+open SunspotsNotOntoExamples (known_comp)
+open LocalIFTSystems (Arg linOp linOp_apply d1 d2 d3 M1 M2 M3)
+
+/-! ### Tools -/
+
+/-- Woodford (2003), App. A.3, p. 633 (tool): coordinate `j` of `x_{t−1}`. -/
+noncomputable def prL (j : Fin 2) : Arg (Fin 2) ℝ →L[ℝ] ℝ :=
+  (ContinuousLinearMap.proj j).comp
+    (ContinuousLinearMap.fst ℝ (Fin 2 → ℝ) ((Fin 2 → ℝ) × (Fin 2 → ℝ) × ℝ))
+
+/-- Woodford (2003), App. A.3, p. 633 (tool): coordinate `j` of `x_t`. -/
+noncomputable def prN (j : Fin 2) : Arg (Fin 2) ℝ →L[ℝ] ℝ :=
+  (ContinuousLinearMap.proj j).comp ((ContinuousLinearMap.fst ℝ (Fin 2 → ℝ) ((Fin 2 → ℝ) × ℝ)).comp
+    (ContinuousLinearMap.snd ℝ (Fin 2 → ℝ) ((Fin 2 → ℝ) × (Fin 2 → ℝ) × ℝ)))
+
+/-- Woodford (2003), App. A.3, p. 633 (tool): coordinate `j` of `x_{t+1}`. -/
+noncomputable def prF (j : Fin 2) : Arg (Fin 2) ℝ →L[ℝ] ℝ :=
+  (ContinuousLinearMap.proj j).comp ((ContinuousLinearMap.fst ℝ (Fin 2 → ℝ) ℝ).comp
+    ((ContinuousLinearMap.snd ℝ (Fin 2 → ℝ) ((Fin 2 → ℝ) × ℝ)).comp
+      (ContinuousLinearMap.snd ℝ (Fin 2 → ℝ) ((Fin 2 → ℝ) × (Fin 2 → ℝ) × ℝ))))
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the odd two-branch process on the coin tree,
+`x_0 = 0`, `x_{t+1} = ±P_t` after first flip heads/tails. -/
+noncomputable def brProc2 (P : ℕ → Fin 2 → ℝ) {M : ℝ} (hM : ∀ n, ‖P n‖ ≤ M) :
+    SProcV (Fin 2) (Bool × Bool) :=
+  LocalIFTStochastic.mkB (fun p => if p.2.1 then lagV 0 P p.1 else -lagV 0 P p.1)
+    ⟨max M 0, fun p => by
+      obtain ⟨t, ω⟩ := p
+      have h : ‖lagV 0 P t‖ ≤ max M 0 := by
+        cases t with
+        | zero => simp
+        | succ t => exact (hM t).trans (le_max_left _ _)
+      split_ifs
+      · exact h
+      · rwa [norm_neg]⟩
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the two-branch process is within `M` of the steady
+state. -/
+theorem norm_brProc2_le {P : ℕ → Fin 2 → ℝ} {M : ℝ} (hM : ∀ n, ‖P n‖ ≤ M) (hM0 : 0 ≤ M) :
+    ‖brProc2 P hM‖ ≤ M := by
+  refine LocalIFTStochastic.norm_le_of_forall hM0 fun p => ?_
+  obtain ⟨t, ω⟩ := p
+  have h : ‖lagV 0 P t‖ ≤ M := by
+    cases t with
+    | zero => simpa using hM0
+    | succ t => exact hM t
+  change ‖(if ω.1 then lagV 0 P t else -lagV 0 P t)‖ ≤ M
+  split_ifs
+  · exact h
+  · rwa [norm_neg]
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): **an odd condition is solved by the two-branch
+process on the coin tree** when the heads branch solves it from date 1 on (the date-0 condition
+averages to zero by oddness). -/
+theorem solvesSV_brProc2 {H : Arg (Fin 2) ℝ → (Fin 2 → ℝ)} (hodd : ∀ q, H (-q) = -H q)
+    {P : ℕ → Fin 2 → ℝ} {M : ℝ} (hM : ∀ n, ‖P n‖ ≤ M)
+    (hstep : ∀ n, H (lagV 0 P n, P n, P (n + 1), 0) = 0) :
+    SolvesSV ExpectationsFiniteTree.coinSystem H 0 (brProc2 P hM) := by
+  have hv : ∀ t ω, brProc2 P hM (t, ω) = if ω.1 then lagV 0 P t else -lagV 0 P t :=
+    fun _ _ => rfl
+  refine ⟨fun t i => ?_, fun t i => ?_⟩
+  · cases t with
+    | zero =>
+      have h0 : toP (brProc2 P hM) 0 i = fun _ => 0 := by
+        funext ω
+        change (if ω.1 then lagV 0 P 0 else -lagV 0 P 0) i = 0
+        split_ifs <;> simp
+      rw [h0]
+      exact ExpectationsFiniteTree.coinSystem.const 0 0
+    | succ t =>
+      have h1 : toP (brProc2 P hM) (t + 1) i =
+          fun ω => (fun b : Bool => (if b then P t else -P t) i) ω.1 := by
+        funext ω
+        change (if ω.1 then lagV 0 P (t + 1) else -lagV 0 P (t + 1)) i = _
+        rfl
+      rw [h1]
+      exact LocalIFTStochasticModels.coin_known_fst t (fun b : Bool => (if b then P t else -P t) i)
+  · cases t with
+    | zero =>
+      have hf : (fun ω => H (ptS ((0 : ParS (Fin 2) ℝ (Bool × Bool)), brProc2 P hM) (0, ω)) i) =
+          fun ω => (if ω.1 then H (0, 0, P 0, 0) i else -H (0, 0, P 0, 0) i) := by
+        funext ω
+        have e : ptS ((0 : ParS (Fin 2) ℝ (Bool × Bool)), brProc2 P hM) (0, ω) =
+            if ω.1 then ((0, 0, P 0, 0) : Arg (Fin 2) ℝ)
+            else -((0, 0, P 0, 0) : Arg (Fin 2) ℝ) := by
+          obtain ⟨b, b'⟩ := ω
+          cases b <;> simp [ptS, hv]
+        rw [e]
+        split_ifs
+        · rfl
+        · rw [hodd]
+          rfl
+      rw [hf]
+      funext ω
+      rw [LocalIFTStochasticModels.coin_E0]
+      simp
+    | succ n =>
+      have hf : (fun ω => H (ptS ((0 : ParS (Fin 2) ℝ (Bool × Bool)), brProc2 P hM)
+          (n + 1, ω)) i) = 0 := by
+        funext ω
+        have e : ptS ((0 : ParS (Fin 2) ℝ (Bool × Bool)), brProc2 P hM) (n + 1, ω) =
+            if ω.1 then ((lagV 0 P n, P n, P (n + 1), 0) : Arg (Fin 2) ℝ)
+            else -((lagV 0 P n, P n, P (n + 1), 0) : Arg (Fin 2) ℝ) := by
+          obtain ⟨b, b'⟩ := ω
+          cases n <;> cases b <;> simp [ptS, hv]
+        rw [e]
+        split_ifs
+        · rw [hstep n]
+          rfl
+        · rw [hodd, hstep n]
+          simp
+      rw [hf]
+      exact map_zero _
+
+/-! ### (A.8) one-to-one with non-closed range: `Hdamp` and `Hgrow` -/
+
+/-- Woodford (2003), App. A.3, p. 632 (example): `E_t x_{t+1} = x_t (1 − y_t²)`,
+`y_t = y_{t−1} + x_t`. -/
+def Hdamp (p : Arg (Fin 2) ℝ) : Fin 2 → ℝ :=
+  ![p.2.2.1 0 - p.2.1 0 + p.2.1 0 * p.2.1 1 ^ 2, p.2.1 1 - p.1 1 - p.2.1 0]
+
+/-- Woodford (2003), App. A.3, p. 632 (example): `E_t x_{t+1} = x_t + x_t³`,
+`y_t = y_{t−1} + x_t`. -/
+def Hgrow (p : Arg (Fin 2) ℝ) : Fin 2 → ℝ :=
+  ![p.2.2.1 0 - p.2.1 0 - p.2.1 0 ^ 3, p.2.1 1 - p.1 1 - p.2.1 0]
+
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632 (example): the common linear part
+`(x_{t+1} − x_t, y_t − y_{t−1} − x_t)`. -/
+noncomputable def LH : Arg (Fin 2) ℝ →L[ℝ] (Fin 2 → ℝ) :=
+  ContinuousLinearMap.pi fun k => ![prF 0 - prN 0, prN 1 - prL 1 - prN 0] k
+
+/-- Woodford (2003), App. A.3, p. 632 (example): **`Hdamp` and `Hgrow` have the same derivative**
+`LH` at the steady state, and are `C^∞`. -/
+theorem hasFDerivAt_H : HasFDerivAt Hdamp LH 0 ∧ HasFDerivAt Hgrow LH 0 ∧
+    (∀ k : ℕ, ContDiff ℝ k Hdamp ∧ ContDiff ℝ k Hgrow) := by
+  have hL : ∀ j, HasFDerivAt (prL j : Arg (Fin 2) ℝ → ℝ) (prL j) 0 := fun j => (prL j).hasFDerivAt
+  have hN : ∀ j, HasFDerivAt (prN j : Arg (Fin 2) ℝ → ℝ) (prN j) 0 := fun j => (prN j).hasFDerivAt
+  have hF : ∀ j, HasFDerivAt (prF j : Arg (Fin 2) ℝ → ℝ) (prF j) 0 := fun j => (prF j).hasFDerivAt
+  refine ⟨hasFDerivAt_pi'' fun i => ?_, hasFDerivAt_pi'' fun i => ?_, fun k => ⟨?_, ?_⟩⟩
+  · fin_cases i
+    · have h := ((hF 0).sub (hN 0)).add ((hN 0).mul ((hN 1).pow 2))
+      refine h.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+      simp [LH, prN]
+    · have h := ((hN 1).sub (hL 1)).sub (hN 0)
+      refine h.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+      simp [LH]
+  · fin_cases i
+    · have h := ((hF 0).sub (hN 0)).sub ((hN 0).pow 3)
+      refine h.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+      simp [LH, prN]
+    · have h := ((hN 1).sub (hL 1)).sub (hN 0)
+      refine h.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+      simp [LH]
+  · refine contDiff_pi.mpr fun i => ?_
+    fin_cases i
+    · exact (((prF 0).contDiff.sub (prN 0).contDiff).add
+        ((prN 0).contDiff.mul ((prN 1).contDiff.pow 2)) :)
+    · exact (((prN 1).contDiff.sub (prL 1).contDiff).sub (prN 0).contDiff :)
+  · refine contDiff_pi.mpr fun i => ?_
+    fin_cases i
+    · exact (((prF 0).contDiff.sub (prN 0).contDiff).sub ((prN 0).contDiff.pow 3) :)
+    · exact (((prN 1).contDiff.sub (prL 1).contDiff).sub (prN 0).contDiff :)
+
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632 (example): **the common operator (A.8)**,
+`v ↦ (v_{t+1,x} − v_{t,x}, v_{t,y} − v_{t−1,y} − v_{t,x})`. -/
+theorem linOp_H : linOp Hdamp = linOp Hgrow ∧ ∀ (v : SeqV (Fin 2)) (t : ℕ),
+    linOp Hdamp v t = ![v (t + 1) 0 - v t 0, v t 1 - lagV 0 (fun s => v s) t 1 - v t 0] := by
+  obtain ⟨h1, h2, -⟩ := hasFDerivAt_H
+  refine ⟨?_, fun v t => ?_⟩
+  · simp only [linOp, M1, M2, M3, d1, d2, d3, h1.fderiv, h2.fderiv]
+  · rw [linOp_apply]
+    simp only [d1, d2, d3, ContinuousLinearMap.comp_apply, ContinuousLinearMap.inl_apply,
+      ContinuousLinearMap.inr_apply, h1.fderiv]
+    funext i
+    fin_cases i <;> simp [LH, prL, prN, prF] <;> ring
+
+/-- Woodford (2003), App. A.3, p. 632 (example): **the common (A.8) is one-to-one** (a constant
+`x` makes `y_t = (t + 1)x` unbounded). -/
+theorem injective_linOp_H : Function.Injective (linOp Hdamp) := by
+  rw [injective_iff_map_eq_zero]
+  intro v hv
+  have h : ∀ t, v (t + 1) 0 = v t 0 ∧ v t 1 = lagV 0 (fun s => v s) t 1 + v t 0 := by
+    intro t
+    have e := linOp_H.2 v t
+    rw [hv] at e
+    have e0 := congrFun e 0
+    have e1 := congrFun e 1
+    simp at e0 e1
+    exact ⟨by linarith, by linarith⟩
+  have hx : ∀ t, v t 0 = v 0 0 := by
+    intro t
+    induction t with
+    | zero => rfl
+    | succ t ih => rw [(h t).1, ih]
+  have hy : ∀ t : ℕ, v t 1 = (t + 1) * v 0 0 := by
+    intro t
+    induction t with
+    | zero => simp [(h 0).2, hx]
+    | succ t ih =>
+      rw [(h (t + 1)).2, lagV_succ, ih, hx (t + 1)]
+      push_cast
+      ring
+  have hc : v 0 0 = 0 := by
+    by_contra hne
+    have hpos : 0 < |v 0 0| := abs_pos.mpr hne
+    obtain ⟨t, ht⟩ := exists_nat_gt (‖v‖ / |v 0 0|)
+    have hb : |v t 1| ≤ ‖v‖ := by
+      rw [← Real.norm_eq_abs]
+      exact (norm_le_pi_norm _ 1).trans (LocalIFT.norm_seq_apply_le _ _)
+    rw [hy, abs_mul, abs_of_pos (by positivity : (0 : ℝ) < t + 1)] at hb
+    rw [div_lt_iff₀ hpos] at ht
+    nlinarith [abs_nonneg (v 0 0)]
+  refine seq_ext fun t => funext fun i => ?_
+  fin_cases i
+  · simpa [hc] using hx t
+  · simpa [hc] using hy t
+
+/-- Woodford (2003), App. A.3, p. 632 (example): **the common (A.8) is not bounded below**
+(the path `x = 1/N` for `N` periods, `y` its cumulated sum, has norm `1` and image of norm
+`1/N`). -/
+theorem not_boundedBelow_linOp_H : ¬ BoundedBelow (linOp Hdamp) := by
+  rintro ⟨C, hC0, hC⟩
+  obtain ⟨N, hN⟩ := exists_nat_gt (C + 1)
+  have hN0 : (0 : ℝ) < N := by linarith
+  have hNpos : 0 < N := by exact_mod_cast hN0
+  set z : ℕ → Fin 2 → ℝ := fun t => ![if t < N then 1 / (N : ℝ) else 0,
+    (min (t + 1) N : ℕ) / (N : ℝ)] with hz
+  have hzb : LinearSystems.BoundedSeq z := ⟨1, fun t i => by
+    fin_cases i
+    · change |(if t < N then 1 / (N : ℝ) else 0)| ≤ 1
+      split_ifs
+      · rw [abs_of_pos (by positivity)]
+        exact (div_le_one hN0).mpr (by linarith)
+      · simp
+    · change |((min (t + 1) N : ℕ) : ℝ) / N| ≤ 1
+      rw [abs_of_nonneg (by positivity), div_le_one hN0]
+      exact_mod_cast min_le_right _ _⟩
+  set v := toSeqV z hzb with hv
+  have hvN : 1 ≤ ‖v‖ := by
+    have h := (norm_le_pi_norm (v (N - 1)) 1).trans (LocalIFT.norm_seq_apply_le v (N - 1))
+    have e : v (N - 1) 1 = 1 := by
+      change ((min (N - 1 + 1) N : ℕ) : ℝ) / N = 1
+      have : N - 1 + 1 = N := Nat.sub_add_cancel (by exact_mod_cast hN0)
+      rw [this, min_self]
+      field_simp
+    rw [e, norm_one] at h
+    exact h
+  have himg : ‖linOp Hdamp v‖ ≤ 1 / N := by
+    refine LocalIFT.norm_seq_le (by positivity) fun t =>
+      (pi_norm_le_iff_of_nonneg (by positivity)).mpr fun i => ?_
+    rw [linOp_H.2, Real.norm_eq_abs]
+    fin_cases i
+    · change |(if t + 1 < N then 1 / (N : ℝ) else 0) - (if t < N then 1 / (N : ℝ) else 0)| ≤ _
+      split_ifs <;> simp [abs_of_pos, hN0]
+    · change |((min (t + 1) N : ℕ) : ℝ) / N - lagV 0 (fun s => z s) t 1 -
+        (if t < N then 1 / (N : ℝ) else 0)| ≤ _
+      cases t with
+      | zero =>
+        rw [show min (0 + 1) N = 1 by omega]
+        simp only [lagV_zero, Pi.zero_apply, hNpos, ↓reduceIte, Nat.cast_one, sub_zero, sub_self,
+          abs_zero]
+        positivity
+      | succ t =>
+        simp only [lagV_succ, hz, Matrix.cons_val_one, Matrix.cons_val_zero]
+        by_cases htN : t + 1 < N
+        · simp only [htN, ↓reduceIte]
+          rw [min_eq_left (by omega : t + 1 + 1 ≤ N), min_eq_left (by omega : t + 1 ≤ N)]
+          push_cast
+          rw [div_sub_div_same, div_sub_div_same, show (t : ℝ) + 1 + 1 - (t + 1) - 1 = 0 by ring,
+            zero_div, abs_zero]
+          positivity
+        · simp only [htN, ↓reduceIte]
+          rw [min_eq_right (by omega : N ≤ t + 1 + 1), min_eq_right (by omega : N ≤ t + 1)]
+          simp only [sub_self, abs_zero]
+          positivity
+  have h := hC v
+  have : C * ‖linOp Hdamp v‖ ≤ C * (1 / N) := mul_le_mul_of_nonneg_left himg hC0
+  have hlt : C * (1 / N) < 1 := by
+    rw [mul_one_div, div_lt_one hN0]
+    linarith
+  linarith
+
+/-- Woodford (2003), App. A.3, p. 632 (example): **the common (A.8) has a non-closed range**
+(one-to-one and not bounded below, `boundedBelow_iff`). -/
+theorem not_isClosed_range_linOp_H : ¬ IsClosed (Set.range (linOp Hdamp)) := fun hcl =>
+  not_boundedBelow_linOp_H ((boundedBelow_iff _).mpr ⟨injective_linOp_H, hcl⟩)
+
+/-- Woodford (2003), App. A.3, p. 634 (example): the damped deterministic continuation
+`(x, y) ↦ (x(1 − y²), y + x(1 − y²))` from `(a, a)`. -/
+noncomputable def dampXY (a : ℝ) : ℕ → ℝ × ℝ
+  | 0 => (a, a)
+  | n + 1 => ((dampXY a n).1 * (1 - (dampXY a n).2 ^ 2),
+      (dampXY a n).2 + (dampXY a n).1 * (1 - (dampXY a n).2 ^ 2))
+
+/-- Woodford (2003), App. A.3, p. 634 (example): **the damped path stays small**: for
+`0 < a ≤ 1/64`, `0 ≤ x_n ≤ a`, `0 ≤ y_n ≤ 1/2` and `y_n³ + 3x_n(1 − y_n²) ≤ a³ + 3a` (this
+quantity does not increase along the path). -/
+theorem dampXY_bound {a : ℝ} (ha0 : 0 < a) (ha : a ≤ 1 / 64) (n : ℕ) :
+    0 ≤ (dampXY a n).1 ∧ (dampXY a n).1 ≤ a ∧ 0 ≤ (dampXY a n).2 ∧ (dampXY a n).2 ≤ 1 / 2 ∧
+      (dampXY a n).2 ^ 3 + 3 * ((dampXY a n).1 * (1 - (dampXY a n).2 ^ 2)) ≤ a ^ 3 + 3 * a := by
+  induction n with
+  | zero =>
+    simp only [dampXY]
+    refine ⟨ha0.le, le_rfl, ha0.le, by linarith, ?_⟩
+    nlinarith [sq_nonneg a]
+  | succ n ih =>
+    obtain ⟨hx0, hxa, hy0, hy2, hK⟩ := ih
+    set X := (dampXY a n).1 with hX
+    set Y := (dampXY a n).2 with hY
+    have hX' : (dampXY a (n + 1)).1 = X * (1 - Y ^ 2) := rfl
+    have hY' : (dampXY a (n + 1)).2 = Y + X * (1 - Y ^ 2) := rfl
+    rw [hX', hY']
+    set X' := X * (1 - Y ^ 2) with hXd
+    have hY2 : Y ^ 2 ≤ 1 / 4 := by nlinarith
+    have hX'0 : 0 ≤ X' := mul_nonneg hx0 (by linarith)
+    have hX'a : X' ≤ X := by nlinarith [sq_nonneg Y]
+    set Y' := Y + X' with hYd
+    have hY'1 : Y' ≤ 1 := by linarith
+    have hY'0 : 0 ≤ Y' := by linarith
+    -- the step: `Y'³ − Y³ ≤ 3 X' Y'²`
+    have hstep : Y' ^ 3 + 3 * (X' * (1 - Y' ^ 2)) ≤ Y ^ 3 + 3 * X' := by
+      have e : Y' ^ 3 - Y ^ 3 = X' * (Y' ^ 2 + Y' * Y + Y ^ 2) := by rw [hYd]; ring
+      have h1 : Y' * Y ≤ Y' ^ 2 := by nlinarith
+      have h2 : Y ^ 2 ≤ Y' ^ 2 := by nlinarith
+      nlinarith [mul_le_mul_of_nonneg_left (add_le_add h1 h2) hX'0]
+    have hK' : Y' ^ 3 + 3 * (X' * (1 - Y' ^ 2)) ≤ a ^ 3 + 3 * a := hstep.trans hK
+    have hY'3 : Y' ^ 3 ≤ 1 / 16 := by
+      have : 0 ≤ 3 * (X' * (1 - Y' ^ 2)) := by
+        have : Y' ^ 2 ≤ 1 := by nlinarith
+        nlinarith
+      nlinarith [pow_le_pow_left₀ ha0.le ha 3]
+    refine ⟨hX'0, hX'a.trans hxa, hY'0, ?_, hK'⟩
+    by_contra hc
+    push Not at hc
+    have := pow_lt_pow_left₀ hc (by norm_num) (by norm_num : (3 : ℕ) ≠ 0)
+    norm_num at this
+    linarith
+
+/-- Woodford (2003), App. A.3, p. 634 (example): `Hdamp` is odd. -/
+theorem Hdamp_odd (q : Arg (Fin 2) ℝ) : Hdamp (-q) = -Hdamp q := by
+  funext i
+  fin_cases i <;> simp [Hdamp] <;> ring
+
+/-- **Random sunspots with (A.8) one-to-one and non-closed range** (Woodford (2003), App. A.3,
+pp. 632–634, example): for `Hdamp`, on the coin tree, for every `ε > 0` there is a bounded
+adapted equilibrium with no shocks and `x_{−1} = 0`, within `ε` of the steady state, whose date-1
+value differs across the first flip (`x_1 = ±a`, then the damped continuation). -/
+theorem Hdamp_random_sunspot {ε : ℝ} (hε : 0 < ε) :
+    ∃ x : SProcV (Fin 2) (Bool × Bool), SolvesSV ExpectationsFiniteTree.coinSystem Hdamp 0 x ∧
+      ‖x‖ ≤ ε ∧ x (1, (true, true)) ≠ x (1, (false, true)) := by
+  set a := min (min ε (ε ^ 3 / 4)) (1 / 64) with ha
+  have ha0 : 0 < a := lt_min (lt_min hε (by positivity)) (by norm_num)
+  have ha64 : a ≤ 1 / 64 := min_le_right _ _
+  have haε : a ≤ ε := (min_le_left _ _).trans (min_le_left _ _)
+  have haε3 : a ≤ ε ^ 3 / 4 := (min_le_left _ _).trans (min_le_right _ _)
+  set P : ℕ → Fin 2 → ℝ := fun n => ![(dampXY a n).1, (dampXY a n).2] with hP
+  have hb := dampXY_bound ha0 ha64
+  have hYε : ∀ n, (dampXY a n).2 ≤ ε := by
+    intro n
+    obtain ⟨hx0, -, hy0, hy2, hK⟩ := hb n
+    have h1 : 0 ≤ 3 * ((dampXY a n).1 * (1 - (dampXY a n).2 ^ 2)) := by
+      have : (dampXY a n).2 ^ 2 ≤ 1 := by nlinarith
+      nlinarith
+    have h3 : (dampXY a n).2 ^ 3 ≤ ε ^ 3 := by
+      have : a ^ 3 ≤ a := by nlinarith [pow_le_pow_left₀ ha0.le ha64 2]
+      nlinarith
+    exact (pow_le_pow_iff_left₀ hy0 hε.le (by norm_num : (3 : ℕ) ≠ 0)).mp h3
+  have hM : ∀ n, ‖P n‖ ≤ ε := fun n => by
+    obtain ⟨hx0, hxa, hy0, -, -⟩ := hb n
+    refine (pi_norm_le_iff_of_nonneg hε.le).mpr fun i => ?_
+    fin_cases i
+    · simp [hP, abs_of_nonneg hx0, hxa.trans haε]
+    · simp [hP, abs_of_nonneg hy0, hYε n]
+  refine ⟨brProc2 P hM, solvesSV_brProc2 Hdamp_odd hM fun n => ?_, norm_brProc2_le hM hε.le,
+    fun h => ?_⟩
+  · funext i
+    fin_cases i
+    · simp [Hdamp, hP, dampXY]
+      ring
+    · cases n with
+      | zero => simp [Hdamp, hP, dampXY]
+      | succ n => simp [Hdamp, hP, dampXY]
+  · have := congrFun h 0
+    change (dampXY a 0).1 = -(dampXY a 0).1 at this
+    simp only [dampXY] at this
+    linarith
+
+/-- **No sunspots with the same (A.8)** (Woodford (2003), App. A.3, pp. 632–634, example): under
+informational closure, the only bounded adapted equilibrium of `Hgrow` with `x_{−1} = 0` and no
+shocks is the steady state (`E_t x_{t+1} = x_t + x_t³` forces `x = 0`, then `y = 0`). -/
+theorem Hgrow_unique {Ω : Type*} {𝔼 : ExpectationSystem Ω}
+    (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {x : SProcV (Fin 2) Ω}
+    (hx : SolvesSV 𝔼 Hgrow 0 x) : x = 0 := by
+  have hE : ∀ t, 𝔼.E t (toP x (t + 1) 0) = fun ω => toP x t 0 ω + toP x t 0 ω ^ 3 := by
+    intro t
+    have h := hx.2 t 0
+    have hf : (fun ω => Hgrow (ptS ((0 : ParS (Fin 2) ℝ Ω), x) (t, ω)) 0) =
+        toP x (t + 1) 0 - toP x t 0 - fun ω => toP x t 0 ω ^ 3 := rfl
+    rw [hf, map_sub, map_sub, hx.1 t 0, known_comp hcl (hx.1 t 0) (fun z => z ^ 3)] at h
+    funext ω
+    have := congrFun h ω
+    simp only [Pi.sub_apply, Pi.zero_apply] at this
+    linarith
+  have hz : ∀ p : ℕ × Ω, x p 0 = 0 := by
+    refine eq_zero_of_push (fun p : ℕ × Ω => x p 0) ⟨‖x‖, fun p => abs_apply_le x p.1 p.2 0⟩
+      one_pos fun B hB p => ?_
+    obtain ⟨t, ω⟩ := p
+    have hb := 𝔼.abs_E_le (fun ω' => hB (t + 1, ω')) t ω
+    change |𝔼.E t (toP x (t + 1) 0) ω| ≤ B at hb
+    rw [hE] at hb
+    change |x (t, ω) 0 + x (t, ω) 0 ^ 3| ≤ B at hb
+    have e : |x (t, ω) 0 + x (t, ω) 0 ^ 3| = |x (t, ω) 0| + |x (t, ω) 0| ^ 3 := by
+      rw [show x (t, ω) 0 + x (t, ω) 0 ^ 3 = x (t, ω) 0 * (1 + x (t, ω) 0 ^ 2) by ring, abs_mul,
+        abs_of_pos (by positivity : (0 : ℝ) < 1 + x (t, ω) 0 ^ 2), ← sq_abs]
+      ring
+    change |x (t, ω) 0| ^ 3 ≤ 1 * (B - |x (t, ω) 0|)
+    linarith
+  have hy : ∀ t ω, x (t, ω) 1 = 0 := by
+    intro t
+    induction t with
+    | zero =>
+      intro ω
+      have h := congrFun (hx.2 0 1) ω
+      have hf : (fun ω => Hgrow (ptS ((0 : ParS (Fin 2) ℝ Ω), x) (0, ω)) 1) =
+          toP x 0 1 - toP x 0 0 := by
+        funext ω
+        simp [Hgrow, ptS, toP]
+      rw [hf, map_sub, hx.1 0 1, hx.1 0 0] at h
+      have := hz (0, ω)
+      simp only [Pi.sub_apply, Pi.zero_apply] at h
+      change x (0, ω) 1 - x (0, ω) 0 = 0 at h
+      linarith
+    | succ t ih =>
+      intro ω
+      have h := congrFun (hx.2 (t + 1) 1) ω
+      have hf : (fun ω => Hgrow (ptS ((0 : ParS (Fin 2) ℝ Ω), x) (t + 1, ω)) 1) =
+          toP x (t + 1) 1 - toP x t 1 - toP x (t + 1) 0 := rfl
+      have hk : 𝔼.E (t + 1) (toP x t 1) = toP x t 1 := by
+        conv_lhs => rw [← hx.1 t 1]
+        rw [𝔼.known (Nat.le_succ t), hx.1 t 1]
+      rw [hf, map_sub, map_sub, hx.1 (t + 1) 1, hx.1 (t + 1) 0, hk] at h
+      have := hz (t + 1, ω)
+      simp only [Pi.sub_apply, Pi.zero_apply] at h
+      change x (t + 1, ω) 1 - x (t, ω) 1 - x (t + 1, ω) 0 = 0 at h
+      linarith [ih ω]
+  ext ⟨t, ω⟩ i
+  fin_cases i
+  · exact hz (t, ω)
+  · exact hy t ω
+
+/-- **(A.8) one-to-one with non-closed range does not decide the sunspot question** (Woodford
+(2003), App. A.3, pp. 632–634, correction): `Hdamp` and `Hgrow` have the same (A.8), one-to-one
+with non-closed range; the first has random sunspots at every scale on the coin tree, the second
+only the steady state there. -/
+theorem injective_nonclosed_undecided :
+    linOp Hdamp = linOp Hgrow ∧ Function.Injective (linOp Hdamp) ∧
+      ¬ IsClosed (Set.range (linOp Hdamp)) ∧
+      (∀ ε > 0, ∃ x : SProcV (Fin 2) (Bool × Bool),
+        SolvesSV ExpectationsFiniteTree.coinSystem Hdamp 0 x ∧ ‖x‖ ≤ ε ∧
+          x (1, (true, true)) ≠ x (1, (false, true))) ∧
+      ∀ x : SProcV (Fin 2) (Bool × Bool),
+        SolvesSV ExpectationsFiniteTree.coinSystem Hgrow 0 x → x = 0 :=
+  ⟨linOp_H.1, injective_linOp_H, not_isClosed_range_linOp_H, fun _ hε => Hdamp_random_sunspot hε,
+    fun _ hx => Hgrow_unique (LocalIFTStochastic.finiteTree_infoClosed _) hx⟩
+
+/-! ### (A.8) Fredholm, neither one-to-one nor onto: `Fsun` and `Fnone` -/
+
+/-- Woodford (2003), App. A.3, p. 632 (example): `E_t x_{t+1} = x_t/2`, `y_t = 2y_{t−1}`. -/
+noncomputable def Fsun (p : Arg (Fin 2) ℝ) : Fin 2 → ℝ :=
+  ![p.2.2.1 0 - p.2.1 0 * (1 / 2), p.2.1 1 - 2 * p.1 1]
+
+/-- Woodford (2003), App. A.3, p. 632 (example): `E_t x_{t+1} = x_t/2`, `y_t = 2y_{t−1} + x_t²`. -/
+noncomputable def Fnone (p : Arg (Fin 2) ℝ) : Fin 2 → ℝ :=
+  ![p.2.2.1 0 - p.2.1 0 * (1 / 2), p.2.1 1 - 2 * p.1 1 - p.2.1 0 ^ 2]
+
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632 (example): the common linear part
+`(x_{t+1} − x_t/2, y_t − 2y_{t−1})`. -/
+noncomputable def LF : Arg (Fin 2) ℝ →L[ℝ] (Fin 2 → ℝ) :=
+  ContinuousLinearMap.pi fun k => ![prF 0 - (1 / 2 : ℝ) • prN 0, prN 1 - (2 : ℝ) • prL 1] k
+
+/-- Woodford (2003), App. A.3, p. 632 (example): **`Fsun` and `Fnone` have the same derivative**
+`LF` at the steady state, and are `C^∞`. -/
+theorem hasFDerivAt_F : HasFDerivAt Fsun LF 0 ∧ HasFDerivAt Fnone LF 0 ∧
+    (∀ k : ℕ, ContDiff ℝ k Fsun ∧ ContDiff ℝ k Fnone) := by
+  have hL : ∀ j, HasFDerivAt (prL j : Arg (Fin 2) ℝ → ℝ) (prL j) 0 := fun j => (prL j).hasFDerivAt
+  have hN : ∀ j, HasFDerivAt (prN j : Arg (Fin 2) ℝ → ℝ) (prN j) 0 := fun j => (prN j).hasFDerivAt
+  have hF : ∀ j, HasFDerivAt (prF j : Arg (Fin 2) ℝ → ℝ) (prF j) 0 := fun j => (prF j).hasFDerivAt
+  refine ⟨hasFDerivAt_pi'' fun i => ?_, hasFDerivAt_pi'' fun i => ?_, fun k => ⟨?_, ?_⟩⟩
+  · fin_cases i
+    · have h := (hF 0).sub (HasFDerivAt.mul_const (hN 0) (1 / 2))
+      refine h.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+      simp [LF]
+    · have h := (hN 1).sub ((hL 1).const_mul 2)
+      refine h.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+      simp [LF]
+  · fin_cases i
+    · have h := (hF 0).sub (HasFDerivAt.mul_const (hN 0) (1 / 2))
+      refine h.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+      simp [LF]
+    · have h := ((hN 1).sub ((hL 1).const_mul 2)).sub ((hN 0).pow 2)
+      refine h.congr_fderiv (ContinuousLinearMap.ext fun q => ?_)
+      simp [LF, prN]
+  · refine contDiff_pi.mpr fun i => ?_
+    fin_cases i
+    · exact (((prF 0).contDiff.sub ((prN 0).contDiff.mul contDiff_const)) :)
+    · exact (((prN 1).contDiff.sub (contDiff_const.mul (prL 1).contDiff)) :)
+  · refine contDiff_pi.mpr fun i => ?_
+    fin_cases i
+    · exact (((prF 0).contDiff.sub ((prN 0).contDiff.mul contDiff_const)) :)
+    · exact ((((prN 1).contDiff.sub (contDiff_const.mul (prL 1).contDiff)).sub
+        ((prN 0).contDiff.pow 2)) :)
+
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632 (example): **the common operator (A.8)**,
+`v ↦ (v_{t+1,x} − v_{t,x}/2, v_{t,y} − 2 v_{t−1,y})`. -/
+theorem linOp_F : linOp Fsun = linOp Fnone ∧ ∀ (v : SeqV (Fin 2)) (t : ℕ),
+    linOp Fsun v t = ![v (t + 1) 0 - v t 0 / 2, v t 1 - 2 * lagV 0 (fun s => v s) t 1] := by
+  obtain ⟨h1, h2, -⟩ := hasFDerivAt_F
+  refine ⟨?_, fun v t => ?_⟩
+  · simp only [linOp, M1, M2, M3, d1, d2, d3, h1.fderiv, h2.fderiv]
+  · rw [linOp_apply]
+    simp only [d1, d2, d3, ContinuousLinearMap.comp_apply, ContinuousLinearMap.inl_apply,
+      ContinuousLinearMap.inr_apply, h1.fderiv]
+    funext i
+    fin_cases i <;> simp [LF, prL, prN, prF] <;> ring
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the kernel direction `((1/2)ᵗ, 0)`. -/
+noncomputable def kF : SeqV (Fin 2) :=
+  toSeqV (fun t => ![(1 / 2 : ℝ) ^ t, 0]) ⟨1, fun t i => by
+    fin_cases i
+    · simp only [Fin.zero_eta, Fin.isValue, Matrix.cons_val_zero]
+      rw [abs_of_nonneg (by positivity)]
+      exact pow_le_one₀ (by norm_num) (by norm_num)
+    · simp⟩
+
+/-- Woodford (2003), App. A.3, p. 632 (example): **the kernel of the common (A.8) is the line
+spanned by `((1/2)ᵗ, 0)`**, which is nonzero; so (A.8) is not one-to-one. -/
+theorem ker_linOp_F : kF ≠ 0 ∧ ∀ v : SeqV (Fin 2), linOp Fsun v = 0 ↔ v = v 0 0 • kF := by
+  refine ⟨fun h => ?_, fun v => ⟨fun hv => ?_, fun hv => ?_⟩⟩
+  · have := congrFun (congrArg (fun w : SeqV (Fin 2) => w 0) h) 0
+    change ((1 / 2 : ℝ) ^ 0) = 0 at this
+    norm_num at this
+  · have h : ∀ t, v (t + 1) 0 = v t 0 / 2 ∧ v t 1 = 2 * lagV 0 (fun s => v s) t 1 := by
+      intro t
+      have e := linOp_F.2 v t
+      rw [hv] at e
+      have e0 := congrFun e 0
+      have e1 := congrFun e 1
+      simp at e0 e1
+      exact ⟨by linarith, by linarith⟩
+    have hx : ∀ t, v t 0 = v 0 0 * (1 / 2) ^ t := by
+      intro t
+      induction t with
+      | zero => simp
+      | succ t ih => rw [(h t).1, ih, pow_succ]; ring
+    have hy : ∀ t, v t 1 = 0 := by
+      intro t
+      induction t with
+      | zero => simpa using (h 0).2
+      | succ t ih => rw [(h (t + 1)).2, lagV_succ, ih, mul_zero]
+    refine seq_ext fun t => funext fun i => ?_
+    fin_cases i
+    · change v t 0 = v 0 0 * (1 / 2) ^ t
+      exact hx t
+    · change v t 1 = v 0 0 * 0
+      rw [hy t, mul_zero]
+  · rw [hv, map_smul]
+    have : linOp Fsun kF = 0 := by
+      refine seq_ext fun t => ?_
+      rw [linOp_F.2]
+      funext i
+      fin_cases i
+      · change (1 / 2 : ℝ) ^ (t + 1) - (1 / 2) ^ t / 2 = 0
+        ring
+      · change (0 : ℝ) - 2 * lagV 0 (fun s => kF s) t 1 = 0
+        cases t <;> simp [kF]
+    rw [this, smul_zero]
+
+/-- Woodford (2003), App. A.3, p. 632 (tool): a bounded sequence weighted by `2^{−(k+1)}` is
+summable, with sum bounded by the bound. -/
+theorem geom_sum (c : ℕ → ℝ) {B : ℝ} (hc : ∀ k, |c k| ≤ B) :
+    Summable (fun k => (1 / 2 : ℝ) ^ (k + 1) * c k) ∧
+      |∑' k, (1 / 2 : ℝ) ^ (k + 1) * c k| ≤ B := by
+  have hg : Summable (fun k : ℕ => B * (1 / 2 : ℝ) ^ (k + 1)) :=
+    (summable_geometric_two.mul_right (1 / 2)).mul_left B |>.congr fun k => by ring
+  have hb : ∀ k, ‖(1 / 2 : ℝ) ^ (k + 1) * c k‖ ≤ B * (1 / 2 : ℝ) ^ (k + 1) := fun k => by
+    rw [Real.norm_eq_abs, abs_mul, abs_of_pos (by positivity), mul_comm]
+    exact mul_le_mul_of_nonneg_right (hc k) (by positivity)
+  have hs := Summable.of_norm_bounded hg hb
+  refine ⟨hs, ?_⟩
+  have h1 : ∑' k : ℕ, B * (1 / 2 : ℝ) ^ (k + 1) = B := by
+    rw [tsum_mul_left]
+    have : ∑' k : ℕ, (1 / 2 : ℝ) ^ (k + 1) = 1 := by
+      simp_rw [pow_succ]
+      rw [tsum_mul_right, tsum_geometric_two]
+      norm_num
+    rw [this, mul_one]
+  rw [← Real.norm_eq_abs, ← h1]
+  exact (norm_tsum_le_tsum_norm hs.norm).trans (hs.norm.tsum_le_tsum hb hg)
+
+/-- Woodford (2003), App. A.3, p. 632 (tool): coordinates of a bounded sequence are bounded by
+its norm. -/
+theorem abs_apply_le_seq (w : SeqV (Fin 2)) (s : ℕ) (j : Fin 2) : |w s j| ≤ ‖w‖ := by
+  rw [← Real.norm_eq_abs]
+  exact (norm_le_pi_norm _ j).trans (LocalIFT.norm_seq_apply_le _ _)
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the functional `w ↦ Σ_s 2^{−(s+1)} w_{s,y}`. -/
+noncomputable def phiF : SeqV (Fin 2) →L[ℝ] ℝ :=
+  LinearMap.mkContinuous
+    { toFun := fun w => ∑' s, (1 / 2 : ℝ) ^ (s + 1) * w s 1
+      map_add' := fun w w' => by
+        have h1 := (geom_sum (fun s => w s 1) (fun s =>
+          (abs_apply_le_seq w s 1))).1
+        have h2 := (geom_sum (fun s => w' s 1) (fun s =>
+          (abs_apply_le_seq w' s 1))).1
+        rw [← h1.tsum_add h2]
+        congr 1
+        funext s
+        simp only [lp.coeFn_add, Pi.add_apply]
+        ring
+      map_smul' := fun c w => by
+        rw [RingHom.id_apply, smul_eq_mul, ← tsum_mul_left]
+        congr 1
+        funext s
+        simp only [lp.coeFn_smul, Pi.smul_apply, smul_eq_mul]
+        ring }
+    1 (fun w => by
+      rw [one_mul, Real.norm_eq_abs]
+      exact (geom_sum (fun s => w s 1) (fun s => abs_apply_le_seq w s 1)).2)
+
+/-- Woodford (2003), App. A.3, p. 632 (tool): the `x` coordinate of the common (A.8). -/
+theorem linOp_F_x (v : SeqV (Fin 2)) (s : ℕ) : linOp Fsun v s 0 = v (s + 1) 0 - v s 0 / 2 := by
+  rw [linOp_F.2]
+  rfl
+
+/-- Woodford (2003), App. A.3, p. 632 (tool): the `y` coordinate of the common (A.8). -/
+theorem linOp_F_y (v : SeqV (Fin 2)) (s : ℕ) :
+    linOp Fsun v s 1 = v s 1 - 2 * lagV 0 (fun r => v r) s 1 := by
+  rw [linOp_F.2]
+  rfl
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the `x` part of the preimage,
+`x_0 = 0`, `x_{t+1} = x_t/2 + w_{t,x}`. -/
+noncomputable def xsF (w : SeqV (Fin 2)) : ℕ → ℝ
+  | 0 => 0
+  | t + 1 => xsF w t / 2 + w t 0
+
+/-- Woodford (2003), App. A.3, p. 632 (example): `|x_t| ≤ 2‖w‖`. -/
+theorem abs_xsF_le (w : SeqV (Fin 2)) (t : ℕ) : |xsF w t| ≤ 2 * ‖w‖ := by
+  induction t with
+  | zero => simp [xsF]
+  | succ t ih =>
+    have h := abs_apply_le_seq w t 0
+    simp only [xsF]
+    rw [abs_le] at ih h ⊢
+    constructor <;> linarith [ih.1, ih.2, h.1, h.2]
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the `y` part of the preimage, the forward sum
+`y_t = −Σ_k 2^{−(k+1)} w_{t+1+k,y}`. -/
+noncomputable def ysF (w : SeqV (Fin 2)) (t : ℕ) : ℝ :=
+  -∑' k, (1 / 2 : ℝ) ^ (k + 1) * w (t + 1 + k) 1
+
+/-- Woodford (2003), App. A.3, p. 632 (tool): splitting off the first term of the forward sum. -/
+theorem fwd_split (w : SeqV (Fin 2)) (t : ℕ) :
+    ∑' k, (1 / 2 : ℝ) ^ (k + 1) * w (t + k) 1 =
+      1 / 2 * w t 1 + 1 / 2 * ∑' k, (1 / 2 : ℝ) ^ (k + 1) * w (t + 1 + k) 1 := by
+  have hs := (geom_sum (fun k => w (t + k) 1) fun k => abs_apply_le_seq w _ 1).1
+  rw [hs.tsum_eq_zero_add, ← tsum_mul_left]
+  congr 1
+  · simp
+  · congr 1
+    funext k
+    rw [show t + (k + 1) = t + 1 + k by omega, pow_succ]
+    ring
+
+/-- **The range of the common (A.8) is the kernel of `phiF`** (Woodford (2003), App. A.3, p. 632,
+example): a forcing has a bounded solution iff `Σ_s 2^{−(s+1)} w_{s,y} = 0` (the unstable `y`
+block, solved forwards, must meet `y_{−1} = 0`). -/
+theorem range_linOp_F (w : SeqV (Fin 2)) : w ∈ Set.range (linOp Fsun) ↔ phiF w = 0 := by
+  constructor
+  · rintro ⟨v, rfl⟩
+    set f : ℕ → ℝ := fun s => (1 / 2 : ℝ) ^ (s + 1) * linOp Fsun v s 1 with hf
+    have hs : Summable f :=
+      (geom_sum (fun s => linOp Fsun v s 1) fun s => abs_apply_le_seq _ s 1).1
+    have hpart : ∀ N, ∑ s ∈ Finset.range N, f s = (1 / 2) ^ N * lagV 0 (fun r => v r) N 1 := by
+      intro N
+      induction N with
+      | zero => simp
+      | succ N ih =>
+        rw [Finset.sum_range_succ, ih, hf]
+        simp only [linOp_F_y, lagV_succ]
+        ring
+    have hlag : ∀ N, |lagV 0 (fun r => v r) N 1| ≤ ‖v‖ := fun N => by
+      cases N with
+      | zero => simp
+      | succ N => exact abs_apply_le_seq v N 1
+    have ht2 : Filter.Tendsto (fun N => ∑ s ∈ Finset.range N, f s) Filter.atTop (𝓝 0) := by
+      have hg : Filter.Tendsto (fun N : ℕ => (1 / 2 : ℝ) ^ N * ‖v‖) Filter.atTop (𝓝 0) := by
+        simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num : (0 : ℝ) ≤ 1 / 2)
+          (by norm_num)).mul_const ‖v‖
+      refine squeeze_zero_norm (fun N => ?_) hg
+      rw [hpart, Real.norm_eq_abs, abs_mul, abs_of_pos (by positivity)]
+      exact mul_le_mul_of_nonneg_left (hlag N) (by positivity)
+    change ∑' s, f s = 0
+    exact tendsto_nhds_unique hs.tendsto_sum_tsum_nat ht2
+  · intro hφ
+    have hφ' : ∑' s, (1 / 2 : ℝ) ^ (s + 1) * w s 1 = 0 := hφ
+    have hyb : ∀ t, |ysF w t| ≤ ‖w‖ := fun t => by
+      rw [ysF, abs_neg]
+      exact (geom_sum (fun k => w (t + 1 + k) 1) fun k => abs_apply_le_seq w _ 1).2
+    have hb : LinearSystems.BoundedSeq (fun t => ![xsF w t, ysF w t]) := ⟨2 * ‖w‖, fun t i => by
+      fin_cases i
+      · exact abs_xsF_le w t
+      · exact (hyb t).trans (by linarith [norm_nonneg w])⟩
+    refine ⟨toSeqV _ hb, seq_ext fun t => funext fun i => ?_⟩
+    fin_cases i
+    · change linOp Fsun (toSeqV _ hb) t 0 = w t 0
+      rw [linOp_F_x]
+      change xsF w (t + 1) - xsF w t / 2 = w t 0
+      simp only [xsF]
+      ring
+    · change linOp Fsun (toSeqV _ hb) t 1 = w t 1
+      rw [linOp_F_y]
+      cases t with
+      | zero =>
+        change ysF w 0 - 2 * 0 = w 0 1
+        have h := fwd_split w 0
+        simp only [zero_add] at h
+        rw [hφ'] at h
+        rw [ysF]
+        linarith
+      | succ t =>
+        change ysF w (t + 1) - 2 * ysF w t = w (t + 1) 1
+        have h := fwd_split w (t + 1)
+        rw [ysF, ysF]
+        linarith
+
+/-- **The common (A.8) is Fredholm, neither one-to-one nor onto** (Woodford (2003), App. A.3,
+p. 632, example): its kernel is the line spanned by `kF ≠ 0`, its range is the kernel of the
+continuous functional `phiF ≠ 0` (closed, codimension one). -/
+theorem fredholm_linOp_F :
+    ¬ Function.Injective (linOp Fsun) ∧ ¬ Function.Surjective (linOp Fsun) ∧
+      IsClosed (Set.range (linOp Fsun)) ∧ phiF ≠ 0 ∧ kF ≠ 0 ∧
+      (∀ v, linOp Fsun v = 0 ↔ v = v 0 0 • kF) ∧
+      ∀ w, w ∈ Set.range (linOp Fsun) ↔ phiF w = 0 := by
+  have he : LinearSystems.BoundedSeq
+      (fun t => if t = 0 then ![(0 : ℝ), 1] else 0) := ⟨1, fun t i => by
+    change |(if t = 0 then ![(0 : ℝ), 1] else 0) i| ≤ 1
+    split_ifs
+    · fin_cases i <;> simp
+    · simp⟩
+  have hφe : phiF (toSeqV _ he) = 1 / 2 := by
+    change ∑' s, (1 / 2 : ℝ) ^ (s + 1) * (if s = 0 then ![(0 : ℝ), 1] else 0) 1 = 1 / 2
+    rw [tsum_eq_single 0 (fun k hk => by simp [hk])]
+    simp
+  have hrange : Set.range (linOp Fsun) = phiF ⁻¹' {0} :=
+    Set.ext fun w => (range_linOp_F w).trans (by simp)
+  have hk : kF = kF 0 0 • kF := by
+    rw [show kF 0 0 = 1 by change (1 / 2 : ℝ) ^ 0 = 1; simp, one_smul]
+  refine ⟨fun hinj => ker_linOp_F.1 (hinj (by rw [map_zero]; exact (ker_linOp_F.2 kF).mpr hk)),
+    fun hs => ?_, ?_, fun h0 => ?_, ker_linOp_F.1, ker_linOp_F.2, range_linOp_F⟩
+  · have h := (range_linOp_F (toSeqV _ he)).mp (hs _)
+    rw [hφe] at h
+    norm_num at h
+  · rw [hrange]
+    exact isClosed_singleton.preimage phiF.continuous
+  · rw [h0] at hφe
+    norm_num at hφe
+
+/-- Woodford (2003), App. A.3, p. 634 (example): `Fsun` is odd. -/
+theorem Fsun_odd (q : Arg (Fin 2) ℝ) : Fsun (-q) = -Fsun q := by
+  funext i
+  fin_cases i <;> simp [Fsun] <;> ring
+
+/-- **Random sunspots with a Fredholm (A.8)** (Woodford (2003), App. A.3, pp. 632–634, example):
+for `Fsun`, on the coin tree, for every `ε > 0`, `x_1 = ±ε`, `x_{t+1} = x_t/2`, `y = 0` is a
+bounded adapted equilibrium with no shocks, within `ε`, differing across the first flip. -/
+theorem Fsun_random_sunspot {ε : ℝ} (hε : 0 < ε) :
+    ∃ x : SProcV (Fin 2) (Bool × Bool), SolvesSV ExpectationsFiniteTree.coinSystem Fsun 0 x ∧
+      ‖x‖ ≤ ε ∧ x (1, (true, true)) ≠ x (1, (false, true)) := by
+  set P : ℕ → Fin 2 → ℝ := fun n => ![ε * (1 / 2) ^ n, 0] with hP
+  have hM : ∀ n, ‖P n‖ ≤ ε := fun n => by
+    refine (pi_norm_le_iff_of_nonneg hε.le).mpr fun i => ?_
+    fin_cases i
+    · simp only [hP, Fin.zero_eta, Fin.isValue, Matrix.cons_val_zero, Real.norm_eq_abs]
+      rw [abs_of_nonneg (by positivity)]
+      exact mul_le_of_le_one_right hε.le (pow_le_one₀ (by norm_num) (by norm_num))
+    · simp [hP, hε.le]
+  refine ⟨brProc2 P hM, solvesSV_brProc2 Fsun_odd hM fun n => ?_, norm_brProc2_le hM hε.le,
+    fun h => ?_⟩
+  · funext i
+    fin_cases i
+    · simp [Fsun, hP]
+      ring
+    · cases n <;> simp [Fsun, hP]
+  · have := congrFun h 0
+    change ε * (1 / 2) ^ 0 = -(ε * (1 / 2) ^ 0) at this
+    linarith
+
+/-- **No sunspots with the same Fredholm (A.8)** (Woodford (2003), App. A.3, pp. 632–634,
+example): under informational closure, the only bounded adapted equilibrium of `Fnone` with
+`x_{−1} = 0` and no shocks is the steady state (`y_t = 2y_{t−1} + x_t² ≥ 2^k x_{t−k}²`). -/
+theorem Fnone_unique {Ω : Type*} {𝔼 : ExpectationSystem Ω}
+    (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {x : SProcV (Fin 2) Ω}
+    (hx : SolvesSV 𝔼 Fnone 0 x) : x = 0 := by
+  have hpt : ∀ t ω, x (t, ω) 1 = 2 * lagV 0 (fun s => x (s, ω)) t 1 + x (t, ω) 0 ^ 2 := by
+    intro t ω
+    have h := hx.2 t 1
+    have hlag : 𝔼.E t (fun ω => lagV 0 (fun s => x (s, ω)) t 1) =
+        fun ω => lagV 0 (fun s => x (s, ω)) t 1 := by
+      cases t with
+      | zero => exact 𝔼.const 0 _
+      | succ s =>
+        change 𝔼.E (s + 1) (toP x s 1) = toP x s 1
+        conv_lhs => rw [← hx.1 s 1]
+        rw [𝔼.known (Nat.le_succ s), hx.1 s 1]
+    have hf : (fun ω => Fnone (ptS ((0 : ParS (Fin 2) ℝ Ω), x) (t, ω)) 1) =
+        toP x t 1 - (2 : ℝ) • (fun ω => lagV 0 (fun s => x (s, ω)) t 1) -
+          fun ω => toP x t 0 ω ^ 2 := by
+      funext ω
+      cases t <;> rfl
+    have hk := known_comp hcl (hx.1 t 0) (fun z => z ^ 2)
+    rw [hf, map_sub, map_sub, map_smul, hx.1 t 1, hlag, hk] at h
+    have := congrFun h ω
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply] at this
+    change x (t, ω) 1 - _ - x (t, ω) 0 ^ 2 = 0 at this
+    linarith
+  have key : ∀ ω, (∀ t, x (t, ω) 0 = 0) ∧ ∀ t, x (t, ω) 1 = 0 := by
+    intro ω
+    set Y : ℕ → ℝ := fun t => x (t, ω) 1 with hY
+    set X : ℕ → ℝ := fun t => x (t, ω) 0 with hX
+    have hrec : ∀ t, Y (t + 1) = 2 * Y t + X (t + 1) ^ 2 := fun t => hpt (t + 1) ω
+    have h0 : Y 0 = X 0 ^ 2 := by simpa using hpt 0 ω
+    have hpos : ∀ t, 0 ≤ Y t := by
+      intro t
+      induction t with
+      | zero => rw [h0]; positivity
+      | succ t ih => rw [hrec]; positivity
+    have hXY : ∀ t, X t ^ 2 ≤ Y t := by
+      intro t
+      cases t with
+      | zero => rw [h0]
+      | succ t => rw [hrec]; linarith [hpos t]
+    have hgrow : ∀ t k, 2 ^ k * Y t ≤ Y (t + k) := by
+      intro t k
+      induction k with
+      | zero => simp
+      | succ k ih =>
+        rw [← add_assoc, hrec, pow_succ]
+        nlinarith [sq_nonneg (X (t + k + 1))]
+    have hYb : ∀ t, Y t ≤ ‖x‖ := fun t => (le_abs_self _).trans (abs_apply_le x t ω 1)
+    have hXz : ∀ t, X t = 0 := by
+      intro t
+      by_contra hne
+      have hp : 0 < X t ^ 2 := by positivity
+      obtain ⟨k, hk⟩ := pow_unbounded_of_one_lt (‖x‖ / X t ^ 2) (by norm_num : (1 : ℝ) < 2)
+      rw [div_lt_iff₀ hp] at hk
+      have := hgrow t k
+      have := hYb (t + k)
+      nlinarith [hXY t, pow_pos (by norm_num : (0 : ℝ) < 2) k]
+    refine ⟨hXz, fun t => ?_⟩
+    induction t with
+    | zero => change Y 0 = 0; rw [h0, hXz 0]; ring
+    | succ t ih =>
+      change Y (t + 1) = 0
+      rw [hrec, hXz (t + 1), show Y t = 0 from ih]
+      ring
+  ext ⟨t, ω⟩ i
+  fin_cases i
+  · exact (key ω).1 t
+  · exact (key ω).2 t
+
+/-- **A Fredholm (A.8) that is neither one-to-one nor onto does not decide the sunspot question**
+(Woodford (2003), App. A.3, pp. 632–634, correction): `Fsun` and `Fnone` have the same (A.8)
+(Fredholm: one-dimensional kernel, closed range of codimension one); the first has random
+sunspots at every scale on the coin tree, the second only the steady state there. -/
+theorem fredholm_undecided :
+    linOp Fsun = linOp Fnone ∧ ¬ Function.Injective (linOp Fsun) ∧
+      ¬ Function.Surjective (linOp Fsun) ∧ IsClosed (Set.range (linOp Fsun)) ∧
+      (∀ ε > 0, ∃ x : SProcV (Fin 2) (Bool × Bool),
+        SolvesSV ExpectationsFiniteTree.coinSystem Fsun 0 x ∧ ‖x‖ ≤ ε ∧
+          x (1, (true, true)) ≠ x (1, (false, true))) ∧
+      ∀ x : SProcV (Fin 2) (Bool × Bool),
+        SolvesSV ExpectationsFiniteTree.coinSystem Fnone 0 x → x = 0 := by
+  obtain ⟨h1, h2, h3, -⟩ := fredholm_linOp_F
+  exact ⟨linOp_F.1, h1, h2, h3, fun _ hε => Fsun_random_sunspot hε,
+    fun _ hx => Fnone_unique (LocalIFTStochastic.finiteTree_infoClosed _) hx⟩
+
+end Woodford.PriceLevelDetermination.SunspotsNotOntoMore
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The inertial rule on the boundary: existence with small disturbances
+
+Woodford (2003), *Interest and Prices*, Prop. 2.8, p. 96, and App. A.3, pp. 632–634.
+`InertialBoundary` proves that the rules `φ_π π + h(î_{−1})` with an expanding diagonal
+(`unique_affine`) and `ρ î_{−1} + σπ³` (`unique_cube`) have **at most one** bounded equilibrium for
+every initial rate and disturbance process, and exactly one without disturbances. This module
+proves **existence for small disturbances**, hence `∃!`, with the size of the equilibrium of
+order `‖e‖^{1/3}` — and, for the resonant shock, exactly the cube root.
+
+## Main results
+
+* `exists_expanding` (**the engine**): for any informationally closed expectation system on a
+  nonempty state space and maps `Γ_t(ω, ·)` that are continuous, uniformly expanding
+  (`|Γ(a) − Γ(b)| ≥ |a − b| + κ|a − b|³`), known at `t`, with `|Γ_t(ω, 0)| ≤ κR³`, there is a
+  known-at-`t` process `|i_t| ≤ R` with `E_t i_{t+1} = Γ_t(i_t)`. Construction: solve backwards
+  from `i_{t+k} = 0` (`backW`), and let `k → ∞`; the backward map is a weak contraction, the
+  sup-distance `d_k` between horizons satisfies `d_{k+1} + κ d_{k+1}³ ≤ d_k`, so `d_k → 0`
+  uniformly in `ω` (`backW_cauchy`). `unique_expanding`: such a process is unique.
+* `exists_unique_affine`: for the rule `φ_π π + h(î_{−1})` (`φ_π ≠ 0`, `h` continuous, expanding
+  diagonal) under informational closure: for every initial rate and every disturbance process
+  with `(1 + |φ_π|)‖e‖ ≤ κR³` there is **exactly one** bounded adapted equilibrium, and its
+  interest rate stays within `R`. This covers perfect foresight and every finite event tree.
+* `resonant_cube_root`: for the repelling cubic rule `φ_π π + ρ i + σ i³` (`σ = φ_π + ρ`,
+  `σ² = 1`) and the resonant shock `ν_t = δσᵗ` of `InertialBoundary.no_eq_unit` (which destroys
+  existence for the linear rule), every equilibrium has `î_t = σᵗ ∛(−δ)`: the equilibrium
+  responds to the shock size like `δ^{1/3}`, not differentiably.
+* `exists_unique_cube_pf`: for `ρ î_{−1} + σπ³` (`φ_π = 0`, `σ² = 1`, `σρ ≥ 1`) under perfect
+  foresight: exactly one bounded equilibrium for every initial rate and every disturbance
+  sequence with `‖e‖ + ‖e‖³ ≤ R³/4`.
+-/
+
+namespace Woodford.PriceLevelDetermination.InertialBoundaryExist
+
+open scoped Topology Matrix
+open Filter
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic SunspotsBoundedBelow
+open SunspotsNotOntoExamples (known_comp)
+open LocalIFTSystems (Arg cbrt cbrt_pow)
+open LocalIFTSystemsApps (Finert)
+open InertialBoundary (eq0_of_solves eq1_of_solves lag_known unique_affine unique_cube
+  resShock ruleCubI expand_cubic)
+
+/-! ### Expanding maps -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `x ↦ x + κx³` is monotone. -/
+theorem phi_mono {κ : ℝ} (hκ : 0 ≤ κ) : Monotone fun x : ℝ => x + κ * x ^ 3 := by
+  intro a b hab
+  have h : a ^ 3 ≤ b ^ 3 := by
+    nlinarith [sq_nonneg (a + b), sq_nonneg a, sq_nonneg b, mul_nonneg (sub_nonneg.mpr hab)
+      (add_nonneg (sq_nonneg (a + b)) (add_nonneg (sq_nonneg a) (sq_nonneg b)))]
+  simp only
+  nlinarith
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): an expanding map is one-to-one. -/
+theorem injective_of_expanding {Γ : ℝ → ℝ} {κ : ℝ} (hκ : 0 < κ)
+    (hexp : ∀ a b, |a - b| + κ * |a - b| ^ 3 ≤ |Γ a - Γ b|) : Function.Injective Γ := by
+  intro a b h
+  have := hexp a b
+  rw [h, sub_self, abs_zero] at this
+  have h3 : 0 ≤ κ * |a - b| ^ 3 := by positivity
+  have : |a - b| = 0 := le_antisymm (by linarith) (abs_nonneg _)
+  exact sub_eq_zero.mp (abs_eq_zero.mp this)
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): **a continuous expanding map of `ℝ` is onto**
+(it is strictly monotone and moves `±M` at least `M` away from `Γ(0)`). -/
+theorem surjective_of_expanding {Γ : ℝ → ℝ} (hc : Continuous Γ) {κ : ℝ} (hκ : 0 < κ)
+    (hexp : ∀ a b, |a - b| + κ * |a - b| ^ 3 ≤ |Γ a - Γ b|) : Function.Surjective Γ := by
+  intro y
+  set M := |y| + |Γ 0| with hM
+  have hM0 : 0 ≤ M := by positivity
+  have h1 : M ≤ |Γ M - Γ 0| := by
+    have := hexp M 0
+    rw [sub_zero, abs_of_nonneg hM0] at this
+    nlinarith [pow_nonneg hM0 3]
+  have h2 : M ≤ |Γ (-M) - Γ 0| := by
+    have := hexp (-M) 0
+    rw [sub_zero, abs_neg, abs_of_nonneg hM0] at this
+    nlinarith [pow_nonneg hM0 3]
+  have hy : |y - Γ 0| ≤ M := (abs_sub _ _).trans (by rw [hM])
+  have hmem : y ∈ Set.uIcc (Γ (-M)) (Γ M) := by
+    rcases hc.strictMono_of_inj (injective_of_expanding hκ hexp) with hm | ha
+    · have a1 : Γ (-M) ≤ Γ 0 := hm.monotone (by linarith)
+      have a2 : Γ 0 ≤ Γ M := hm.monotone hM0
+      rw [abs_of_nonneg (by linarith)] at h1
+      rw [abs_of_nonpos (by linarith)] at h2
+      rw [Set.uIcc_of_le (by linarith)]
+      rw [abs_le] at hy
+      exact ⟨by linarith, by linarith⟩
+    · have a1 : Γ 0 ≤ Γ (-M) := ha.antitone (by linarith)
+      have a2 : Γ M ≤ Γ 0 := ha.antitone hM0
+      rw [abs_of_nonpos (by linarith)] at h1
+      rw [abs_of_nonneg (by linarith)] at h2
+      rw [Set.uIcc_of_ge (by linarith)]
+      rw [abs_le] at hy
+      exact ⟨by linarith, by linarith⟩
+  obtain ⟨z, -, hz⟩ := intermediate_value_uIcc hc.continuousOn hmem
+  exact ⟨z, hz⟩
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the inverse of an expanding continuous map
+(well defined by `surjective_of_expanding`). -/
+noncomputable def gInv {Ω : Type*} (Γ : ℕ → Ω → ℝ → ℝ) (hs : ∀ t ω, Function.Surjective (Γ t ω))
+    (t : ℕ) (ω : Ω) (y : ℝ) : ℝ :=
+  Classical.choose (hs t ω y)
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `Γ(Γ⁻¹ y) = y`. -/
+theorem gInv_spec {Ω : Type*} (Γ : ℕ → Ω → ℝ → ℝ) (hs : ∀ t ω, Function.Surjective (Γ t ω))
+    (t : ℕ) (ω : Ω) (y : ℝ) : Γ t ω (gInv Γ hs t ω y) = y :=
+  Classical.choose_spec (hs t ω y)
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Woodford (2003), App. A.3, p. 634 (the construction): the backward solution with horizon
+`t + k`: `backW 0 t = 0`, `backW (k + 1) t = Γ_t⁻¹(E_t backW k (t + 1))`. -/
+noncomputable def backW (Γ : ℕ → Ω → ℝ → ℝ) (hs : ∀ t ω, Function.Surjective (Γ t ω)) :
+    ℕ → ℕ → Ω → ℝ
+  | 0, _ => fun _ => 0
+  | k + 1, t => fun ω => gInv Γ hs t ω (𝔼.E t (backW Γ hs k (t + 1)) ω)
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the backward step,
+`Γ_t(backW (k+1) t) = E_t backW k (t+1)`. -/
+theorem backW_spec (Γ : ℕ → Ω → ℝ → ℝ) (hs : ∀ t ω, Function.Surjective (Γ t ω)) (k t : ℕ)
+    (ω : Ω) : Γ t ω (backW 𝔼 Γ hs (k + 1) t ω) = 𝔼.E t (backW 𝔼 Γ hs k (t + 1)) ω :=
+  gInv_spec Γ hs t ω _
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the backward solutions stay within `R`. -/
+theorem abs_backW_le {Γ : ℕ → Ω → ℝ → ℝ} (hs : ∀ t ω, Function.Surjective (Γ t ω)) {κ R : ℝ}
+    (hκ : 0 < κ) (hR : 0 ≤ R) (hexp : ∀ t ω a b, |a - b| + κ * |a - b| ^ 3 ≤ |Γ t ω a - Γ t ω b|)
+    (hsmall : ∀ t ω, |Γ t ω 0| ≤ κ * R ^ 3) (k : ℕ) :
+    ∀ t ω, |backW 𝔼 Γ hs k t ω| ≤ R := by
+  induction k with
+  | zero =>
+    intro t ω
+    change |(0 : ℝ)| ≤ R
+    simpa using hR
+  | succ k ih =>
+    intro t ω
+    have hy := 𝔼.abs_E_le (fun ω' => ih (t + 1) ω') t ω
+    have he := hexp t ω (backW 𝔼 Γ hs (k + 1) t ω) 0
+    rw [sub_zero, backW_spec 𝔼 Γ hs k t ω] at he
+    have hb : |𝔼.E t (backW 𝔼 Γ hs k (t + 1)) ω - Γ t ω 0| ≤ R + κ * R ^ 3 :=
+      (abs_sub _ _).trans (add_le_add hy (hsmall t ω))
+    by_contra hc
+    push Not at hc
+    have h3 : R ^ 3 < |backW 𝔼 Γ hs (k + 1) t ω| ^ 3 :=
+      pow_lt_pow_left₀ hc hR (by norm_num)
+    nlinarith
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): under informational closure the backward solutions
+are known at their date. -/
+theorem backW_known (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {Γ : ℕ → Ω → ℝ → ℝ}
+    (hs : ∀ t ω, Function.Surjective (Γ t ω)) {κ : ℝ} (hκ : 0 < κ)
+    (hexp : ∀ t ω a b, |a - b| + κ * |a - b| ^ 3 ≤ |Γ t ω a - Γ t ω b|)
+    (hcell : ∀ t ω ω', LocalIFTStochastic.Ops.Indist 𝔼 t ω ω' → Γ t ω = Γ t ω') (k t : ℕ) :
+    𝔼.E t (backW 𝔼 Γ hs k t) = backW 𝔼 Γ hs k t := by
+  cases k with
+  | zero => exact 𝔼.const t 0
+  | succ k =>
+    refine hcl t _ fun ω ω' h => ?_
+    apply injective_of_expanding hκ (hexp t ω)
+    rw [backW_spec 𝔼 Γ hs k t ω, hcell t ω ω' h, backW_spec 𝔼 Γ hs k t ω']
+    exact LocalIFTStochastic.Ops.cellConst_E 𝔼 t _ ω ω' h
+
+/-- Woodford (2003), App. A.3, p. 634 (the contraction): the sup-distance between horizons `k` and
+`k + m` at every date and state. -/
+noncomputable def dist_k (Γ : ℕ → Ω → ℝ → ℝ) (hs : ∀ t ω, Function.Surjective (Γ t ω))
+    (k : ℕ) : ℝ :=
+  ⨆ p : ℕ × Ω × ℕ, |backW 𝔼 Γ hs k p.1 p.2.1 - backW 𝔼 Γ hs (k + p.2.2) p.1 p.2.1|
+
+/-- **The backward solutions converge uniformly** (Woodford (2003), App. A.3, p. 634):
+`|backW k t − backW (k + m) t| ≤ d_k` with `d_k → 0`, uniformly in `t`, `ω`, `m`. -/
+theorem backW_cauchy [Nonempty Ω] {Γ : ℕ → Ω → ℝ → ℝ} (hs : ∀ t ω, Function.Surjective (Γ t ω))
+    {κ R : ℝ} (hκ : 0 < κ) (hR : 0 ≤ R)
+    (hexp : ∀ t ω a b, |a - b| + κ * |a - b| ^ 3 ≤ |Γ t ω a - Γ t ω b|)
+    (hsmall : ∀ t ω, |Γ t ω 0| ≤ κ * R ^ 3) :
+    (∀ k t ω m, |backW 𝔼 Γ hs k t ω - backW 𝔼 Γ hs (k + m) t ω| ≤ dist_k 𝔼 Γ hs k) ∧
+      Tendsto (dist_k 𝔼 Γ hs) atTop (𝓝 0) ∧ ∀ k, 0 ≤ dist_k 𝔼 Γ hs k := by
+  have hb := abs_backW_le 𝔼 hs hκ hR hexp hsmall
+  have hbdd : ∀ k, BddAbove (Set.range fun p : ℕ × Ω × ℕ =>
+      |backW 𝔼 Γ hs k p.1 p.2.1 - backW 𝔼 Γ hs (k + p.2.2) p.1 p.2.1|) := fun k =>
+    ⟨2 * R, by
+      rintro _ ⟨p, rfl⟩
+      exact (abs_sub _ _).trans (by linarith [hb k p.1 p.2.1, hb (k + p.2.2) p.1 p.2.1])⟩
+  have hle : ∀ k t ω m, |backW 𝔼 Γ hs k t ω - backW 𝔼 Γ hs (k + m) t ω| ≤ dist_k 𝔼 Γ hs k :=
+    fun k t ω m => le_ciSup (hbdd k) (t, ω, m)
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  have hd0 : ∀ k, 0 ≤ dist_k 𝔼 Γ hs k := fun k => (abs_nonneg _).trans (hle k 0 ω₀ 0)
+  set Φ : ℝ → ℝ := fun x => x + κ * x ^ 3 with hΦ
+  have hΦm : Monotone Φ := phi_mono hκ.le
+  have hΦc : Continuous Φ := by fun_prop
+  -- the key step `Φ(d_{k+1}) ≤ d_k`
+  have hstep : ∀ k, Φ (dist_k 𝔼 Γ hs (k + 1)) ≤ dist_k 𝔼 Γ hs k := by
+    intro k
+    rw [dist_k, hΦm.map_ciSup_of_continuousAt hΦc.continuousAt (hbdd (k + 1))]
+    refine ciSup_le fun p => ?_
+    obtain ⟨t, ω, m⟩ := p
+    have he := hexp t ω (backW 𝔼 Γ hs (k + 1) t ω) (backW 𝔼 Γ hs (k + m + 1) t ω)
+    rw [backW_spec 𝔼 Γ hs k t ω, backW_spec 𝔼 Γ hs (k + m) t ω] at he
+    have hE : 𝔼.E t (backW 𝔼 Γ hs k (t + 1)) ω - 𝔼.E t (backW 𝔼 Γ hs (k + m) (t + 1)) ω =
+        𝔼.E t (backW 𝔼 Γ hs k (t + 1) - backW 𝔼 Γ hs (k + m) (t + 1)) ω := by
+      rw [map_sub]
+      rfl
+    rw [hE] at he
+    have h2 := he.trans (𝔼.abs_E_le (fun ω' => hle k (t + 1) ω' m) t ω)
+    change Φ |backW 𝔼 Γ hs (k + 1) t ω - backW 𝔼 Γ hs (k + 1 + m) t ω| ≤ _
+    rw [show k + 1 + m = k + m + 1 by omega]
+    exact h2
+  have hanti : Antitone (dist_k 𝔼 Γ hs) := antitone_nat_of_succ_le fun k => by
+    have := hstep k
+    have : 0 ≤ κ * dist_k 𝔼 Γ hs (k + 1) ^ 3 := mul_nonneg hκ.le (pow_nonneg (hd0 _) 3)
+    simp only [hΦ] at *
+    linarith
+  have hbb : BddBelow (Set.range (dist_k 𝔼 Γ hs)) := ⟨0, by rintro _ ⟨k, rfl⟩; exact hd0 k⟩
+  set L := ⨅ k, dist_k 𝔼 Γ hs k with hL
+  have hL0 : 0 ≤ L := le_ciInf hd0
+  have hΦL : Φ L ≤ L := le_ciInf fun k =>
+    (hΦm (ciInf_le hbb (k + 1))).trans (hstep k)
+  have hLz : L = 0 := by
+    simp only [hΦ] at hΦL
+    have : κ * L ^ 3 ≤ 0 := by linarith
+    rcases hL0.lt_or_eq with h | h
+    · linarith [mul_pos hκ (pow_pos h 3)]
+    · exact h.symm
+  refine ⟨hle, ?_, hd0⟩
+  rw [← hLz]
+  exact tendsto_atTop_ciInf hanti hbb
+
+/-- **Existence for expanding forward recursions** (Woodford (2003), App. A.3, p. 634): for an
+informationally closed expectation system on a nonempty state space and maps `Γ_t(ω, ·)` that
+are continuous, uniformly expanding, known at `t`, with `|Γ_t(ω, 0)| ≤ κR³`, there is a process
+`i`, known at every date, with `|i_t| ≤ R` and `E_t i_{t+1} = Γ_t(i_t)`. -/
+theorem exists_expanding [Nonempty Ω] (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼)
+    {Γ : ℕ → Ω → ℝ → ℝ} {κ R : ℝ} (hκ : 0 < κ) (hR : 0 ≤ R) (hc : ∀ t ω, Continuous (Γ t ω))
+    (hexp : ∀ t ω a b, |a - b| + κ * |a - b| ^ 3 ≤ |Γ t ω a - Γ t ω b|)
+    (hsmall : ∀ t ω, |Γ t ω 0| ≤ κ * R ^ 3)
+    (hcell : ∀ t ω ω', LocalIFTStochastic.Ops.Indist 𝔼 t ω ω' → Γ t ω = Γ t ω') :
+    ∃ i : ℕ → Ω → ℝ, (∀ t, 𝔼.E t (i t) = i t) ∧ (∀ t ω, |i t ω| ≤ R) ∧
+      ∀ t, 𝔼.E t (i (t + 1)) = fun ω => Γ t ω (i t ω) := by
+  have hs : ∀ t ω, Function.Surjective (Γ t ω) := fun t ω =>
+    surjective_of_expanding (hc t ω) hκ (hexp t ω)
+  obtain ⟨hle, hd, -⟩ := backW_cauchy 𝔼 hs hκ hR hexp hsmall
+  have hcs : ∀ t ω, CauchySeq fun k => backW 𝔼 Γ hs k t ω := fun t ω =>
+    cauchySeq_of_le_tendsto_0 (fun N => 2 * dist_k 𝔼 Γ hs N) (fun n m N hn hm => by
+      rw [Real.dist_eq]
+      have h1 := hle N t ω (n - N)
+      have h2 := hle N t ω (m - N)
+      rw [show N + (n - N) = n by omega] at h1
+      rw [show N + (m - N) = m by omega] at h2
+      refine (abs_sub_le _ (backW 𝔼 Γ hs N t ω) _).trans ?_
+      rw [abs_sub_comm (backW 𝔼 Γ hs n t ω)]
+      linarith) (by simpa using hd.const_mul 2)
+  choose lim hlim using fun t ω => cauchySeq_tendsto_of_complete (hcs t ω)
+  have hunif : ∀ k t ω, |backW 𝔼 Γ hs k t ω - lim t ω| ≤ dist_k 𝔼 Γ hs k := by
+    intro k t ω
+    have ht : Tendsto (fun m => |backW 𝔼 Γ hs k t ω - backW 𝔼 Γ hs (m + k) t ω|) atTop
+        (𝓝 |backW 𝔼 Γ hs k t ω - lim t ω|) :=
+      (tendsto_const_nhds.sub ((hlim t ω).comp (tendsto_add_atTop_nat k))).abs
+    refine le_of_tendsto' ht fun m => ?_
+    have := hle k t ω m
+    rwa [add_comm k m] at this
+  have hW := backW_known 𝔼 hcl hs hκ hexp hcell
+  refine ⟨lim, fun t => ?_, fun t ω => ?_, fun t => ?_⟩
+  · funext ω
+    have hb : ∀ k, |𝔼.E t (lim t) ω - lim t ω| ≤ 2 * dist_k 𝔼 Γ hs k := by
+      intro k
+      have h1 : |𝔼.E t (lim t - backW 𝔼 Γ hs k t) ω| ≤ dist_k 𝔼 Γ hs k :=
+        𝔼.abs_E_le (fun ω' => by
+          simp only [Pi.sub_apply]
+          rw [abs_sub_comm]
+          exact hunif k t ω') t ω
+      have e : 𝔼.E t (lim t) ω - lim t ω =
+          𝔼.E t (lim t - backW 𝔼 Γ hs k t) ω + (backW 𝔼 Γ hs k t ω - lim t ω) := by
+        rw [map_sub, hW k t]
+        simp only [Pi.sub_apply]
+        ring
+      rw [e]
+      exact (abs_add_le _ _).trans (by linarith [hunif k t ω])
+    have h0 := ge_of_tendsto' (hd.const_mul 2) hb
+    rw [mul_zero] at h0
+    exact sub_eq_zero.mp (abs_nonpos_iff.mp h0)
+  · exact le_of_tendsto' (hlim t ω).abs fun k => abs_backW_le 𝔼 hs hκ hR hexp hsmall k t ω
+  · funext ω
+    have ha : Tendsto (fun k => Γ t ω (backW 𝔼 Γ hs (k + 1) t ω)) atTop
+        (𝓝 (Γ t ω (lim t ω))) :=
+      ((hc t ω).tendsto _).comp ((hlim t ω).comp (tendsto_add_atTop_nat 1))
+    have hb : Tendsto (fun k => 𝔼.E t (backW 𝔼 Γ hs k (t + 1)) ω) atTop
+        (𝓝 (𝔼.E t (lim (t + 1)) ω)) := by
+      refine tendsto_iff_dist_tendsto_zero.mpr
+        (squeeze_zero (fun k => dist_nonneg) (fun k => ?_) hd)
+      rw [Real.dist_eq]
+      have e : 𝔼.E t (backW 𝔼 Γ hs k (t + 1)) ω - 𝔼.E t (lim (t + 1)) ω =
+          𝔼.E t (backW 𝔼 Γ hs k (t + 1) - lim (t + 1)) ω := by
+        rw [map_sub]
+        rfl
+      rw [e]
+      exact 𝔼.abs_E_le (fun ω' => hunif k (t + 1) ω') t ω
+    have hab : (fun k => Γ t ω (backW 𝔼 Γ hs (k + 1) t ω)) =
+        fun k => 𝔼.E t (backW 𝔼 Γ hs k (t + 1)) ω :=
+      funext fun k => backW_spec 𝔼 Γ hs k t ω
+    rw [hab] at ha
+    exact tendsto_nhds_unique hb ha
+
+/-- **Uniqueness for expanding forward recursions** (Woodford (2003), App. A.3, p. 634): two
+bounded processes known at every date with `E_t i_{t+1} = Γ_t(i_t)`, `Γ` uniformly expanding,
+coincide. -/
+theorem unique_expanding {Γ : ℕ → Ω → ℝ → ℝ} {κ : ℝ} (hκ : 0 < κ)
+    (hexp : ∀ t ω a b, |a - b| + κ * |a - b| ^ 3 ≤ |Γ t ω a - Γ t ω b|) {i j : ℕ → Ω → ℝ}
+    (hib : ∃ B, ∀ t ω, |i t ω| ≤ B) (hjb : ∃ B, ∀ t ω, |j t ω| ≤ B)
+    (hi : ∀ t, 𝔼.E t (i (t + 1)) = fun ω => Γ t ω (i t ω))
+    (hj : ∀ t, 𝔼.E t (j (t + 1)) = fun ω => Γ t ω (j t ω)) : i = j := by
+  obtain ⟨Bi, hBi⟩ := hib
+  obtain ⟨Bj, hBj⟩ := hjb
+  have hz : ∀ p : ℕ × Ω, i p.1 p.2 - j p.1 p.2 = 0 := by
+    refine eq_zero_of_push (fun p : ℕ × Ω => i p.1 p.2 - j p.1 p.2) ⟨Bi + Bj, fun p => ?_⟩
+      (inv_pos.mpr hκ) fun B hB p => ?_
+    · exact (abs_sub _ _).trans (add_le_add (hBi _ _) (hBj _ _))
+    · obtain ⟨t, ω⟩ := p
+      have hb := 𝔼.abs_E_le (fun ω' => hB (t + 1, ω')) t ω
+      have e : 𝔼.E t (fun ω' => i (t + 1) ω' - j (t + 1) ω') ω = Γ t ω (i t ω) - Γ t ω (j t ω) := by
+        have := map_sub (𝔼.E t) (i (t + 1)) (j (t + 1))
+        rw [show (fun ω' => i (t + 1) ω' - j (t + 1) ω') = i (t + 1) - j (t + 1) from rfl, this,
+          hi, hj]
+        rfl
+      change |𝔼.E t (fun ω' => i (t + 1) ω' - j (t + 1) ω') ω| ≤ B at hb
+      rw [e] at hb
+      have he := (hexp t ω (i t ω) (j t ω)).trans hb
+      change |i t ω - j t ω| ^ 3 ≤ κ⁻¹ * (B - |i t ω - j t ω|)
+      rw [inv_mul_eq_div, le_div_iff₀ hκ]
+      linarith
+  funext t ω
+  exact sub_eq_zero.mp (hz (t, ω))
+
+/-! ### The affine-in-inflation rule: existence and uniqueness with small disturbances -/
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): the composite disturbance
+`f_t = E_t ν_{t+1} − φ_π E_t r̂_t` driving the interest rate, `E_t î_{t+1} = g(î_t) + f_t`. -/
+noncomputable def forceA (φ : ℝ) (e : LocalIFTStochastic.BFun (ℕ × Ω) (Fin 2 → ℝ)) (t : ℕ) :
+    Ω → ℝ :=
+  𝔼.E t (fun ω => e (t + 1, ω) 1) - φ • 𝔼.E t (fun ω => e (t, ω) 0)
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): the composite disturbance is known at `t`. -/
+theorem forceA_known (φ : ℝ) (e : LocalIFTStochastic.BFun (ℕ × Ω) (Fin 2 → ℝ)) (t : ℕ) :
+    𝔼.E t (forceA 𝔼 φ e t) = forceA 𝔼 φ e t := by
+  rw [forceA, map_sub, map_smul, 𝔼.E_E_self, 𝔼.E_E_self]
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): `|f_t| ≤ (1 + |φ_π|)‖e‖`. -/
+theorem abs_forceA_le (φ : ℝ) (e : LocalIFTStochastic.BFun (ℕ × Ω) (Fin 2 → ℝ)) (t : ℕ)
+    (ω : Ω) : |forceA 𝔼 φ e t ω| ≤ (1 + |φ|) * ‖e‖ := by
+  have habs : ∀ p j, |e p j| ≤ ‖e‖ := fun p j => by
+    rw [← Real.norm_eq_abs]
+    exact (norm_le_pi_norm _ j).trans (LocalIFTStochastic.norm_apply_le e p)
+  have h1 := 𝔼.abs_E_le (fun ω' => habs (t + 1, ω') 1) t ω
+  have h2 := 𝔼.abs_E_le (fun ω' => habs (t, ω') 0) t ω
+  simp only [forceA, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+  refine (abs_sub _ _).trans ?_
+  rw [abs_mul]
+  nlinarith [abs_nonneg φ]
+
+/-- Woodford (2003), Prop. 2.8, p. 96, under uncertainty (tool): **in every equilibrium of the
+rule `φ_π π + h(î_{−1})` (informational closure), `E_t î_{t+1} = φ_π î_t + h(î_t) + f_t`.** -/
+theorem affine_i_rec (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {Ψ : ℝ × ℝ → ℝ} {φ : ℝ}
+    {h : ℝ → ℝ} (hΨ : ∀ π i, Ψ (π, i) = φ * π + h i) {u : ParS (Fin 2) (Fin 2 → ℝ) Ω}
+    {x : SProcV (Fin 2) Ω} (hx : SolvesSV 𝔼 (Finert Ψ) u x) (t : ℕ) :
+    𝔼.E t (toP x (t + 1) 1) =
+      fun ω => φ * toP x t 1 ω + h (toP x t 1 ω) + forceA 𝔼 φ u.2 t ω := by
+  have e1 := eq1_of_solves hx (t + 1)
+  have hΨf : (fun ω => Ψ (x (t + 1, ω) 0, lagV u.1 (fun s => x (s, ω)) (t + 1) 1)) =
+      φ • toP x (t + 1) 0 + fun ω => h (toP x t 1 ω) := by
+    funext ω
+    simp only [hΨ, Pi.add_apply, Pi.smul_apply, smul_eq_mul, lagV_succ]
+    rfl
+  have hk1 : 𝔼.E (t + 1) (fun ω => h (toP x t 1 ω)) = fun ω => h (toP x t 1 ω) :=
+    known_comp hcl (lag_known hx (t + 1)) h
+  rw [hΨf, map_add, map_smul, hx.1 (t + 1) 0, hk1] at e1
+  have hk0 : 𝔼.E t (fun ω => h (toP x t 1 ω)) = fun ω => h (toP x t 1 ω) :=
+    known_comp hcl (hx.1 t 1) h
+  rw [e1, map_add, map_add, map_smul, 𝔼.tower (Nat.le_succ t), hk0, eq0_of_solves hx t]
+  funext ω
+  simp only [forceA, Pi.add_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+  ring
+
+/-- **Existence and uniqueness on the boundary with small disturbances, `φ_π ≠ 0`** (Woodford
+(2003), Prop. 2.8, p. 96; App. A.3, pp. 632–634): under informational closure on a nonempty state
+space (perfect foresight, every finite event tree), for the rule `Ψ(π, i) = φ_π π + h(i)` with
+`φ_π ≠ 0`, `h` continuous, `h(0) = 0` and an expanding diagonal, for every initial rate and every
+disturbance process with `(1 + |φ_π|)‖e‖ ≤ κR³` there is **exactly one** bounded adapted
+equilibrium, and its interest rate stays within `R` of the steady state (so within
+`((1 + |φ_π|)‖e‖/κ)^{1/3}`). -/
+theorem exists_unique_affine [Nonempty Ω] (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼)
+    {Ψ : ℝ × ℝ → ℝ} {φ κ R : ℝ} {h : ℝ → ℝ} (hΨ : ∀ π i, Ψ (π, i) = φ * π + h i) (hφ : φ ≠ 0)
+    (hκ : 0 < κ) (hR : 0 ≤ R) (hhc : Continuous h) (hh0 : h 0 = 0)
+    (hexp : ∀ i i', |i - i'| + κ * |i - i'| ^ 3 ≤ |(φ * i + h i) - (φ * i' + h i')|)
+    (xm : Fin 2 → ℝ) (e : LocalIFTStochastic.BFun (ℕ × Ω) (Fin 2 → ℝ))
+    (he : (1 + |φ|) * ‖e‖ ≤ κ * R ^ 3) :
+    ∃ x : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert Ψ) (xm, e) x ∧ (∀ t ω, |x (t, ω) 1| ≤ R) ∧
+      ∀ y : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert Ψ) (xm, e) y → y = x := by
+  set Γ : ℕ → Ω → ℝ → ℝ := fun t ω z => φ * z + h z + forceA 𝔼 φ e t ω with hΓ
+  have hc : ∀ t ω, Continuous (Γ t ω) := fun t ω =>
+    ((continuous_const.mul continuous_id).add hhc).add continuous_const
+  have hexp' : ∀ t ω a b, |a - b| + κ * |a - b| ^ 3 ≤ |Γ t ω a - Γ t ω b| := by
+    intro t ω a b
+    have : Γ t ω a - Γ t ω b = (φ * a + h a) - (φ * b + h b) := by simp only [hΓ]; ring
+    rw [this]
+    exact hexp a b
+  have hsmall : ∀ t ω, |Γ t ω 0| ≤ κ * R ^ 3 := fun t ω => by
+    simp only [hΓ, mul_zero, hh0, zero_add]
+    exact (abs_forceA_le 𝔼 φ e t ω).trans he
+  have hcell : ∀ t ω ω', LocalIFTStochastic.Ops.Indist 𝔼 t ω ω' → Γ t ω = Γ t ω' :=
+    fun t ω ω' hi => by
+      funext z
+      simp only [hΓ]
+      rw [LocalIFTStochastic.Ops.cellConst_of_known 𝔼 (forceA_known 𝔼 φ e t) ω ω' hi]
+  obtain ⟨i, hik, hib, hirec⟩ := exists_expanding 𝔼 hcl hκ hR hc hexp' hsmall hcell
+  -- the lagged rate, inflation, and their bounds
+  set lagI : ℕ → Ω → ℝ := fun t ω => lagV (xm 1) (fun s => i s ω) t with hlagI
+  set ν : ℕ → Ω → ℝ := fun t ω => e (t, ω) 1 with hν
+  set pz : ℕ → Ω → ℝ := fun t ω => (i t ω - h (lagI t ω) - 𝔼.E t (ν t) ω) / φ with hpz
+  obtain ⟨C, hC⟩ := (isCompact_Icc (a := -R) (b := R)).exists_bound_of_continuousOn
+    hhc.continuousOn
+  have hhl : ∀ t ω, |h (lagI t ω)| ≤ max C |h (xm 1)| := by
+    intro t ω
+    cases t with
+    | zero => exact le_max_right _ _
+    | succ t =>
+      have := hC (i t ω) (abs_le.mp (hib t ω) |> fun h' => ⟨h'.1, h'.2⟩)
+      rw [Real.norm_eq_abs] at this
+      exact this.trans (le_max_left _ _)
+  have habs : ∀ p j, |e p j| ≤ ‖e‖ := fun p j => by
+    rw [← Real.norm_eq_abs]
+    exact (norm_le_pi_norm _ j).trans (LocalIFTStochastic.norm_apply_le e p)
+  set Bp := (R + max C |h (xm 1)| + ‖e‖) / |φ| with hBp
+  have hpzb : ∀ t ω, |pz t ω| ≤ Bp := by
+    intro t ω
+    have h3 := 𝔼.abs_E_le (fun ω' => habs (t, ω') 1) t ω
+    simp only [hpz, abs_div]
+    rw [hBp]
+    refine div_le_div_of_nonneg_right ((abs_sub _ _).trans ?_) (abs_nonneg φ)
+    exact add_le_add ((abs_sub _ _).trans (add_le_add (hib t ω) (hhl t ω))) h3
+  set x : SProcV (Fin 2) Ω := LocalIFTStochastic.mkB (fun p => ![pz p.1 p.2, i p.1 p.2])
+    ⟨max Bp R, fun p => (pi_norm_le_iff_of_nonneg ((abs_nonneg _).trans
+      ((hib p.1 p.2).trans (le_max_right _ _)))).mpr fun j => by
+        rw [Real.norm_eq_abs]
+        fin_cases j
+        · exact (hpzb p.1 p.2).trans (le_max_left _ _)
+        · exact (hib p.1 p.2).trans (le_max_right _ _)⟩ with hx
+  have hx0 : ∀ t, toP x t 0 = pz t := fun _ => rfl
+  have hx1 : ∀ t, toP x t 1 = i t := fun _ => rfl
+  have hlagk : ∀ t, 𝔼.E t (fun ω => h (lagI t ω)) = fun ω => h (lagI t ω) := by
+    intro t
+    cases t with
+    | zero =>
+      change 𝔼.E 0 (fun _ => h (xm 1)) = fun _ => h (xm 1)
+      exact 𝔼.const 0 _
+    | succ s =>
+      have hk : 𝔼.E (s + 1) (i s) = i s := by
+        conv_lhs => rw [← hik s]
+        rw [𝔼.known (Nat.le_succ s), hik s]
+      exact known_comp hcl hk h
+  have hpzf : ∀ t, pz t = φ⁻¹ • (i t - (fun ω => h (lagI t ω)) - 𝔼.E t (ν t)) := by
+    intro t
+    funext ω
+    simp only [hpz, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    rw [div_eq_inv_mul]
+  have hpzk : ∀ t, 𝔼.E t (pz t) = pz t := by
+    intro t
+    rw [hpzf, map_smul, map_sub, map_sub, hik, hlagk, 𝔼.E_E_self]
+  have hsol : SolvesSV 𝔼 (Finert Ψ) (xm, e) x := by
+    refine ⟨fun t j => ?_, fun t j => ?_⟩
+    · fin_cases j
+      · exact hpzk t
+      · exact hik t
+    · fin_cases j
+      · -- the Fisher equation
+        have hf : (fun ω => Finert Ψ (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Ω), x) (t, ω)) 0) =
+            i t - pz (t + 1) - fun ω => e (t, ω) 0 := rfl
+        change 𝔼.E t (fun ω => Finert Ψ (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Ω), x)
+          (t, ω)) 0) = 0
+        have hEpz : 𝔼.E t (pz (t + 1)) = i t - 𝔼.E t (fun ω => e (t, ω) 0) := by
+          have hk : 𝔼.E t (fun ω => h (lagI (t + 1) ω)) = fun ω => h (lagI (t + 1) ω) :=
+            known_comp hcl (hik t) h
+          rw [hpzf, map_smul, map_sub, map_sub, hirec, hk, 𝔼.tower (Nat.le_succ t)]
+          funext ω
+          simp only [hΓ, forceA, hν, hlagI, lagV_succ, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+          field_simp
+          ring
+        rw [hf, map_sub, map_sub, hik, hEpz]
+        funext ω
+        simp
+      · -- the rule
+        have hf : (fun ω => Finert Ψ (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Ω), x) (t, ω)) 1) =
+            i t - (φ • pz t + fun ω => h (lagI t ω)) - ν t := by
+          funext ω
+          have hl : lagV xm (fun s => x (s, ω)) t 1 = lagI t ω := by
+            cases t <;> rfl
+          simp only [Finert, ptS, Matrix.cons_val_one, Matrix.cons_val_zero, Pi.sub_apply,
+            Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+          rw [hl, hΨ]
+          rfl
+        change 𝔼.E t (fun ω => Finert Ψ (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Ω), x)
+          (t, ω)) 1) = 0
+        rw [hf, map_sub, map_sub, map_add, map_smul, hik, hpzk, hlagk]
+        funext ω
+        simp only [hpz, Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+        field_simp
+        ring
+  exact ⟨x, hsol, fun t ω => hib t ω, fun y hy => unique_affine hcl hΨ hφ hκ hexp hy hsol⟩
+
+/-- **The resonant shock: an explicit cube-root equilibrium** (Woodford (2003), Prop. 2.8, p. 96;
+App. A.3, p. 634): let `σ = φ_π + ρ` with `σ² = 1` and `φ_π ≠ 0`. For the repelling cubic rule
+`φ_π π + ρ i + σ i³` and the policy shock `ν_t = δσᵗ` (for which the linear rule has no bounded
+equilibrium, `InertialBoundary.no_eq_unit`), under informational closure every bounded
+equilibrium has `î_t = σᵗ ∛(−δ)`: the response to the shock is of order `|δ|^{1/3}`. -/
+theorem resonant_cube_root (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {φ ρ : ℝ}
+    (hσ : (φ + ρ) * (φ + ρ) = 1) {δ : ℝ} (xm : Fin 2 → ℝ) {x : SProcV (Fin 2) Ω}
+    (hx : SolvesSV 𝔼 (Finert (ruleCubI φ ρ (φ + ρ))) (xm, resShock δ (φ + ρ) hσ) x) :
+    ∀ t ω, x (t, ω) 1 = (φ + ρ) ^ t * cbrt (-δ) := by
+  set σ := φ + ρ with hσdef
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  have hΨ : ∀ π i, ruleCubI φ ρ σ (π, i) = φ * π + (ρ * i + σ * i ^ 3) := fun π i => by
+    simp only [ruleCubI]
+    ring
+  have hfA : ∀ t, forceA 𝔼 φ (resShock δ σ hσ) t = fun _ => δ * σ ^ (t + 1) := by
+    intro t
+    have h1 : 𝔼.E t (fun ω => (resShock (Ω := Ω) δ σ hσ) (t + 1, ω) 1) =
+        fun _ => δ * σ ^ (t + 1) := by
+      change 𝔼.E t (fun _ => δ * σ ^ (t + 1)) = _
+      exact 𝔼.const t _
+    have h0 : 𝔼.E t (fun ω => (resShock (Ω := Ω) δ σ hσ) (t, ω) 0) = 0 := by
+      change 𝔼.E t (fun _ => 0) = 0
+      exact 𝔼.const t 0
+    rw [forceA, h1, h0, smul_zero, sub_zero]
+  set Γ : ℕ → Ω → ℝ → ℝ := fun t _ z => σ * (z + z ^ 3) + δ * σ ^ (t + 1) with hΓ
+  have hexp : ∀ t ω a b, |a - b| + 1 / 4 * |a - b| ^ 3 ≤ |Γ t ω a - Γ t ω b| := by
+    intro t ω a b
+    have : Γ t ω a - Γ t ω b = σ * (a + a ^ 3) - σ * (b + b ^ 3) := by simp only [hΓ]; ring
+    rw [this]
+    exact expand_cubic hσ a b
+  set c := cbrt (-δ) with hc
+  have hpow : ∀ t, σ ^ t * σ ^ t = 1 := fun t => by rw [← mul_pow, hσ, one_pow]
+  have hi : ∀ t, 𝔼.E t (toP x (t + 1) 1) = fun ω => Γ t ω (toP x t 1 ω) := by
+    intro t
+    have h := affine_i_rec 𝔼 hcl hΨ hx t
+    change _ = fun ω => φ * toP x t 1 ω + (ρ * toP x t 1 ω + σ * toP x t 1 ω ^ 3) +
+      forceA 𝔼 φ (resShock δ σ hσ) t ω at h
+    rw [h, hfA]
+    funext ω
+    simp only [hΓ, hσdef]
+    ring
+  have hj : ∀ t, 𝔼.E t (fun _ : Ω => σ ^ (t + 1) * c) =
+      fun ω => Γ t ω ((fun _ : Ω => σ ^ t * c) ω) := by
+    intro t
+    rw [𝔼.const]
+    funext ω
+    simp only [hΓ]
+    have hc3 : c ^ 3 = -δ := cbrt_pow _
+    have e : (σ ^ t * c) ^ 3 = σ ^ t * (σ ^ t * σ ^ t) * c ^ 3 := by ring
+    rw [e, hpow, hc3, pow_succ]
+    ring
+  have heq := unique_expanding 𝔼 (by norm_num : (0 : ℝ) < 1 / 4) hexp
+    (i := fun t => toP x t 1) (j := fun t _ => σ ^ t * c)
+    ⟨‖x‖, fun t ω => abs_apply_le x t ω 1⟩
+    ⟨|c|, fun t ω => by rw [abs_mul, abs_pow, hs, one_pow, one_mul]⟩ hi hj
+  intro t ω
+  exact congrFun (congrFun heq t) ω
+
+/-! ### The cubic response to inflation (`φ_π = 0`) under perfect foresight -/
+
+/-- **Existence and uniqueness on the boundary with small disturbances, `φ_π = 0`, perfect
+foresight** (Woodford (2003), Prop. 2.8, p. 96; App. A.3, pp. 632–634): for the rule
+`ρ î_{−1} + σπ³` with `σ² = 1`, `σρ ≥ 1`, for every initial rate and every disturbance sequence
+with `‖e‖ + ‖e‖³ ≤ R³/4` there is exactly one bounded perfect-foresight equilibrium, and its
+interest rate stays within `R`. -/
+theorem exists_unique_cube_pf {ρ σ R : ℝ} (hσ : σ * σ = 1) (hτ : 1 ≤ σ * ρ) (hR : 0 ≤ R)
+    (xm : Fin 2 → ℝ) (e : LocalIFTStochastic.BFun (ℕ × Unit) (Fin 2 → ℝ))
+    (he : ‖e‖ + ‖e‖ ^ 3 ≤ 1 / 4 * R ^ 3) :
+    ∃ x : SProcV (Fin 2) Unit,
+      SolvesSV perfectForesight (Finert (InertialBoundary.ruleCubPi ρ σ)) (xm, e) x ∧
+      (∀ t, |x (t, ()) 1| ≤ R) ∧ ∀ y : SProcV (Fin 2) Unit,
+        SolvesSV perfectForesight (Finert (InertialBoundary.ruleCubPi ρ σ)) (xm, e) y → y = x := by
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  have habs : ∀ p j, |e p j| ≤ ‖e‖ := fun p j => by
+    rw [← Real.norm_eq_abs]
+    exact (norm_le_pi_norm _ j).trans (LocalIFTStochastic.norm_apply_le e p)
+  set r : ℕ → ℝ := fun t => e (t, ()) 0 with hr
+  set ν : ℕ → ℝ := fun t => e (t, ()) 1 with hν
+  set Γ : ℕ → Unit → ℝ → ℝ := fun t _ z => ρ * z + σ * (z - r t) ^ 3 + ν (t + 1) with hΓ
+  have hc : ∀ t u, Continuous (Γ t u) := fun t u => by
+    simp only [hΓ]
+    fun_prop
+  have hexp : ∀ t u a b, |a - b| + 1 / 4 * |a - b| ^ 3 ≤ |Γ t u a - Γ t u b| := by
+    intro t u a b
+    set Q := (a - r t) ^ 2 + (a - r t) * (b - r t) + (b - r t) ^ 2 with hQ
+    have e1 : Γ t u a - Γ t u b = σ * ((a - b) * (σ * ρ + Q)) := by
+      simp only [hΓ, hQ]
+      linear_combination (-(ρ * (a - b))) * hσ
+    have hQ4 : (a - b) ^ 2 / 4 ≤ Q := by nlinarith [sq_nonneg (a + b - 2 * r t)]
+    rw [e1, abs_mul, hs, one_mul, abs_mul, abs_of_pos (by nlinarith [sq_nonneg (a - b)] :
+      (0 : ℝ) < σ * ρ + Q)]
+    have h3 : |a - b| ^ 3 = |a - b| * (a - b) ^ 2 := by
+      rw [pow_succ', ← sq_abs (a - b)]
+    rw [h3]
+    nlinarith [abs_nonneg (a - b)]
+  have hsmall : ∀ t u, |Γ t u 0| ≤ 1 / 4 * R ^ 3 := by
+    intro t u
+    simp only [hΓ, mul_zero, zero_add, zero_sub]
+    have h1 : |σ * (-r t) ^ 3| ≤ ‖e‖ ^ 3 := by
+      rw [abs_mul, hs, one_mul, abs_pow, abs_neg]
+      exact pow_le_pow_left₀ (abs_nonneg _) (habs _ 0) 3
+    have h2 : |ν (t + 1)| ≤ ‖e‖ := habs _ 1
+    exact (abs_add_le _ _).trans (by linarith)
+  obtain ⟨i, -, hib, hirec⟩ := exists_expanding perfectForesight
+    LocalIFTStochastic.perfectForesight_infoClosed (by norm_num : (0 : ℝ) < 1 / 4) hR hc hexp
+    hsmall (fun t u u' _ => by rw [Subsingleton.elim u u'])
+  have hrec : ∀ t, i (t + 1) () = Γ t () (i t ()) := fun t => congrFun (hirec t) ()
+  set pz : ℕ → ℝ := fun t => match t with
+    | 0 => cbrt (σ * (i 0 () - ρ * xm 1 - ν 0))
+    | t + 1 => i t () - r t with hpz
+  have hpzb : ∀ t, |pz t| ≤ max |pz 0| (R + ‖e‖) := by
+    intro t
+    cases t with
+    | zero => exact le_max_left _ _
+    | succ t =>
+      refine le_trans ?_ (le_max_right _ _)
+      exact (abs_sub _ _).trans (add_le_add (hib t ()) (habs _ 0))
+  set x : SProcV (Fin 2) Unit := LocalIFTStochastic.mkB (fun p => ![pz p.1, i p.1 p.2])
+    ⟨max (max |pz 0| (R + ‖e‖)) R, fun p => (pi_norm_le_iff_of_nonneg ((abs_nonneg _).trans
+      ((hib p.1 p.2).trans (le_max_right _ _)))).mpr fun j => by
+        rw [Real.norm_eq_abs]
+        fin_cases j
+        · exact (hpzb p.1).trans (le_max_left _ _)
+        · exact (hib p.1 p.2).trans (le_max_right _ _)⟩ with hx
+  have hsol : SolvesSV perfectForesight (Finert (InertialBoundary.ruleCubPi ρ σ)) (xm, e) x := by
+    refine ⟨fun t j => rfl, fun t j => ?_⟩
+    change (fun u => Finert (InertialBoundary.ruleCubPi ρ σ)
+      (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Unit), x) (t, u)) j) = 0
+    funext u
+    obtain rfl : u = () := Subsingleton.elim _ _
+    fin_cases j
+    · change i t () - pz (t + 1) - r t = 0
+      simp only [hpz]
+      ring
+    · cases t with
+      | zero =>
+        change i 0 () - (ρ * xm 1 + σ * pz 0 ^ 3) - ν 0 = 0
+        simp only [hpz]
+        rw [cbrt_pow]
+        linear_combination (-(i 0 () - ρ * xm 1 - ν 0)) * hσ
+      | succ t =>
+        change i (t + 1) () - (ρ * i t () + σ * pz (t + 1) ^ 3) - ν (t + 1) = 0
+        rw [hrec t]
+        simp only [hpz, hΓ]
+        ring
+  refine ⟨x, hsol, fun t => hib t (), fun y hy => unique_cube
+    LocalIFTStochastic.perfectForesight_infoClosed (fun π i => rfl) hσ hτ hy hsol⟩
+
+end Woodford.PriceLevelDetermination.InertialBoundaryExist
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The boundary rule `ρ î_{−1} + σπ³` under uncertainty: existence with small disturbances
+
+Woodford (2003), *Interest and Prices*, Prop. 2.8, p. 96, and App. A.3, pp. 632–634. For the
+`φ_π = 0` boundary rule `Ψ(π, i) = ρ i + σπ³` (`σ² = 1`, `σρ ≥ 1`), `InertialBoundary.unique_cube`
+gives uniqueness for every expectation system with informational closure, and
+`InertialBoundaryExist.exists_unique_cube_pf` gives existence under perfect foresight. Here
+existence is proved for **every informationally closed expectation system**.
+
+## The construction: choosing the inflation innovations
+
+The rule gives `σπ_t³ = î_t − ρ î_{t−1} − E_t ν_t`, so inflation is a function of the
+interest-rate path, `π_{t+1} = ∛(σ(î_{t+1} − ρ î_t − E_{t+1}ν_{t+1}))`, and the Fisher equation
+becomes the backward condition
+`E_t ∛(σ(î_{t+1} − ρ î_t − E_{t+1}ν_{t+1})) = î_t − E_t r̂_t` (see `rel_Tcube`). Given `î_{t+1}`,
+this has exactly one solution `î_t` in every state (`Tcube`; the left side is decreasing in
+`î_t`), the solution is known at `t` (informational closure), it stays within `R` for small
+disturbances (`abs_Tcube_le`), and the map is a weak contraction in the sup norm:
+`|δ| + |δ|³/4 ≤ D` (`Tcube_contract`). Iterating backwards from a far horizon and letting the
+horizon go to infinity (`exists_limit_backward`, a uniform-limit engine) gives a bounded,
+adapted interest-rate path solving this relation at every date; inflation surprises are whatever the
+cube root of the interest-rate and policy-shock surprises makes them.
+
+The one step that needs care: `E_t` of a nonlinear function of a known variable `x` and an
+unknown `c` equals, in state `ω`, `E_t` of the same function with `x` frozen at `x(ω)`
+(`E_eq_of_eqOn_cell`) — this follows from informational closure alone (the indicator of an
+information cell is known), for bounded functions.
+
+## Main results
+
+* `exists_unique_cube`: under informational closure on a nonempty state space, for every
+  initial rate and every disturbance process with `‖e‖ ≤ R/2` and `‖e‖ ≤ R³/8`, there is
+  **exactly one** bounded adapted equilibrium, with `|î_t| ≤ R` (so `|î_t| ≤ 2‖e‖^{1/3}` for
+  small shocks), and `π_0 = ∛(σ(î_0 − ρ î_{−1} − E_0 ν_0))`.
+* `resonant_cube_root_pi`: for `ρ = σ` and the resonant shock `ν_t = δσᵗ`, every equilibrium has
+  `î_t = σᵗ ∛(−δ)` — the response is of order `|δ|^{1/3}`, not differentiable in `δ`.
+-/
+
+namespace Woodford.PriceLevelDetermination.InertialBoundaryExistCube
+
+open scoped Topology Matrix
+open Filter
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic SunspotsBoundedBelow
+open LocalIFTSystems (Arg cbrt cbrt_pow abs_le_of_pow_three)
+open LocalIFTSystemsApps (Finert)
+open InertialBoundary (eq0_of_solves eq1_of_solves unique_cube ruleCubPi sub_le_cbrt
+  pow_le_of_le_cbrt resShock)
+open InertialBoundaryExist (phi_mono)
+
+/-! ### Cube roots -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the real cube root is strictly increasing. -/
+theorem cbrt_strictMono : StrictMono cbrt := by
+  intro a b hab
+  by_contra h
+  push Not at h
+  have := (Odd.strictMono_pow (R := ℝ) (by decide : Odd 3)).monotone h
+  simp only [cbrt_pow] at this
+  linarith
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `∛(x³) = x`. -/
+theorem cbrt_cube (x : ℝ) : cbrt (x ^ 3) = x :=
+  (Odd.pow_injective (by decide : Odd 3)) (cbrt_pow _)
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `∛(−u) = −∛u`. -/
+theorem cbrt_neg (u : ℝ) : cbrt (-u) = -cbrt u := by
+  have h : (-cbrt u) ^ 3 = -u := by rw [neg_pow, cbrt_pow]; ring
+  rw [← h, cbrt_cube]
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `u ≤ ε³` implies `∛u ≤ ε`. -/
+theorem cbrt_le_of_le_pow {u ε : ℝ} (hu : u ≤ ε ^ 3) : cbrt u ≤ ε :=
+  (cbrt_strictMono.monotone hu).trans_eq (cbrt_cube ε)
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): **the cube root is uniformly Hölder**,
+`|∛a − ∛b| ≤ ∛(4|a − b|)`. -/
+theorem abs_cbrt_sub_le (a b : ℝ) : |cbrt a - cbrt b| ≤ cbrt (4 * |a - b|) := by
+  have h1 : cbrt a - cbrt b ≤ cbrt (4 * max (a - b) 0) :=
+    sub_le_cbrt (by rw [cbrt_pow, cbrt_pow])
+  have h2 : cbrt b - cbrt a ≤ cbrt (4 * max (b - a) 0) :=
+    sub_le_cbrt (by rw [cbrt_pow, cbrt_pow])
+  have m1 : cbrt (4 * max (a - b) 0) ≤ cbrt (4 * |a - b|) :=
+    cbrt_strictMono.monotone (by
+      have := max_le (le_abs_self (a - b)) (abs_nonneg (a - b))
+      linarith)
+  have m2 : cbrt (4 * max (b - a) 0) ≤ cbrt (4 * |a - b|) :=
+    cbrt_strictMono.monotone (by
+      have h0 : b - a ≤ |a - b| := by rw [abs_sub_comm]; exact le_abs_self _
+      have := max_le h0 (abs_nonneg (a - b))
+      linarith)
+  rw [abs_le]
+  constructor <;> linarith
+
+/-! ### Freezing a known variable inside a conditional expectation -/
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-- Woodford (2003), p. 633 (tool): **under informational closure, a conditional expectation in
+state `ω` depends only on the values on the information cell of `ω`** (for bounded
+differences): the indicator of the cell is known, so `E_t` puts all its weight there. -/
+theorem E_eq_of_eqOn_cell (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {t : ℕ} {f g : Ω → ℝ}
+    {ω : Ω} {M : ℝ} (hM : ∀ ω', |f ω' - g ω'| ≤ M)
+    (hfg : ∀ ω', LocalIFTStochastic.Ops.Indist 𝔼 t ω ω' → f ω' = g ω') :
+    𝔼.E t f ω = 𝔼.E t g ω := by
+  classical
+  set C : Ω → ℝ := fun ω' => if LocalIFTStochastic.Ops.Indist 𝔼 t ω ω' then 1 else 0 with hC
+  have hCk : 𝔼.E t C = C := by
+    refine hcl t C fun ω₁ ω₂ h12 => ?_
+    have e : LocalIFTStochastic.Ops.Indist 𝔼 t ω ω₁ ↔ LocalIFTStochastic.Ops.Indist 𝔼 t ω ω₂ :=
+      ⟨fun h z => (h z).trans (h12 z), fun h z => (h z).trans (h12 z).symm⟩
+    simp only [hC, e]
+  have hM0 : 0 ≤ M := (abs_nonneg _).trans (hM ω)
+  have hb : ∀ ω', |f ω' - g ω'| ≤ M * (1 - C ω') := by
+    intro ω'
+    by_cases h : LocalIFTStochastic.Ops.Indist 𝔼 t ω ω'
+    · simp only [hC, h, ↓reduceIte, sub_self, mul_zero, hfg ω' h, abs_nonpos_iff]
+    · simp only [hC, h, ↓reduceIte, sub_zero, mul_one]
+      exact hM ω'
+  set U : Ω → ℝ := M • ((fun _ => (1 : ℝ)) - C) with hU
+  have hEU : 𝔼.E t U ω = 0 := by
+    rw [hU, map_smul, map_sub, 𝔼.const, hCk]
+    simp [hC, show LocalIFTStochastic.Ops.Indist 𝔼 t ω ω from fun _ => rfl]
+  have hup : f - g ≤ U := fun ω' => by
+    have := (abs_le.mp (hb ω')).2
+    simpa [hU] using this
+  have hlo : -U ≤ f - g := fun ω' => by
+    have := (abs_le.mp (hb ω')).1
+    simp only [hU, Pi.neg_apply, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    linarith
+  have h1 := 𝔼.mono t hup ω
+  have h2 := 𝔼.mono t hlo ω
+  rw [map_sub] at h1 h2
+  rw [map_neg] at h2
+  simp only [Pi.sub_apply, Pi.neg_apply, hEU, neg_zero] at h1 h2
+  linarith
+
+/-! ### A uniform-limit engine for backward maps -/
+
+/-- Woodford (2003), App. A.3, p. 634 (construction): iterating a backward map `T_t` from the
+horizon `t + k` with terminal value `0`. -/
+noncomputable def iterB (T : ℕ → (Ω → ℝ) → (Ω → ℝ)) : ℕ → ℕ → Ω → ℝ
+  | 0, _ => fun _ => 0
+  | k + 1, t => T t (iterB T k (t + 1))
+
+/-- Woodford (2003), App. A.3, p. 634: **the backward iterates of a bounded weak contraction
+converge uniformly**: if `T_t` maps the `R`-ball to itself and
+`|T y − T y'| + κ|T y − T y'|³ ≤ sup|y − y'|` there, the iterates converge, uniformly in the
+date and the state, to a process bounded by `R`. -/
+theorem exists_limit_backward [Nonempty Ω] {T : ℕ → (Ω → ℝ) → (Ω → ℝ)} {κ R : ℝ}
+    (hκ : 0 < κ) (hR : 0 ≤ R)
+    (hTb : ∀ t y, (∀ ω, |y ω| ≤ R) → ∀ ω, |T t y ω| ≤ R)
+    (hTc : ∀ t y y' D, (∀ ω, |y ω| ≤ R) → (∀ ω, |y' ω| ≤ R) → (∀ ω, |y ω - y' ω| ≤ D) →
+      ∀ ω, |T t y ω - T t y' ω| + κ * |T t y ω - T t y' ω| ^ 3 ≤ D) :
+    ∃ i : ℕ → Ω → ℝ, ∃ d : ℕ → ℝ, Tendsto d atTop (𝓝 0) ∧ (∀ t ω, |i t ω| ≤ R) ∧
+      ∀ k t ω, |iterB T k t ω - i t ω| ≤ d k := by
+  have hb : ∀ k t ω, |iterB T k t ω| ≤ R := by
+    intro k
+    induction k with
+    | zero => intro t ω; change |(0 : ℝ)| ≤ R; simpa using hR
+    | succ k ih => exact fun t => hTb t _ (ih (t + 1))
+  set d : ℕ → ℝ := fun k => ⨆ p : ℕ × Ω × ℕ, |iterB T k p.1 p.2.1 - iterB T (k + p.2.2) p.1 p.2.1|
+    with hd
+  have hbdd : ∀ k, BddAbove (Set.range fun p : ℕ × Ω × ℕ =>
+      |iterB T k p.1 p.2.1 - iterB T (k + p.2.2) p.1 p.2.1|) := fun k =>
+    ⟨2 * R, by
+      rintro _ ⟨p, rfl⟩
+      exact (abs_sub _ _).trans (by linarith [hb k p.1 p.2.1, hb (k + p.2.2) p.1 p.2.1])⟩
+  have hle : ∀ k t ω m, |iterB T k t ω - iterB T (k + m) t ω| ≤ d k :=
+    fun k t ω m => le_ciSup (hbdd k) (t, ω, m)
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  have hd0 : ∀ k, 0 ≤ d k := fun k => (abs_nonneg _).trans (hle k 0 ω₀ 0)
+  set Φ : ℝ → ℝ := fun x => x + κ * x ^ 3 with hΦ
+  have hΦm : Monotone Φ := phi_mono hκ.le
+  have hΦc : Continuous Φ := by fun_prop
+  have hstep : ∀ k, Φ (d (k + 1)) ≤ d k := by
+    intro k
+    rw [hd]
+    dsimp only
+    rw [hΦm.map_ciSup_of_continuousAt hΦc.continuousAt (hbdd (k + 1))]
+    refine ciSup_le fun p => ?_
+    obtain ⟨t, ω, m⟩ := p
+    have h := hTc t (iterB T k (t + 1)) (iterB T (k + m) (t + 1)) (d k) (hb k (t + 1))
+      (hb (k + m) (t + 1)) (fun ω' => hle k (t + 1) ω' m) ω
+    change Φ |iterB T (k + 1) t ω - iterB T (k + 1 + m) t ω| ≤ _
+    rw [show k + 1 + m = k + m + 1 by omega]
+    exact h
+  have hanti : Antitone d := antitone_nat_of_succ_le fun k => by
+    have := hstep k
+    have : 0 ≤ κ * d (k + 1) ^ 3 := mul_nonneg hκ.le (pow_nonneg (hd0 _) 3)
+    simp only [hΦ] at *
+    linarith
+  have hbb : BddBelow (Set.range d) := ⟨0, by rintro _ ⟨k, rfl⟩; exact hd0 k⟩
+  set L := ⨅ k, d k with hL
+  have hL0 : 0 ≤ L := le_ciInf hd0
+  have hΦL : Φ L ≤ L := le_ciInf fun k => (hΦm (ciInf_le hbb (k + 1))).trans (hstep k)
+  have hLz : L = 0 := by
+    simp only [hΦ] at hΦL
+    rcases hL0.lt_or_eq with h | h
+    · linarith [mul_pos hκ (pow_pos h 3)]
+    · exact h.symm
+  have hdt : Tendsto d atTop (𝓝 0) := by
+    rw [← hLz]
+    exact tendsto_atTop_ciInf hanti hbb
+  have hcs : ∀ t ω, CauchySeq fun k => iterB T k t ω := fun t ω =>
+    cauchySeq_of_le_tendsto_0 (fun N => 2 * d N) (fun n m N hn hm => by
+      rw [Real.dist_eq]
+      have h1 := hle N t ω (n - N)
+      have h2 := hle N t ω (m - N)
+      rw [show N + (n - N) = n by omega] at h1
+      rw [show N + (m - N) = m by omega] at h2
+      refine (abs_sub_le _ (iterB T N t ω) _).trans ?_
+      rw [abs_sub_comm (iterB T n t ω)]
+      linarith) (by simpa using hdt.const_mul 2)
+  choose lim hlim using fun t ω => cauchySeq_tendsto_of_complete (hcs t ω)
+  refine ⟨lim, d, hdt, fun t ω => ?_, fun k t ω => ?_⟩
+  · exact le_of_tendsto' (hlim t ω).abs fun k => hb k t ω
+  · have ht : Tendsto (fun m => |iterB T k t ω - iterB T (m + k) t ω|) atTop
+        (𝓝 |iterB T k t ω - lim t ω|) :=
+      (tendsto_const_nhds.sub ((hlim t ω).comp (tendsto_add_atTop_nat k))).abs
+    refine le_of_tendsto' ht fun m => ?_
+    have := hle k t ω m
+    rwa [add_comm k m] at this
+
+/-! ### The backward map of the cubic rule -/
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (construction): the residual of the Fisher equation at
+date `t` in state `ω` when `î_t = s` and `î_{t+1} = y`:
+`E_t ∛(σ(y − ρ s − E_{t+1}ν_{t+1}))(ω) − s + E_t r̂_t(ω)`. -/
+noncomputable def hres (ρ σ : ℝ) (nt rt : ℕ → Ω → ℝ) (t : ℕ) (y : Ω → ℝ) (ω : Ω) (s : ℝ) :
+    ℝ :=
+  𝔼.E t (fun ω' => cbrt (σ * (y ω' - ρ * s - nt (t + 1) ω'))) ω - s + rt t ω
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): the residual decreases at least at rate one. -/
+theorem hres_anti {ρ σ : ℝ} (hτ : 1 ≤ σ * ρ) (nt rt : ℕ → Ω → ℝ) (t : ℕ) (y : Ω → ℝ) (ω : Ω)
+    {s s' : ℝ} (h : s ≤ s') : hres 𝔼 ρ σ nt rt t y ω s' + (s' - s) ≤ hres 𝔼 ρ σ nt rt t y ω s := by
+  have hm : (fun ω' => cbrt (σ * (y ω' - ρ * s' - nt (t + 1) ω'))) ≤
+      fun ω' => cbrt (σ * (y ω' - ρ * s - nt (t + 1) ω')) := fun ω' =>
+    cbrt_strictMono.monotone (by
+      have : σ * ρ * s ≤ σ * ρ * s' := mul_le_mul_of_nonneg_left h (by linarith)
+      nlinarith [this])
+  have := 𝔼.mono t hm ω
+  simp only [hres]
+  linarith
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): `|h(s) − h(s')| ≤ ∛(4σρ|s − s'|) + |s − s'|`. -/
+theorem hres_lip {ρ σ : ℝ} (hτ : 1 ≤ σ * ρ) (nt rt : ℕ → Ω → ℝ) (t : ℕ) (y : Ω → ℝ) (ω : Ω)
+    (s s' : ℝ) : |hres 𝔼 ρ σ nt rt t y ω s - hres 𝔼 ρ σ nt rt t y ω s'| ≤
+      cbrt (4 * (σ * ρ * |s - s'|)) + |s - s'| := by
+  have hpt : ∀ ω', |(fun ω' => cbrt (σ * (y ω' - ρ * s - nt (t + 1) ω'))) ω' -
+      (fun ω' => cbrt (σ * (y ω' - ρ * s' - nt (t + 1) ω'))) ω'| ≤
+        cbrt (4 * (σ * ρ * |s - s'|)) := fun ω' => by
+    refine (abs_cbrt_sub_le _ _).trans (cbrt_strictMono.monotone ?_)
+    have e : σ * (y ω' - ρ * s - nt (t + 1) ω') - σ * (y ω' - ρ * s' - nt (t + 1) ω') =
+        σ * ρ * (s' - s) := by ring
+    rw [e, abs_mul, abs_of_pos (by linarith : (0 : ℝ) < σ * ρ), abs_sub_comm]
+  have h1 : |𝔼.E t ((fun ω' => cbrt (σ * (y ω' - ρ * s - nt (t + 1) ω'))) -
+      (fun ω' => cbrt (σ * (y ω' - ρ * s' - nt (t + 1) ω')))) ω| ≤
+        cbrt (4 * (σ * ρ * |s - s'|)) := 𝔼.abs_E_le hpt t ω
+  rw [map_sub] at h1
+  simp only [Pi.sub_apply] at h1
+  simp only [hres]
+  have e : 𝔼.E t (fun ω' => cbrt (σ * (y ω' - ρ * s - nt (t + 1) ω'))) ω - s + rt t ω -
+      (𝔼.E t (fun ω' => cbrt (σ * (y ω' - ρ * s' - nt (t + 1) ω'))) ω - s' + rt t ω) =
+      (𝔼.E t (fun ω' => cbrt (σ * (y ω' - ρ * s - nt (t + 1) ω'))) ω -
+        𝔼.E t (fun ω' => cbrt (σ * (y ω' - ρ * s' - nt (t + 1) ω'))) ω) - (s - s') := by ring
+  rw [e]
+  exact (abs_sub _ _).trans (add_le_add h1 le_rfl)
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): the residual is continuous in `s`. -/
+theorem hres_continuous {ρ σ : ℝ} (hτ : 1 ≤ σ * ρ) (nt rt : ℕ → Ω → ℝ) (t : ℕ) (y : Ω → ℝ)
+    (ω : Ω) : Continuous (hres 𝔼 ρ σ nt rt t y ω) := by
+  rw [Metric.continuous_iff]
+  intro s ε hε
+  have hτ0 : 0 < σ * ρ := by linarith
+  refine ⟨min (ε / 2) ((ε / 2) ^ 3 / (4 * (σ * ρ))), lt_min (by positivity) (by positivity),
+    fun s' hs' => ?_⟩
+  rw [Real.dist_eq] at hs' ⊢
+  have h1 : |s' - s| < ε / 2 := lt_of_lt_of_le hs' (min_le_left _ _)
+  have h2 : 4 * (σ * ρ * |s' - s|) ≤ (ε / 2) ^ 3 := by
+    have := (lt_of_lt_of_le hs' (min_le_right _ _)).le
+    rw [le_div_iff₀ (by positivity)] at this
+    linarith
+  have h3 := cbrt_le_of_le_pow h2
+  have := hres_lip 𝔼 hτ nt rt t y ω s' s
+  linarith
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): for a bounded `î_{t+1}` the residual has a root
+(it is continuous, decreasing, positive at `−(K + η)` and negative at `K + η`). -/
+theorem hres_root {ρ σ : ℝ} (hσ : σ * σ = 1) (hτ : 1 ≤ σ * ρ) {nt rt : ℕ → Ω → ℝ} {η : ℝ}
+    (hn : ∀ t ω, |nt t ω| ≤ η) (hr : ∀ t ω, |rt t ω| ≤ η) (t : ℕ) {y : Ω → ℝ} {Y : ℝ}
+    (hY : ∀ ω, |y ω| ≤ Y) (ω : Ω) : ∃ s, hres 𝔼 ρ σ nt rt t y ω s = 0 := by
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  obtain ⟨ω₀⟩ : Nonempty Ω := ⟨ω⟩
+  have hY0 : 0 ≤ Y := (abs_nonneg _).trans (hY ω)
+  have hη0 : 0 ≤ η := (abs_nonneg _).trans (hn 0 ω)
+  set K := max 1 (Y + η) with hK
+  have hcK : cbrt (Y + η) ≤ K := (le_abs_self _).trans
+    ((abs_le_of_pow_three (cbrt_pow _)).trans (by rw [abs_of_nonneg (by linarith)]))
+  have hσy : ∀ ω', |σ * y ω'| ≤ Y := fun ω' => by rw [abs_mul, hs, one_mul]; exact hY ω'
+  have hσn : ∀ ω', |σ * nt (t + 1) ω'| ≤ η := fun ω' => by
+    rw [abs_mul, hs, one_mul]; exact hn _ ω'
+  have hτ0 : 0 ≤ σ * ρ := by linarith
+  have hKη : 0 ≤ K + η := by have := le_max_left 1 (Y + η); linarith
+  have hup : hres 𝔼 ρ σ nt rt t y ω (K + η) ≤ 0 := by
+    have hm : (fun ω' => cbrt (σ * (y ω' - ρ * (K + η) - nt (t + 1) ω'))) ≤ fun _ => K :=
+      fun ω' => by
+        refine (cbrt_strictMono.monotone ?_).trans hcK
+        have := (abs_le.mp (hσy ω')).2
+        have := (abs_le.mp (hσn ω')).1
+        nlinarith [mul_nonneg hτ0 hKη]
+    have := 𝔼.mono t hm ω
+    rw [𝔼.const] at this
+    have := (abs_le.mp (hr t ω)).2
+    simp only [hres]
+    linarith
+  have hlo : 0 ≤ hres 𝔼 ρ σ nt rt t y ω (-(K + η)) := by
+    have hm : (fun _ => -K) ≤ fun ω' => cbrt (σ * (y ω' - ρ * (-(K + η)) - nt (t + 1) ω')) :=
+      fun ω' => by
+        refine le_trans ?_ (cbrt_strictMono.monotone (b := σ * (y ω' - ρ * (-(K + η)) -
+          nt (t + 1) ω')) (a := -(Y + η)) ?_)
+        · rw [cbrt_neg]; linarith
+        · have := (abs_le.mp (hσy ω')).1
+          have := (abs_le.mp (hσn ω')).2
+          nlinarith [mul_nonneg hτ0 hKη]
+    have := 𝔼.mono t hm ω
+    rw [𝔼.const] at this
+    have := (abs_le.mp (hr t ω)).1
+    simp only [hres]
+    linarith
+  obtain ⟨s, -, hs0⟩ := intermediate_value_Icc' (by linarith : -(K + η) ≤ K + η)
+    (hres_continuous 𝔼 hτ nt rt t y ω).continuousOn ⟨hup, hlo⟩
+  exact ⟨s, hs0⟩
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): the residual has at most one root. -/
+theorem hres_inj {ρ σ : ℝ} (hτ : 1 ≤ σ * ρ) (nt rt : ℕ → Ω → ℝ) (t : ℕ) (y : Ω → ℝ) (ω : Ω)
+    {s s' : ℝ} (h : hres 𝔼 ρ σ nt rt t y ω s = 0) (h' : hres 𝔼 ρ σ nt rt t y ω s' = 0) :
+    s = s' := by
+  rcases le_total s s' with hle | hle
+  · have := hres_anti 𝔼 hτ nt rt t y ω hle
+    linarith
+  · have := hres_anti 𝔼 hτ nt rt t y ω hle
+    linarith
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (construction): **the backward map**: `î_t` solving the
+Fisher equation given `î_{t+1} = y`, state by state. -/
+noncomputable def Tcube (ρ σ : ℝ) (nt rt : ℕ → Ω → ℝ) (t : ℕ) (y : Ω → ℝ) (ω : Ω) : ℝ :=
+  by classical exact if h : ∃ s, hres 𝔼 ρ σ nt rt t y ω s = 0 then Classical.choose h else 0
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): `Tcube` is a root when one exists. -/
+theorem Tcube_spec {ρ σ : ℝ} (nt rt : ℕ → Ω → ℝ) (t : ℕ) (y : Ω → ℝ) (ω : Ω)
+    (h : ∃ s, hres 𝔼 ρ σ nt rt t y ω s = 0) :
+    hres 𝔼 ρ σ nt rt t y ω (Tcube 𝔼 ρ σ nt rt t y ω) = 0 := by
+  unfold Tcube
+  split_ifs
+  exact Classical.choose_spec h
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): `Tcube` is constant on information cells. -/
+theorem Tcube_cell {ρ σ : ℝ} (hτ : 1 ≤ σ * ρ) (nt rt : ℕ → Ω → ℝ)
+    (hrk : ∀ t, 𝔼.E t (rt t) = rt t) (t : ℕ) (y : Ω → ℝ)
+    (hex : ∀ ω, ∃ s, hres 𝔼 ρ σ nt rt t y ω s = 0) {ω ω' : Ω}
+    (hi : LocalIFTStochastic.Ops.Indist 𝔼 t ω ω') :
+    Tcube 𝔼 ρ σ nt rt t y ω = Tcube 𝔼 ρ σ nt rt t y ω' := by
+  have hsame : ∀ s, hres 𝔼 ρ σ nt rt t y ω s = hres 𝔼 ρ σ nt rt t y ω' s := fun s => by
+    simp only [hres]
+    rw [hi, LocalIFTStochastic.Ops.cellConst_of_known 𝔼 (hrk t) ω ω' hi]
+  refine hres_inj 𝔼 hτ nt rt t y ω (Tcube_spec 𝔼 nt rt t y ω (hex ω)) ?_
+  rw [hsame]
+  exact Tcube_spec 𝔼 nt rt t y ω' (hex ω')
+
+/-- Woodford (2003), Prop. 2.8, p. 96: **the backward map keeps `î` within `R`** when
+`‖disturbances‖ ≤ R/2` and `≤ (R/2)³`. -/
+theorem abs_Tcube_le {ρ σ : ℝ} (hσ : σ * σ = 1) (hτ : 1 ≤ σ * ρ) {nt rt : ℕ → Ω → ℝ} {η R : ℝ}
+    (hn : ∀ t ω, |nt t ω| ≤ η) (hr : ∀ t ω, |rt t ω| ≤ η) (hη1 : η ≤ R / 2)
+    (hη3 : η ≤ (R / 2) ^ 3) (t : ℕ) {y : Ω → ℝ} (hY : ∀ ω, |y ω| ≤ R) (ω : Ω) :
+    |Tcube 𝔼 ρ σ nt rt t y ω| ≤ R := by
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  have hR0 : 0 ≤ R := (abs_nonneg _).trans (hY ω)
+  have hroot := Tcube_spec 𝔼 nt rt t y ω (hres_root 𝔼 hσ hτ hn hr t hY ω)
+  set x := Tcube 𝔼 ρ σ nt rt t y ω with hx
+  have hcη : cbrt η ≤ R / 2 := cbrt_le_of_le_pow hη3
+  have hσy : ∀ ω', |σ * y ω'| ≤ R := fun ω' => by rw [abs_mul, hs, one_mul]; exact hY ω'
+  have hσn : ∀ ω', |σ * nt (t + 1) ω'| ≤ η := fun ω' => by
+    rw [abs_mul, hs, one_mul]; exact hn _ ω'
+  simp only [hres] at hroot
+  rw [abs_le]
+  constructor
+  · by_contra hc
+    push Not at hc
+    have hm : (fun _ => cbrt (-R - η - x)) ≤
+        fun ω' => cbrt (σ * (y ω' - ρ * x - nt (t + 1) ω')) := fun ω' =>
+      cbrt_strictMono.monotone (by
+        have := (abs_le.mp (hσy ω')).1
+        have := (abs_le.mp (hσn ω')).2
+        have : σ * ρ * x ≤ x := by nlinarith
+        nlinarith)
+    have h1 := 𝔼.mono t hm ω
+    rw [𝔼.const] at h1
+    have h2 : cbrt (-η) < cbrt (-R - η - x) := cbrt_strictMono (by linarith)
+    rw [cbrt_neg] at h2
+    have := (abs_le.mp (hr t ω)).1
+    linarith
+  · by_contra hc
+    push Not at hc
+    have hm : (fun ω' => cbrt (σ * (y ω' - ρ * x - nt (t + 1) ω'))) ≤
+        fun _ => cbrt (R + η - x) := fun ω' =>
+      cbrt_strictMono.monotone (by
+        have := (abs_le.mp (hσy ω')).2
+        have := (abs_le.mp (hσn ω')).1
+        have : x ≤ σ * ρ * x := by nlinarith
+        nlinarith)
+    have h1 := 𝔼.mono t hm ω
+    rw [𝔼.const] at h1
+    have h2 : cbrt (R + η - x) < cbrt η := cbrt_strictMono (by linarith)
+    have := (abs_le.mp (hr t ω)).2
+    linarith
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): one side of the contraction estimate. -/
+theorem contract_aux {ρ σ : ℝ} (hσ : σ * σ = 1) (hτ : 1 ≤ σ * ρ) (nt rt : ℕ → Ω → ℝ) (t : ℕ)
+    {y y' : Ω → ℝ} {D : ℝ} (hD : ∀ ω, |y ω - y' ω| ≤ D) (ω : Ω) {x x' : ℝ}
+    (hx : hres 𝔼 ρ σ nt rt t y ω x = 0) (hx' : hres 𝔼 ρ σ nt rt t y' ω x' = 0)
+    (hxx : x' ≤ x) : (x - x') + 1 / 4 * (x - x') ^ 3 ≤ D := by
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  set δ := x - x' with hδ
+  have hδ0 : 0 ≤ δ := by linarith
+  have hD0 : 0 ≤ D := (abs_nonneg _).trans (hD ω)
+  have hpt : (fun ω' => cbrt (σ * (y ω' - ρ * x - nt (t + 1) ω'))) -
+      (fun ω' => cbrt (σ * (y' ω' - ρ * x' - nt (t + 1) ω'))) ≤
+        fun _ => cbrt (4 * max (D - δ) 0) := fun ω' => by
+    simp only [Pi.sub_apply]
+    refine (sub_le_cbrt (by rw [cbrt_pow, cbrt_pow])).trans (cbrt_strictMono.monotone ?_)
+    have h1 : |σ * (y ω' - y' ω')| ≤ D := by rw [abs_mul, hs, one_mul]; exact hD ω'
+    have h2 : δ ≤ σ * ρ * δ := by nlinarith
+    have h3 : σ * (y ω' - ρ * x - nt (t + 1) ω') - σ * (y' ω' - ρ * x' - nt (t + 1) ω') ≤
+        D - δ := by
+      have := (abs_le.mp h1).2
+      nlinarith
+    have := max_le_max h3 (le_refl (0 : ℝ))
+    linarith
+  have hE := 𝔼.mono t hpt ω
+  rw [map_sub, 𝔼.const] at hE
+  simp only [Pi.sub_apply] at hE
+  simp only [hres] at hx hx'
+  have hδc : δ ≤ cbrt (4 * max (D - δ) 0) := by linarith
+  have h3 := pow_le_of_le_cbrt hδ0 hδc
+  by_cases hδD : δ ≤ D
+  · rw [max_eq_left (by linarith)] at h3
+    linarith
+  · push Not at hδD
+    rw [max_eq_right (by linarith)] at h3
+    have : δ ^ 3 ≤ 0 := by linarith
+    have : δ = 0 := by
+      rcases hδ0.lt_or_eq with h | h
+      · linarith [pow_pos h 3]
+      · exact h.symm
+    linarith
+
+/-- Woodford (2003), Prop. 2.8, p. 96: **the backward map is a weak contraction**,
+`|δ| + |δ|³/4 ≤ D` whenever the continuation values differ by at most `D`. -/
+theorem Tcube_contract {ρ σ : ℝ} (hσ : σ * σ = 1) (hτ : 1 ≤ σ * ρ) {nt rt : ℕ → Ω → ℝ} {η : ℝ}
+    (hn : ∀ t ω, |nt t ω| ≤ η) (hr : ∀ t ω, |rt t ω| ≤ η) (t : ℕ) {y y' : Ω → ℝ} {R D : ℝ}
+    (hY : ∀ ω, |y ω| ≤ R) (hY' : ∀ ω, |y' ω| ≤ R) (hD : ∀ ω, |y ω - y' ω| ≤ D) (ω : Ω) :
+    |Tcube 𝔼 ρ σ nt rt t y ω - Tcube 𝔼 ρ σ nt rt t y' ω| +
+      1 / 4 * |Tcube 𝔼 ρ σ nt rt t y ω - Tcube 𝔼 ρ σ nt rt t y' ω| ^ 3 ≤ D := by
+  have h1 := Tcube_spec 𝔼 nt rt t y ω (hres_root 𝔼 hσ hτ hn hr t hY ω)
+  have h2 := Tcube_spec 𝔼 nt rt t y' ω (hres_root 𝔼 hσ hτ hn hr t hY' ω)
+  rcases le_total (Tcube 𝔼 ρ σ nt rt t y' ω) (Tcube 𝔼 ρ σ nt rt t y ω) with h | h
+  · rw [abs_of_nonneg (by linarith)]
+    exact contract_aux 𝔼 hσ hτ nt rt t hD ω h1 h2 h
+  · rw [abs_sub_comm, abs_of_nonneg (by linarith)]
+    exact contract_aux 𝔼 hσ hτ nt rt t (fun ω' => by rw [abs_sub_comm]; exact hD ω') ω h2 h1 h
+
+/-- Woodford (2003), Prop. 2.8, p. 96: **the backward map solves the Fisher equation as a
+function of the state** (`E_t ∛(σ(y − ρ x − E_{t+1}ν_{t+1})) = x − E_t r̂_t` for `x = Tcube y`),
+using informational closure to freeze the known `x` inside `E_t`. -/
+theorem rel_Tcube (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {ρ σ : ℝ} (hσ : σ * σ = 1)
+    (hτ : 1 ≤ σ * ρ) {nt rt : ℕ → Ω → ℝ} {η R : ℝ} (hn : ∀ t ω, |nt t ω| ≤ η)
+    (hr : ∀ t ω, |rt t ω| ≤ η) (hrk : ∀ t, 𝔼.E t (rt t) = rt t) (hη1 : η ≤ R / 2)
+    (hη3 : η ≤ (R / 2) ^ 3) (t : ℕ) {y : Ω → ℝ} (hY : ∀ ω, |y ω| ≤ R) :
+    𝔼.E t (fun ω' => cbrt (σ * (y ω' - ρ * Tcube 𝔼 ρ σ nt rt t y ω' - nt (t + 1) ω'))) =
+      fun ω => Tcube 𝔼 ρ σ nt rt t y ω - rt t ω := by
+  funext ω
+  have hex : ∀ ω, ∃ s, hres 𝔼 ρ σ nt rt t y ω s = 0 := fun ω => hres_root 𝔼 hσ hτ hn hr t hY ω
+  have hxb : ∀ ω, |Tcube 𝔼 ρ σ nt rt t y ω| ≤ R := abs_Tcube_le 𝔼 hσ hτ hn hr hη1 hη3 t hY
+  have hroot := Tcube_spec 𝔼 nt rt t y ω (hex ω)
+  simp only [hres] at hroot
+  have hsub : 𝔼.E t (fun ω' => cbrt (σ * (y ω' - ρ * Tcube 𝔼 ρ σ nt rt t y ω' -
+      nt (t + 1) ω'))) ω = 𝔼.E t (fun ω' => cbrt (σ * (y ω' - ρ * Tcube 𝔼 ρ σ nt rt t y ω -
+        nt (t + 1) ω'))) ω := by
+    refine E_eq_of_eqOn_cell 𝔼 hcl (M := max 1 (4 * (|ρ| * (2 * R)))) (fun ω' => ?_)
+      (fun ω' hi => by rw [← Tcube_cell 𝔼 hτ nt rt hrk t y hex hi])
+    refine (abs_cbrt_sub_le _ _).trans ((le_abs_self _).trans
+      ((abs_le_of_pow_three (cbrt_pow _)).trans (max_le_max le_rfl ?_)))
+    have e : σ * (y ω' - ρ * Tcube 𝔼 ρ σ nt rt t y ω' - nt (t + 1) ω') -
+        σ * (y ω' - ρ * Tcube 𝔼 ρ σ nt rt t y ω - nt (t + 1) ω') =
+        σ * (ρ * (Tcube 𝔼 ρ σ nt rt t y ω - Tcube 𝔼 ρ σ nt rt t y ω')) := by ring
+    have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+    rw [e, abs_mul, abs_abs, abs_mul, hs, one_mul, abs_mul]
+    have : |Tcube 𝔼 ρ σ nt rt t y ω - Tcube 𝔼 ρ σ nt rt t y ω'| ≤ 2 * R :=
+      (abs_sub _ _).trans (by linarith [hxb ω, hxb ω'])
+    have h4 : |(4 : ℝ)| = 4 := by norm_num
+    rw [h4]
+    nlinarith [abs_nonneg ρ]
+  rw [hsub]
+  linarith
+
+/-! ### Existence and uniqueness under uncertainty -/
+
+/-- **Existence and uniqueness on the boundary with small disturbances, `φ_π = 0`, under
+uncertainty** (Woodford (2003), Prop. 2.8, p. 96; App. A.3, pp. 632–634): for every
+informationally closed expectation system on a nonempty state space (perfect foresight, every
+finite event tree), for the rule `ρ î_{−1} + σπ³` with `σ² = 1`, `σρ ≥ 1`, and for every initial
+rate and every disturbance process with `‖e‖ ≤ R/2` and `‖e‖ ≤ (R/2)³`, there is **exactly one**
+bounded adapted equilibrium; its interest rate stays within `R` (so within `2‖e‖^{1/3}` for small
+shocks), and initial inflation is the cube root `π_0 = ∛(σ(î_0 − ρ î_{−1} − E_0 ν_0))`. -/
+theorem exists_unique_cube [Nonempty Ω] (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼)
+    {ρ σ R : ℝ} (hσ : σ * σ = 1) (hτ : 1 ≤ σ * ρ) (xm : Fin 2 → ℝ)
+    (e : LocalIFTStochastic.BFun (ℕ × Ω) (Fin 2 → ℝ)) (he1 : ‖e‖ ≤ R / 2)
+    (he3 : ‖e‖ ≤ (R / 2) ^ 3) :
+    ∃ x : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert (ruleCubPi ρ σ)) (xm, e) x ∧
+      (∀ t ω, |x (t, ω) 1| ≤ R) ∧
+      (∀ ω, x (0, ω) 0 = cbrt (σ * (x (0, ω) 1 - ρ * xm 1 - 𝔼.E 0 (fun ω' => e (0, ω') 1) ω))) ∧
+      ∀ y : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert (ruleCubPi ρ σ)) (xm, e) y → y = x := by
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  have habs : ∀ p j, |e p j| ≤ ‖e‖ := fun p j => by
+    rw [← Real.norm_eq_abs]
+    exact (norm_le_pi_norm _ j).trans (LocalIFTStochastic.norm_apply_le e p)
+  have hR0 : 0 ≤ R := by linarith [norm_nonneg e]
+  set η := ‖e‖ with hη
+  set nt : ℕ → Ω → ℝ := fun t => 𝔼.E t (fun ω => e (t, ω) 1) with hnt
+  set rt : ℕ → Ω → ℝ := fun t => 𝔼.E t (fun ω => e (t, ω) 0) with hrt
+  have hn : ∀ t ω, |nt t ω| ≤ η := fun t ω => 𝔼.abs_E_le (fun ω' => habs _ 1) t ω
+  have hr : ∀ t ω, |rt t ω| ≤ η := fun t ω => 𝔼.abs_E_le (fun ω' => habs _ 0) t ω
+  have hnk : ∀ t, 𝔼.E t (nt t) = nt t := fun t => 𝔼.E_E_self t _
+  have hrk : ∀ t, 𝔼.E t (rt t) = rt t := fun t => 𝔼.E_E_self t _
+  set T := Tcube 𝔼 ρ σ nt rt with hT
+  have hTb : ∀ t y, (∀ ω, |y ω| ≤ R) → ∀ ω, |T t y ω| ≤ R := fun t y hy =>
+    abs_Tcube_le 𝔼 hσ hτ hn hr he1 he3 t hy
+  have hTc : ∀ t y y' D, (∀ ω, |y ω| ≤ R) → (∀ ω, |y' ω| ≤ R) → (∀ ω, |y ω - y' ω| ≤ D) →
+      ∀ ω, |T t y ω - T t y' ω| + 1 / 4 * |T t y ω - T t y' ω| ^ 3 ≤ D :=
+    fun t y y' D hy hy' hD => Tcube_contract 𝔼 hσ hτ hn hr t hy hy' hD
+  obtain ⟨i, d, hd, hib, hunif⟩ := exists_limit_backward (by norm_num : (0 : ℝ) < 1 / 4) hR0
+    hTb hTc
+  have hb : ∀ k t ω, |iterB T k t ω| ≤ R := by
+    intro k
+    induction k with
+    | zero => intro t ω; change |(0 : ℝ)| ≤ R; simpa using hR0
+    | succ k ih => exact fun t => hTb t _ (ih (t + 1))
+  -- the iterates and the limit are known
+  have hWk : ∀ k t, 𝔼.E t (iterB T k t) = iterB T k t := by
+    intro k t
+    cases k with
+    | zero => exact 𝔼.const t 0
+    | succ k =>
+      exact hcl t _ fun ω ω' hi => Tcube_cell 𝔼 hτ nt rt hrk t _
+        (fun ω => hres_root 𝔼 hσ hτ hn hr t (hb k (t + 1)) ω) hi
+  have hik : ∀ t, 𝔼.E t (i t) = i t := by
+    intro t
+    funext ω
+    have hbk : ∀ k, |𝔼.E t (i t) ω - i t ω| ≤ 2 * d k := by
+      intro k
+      have h1 : |𝔼.E t (i t - iterB T k t) ω| ≤ d k :=
+        𝔼.abs_E_le (fun ω' => by
+          simp only [Pi.sub_apply]
+          rw [abs_sub_comm]
+          exact hunif k t ω') t ω
+      have e1 : 𝔼.E t (i t) ω - i t ω =
+          𝔼.E t (i t - iterB T k t) ω + (iterB T k t ω - i t ω) := by
+        rw [map_sub, hWk k t]
+        simp only [Pi.sub_apply]
+        ring
+      rw [e1]
+      exact (abs_add_le _ _).trans (by linarith [hunif k t ω])
+    have h0 := ge_of_tendsto' (hd.const_mul 2) hbk
+    rw [mul_zero] at h0
+    exact sub_eq_zero.mp (abs_nonpos_iff.mp h0)
+  -- the Fisher equation in the limit
+  have hrel : ∀ t, 𝔼.E t (fun ω' => cbrt (σ * (i (t + 1) ω' - ρ * i t ω' - nt (t + 1) ω'))) =
+      fun ω => i t ω - rt t ω := by
+    intro t
+    funext ω
+    set c := |𝔼.E t (fun ω' => cbrt (σ * (i (t + 1) ω' - ρ * i t ω' - nt (t + 1) ω'))) ω -
+      (i t ω - rt t ω)| with hc
+    have hck : ∀ k, c ≤ cbrt (4 * (d k + |ρ| * d (k + 1))) + d (k + 1) := by
+      intro k
+      have hR := rel_Tcube 𝔼 hcl hσ hτ hn hr hrk he1 he3 t (hb k (t + 1))
+      have hRω := congrFun hR ω
+      change 𝔼.E t (fun ω' => cbrt (σ * (iterB T k (t + 1) ω' - ρ * iterB T (k + 1) t ω' -
+        nt (t + 1) ω'))) ω = iterB T (k + 1) t ω - rt t ω at hRω
+      have hpt : ∀ ω', |(fun ω' => cbrt (σ * (i (t + 1) ω' - ρ * i t ω' - nt (t + 1) ω'))) ω' -
+          (fun ω' => cbrt (σ * (iterB T k (t + 1) ω' - ρ * iterB T (k + 1) t ω' -
+            nt (t + 1) ω'))) ω'| ≤ cbrt (4 * (d k + |ρ| * d (k + 1))) := fun ω' => by
+        refine (abs_cbrt_sub_le _ _).trans (cbrt_strictMono.monotone ?_)
+        have e2 : σ * (i (t + 1) ω' - ρ * i t ω' - nt (t + 1) ω') -
+            σ * (iterB T k (t + 1) ω' - ρ * iterB T (k + 1) t ω' - nt (t + 1) ω') =
+            σ * ((i (t + 1) ω' - iterB T k (t + 1) ω') - ρ * (i t ω' - iterB T (k + 1) t ω')) := by
+          ring
+        rw [e2, abs_mul, hs, one_mul]
+        have h1 : |i (t + 1) ω' - iterB T k (t + 1) ω'| ≤ d k := by
+          rw [abs_sub_comm]; exact hunif k (t + 1) ω'
+        have h2 : |i t ω' - iterB T (k + 1) t ω'| ≤ d (k + 1) := by
+          rw [abs_sub_comm]; exact hunif (k + 1) t ω'
+        have h3 : |ρ * (i t ω' - iterB T (k + 1) t ω')| ≤ |ρ| * d (k + 1) := by
+          rw [abs_mul]; exact mul_le_mul_of_nonneg_left h2 (abs_nonneg ρ)
+        have := (abs_sub _ _).trans (add_le_add h1 h3)
+        linarith
+      have hE : |𝔼.E t ((fun ω' => cbrt (σ * (i (t + 1) ω' - ρ * i t ω' - nt (t + 1) ω'))) -
+          (fun ω' => cbrt (σ * (iterB T k (t + 1) ω' - ρ * iterB T (k + 1) t ω' -
+            nt (t + 1) ω')))) ω| ≤ cbrt (4 * (d k + |ρ| * d (k + 1))) := 𝔼.abs_E_le hpt t ω
+      rw [map_sub, Pi.sub_apply, hRω] at hE
+      have hu := hunif (k + 1) t ω
+      rw [hc]
+      calc _ = |(𝔼.E t (fun ω' => cbrt (σ * (i (t + 1) ω' - ρ * i t ω' - nt (t + 1) ω'))) ω -
+            (iterB T (k + 1) t ω - rt t ω)) + (iterB T (k + 1) t ω - i t ω)| := by
+              congr 1
+              ring
+        _ ≤ _ := (abs_add_le _ _).trans (add_le_add hE hu)
+    have he : Tendsto (fun k => 4 * (d k + |ρ| * d (k + 1))) atTop (𝓝 0) := by
+      simpa using ((hd.add ((hd.comp (tendsto_add_atTop_nat 1)).const_mul |ρ|)).const_mul 4)
+    have hd1 : Tendsto (fun k => d (k + 1)) atTop (𝓝 0) := hd.comp (tendsto_add_atTop_nat 1)
+    by_contra hne
+    have hcpos : 0 < c := abs_pos.mpr (sub_ne_zero.mpr hne)
+    obtain ⟨k, hk1, hk2⟩ :=
+      ((he.eventually (ge_mem_nhds (by positivity : (0 : ℝ) < (c / 3) ^ 3))).and
+        (hd1.eventually (ge_mem_nhds (by positivity : (0 : ℝ) < c / 3)))).exists
+    have := hck k
+    have := cbrt_le_of_le_pow hk1
+    linarith
+  -- inflation and the equilibrium
+  set lagI : ℕ → Ω → ℝ := fun t ω => lagV (xm 1) (fun s => i s ω) t with hlagI
+  set pz : ℕ → Ω → ℝ := fun t ω => cbrt (σ * (i t ω - ρ * lagI t ω - nt t ω)) with hpz
+  have hlagb : ∀ t ω, |lagI t ω| ≤ R + |xm 1| := by
+    intro t ω
+    cases t with
+    | zero => change |xm 1| ≤ _; linarith
+    | succ t => change |i t ω| ≤ _; linarith [hib t ω, abs_nonneg (xm 1)]
+  set Bp := max 1 (R + |ρ| * (R + |xm 1|) + η) with hBp
+  have hpzb : ∀ t ω, |pz t ω| ≤ Bp := by
+    intro t ω
+    refine (abs_le_of_pow_three (cbrt_pow _)).trans (max_le_max le_rfl ?_)
+    rw [abs_mul, hs, one_mul]
+    refine (abs_sub _ _).trans (add_le_add ((abs_sub _ _).trans (add_le_add (hib t ω) ?_))
+      (hn t ω))
+    rw [abs_mul]
+    exact mul_le_mul_of_nonneg_left (hlagb t ω) (abs_nonneg ρ)
+  set x : SProcV (Fin 2) Ω := LocalIFTStochastic.mkB (fun p => ![pz p.1 p.2, i p.1 p.2])
+    ⟨max Bp R, fun p => (pi_norm_le_iff_of_nonneg ((abs_nonneg _).trans
+      ((hib p.1 p.2).trans (le_max_right _ _)))).mpr fun j => by
+        rw [Real.norm_eq_abs]
+        fin_cases j
+        · exact (hpzb p.1 p.2).trans (le_max_left _ _)
+        · exact (hib p.1 p.2).trans (le_max_right _ _)⟩ with hx
+  have hlagk : ∀ t ω ω', LocalIFTStochastic.Ops.Indist 𝔼 t ω ω' → lagI t ω = lagI t ω' := by
+    intro t ω ω' hi
+    cases t with
+    | zero => rfl
+    | succ s =>
+      have hk : 𝔼.E (s + 1) (i s) = i s := by
+        conv_lhs => rw [← hik s]
+        rw [𝔼.known (Nat.le_succ s), hik s]
+      exact LocalIFTStochastic.Ops.cellConst_of_known 𝔼 hk ω ω' hi
+  have hpzk : ∀ t, 𝔼.E t (pz t) = pz t := fun t => hcl t _ fun ω ω' hi => by
+    simp only [hpz]
+    rw [LocalIFTStochastic.Ops.cellConst_of_known 𝔼 (hik t) ω ω' hi, hlagk t ω ω' hi,
+      LocalIFTStochastic.Ops.cellConst_of_known 𝔼 (hnk t) ω ω' hi]
+  have hsol : SolvesSV 𝔼 (Finert (ruleCubPi ρ σ)) (xm, e) x := by
+    refine ⟨fun t j => ?_, fun t j => ?_⟩
+    · fin_cases j
+      · exact hpzk t
+      · exact hik t
+    · fin_cases j
+      · have hf : (fun ω => Finert (ruleCubPi ρ σ)
+            (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Ω), x) (t, ω)) 0) =
+            i t - (fun ω' => cbrt (σ * (i (t + 1) ω' - ρ * i t ω' - nt (t + 1) ω'))) -
+              fun ω => e (t, ω) 0 := rfl
+        change 𝔼.E t (fun ω => Finert (ruleCubPi ρ σ)
+          (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Ω), x) (t, ω)) 0) = 0
+        rw [hf, map_sub, map_sub, hik, hrel]
+        funext ω
+        simp only [Pi.sub_apply, Pi.zero_apply, hrt]
+        ring
+      · have hf : (fun ω => Finert (ruleCubPi ρ σ)
+            (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Ω), x) (t, ω)) 1) =
+            nt t - fun ω => e (t, ω) 1 := by
+          funext ω
+          have hl : lagV xm (fun s => x (s, ω)) t 1 = lagI t ω := by cases t <;> rfl
+          change i t ω - ruleCubPi ρ σ (pz t ω, lagV xm (fun s => x (s, ω)) t 1) - e (t, ω) 1 =
+            nt t ω - e (t, ω) 1
+          rw [hl]
+          simp only [ruleCubPi, hpz]
+          rw [cbrt_pow]
+          linear_combination (-(i t ω - ρ * lagI t ω - nt t ω)) * hσ
+        change 𝔼.E t (fun ω => Finert (ruleCubPi ρ σ)
+          (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Ω), x) (t, ω)) 1) = 0
+        rw [hf, map_sub, hnk]
+        exact sub_self _
+  exact ⟨x, hsol, fun t ω => hib t ω, fun ω => rfl,
+    fun y hy => unique_cube hcl (fun π i => rfl) hσ hτ hy hsol⟩
+
+/-! ### The resonant shock: an explicit cube root -/
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (example): the explicit equilibrium path for `ρ = σ` and
+`ν_t = δσᵗ`: `î_t = σᵗ ∛(−δ)`, `π_{t+1} = î_t`, `π_0 = ∛(σ(î_0 − σ î_{−1} − δ))`. -/
+noncomputable def zRes (σ δ xm1 : ℝ) : ℕ → Fin 2 → ℝ
+  | 0 => ![cbrt (σ * (cbrt (-δ) - σ * xm1 - δ)), cbrt (-δ)]
+  | t + 1 => ![σ ^ t * cbrt (-δ), σ ^ (t + 1) * cbrt (-δ)]
+
+/-- **The resonant shock under uncertainty: an explicit cube-root equilibrium** (Woodford (2003),
+Prop. 2.8, p. 96; App. A.3, p. 634): for `ρ = σ` (`σ² = 1`, so `|ρ| = 1`, `φ_π = 0`) and the
+policy shock `ν_t = δσᵗ`, under informational closure every bounded equilibrium has
+`î_t = σᵗ ∛(−δ)`: the response to the shock is of order `|δ|^{1/3}`, not differentiable. -/
+theorem resonant_cube_root_pi (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {σ : ℝ}
+    (hσ : σ * σ = 1) {δ : ℝ} (xm : Fin 2 → ℝ) {x : SProcV (Fin 2) Ω}
+    (hx : SolvesSV 𝔼 (Finert (ruleCubPi σ σ)) (xm, resShock δ σ hσ) x) :
+    ∀ t ω, x (t, ω) 1 = σ ^ t * cbrt (-δ) := by
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  set c := cbrt (-δ) with hc
+  have hc3 : c ^ 3 = -δ := cbrt_pow _
+  have hpow : ∀ t, σ ^ t * σ ^ t = 1 := fun t => by rw [← mul_pow, hσ, one_pow]
+  set B := max |cbrt (σ * (c - σ * xm 1 - δ))| |c| with hB
+  have hzb : ∀ t, ‖zRes σ δ (xm 1) t‖ ≤ B := by
+    intro t
+    refine (pi_norm_le_iff_of_nonneg ((abs_nonneg c).trans (le_max_right _ _))).mpr fun j => ?_
+    rw [Real.norm_eq_abs]
+    cases t with
+    | zero =>
+      fin_cases j
+      · exact le_max_left _ _
+      · exact le_max_right _ _
+    | succ t =>
+      fin_cases j
+      · change |σ ^ t * c| ≤ B
+        rw [abs_mul, abs_pow, hs, one_pow, one_mul]
+        exact le_max_right _ _
+      · change |σ ^ (t + 1) * c| ≤ B
+        rw [abs_mul, abs_pow, hs, one_pow, one_mul]
+        exact le_max_right _ _
+  set z : SProcV (Fin 2) Ω := LocalIFTStochastic.mkB (fun p => zRes σ δ (xm 1) p.1)
+    ⟨B, fun p => hzb p.1⟩ with hz
+  have hlag : ∀ t, (zRes σ δ (xm 1) t) 1 = σ ^ t * c := by
+    intro t
+    cases t with
+    | zero => change c = σ ^ 0 * c; ring
+    | succ t => rfl
+  have hval : ∀ t ω j, Finert (ruleCubPi σ σ)
+      (ptS (((xm, resShock δ σ hσ) : ParS (Fin 2) (Fin 2 → ℝ) Ω), z) (t, ω)) j = 0 := by
+    intro t ω j
+    fin_cases j
+    · change (zRes σ δ (xm 1) t) 1 - (zRes σ δ (xm 1) (t + 1)) 0 - 0 = 0
+      rw [hlag]
+      change σ ^ t * c - σ ^ t * c - 0 = 0
+      ring
+    · cases t with
+      | zero =>
+        change c - ruleCubPi σ σ (cbrt (σ * (c - σ * xm 1 - δ)), xm 1) - δ * σ ^ 0 = 0
+        simp only [ruleCubPi]
+        rw [cbrt_pow]
+        linear_combination (-(c - σ * xm 1 - δ)) * hσ
+      | succ t =>
+        change σ ^ (t + 1) * c - ruleCubPi σ σ (σ ^ t * c, (zRes σ δ (xm 1) t) 1) -
+          δ * σ ^ (t + 1) = 0
+        rw [hlag]
+        simp only [ruleCubPi]
+        have e : (σ ^ t * c) ^ 3 = σ ^ t * (σ ^ t * σ ^ t) * c ^ 3 := by ring
+        rw [e, hpow, hc3, pow_succ]
+        ring
+  have hzs : SolvesSV 𝔼 (Finert (ruleCubPi σ σ)) (xm, resShock δ σ hσ) z := by
+    refine ⟨fun t j => ?_, fun t j => ?_⟩
+    · change 𝔼.E t (fun _ => zRes σ δ (xm 1) t j) = fun _ => zRes σ δ (xm 1) t j
+      exact 𝔼.const t _
+    have : (fun ω => Finert (ruleCubPi σ σ)
+        (ptS (((xm, resShock δ σ hσ) : ParS (Fin 2) (Fin 2 → ℝ) Ω), z) (t, ω)) j) =
+        fun _ => 0 := funext fun ω => hval t ω j
+    rw [this]
+    exact 𝔼.const t 0
+  have heq := unique_cube hcl (fun π i => rfl) hσ (by linarith) hx hzs
+  intro t ω
+  rw [heq]
+  exact hlag t
+
+end Woodford.PriceLevelDetermination.InertialBoundaryExistCube
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Sunspots of `n`-dimensional forward systems decided by the nonlinear terms
+
+Woodford (2003), *Interest and Prices*, Appendix A.3, pp. 632–634 (indeterminacy and sunspot
+equilibria near a steady state). For the `n`-dimensional forward system
+`E_t[x_{t+1} − g(x_t)] = 0` (`Gfwd`, all variables jumps, `g(0) = 0`) this module gives
+conditions on the **nonlinear map `g` itself** — not on its linearisation — that decide whether
+random sunspot equilibria exist near the steady state. They apply whatever the shape of the
+operator (A.8) (unit roots, non-closed range, …) and are the tools of the leading-coefficient
+criterion in `TidyR6CriticalCriterion`.
+
+## Main results
+
+* `unique_of_repelAnn`: if `g` is **repelling on annuli** (`RepelAnn`: on every annulus
+  `B/2 ≤ ‖v‖ ≤ B` with `B ≤ r`, `‖g v‖ ≥ ‖v‖ + δ(B)`), then under informational closure (perfect
+  foresight, every finite tree) the steady state is the only bounded adapted equilibrium within
+  `r` of it (the system has no predetermined variable or disturbance);
+  `unique_of_repelAnn_global` for every scale.
+* `coin_eq_zero_of_two_step`: on the core coin tree, if only the **two-step map** `g ∘ g` is
+  repelling on annuli and `g` vanishes only at `0` near `0`, every equilibrium within `r` is the
+  steady state from date `1` on; hence `no_coin_sunspot_of_two_step`.
+* `coin_sunspot_of_pair`: if a set `A` is mapped into itself by `g ∘ g` without increasing the
+  norm, `‖g v‖ ≤ L‖v‖` on `A`, and two points `y₁ ≠ y₂` of `A` average to `g(c)`, then the coin
+  tree has a genuinely random equilibrium (`x_0 = c`, `x_1 = y₁` or `y₂`, then `x_{t+1} = g(x_t)`).
+
+Only the core expectation axioms and informational closure are used.
+-/
+
+namespace Woodford.PriceLevelDetermination.TidyR6ForwardSunspots
+
+open scoped Topology
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic
+open LocalIFTSystems (Arg)
+open ExpectationsFiniteTree (coinSystem)
+
+variable {ι : Type*} [Fintype ι]
+
+/-! ### The forward system -/
+
+/-- Woodford (2003), App. A.3, eq. (A.11), p. 633: the `n`-dimensional forward condition
+`x_{t+1} − g(x_t)`, i.e. the system `E_t[x_{t+1} − g(x_t)] = 0` (no predetermined variable, no
+disturbance). -/
+def Gfwd (g : (ι → ℝ) → (ι → ℝ)) (p : Arg ι ℝ) : ι → ℝ := p.2.2.1 - g p.2.1
+
+variable {Ω : Type*} {𝔼 : ExpectationSystem Ω}
+
+/-- Woodford (2003), App. A.3, p. 633 (tool): under informational closure a function of a
+vector known at `t` is known at `t`. -/
+theorem known_vec (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {x : SProcV ι Ω} {t : ℕ}
+    (hx : ∀ i, 𝔼.E t (toP x t i) = toP x t i) (f : (ι → ℝ) → ℝ) :
+    𝔼.E t (fun ω => f (x (t, ω))) = fun ω => f (x (t, ω)) :=
+  hcl t _ fun ω ω' h => by
+    have e : x (t, ω) = x (t, ω') :=
+      funext fun i => LocalIFTStochastic.Ops.cellConst_of_known 𝔼 (hx i) ω ω' h
+    rw [e]
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): in an equilibrium of the forward system under
+informational closure, `E_t x_{t+1} = g(x_t)`. -/
+theorem fwd_E (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {g : (ι → ℝ) → (ι → ℝ)}
+    {u : ParS ι ℝ Ω} {x : SProcV ι Ω} (hx : SolvesSV 𝔼 (Gfwd g) u x) (t : ℕ) (i : ι) :
+    𝔼.E t (toP x (t + 1) i) = fun ω => g (x (t, ω)) i := by
+  have h := hx.2 t i
+  have hf : (fun ω => Gfwd g (ptS (u, x) (t, ω)) i) =
+      toP x (t + 1) i - fun ω => g (x (t, ω)) i := rfl
+  rw [hf, map_sub, known_vec hcl (fun j => hx.1 t j) (fun v => g v i)] at h
+  exact sub_eq_zero.mp h
+
+/-! ### The supremum argument on annuli -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): **the push argument on annuli.** A family bounded
+by `r` is zero if, whenever `B ≤ r` bounds it, every member in the annulus `[B/2, B]` is in fact
+at most `B − δ` for some `δ > 0` (apply it at the supremum). -/
+theorem eq_zero_of_annulus {J : Type*} (a : J → ℝ) {r : ℝ} (hb : ∀ j, |a j| ≤ r)
+    (h : ∀ B, 0 < B → B ≤ r → (∀ j, |a j| ≤ B) →
+      ∃ δ > 0, ∀ j, B / 2 ≤ |a j| → |a j| ≤ B - δ) (j : J) : a j = 0 := by
+  by_contra hne
+  have hpos : 0 < |a j| := abs_pos.mpr hne
+  have hbdd : BddAbove (Set.range fun k => |a k|) := ⟨r, by rintro _ ⟨k, rfl⟩; exact hb k⟩
+  set S := ⨆ k, |a k| with hS
+  have hle : ∀ k, |a k| ≤ S := fun k => le_ciSup hbdd k
+  have hSpos : 0 < S := hpos.trans_le (hle j)
+  have : Nonempty J := ⟨j⟩
+  have hSr : S ≤ r := ciSup_le hb
+  obtain ⟨δ, hδ, hδP⟩ := h S hSpos hSr hle
+  have hm := lt_min (half_pos hSpos) hδ
+  obtain ⟨k, hk⟩ := exists_lt_of_lt_ciSup (show S - min (S / 2) δ < S by linarith)
+  have h1 : S / 2 ≤ |a k| := by have := min_le_left (S / 2) δ; linarith
+  have h2 := hδP k h1
+  have := min_le_right (S / 2) δ
+  linarith
+
+/-- Woodford (2003), App. A.3, p. 634: `g` is **repelling on annuli up to `r`**: on every annulus
+`B/2 ≤ ‖v‖ ≤ B` with `0 < B ≤ r`, `‖g v‖ ≥ ‖v‖ + δ` for some `δ > 0` (sup norm). -/
+def RepelAnn (g : (ι → ℝ) → (ι → ℝ)) (r : ℝ) : Prop :=
+  ∀ B, 0 < B → B ≤ r → ∃ δ > 0, ∀ v : ι → ℝ, B / 2 ≤ ‖v‖ → ‖v‖ ≤ B → ‖v‖ + δ ≤ ‖g v‖
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): a bounded process is zero once all its values have
+norm zero. -/
+theorem eq_zero_of_norm (x : SProcV ι Ω) (h : ∀ p, ‖x p‖ = 0) : x = 0 := by
+  refine lp.ext (funext fun p => ?_)
+  rw [lp.coeFn_zero, Pi.zero_apply]
+  exact norm_eq_zero.mp (h p)
+
+/-- **No sunspots, `n` dimensions: a map repelling on annuli** (Woodford (2003), App. A.3,
+pp. 632–634): if `g` is repelling on annuli up to `r`, then under informational closure every
+bounded adapted equilibrium of `E_t[x_{t+1} − g(x_t)] = 0` within `r` of the steady state is the
+steady state: `‖g(x_t)‖ = ‖E_t x_{t+1}‖ ≤ sup ‖x‖` pushes the supremum
+down. -/
+theorem unique_of_repelAnn (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼)
+    {g : (ι → ℝ) → (ι → ℝ)} {r : ℝ} (hg : RepelAnn g r) {u : ParS ι ℝ Ω} {x : SProcV ι Ω}
+    (hx : SolvesSV 𝔼 (Gfwd g) u x) (hxr : ‖x‖ ≤ r) : x = 0 := by
+  have hb : ∀ p : ℕ × Ω, |‖x p‖| ≤ r := fun p => by
+    rw [abs_norm]
+    exact (LocalIFTStochastic.norm_apply_le x p).trans hxr
+  refine eq_zero_of_norm x fun p => eq_zero_of_annulus (fun p : ℕ × Ω => ‖x p‖) hb
+    (fun B hB hBr hall => ?_) p
+  obtain ⟨δ, hδ, hδP⟩ := hg B hB hBr
+  refine ⟨δ, hδ, fun q hq => ?_⟩
+  obtain ⟨t, ω⟩ := q
+  simp only [abs_norm] at hq hall ⊢
+  have hgB : ‖g (x (t, ω))‖ ≤ B := by
+    refine (pi_norm_le_iff_of_nonneg hB.le).mpr fun i => ?_
+    have hE := congrFun (fwd_E hcl hx t i) ω
+    rw [Real.norm_eq_abs, ← hE]
+    refine 𝔼.abs_E_le (fun ω' => ?_) t ω
+    change |x (t + 1, ω') i| ≤ B
+    rw [← Real.norm_eq_abs]
+    exact (norm_le_pi_norm _ i).trans (hall (t + 1, ω'))
+  have := hδP _ hq (hall (t, ω))
+  linarith
+
+/-- Woodford (2003), App. A.3, pp. 632–634: if `g` is repelling on annuli at every scale, the
+steady state is the **only** bounded adapted equilibrium under informational closure (global
+uniqueness). -/
+theorem unique_of_repelAnn_global (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼)
+    {g : (ι → ℝ) → (ι → ℝ)} (hg : ∀ r, RepelAnn g r) {u : ParS ι ℝ Ω} {x : SProcV ι Ω}
+    (hx : SolvesSV 𝔼 (Gfwd g) u x) : x = 0 :=
+  unique_of_repelAnn hcl (hg ‖x‖) hx le_rfl
+
+/-! ### The coin tree: dates from 2 on are deterministic -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): on the core coin tree both flips are known from
+date `2` on, so `E_{t+2}` is the identity. -/
+theorem coin_E_late (t : ℕ) (y : Bool × Bool → ℝ) : coinSystem.E (t + 2) y = y := by
+  funext ω
+  rw [coinSystem, ExpectationsFiniteTree.FiniteTree.toExpectationSystem_E]
+  refine ExpectationsFiniteTree.coinTree.condE_of_const_on_cell fun ω' h => ?_
+  change Setoid.ker (ExpectationsFiniteTree.coinObs (t + 2)) ω' ω at h
+  rw [Setoid.ker_def] at h
+  simp only [ExpectationsFiniteTree.coinObs, Prod.mk.injEq] at h
+  have h1 : ω'.1 = ω.1 := by
+    have := h.1
+    simpa [show 1 ≤ t + 2 by omega] using this
+  have h2 : ω'.2 = ω.2 := by
+    have := h.2
+    simpa [show 2 ≤ t + 2 by omega] using this
+  rw [Prod.ext h1 h2]
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): on the coin tree, from date `2` on an equilibrium
+of the forward system follows `x_{t+1} = g(x_t)` state by state. -/
+theorem coin_step_late {g : (ι → ℝ) → (ι → ℝ)} {u : ParS ι ℝ (Bool × Bool)}
+    {x : SProcV ι (Bool × Bool)} (hx : SolvesSV coinSystem (Gfwd g) u x) (s : ℕ)
+    (ω : Bool × Bool) : x (s + 3, ω) = g (x (s + 2, ω)) := by
+  funext i
+  have h := hx.2 (s + 2) i
+  rw [coin_E_late] at h
+  have := congrFun h ω
+  change x (s + 2 + 1, ω) i - g (x (s + 2, ω)) i = 0 at this
+  exact sub_eq_zero.mp this
+
+/-- **The coin tree with a two-step repelling map** (Woodford (2003), App. A.3, pp. 632–634): if
+`g ∘ g` is repelling on annuli up to `r` and `g` vanishes only at `0` within `r`, every
+equilibrium of `E_t[x_{t+1} − g(x_t)] = 0` on the coin tree within `r` of the steady state is
+**zero at date 1** (and from date 2 on): from date 2 the path is deterministic and the push
+argument applies to `g ∘ g`; then `g(x_1) = E_1 x_2 = 0`. -/
+theorem coin_eq_zero_of_two_step {g : (ι → ℝ) → (ι → ℝ)} {r : ℝ} (hG : RepelAnn (g ∘ g) r)
+    (hz : ∀ v : ι → ℝ, ‖v‖ ≤ r → g v = 0 → v = 0) {u : ParS ι ℝ (Bool × Bool)}
+    {x : SProcV ι (Bool × Bool)} (hx : SolvesSV coinSystem (Gfwd g) u x) (hxr : ‖x‖ ≤ r)
+    (ω : Bool × Bool) : x (1, ω) = 0 ∧ ∀ s, x (s + 2, ω) = 0 := by
+  have hlate : ∀ s ω', x (s + 2, ω') = 0 := by
+    intro s ω'
+    have h0 := eq_zero_of_annulus (fun p : ℕ × (Bool × Bool) => ‖x (p.1 + 2, p.2)‖) (r := r)
+      (fun p => by rw [abs_norm]; exact (LocalIFTStochastic.norm_apply_le x _).trans hxr)
+      (fun B hB hBr hall => ?_) (s, ω')
+    · exact norm_eq_zero.mp h0
+    obtain ⟨δ, hδ, hδP⟩ := hG B hB hBr
+    refine ⟨δ, hδ, fun q hq => ?_⟩
+    obtain ⟨t, ω₁⟩ := q
+    simp only [abs_norm] at hq hall ⊢
+    have e : x (t + 2 + 2, ω₁) = (g ∘ g) (x (t + 2, ω₁)) := by
+      rw [Function.comp_apply, ← coin_step_late hx t ω₁, ← coin_step_late hx (t + 1) ω₁]
+    have hb := hall (t + 2, ω₁)
+    rw [e] at hb
+    have := hδP _ hq (hall (t, ω₁))
+    linarith
+  refine ⟨?_, fun s => hlate s ω⟩
+  have hcl : LocalIFTStochastic.Ops.InfoClosed coinSystem :=
+    LocalIFTStochastic.finiteTree_infoClosed _
+  have hg0 : g (x (1, ω)) = 0 := by
+    funext i
+    have h := hx.2 1 i
+    have hf : (fun ω' => Gfwd g (ptS (u, x) (1, ω')) i) =
+        toP x 2 i - fun ω' => g (x (1, ω')) i := rfl
+    have h2 : toP x 2 i = 0 := funext fun ω' => by
+      change x (0 + 2, ω') i = 0
+      rw [hlate 0 ω']
+      rfl
+    rw [hf, h2, zero_sub, map_neg, known_vec hcl (fun j => hx.1 1 j) (fun v => g v i)] at h
+    have := congrFun h ω
+    simp only [Pi.neg_apply, Pi.zero_apply, neg_eq_zero] at this
+    exact this
+  exact hz _ ((LocalIFTStochastic.norm_apply_le x _).trans hxr) hg0
+
+/-- **No random sunspots on the coin tree with a two-step repelling map** (Woodford (2003),
+App. A.3, pp. 632–634): under the hypotheses of `coin_eq_zero_of_two_step` (with `r > 0`), there
+is a scale below which no equilibrium on the coin tree has a date-1 value differing across the
+first flip. -/
+theorem no_coin_sunspot_of_two_step {g : (ι → ℝ) → (ι → ℝ)} {r : ℝ} (hr : 0 < r)
+    (hG : RepelAnn (g ∘ g) r) (hz : ∀ v : ι → ℝ, ‖v‖ ≤ r → g v = 0 → v = 0) :
+    ¬ ∀ ε > 0, ∃ x : SProcV ι (Bool × Bool), SolvesSV coinSystem (Gfwd g) 0 x ∧ ‖x‖ ≤ ε ∧
+      x (1, (true, true)) ≠ x (1, (false, true)) := by
+  intro h
+  obtain ⟨x, hx, hxn, hne⟩ := h r hr
+  rw [(coin_eq_zero_of_two_step hG hz hx hxn (true, true)).1,
+    (coin_eq_zero_of_two_step hG hz hx hxn (false, true)).1] at hne
+  exact hne rfl
+
+/-! ### Constructing random sunspots on the coin tree -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the coin-tree process with `x_0 = c` and
+`x_{t+1} = y_b(t)` after first flip `b`. -/
+noncomputable def pathProc (c : ι → ℝ) (y : Bool → ℕ → ι → ℝ) {M : ℝ}
+    (hM : ∀ b t, ‖y b t‖ ≤ M) : SProcV ι (Bool × Bool) :=
+  LocalIFTStochastic.mkB (fun p => lagV c (y p.2.1) p.1) ⟨max ‖c‖ M, fun p => by
+    obtain ⟨t, ω⟩ := p
+    cases t with
+    | zero => exact le_max_left _ _
+    | succ t => exact (hM _ t).trans (le_max_right _ _)⟩
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the path process is within `max(‖c‖, M)` of the
+steady state. -/
+theorem norm_pathProc_le {c : ι → ℝ} {y : Bool → ℕ → ι → ℝ} {M : ℝ}
+    (hM : ∀ b t, ‖y b t‖ ≤ M) : ‖pathProc c y hM‖ ≤ max ‖c‖ M := by
+  refine LocalIFTStochastic.norm_le_of_forall ((norm_nonneg c).trans (le_max_left _ _))
+    fun p => ?_
+  obtain ⟨t, ω⟩ := p
+  cases t with
+  | zero => exact le_max_left _ _
+  | succ t => exact (hM _ t).trans (le_max_right _ _)
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): **the path process is an equilibrium** of the
+forward system on the coin tree when each branch follows `y_{t+1} = g(y_t)` and the two date-1
+values average to `g(c)`. -/
+theorem solvesSV_pathProc {g : (ι → ℝ) → (ι → ℝ)} {c : ι → ℝ} {y : Bool → ℕ → ι → ℝ} {M : ℝ}
+    (hM : ∀ b t, ‖y b t‖ ≤ M) (h0 : g c = (1 / 2 : ℝ) • (y true 0 + y false 0))
+    (hstep : ∀ b t, y b (t + 1) = g (y b t)) :
+    SolvesSV coinSystem (Gfwd g) 0 (pathProc c y hM) := by
+  refine ⟨fun t i => ?_, fun t i => ?_⟩
+  · cases t with
+    | zero =>
+      change coinSystem.E 0 (fun _ => c i) = fun _ => c i
+      exact coinSystem.const 0 _
+    | succ t =>
+      change coinSystem.E (t + 1) (fun ω => y ω.1 t i) = fun ω => y ω.1 t i
+      exact LocalIFTStochasticModels.coin_known_fst t (fun b => y b t i)
+  · cases t with
+    | zero =>
+      have hf : (fun ω => Gfwd g (ptS ((0 : ParS ι ℝ (Bool × Bool)), pathProc c y hM) (0, ω)) i) =
+          fun ω => y ω.1 0 i - g c i := rfl
+      rw [hf]
+      funext ω
+      rw [LocalIFTStochasticModels.coin_E0]
+      have e := congrFun h0 i
+      simp only [Pi.smul_apply, Pi.add_apply, smul_eq_mul] at e
+      simp only [Pi.zero_apply]
+      rw [e]
+      ring
+    | succ t =>
+      have hf : (fun ω => Gfwd g (ptS ((0 : ParS ι ℝ (Bool × Bool)), pathProc c y hM)
+          (t + 1, ω)) i) = 0 := by
+        funext ω
+        change y ω.1 (t + 1) i - g (y ω.1 t) i = 0
+        rw [hstep]
+        exact sub_self _
+      rw [hf]
+      exact map_zero _
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the orbit `v, g(v), g(g(v)), …`. -/
+def orb (g : (ι → ℝ) → (ι → ℝ)) (v : ι → ℝ) : ℕ → ι → ℝ
+  | 0 => v
+  | t + 1 => g (orb g v t)
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): **orbits from a two-step invariant set stay
+small**: if `g ∘ g` maps `A` into itself without increasing the norm and `‖g v‖ ≤ L‖v‖` on `A`
+(`L ≥ 1`), the orbit from `v ∈ A` stays within `L‖v‖`. -/
+theorem norm_orb_le {g : (ι → ℝ) → (ι → ℝ)} {A : Set (ι → ℝ)} {L : ℝ} (hL : 1 ≤ L)
+    (hA : ∀ v ∈ A, g (g v) ∈ A ∧ ‖g (g v)‖ ≤ ‖v‖) (hgL : ∀ v ∈ A, ‖g v‖ ≤ L * ‖v‖)
+    {v : ι → ℝ} (hv : v ∈ A) (t : ℕ) : ‖orb g v t‖ ≤ L * ‖v‖ := by
+  have heven : ∀ s, orb g v (2 * s) ∈ A ∧ ‖orb g v (2 * s)‖ ≤ ‖v‖ := by
+    intro s
+    induction s with
+    | zero => exact ⟨hv, le_rfl⟩
+    | succ s ih =>
+      have e : orb g v (2 * (s + 1)) = g (g (orb g v (2 * s))) := by
+        rw [show 2 * (s + 1) = 2 * s + 1 + 1 by ring]
+        rfl
+      rw [e]
+      exact ⟨(hA _ ih.1).1, (hA _ ih.1).2.trans ih.2⟩
+  have hv0 : 0 ≤ ‖v‖ := norm_nonneg v
+  obtain ⟨s, hs | hs⟩ := Nat.even_or_odd' t
+  · rw [hs]
+    calc ‖orb g v (2 * s)‖ ≤ ‖v‖ := (heven s).2
+      _ ≤ L * ‖v‖ := le_mul_of_one_le_left hv0 hL
+  · rw [hs]
+    change ‖g (orb g v (2 * s))‖ ≤ L * ‖v‖
+    exact (hgL _ (heven s).1).trans (mul_le_mul_of_nonneg_left (heven s).2 (by linarith))
+
+omit [Fintype ι] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): orbits follow `g`. -/
+theorem orb_succ (g : (ι → ℝ) → (ι → ℝ)) (v : ι → ℝ) (t : ℕ) :
+    orb g v (t + 1) = g (orb g v t) := rfl
+
+/-- **Random sunspots of `n`-dimensional forward systems from a two-step invariant set**
+(Woodford (2003), App. A.3, pp. 632–634): if `g ∘ g` maps `A` into itself without increasing the
+norm, `‖g v‖ ≤ L‖v‖` on `A` (`L ≥ 1`), and two distinct points `y₁, y₂ ∈ A` average to `g(c)`,
+then on the core coin tree the forward system `E_t[x_{t+1} − g(x_t)] = 0` (no disturbances,
+`x_{−1} = 0`) has a bounded adapted equilibrium within `max(‖c‖, L max(‖y₁‖, ‖y₂‖))` of the
+steady state whose date-1 value differs across the first flip. -/
+theorem coin_sunspot_of_pair {g : (ι → ℝ) → (ι → ℝ)} {A : Set (ι → ℝ)} {L : ℝ} (hL : 1 ≤ L)
+    (hA : ∀ v ∈ A, g (g v) ∈ A ∧ ‖g (g v)‖ ≤ ‖v‖) (hgL : ∀ v ∈ A, ‖g v‖ ≤ L * ‖v‖)
+    {c y₁ y₂ : ι → ℝ} (h₁ : y₁ ∈ A) (h₂ : y₂ ∈ A) (hne : y₁ ≠ y₂)
+    (hc : g c = (1 / 2 : ℝ) • (y₁ + y₂)) :
+    ∃ x : SProcV ι (Bool × Bool), SolvesSV coinSystem (Gfwd g) 0 x ∧
+      ‖x‖ ≤ max ‖c‖ (L * max ‖y₁‖ ‖y₂‖) ∧ x (1, (true, true)) ≠ x (1, (false, true)) := by
+  set y : Bool → ℕ → ι → ℝ := fun b => orb g (if b then y₁ else y₂) with hy
+  have hM : ∀ b t, ‖y b t‖ ≤ L * max ‖y₁‖ ‖y₂‖ := by
+    intro b t
+    cases b
+    · exact (norm_orb_le hL hA hgL h₂ t).trans
+        (mul_le_mul_of_nonneg_left (le_max_right _ _) (by linarith))
+    · exact (norm_orb_le hL hA hgL h₁ t).trans
+        (mul_le_mul_of_nonneg_left (le_max_left _ _) (by linarith))
+  refine ⟨pathProc c y hM, solvesSV_pathProc hM ?_ (fun b t => orb_succ g _ t),
+    norm_pathProc_le hM, ?_⟩
+  · simpa [hy, orb] using hc
+  · change orb g y₁ 0 ≠ orb g y₂ 0
+    exact hne
+
+end Woodford.PriceLevelDetermination.TidyR6ForwardSunspots
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Nonlinear sunspots on a one-dimensional critical direction: the leading-coefficient criterion
+
+Woodford (2003), *Interest and Prices*, Appendix A.3, pp. 632–634. When the operator (A.8) is
+neither onto nor bounded below, the linearisation does not decide whether random sunspot
+equilibria exist (`SunspotsNotOntoExamples.unit_root_undecided`). This module characterises the
+answer by the higher-order terms for a **one-dimensional critical direction**: the scalar forward
+system `E_t[x_{t+1} − g(x_t)] = 0` with `g'(0) = σ`, `σ = ±1` (the critical root `σ` on the unit
+circle; (A.8) is `v_{t+1} − σ v_t`, neither one-to-one nor onto, range not closed).
+
+## Main results
+
+* `coin_sunspots_iff` (**the criterion, both directions**): write the two-step map as
+  `g(g(x)) = x + c xᵐ + o(xᵐ)` with `c ≠ 0`, `m ≥ 2`. Random sunspot equilibria exist at every
+  scale on the core coin tree **iff `c < 0` or `m` is even** (`CoinSunspots`).
+* `comp_expansion`: if `g(x) = σx + c xᵏ + o(xᵏ)` then `g(g(x)) = x + c(σ + σᵏ)xᵏ + o(xᵏ)`.
+* `unit_root_criterion` (`σ = 1`, `g(x) = x + c xᵏ + o(xᵏ)`): sunspots iff `c < 0` or `k` even;
+  and for `c > 0`, `k` odd, the steady state is the only nearby equilibrium under **every**
+  informationally closed expectation system (`unique_of_one_step`).
+* `flip_root_criterion` (`σ = −1`, `g(x) = −x + c xᵏ + o(xᵏ)`, `k` odd): sunspots iff `c > 0`;
+  for `c < 0` uniqueness under every informationally closed system.
+
+## What the criterion cannot be weakened to
+
+* `flip_even_undecided`: for `σ = −1` and `k` even the leading coefficient of `g` itself does not
+  decide (`g₁ = −x + x²` has sunspots, `g₂ = −x + x² − 2x³` has none, same `σ, k, c`): the
+  criterion must be stated for `g ∘ g`, whose order-`k` term cancels.
+* `flat_undecided`: `c ≠ 0` (a finite-order nondegeneracy) cannot be dropped: `gm = x − f(x)` and
+  `gp = x + f(x)` with `f` flat (`f(x) = e^{−1/x}` for `x > 0`, odd) are `C^∞`, have **identical
+  derivatives of every order** at the steady state and the same operator (A.8) as
+  `SunspotsNotOntoExamples.Gatt`, yet the
+  first has random sunspots and the second has none under any informationally closed system. So
+  no criterion in the Taylor jet decides the sunspot question in general.
+-/
+
+namespace Woodford.PriceLevelDetermination.TidyR6CriticalCriterion
+
+open scoped Topology
+open Asymptotics Filter
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic TidyR6ForwardSunspots
+open LocalIFTSystems (Arg linOp)
+open ExpectationsFiniteTree (coinSystem)
+
+/-! ### Scalar systems -/
+
+/-- Woodford (2003), App. A.3, p. 633 (tool): a scalar map acting on `ℝ¹`. -/
+def lift (g : ℝ → ℝ) (v : Fin 1 → ℝ) : Fin 1 → ℝ := fun _ => g (v 0)
+
+/-- Woodford (2003), App. A.3, p. 633 (tool): the sup norm on `ℝ¹` is the absolute value. -/
+theorem norm_fin1 (v : Fin 1 → ℝ) : ‖v‖ = |v 0| := by
+  have e : v = fun _ => v 0 := funext fun i => by fin_cases i; rfl
+  rw [e, pi_norm_const, Real.norm_eq_abs]
+
+/-- Woodford (2003), App. A.3, p. 633 (tool): lifting commutes with composition. -/
+theorem lift_comp (g : ℝ → ℝ) : lift g ∘ lift g = lift (g ∘ g) := rfl
+
+/-- Woodford (2003), App. A.3, pp. 632–634: **random sunspots at every scale on the coin tree**
+for the scalar forward system `E_t[x_{t+1} − g(x_t)] = 0` (no disturbances, `x_{−1} = 0`):
+for every `ε > 0` a bounded adapted equilibrium within `ε` of the steady state whose date-1
+value differs across the first flip. -/
+def CoinSunspots (g : ℝ → ℝ) : Prop :=
+  ∀ ε > 0, ∃ x : SProcV (Fin 1) (Bool × Bool), SolvesSV coinSystem (Gfwd (lift g)) 0 x ∧
+    ‖x‖ ≤ ε ∧ x (1, (true, true)) ≠ x (1, (false, true))
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): a scalar lower bound `|g z| ≥ |z| + κ|z|ᵐ` on
+`|z| ≤ r` makes `g` repelling on annuli up to `r`. -/
+theorem repelAnn_lift {g : ℝ → ℝ} {r κ : ℝ} {m : ℕ} (hκ : 0 < κ)
+    (h : ∀ z, |z| ≤ r → |z| + κ * |z| ^ m ≤ |g z|) : RepelAnn (lift g) r := by
+  intro B hB hBr
+  refine ⟨κ * (B / 2) ^ m, by positivity, fun v hv1 hv2 => ?_⟩
+  rw [norm_fin1] at hv1 hv2 ⊢
+  rw [show ‖lift g v‖ = |g (v 0)| from norm_fin1 _]
+  have h1 := h (v 0) (hv2.trans hBr)
+  have h2 : (B / 2) ^ m ≤ |v 0| ^ m := pow_le_pow_left₀ (by positivity) hv1 m
+  nlinarith
+
+/-! ### Expansions -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): a little-o expansion as an explicit bound. -/
+theorem bound_of_isLittleO {f : ℝ → ℝ} {k : ℕ} (h : f =o[𝓝 0] fun x => x ^ k) {η : ℝ}
+    (hη : 0 < η) : ∃ δ > 0, ∀ x, |x| < δ → |f x| ≤ η * |x| ^ k := by
+  obtain ⟨δ, hδ, hP⟩ := Metric.eventually_nhds_iff.mp (h.def hη)
+  refine ⟨δ, hδ, fun x hx => ?_⟩
+  have := hP (show dist x 0 < δ by rwa [dist_zero_right, Real.norm_eq_abs])
+  simpa [Real.norm_eq_abs, abs_pow] using this
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): an expansion `g(x) = σx + c xᵏ + o(xᵏ)` with
+`k ≥ 2` gives `g(0) = 0` and `g'(0) = σ`. -/
+theorem hasDerivAt_of_expansion {g : ℝ → ℝ} {σ c : ℝ} {k : ℕ} (hk : 2 ≤ k)
+    (hg : (fun x => g x - σ * x - c * x ^ k) =o[𝓝 0] fun x => x ^ k) :
+    g 0 = 0 ∧ HasDerivAt g σ 0 := by
+  have hk0 : k ≠ 0 := by omega
+  have hg0 : g 0 = 0 := by
+    have h := (hg.def one_pos).self_of_nhds
+    simp only [mul_zero, sub_zero, zero_pow hk0, norm_zero] at h
+    exact norm_le_zero_iff.mp h
+  refine ⟨hg0, hasDerivAt_iff_isLittleO_nhds_zero.mpr ?_⟩
+  have hpow : (fun x : ℝ => x ^ k) =o[𝓝 0] fun x => x := by
+    have := isLittleO_pow_pow (𝕜 := ℝ) (show 1 < k by omega)
+    simpa using this
+  have h1 := (hg.trans hpow).add (hpow.const_mul_left c)
+  refine h1.congr_left fun x => ?_
+  simp only [zero_add, hg0, sub_zero, smul_eq_mul]
+  ring
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): near the steady state a map with `g(0) = 0` and
+`g'(0) = σ`, `σ² = 1`, satisfies `|z|/2 ≤ |g z| ≤ 2|z|`. -/
+theorem near_lip {g : ℝ → ℝ} {σ : ℝ} (hσ : σ * σ = 1) (hg0 : g 0 = 0) (hd : HasDerivAt g σ 0) :
+    ∃ δ > 0, ∀ z, |z| < δ → |z| / 2 ≤ |g z| ∧ |g z| ≤ 2 * |z| := by
+  have h := hasDerivAt_iff_isLittleO_nhds_zero.mp hd
+  have h' : (fun z => g z - σ * z) =o[𝓝 0] fun z => z ^ 1 := by
+    refine (h.congr_left fun z => ?_).congr_right fun z => by rw [pow_one]
+    simp only [zero_add, hg0, sub_zero, smul_eq_mul]
+    ring
+  obtain ⟨δ, hδ, hP⟩ := bound_of_isLittleO h' (show (0 : ℝ) < 1 / 2 by norm_num)
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  refine ⟨δ, hδ, fun z hz => ?_⟩
+  have h1 := hP z hz
+  rw [pow_one] at h1
+  have h2 : |σ * z| = |z| := by rw [abs_mul, hs, one_mul]
+  have h3 := abs_sub_abs_le_abs_sub (g z) (σ * z)
+  have h4 := abs_sub_abs_le_abs_sub (σ * z) (g z)
+  rw [abs_sub_comm] at h4
+  constructor <;> linarith
+
+/-- **The two-step expansion** (Woodford (2003), App. A.3, p. 634): if
+`g(x) = σx + c xᵏ + o(xᵏ)` with `σ² = 1`, `k ≥ 2`, then
+`g(g(x)) = x + c(σ + σᵏ)xᵏ + o(xᵏ)`: the coefficient is `2c` at a unit root (`σ = 1`), `−2c` at a
+flip root (`σ = −1`) with `k` odd, and `0` at a flip root with `k` even. -/
+theorem comp_expansion {g : ℝ → ℝ} {σ c : ℝ} {k : ℕ} (hσ : σ * σ = 1) (hk : 2 ≤ k)
+    (hg : (fun x => g x - σ * x - c * x ^ k) =o[𝓝 0] fun x => x ^ k) :
+    (fun x => g (g x) - x - c * (σ + σ ^ k) * x ^ k) =o[𝓝 0] fun x => x ^ k := by
+  obtain ⟨hg0, hd⟩ := hasDerivAt_of_expansion hk hg
+  set f : ℝ → ℝ := fun x => g x - σ * x - c * x ^ k with hf
+  have ht : Tendsto g (𝓝 0) (𝓝 0) := by
+    have := hd.continuousAt.tendsto
+    rwa [hg0] at this
+  have hgO : (fun x => g x) =O[𝓝 0] fun x => x := by
+    have := hd.isBigO_sub
+    simpa [hg0] using this
+  have h1 : (fun x => f (g x)) =o[𝓝 0] fun x => x ^ k :=
+    (hg.comp_tendsto ht).trans_isBigO (hgO.pow k)
+  have hdiff : (fun x => g x - σ * x) =O[𝓝 0] fun x => x ^ k := by
+    refine (hg.isBigO.add (isBigO_const_mul_self c (fun x : ℝ => x ^ k) (𝓝 0))).congr_left
+      fun x => ?_
+    simp only [hf]
+    ring
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  have h2 : (fun x => g x ^ k - (σ * x) ^ k) =o[𝓝 0] fun x => x ^ k := by
+    obtain ⟨C1, hC1, hB1⟩ := hdiff.exists_pos
+    obtain ⟨C2, hC2, hB2⟩ := hgO.exists_pos
+    have hO : (fun x => g x ^ k - (σ * x) ^ k) =O[𝓝 0] fun x => x ^ (2 * k - 1) := by
+      refine IsBigO.of_bound (C1 * k * (max C2 1) ^ (k - 1)) ?_
+      filter_upwards [hB1.bound, hB2.bound] with x hx1 hx2
+      simp only [Real.norm_eq_abs, abs_pow] at hx1 hx2 ⊢
+      have hab := abs_pow_sub_pow_le (a := g x) (b := σ * x) (n := k)
+      have hM : max |g x| |σ * x| ≤ max C2 1 * |x| := by
+        rw [abs_mul, hs, one_mul]
+        refine max_le (hx2.trans ?_) ?_
+        · exact mul_le_mul_of_nonneg_right (le_max_left _ _) (abs_nonneg x)
+        · exact le_mul_of_one_le_left (abs_nonneg x) (le_max_right _ _)
+      have hM' : max |g x| |σ * x| ^ (k - 1) ≤ (max C2 1 * |x|) ^ (k - 1) :=
+        pow_le_pow_left₀ (le_max_of_le_left (abs_nonneg _)) hM _
+      have he : |x| ^ (2 * k - 1) = |x| ^ k * |x| ^ (k - 1) := by
+        rw [← pow_add]
+        congr 1
+        omega
+      rw [he]
+      calc |g x ^ k - (σ * x) ^ k| ≤ |g x - σ * x| * k * max |g x| |σ * x| ^ (k - 1) := hab
+        _ ≤ (C1 * |x| ^ k) * k * (max C2 1 * |x|) ^ (k - 1) := by
+            gcongr
+        _ = C1 * k * max C2 1 ^ (k - 1) * (|x| ^ k * |x| ^ (k - 1)) := by
+            rw [mul_pow]
+            ring
+    exact hO.trans_isLittleO (isLittleO_pow_pow (by omega))
+  have e : (fun x => g (g x) - x - c * (σ + σ ^ k) * x ^ k) =
+      fun x => σ * f x + c * (g x ^ k - (σ * x) ^ k) + f (g x) := by
+    funext x
+    simp only [hf, mul_pow]
+    linear_combination x * hσ
+  rw [e]
+  exact ((hg.const_mul_left σ).add (h2.const_mul_left c)).add h1
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): an odd-order repelling expansion
+`F(x) = x + a xᵐ + o(xᵐ)` with `a > 0`, `m` odd, gives `|F z| ≥ |z| + (a/2)|z|ᵐ` near `0`. -/
+theorem lower_of_expansion {F : ℝ → ℝ} {a : ℝ} {m : ℕ} (ha : 0 < a) (hodd : Odd m)
+    (h : (fun x => F x - x - a * x ^ m) =o[𝓝 0] fun x => x ^ m) :
+    ∃ δ > 0, ∀ z, |z| < δ → |z| + a / 2 * |z| ^ m ≤ |F z| := by
+  obtain ⟨δ, hδ, hP⟩ := bound_of_isLittleO h (half_pos ha)
+  refine ⟨δ, hδ, fun z hz => ?_⟩
+  have h1 := abs_le.mp (hP z hz)
+  rcases le_or_gt 0 z with hz0 | hz0
+  · have hza : |z| = z := abs_of_nonneg hz0
+    have e : z ^ m = |z| ^ m := by rw [hza]
+    rw [e] at h1
+    have h2 : |z| + a / 2 * |z| ^ m ≤ F z := by linarith [h1.1]
+    exact h2.trans (le_abs_self _)
+  · have hza : |z| = -z := abs_of_neg hz0
+    have e : z ^ m = -|z| ^ m := by
+      rw [hza, Odd.neg_pow hodd, neg_neg]
+    rw [e] at h1
+    have h2 : F z ≤ -(|z| + a / 2 * |z| ^ m) := by linarith [h1.2]
+    exact (le_neg.mp h2).trans (neg_le_abs _)
+
+/-! ### The criterion on the coin tree -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): **the one-sided estimate.** If
+`G(x) = x + c xᵐ + o(xᵐ)` with `m ≥ 2` and `c sᵐ⁺¹ < 0` for a sign `s`, then near `0` the side
+`s·z > 0` is mapped into itself without increasing `|z|`: `0 < s G(z) ≤ s z`. -/
+theorem side_estimate {G : ℝ → ℝ} {c s : ℝ} {m : ℕ} (hs : s * s = 1) (hm : 2 ≤ m)
+    (hcs : c * s ^ (m + 1) < 0) (hG : (fun x => G x - x - c * x ^ m) =o[𝓝 0] fun x => x ^ m) :
+    ∃ ρ > 0, ∀ z, 0 < s * z → s * z ≤ ρ → 0 < s * G z ∧ s * G z ≤ s * z := by
+  set κ := -(c * s ^ (m + 1)) with hκdef
+  have hκ : 0 < κ := by linarith
+  obtain ⟨δ2, hδ2, hP⟩ := bound_of_isLittleO hG (half_pos hκ)
+  have hsa : |s| = 1 := by nlinarith [abs_mul_abs_self s, abs_nonneg s]
+  set ρ := min δ2 (min 1 (1 / (3 * κ))) / 2 with hρ
+  have hρ0 : 0 < ρ := by positivity
+  have hm0 : 0 < min δ2 (min 1 (1 / (3 * κ))) := by positivity
+  have hρ2 : ρ < δ2 := by
+    have := min_le_left δ2 (min 1 (1 / (3 * κ)))
+    linarith
+  have hρ3 : ρ ≤ 1 := by
+    have := min_le_right δ2 (min 1 (1 / (3 * κ)))
+    have := min_le_left (1 : ℝ) (1 / (3 * κ))
+    linarith
+  have hρ4 : 3 * κ * ρ ≤ 1 := by
+    have := min_le_right δ2 (min 1 (1 / (3 * κ)))
+    have := min_le_right (1 : ℝ) (1 / (3 * κ))
+    have h5 : ρ ≤ 1 / (3 * κ) := by linarith
+    rwa [le_div_iff₀ (by positivity), mul_comm] at h5
+  refine ⟨ρ, hρ0, fun z hz1 hz2 => ?_⟩
+  set w := s * z with hw
+  have hzw : z = s * w := by rw [hw, ← mul_assoc, hs, one_mul]
+  have habs : |z| = w := by rw [hzw, abs_mul, hsa, one_mul, abs_of_pos hz1]
+  have hb := abs_le.mp (hP z (by rw [habs]; linarith))
+  rw [habs] at hb
+  have hzm : s * (c * z ^ m) = -κ * w ^ m := by
+    rw [hzw, mul_pow, hκdef, pow_succ]
+    ring
+  have hwm : w ^ m ≤ w * w := by
+    have h1 : w ^ m = w * w ^ (m - 1) := by
+      rw [← pow_succ']
+      congr 1
+      omega
+    rw [h1]
+    refine mul_le_mul_of_nonneg_left ?_ hz1.le
+    calc w ^ (m - 1) ≤ w ^ 1 := pow_le_pow_of_le_one hz1.le (by linarith) (by omega)
+      _ = w := pow_one w
+  have hwκ : 3 * κ * w ≤ 1 := by nlinarith
+  have hpos : 0 ≤ w ^ m := by positivity
+  have hsg : s * G z = w + s * (c * z ^ m) + s * (G z - z - c * z ^ m) := by
+    rw [hw]
+    ring
+  have hsf : |s * (G z - z - c * z ^ m)| = |G z - z - c * z ^ m| := by
+    rw [abs_mul, hsa, one_mul]
+  have hsf' := abs_le.mp (show |s * (G z - z - c * z ^ m)| ≤ κ / 2 * w ^ m by
+    rw [hsf]
+    exact abs_le.mpr hb)
+  rw [hzm] at hsg
+  constructor
+  · nlinarith
+  · nlinarith
+
+set_option maxHeartbeats 800000 in
+-- the proof assembles the one-sided invariant set and the two date-1 values explicitly
+/-- **Random sunspots from an attracting side** (Woodford (2003), App. A.3, pp. 632–634): if
+`g(0) = 0`, `g'(0) = σ`, `σ² = 1`, and `g(g(x)) = x + c xᵐ + o(xᵐ)` with `m ≥ 2` and
+`c sᵐ⁺¹ < 0` for a sign `s` (so `g ∘ g` pulls the side `s·x > 0` towards the steady state), then
+the scalar forward system has random sunspots at every scale on the coin tree. -/
+theorem coinSunspots_of_side {g : ℝ → ℝ} {σ c s : ℝ} {m : ℕ} (hσ : σ * σ = 1) (hg0 : g 0 = 0)
+    (hd : HasDerivAt g σ 0) (hs : s * s = 1) (hm : 2 ≤ m) (hcs : c * s ^ (m + 1) < 0)
+    (hG : (fun x => g (g x) - x - c * x ^ m) =o[𝓝 0] fun x => x ^ m) : CoinSunspots g := by
+  intro ε hε
+  obtain ⟨δ1, hδ1, hL⟩ := near_lip hσ hg0 hd
+  obtain ⟨ρ1, hρ1, hside1⟩ := side_estimate hs hm hcs hG
+  have hsa : |s| = 1 := by nlinarith [abs_mul_abs_self s, abs_nonneg s]
+  set ρ := min δ1 ρ1 / 2 with hρ
+  have hρ0 : 0 < ρ := by positivity
+  have hρδ : ρ < δ1 := by have := min_le_left δ1 ρ1; linarith
+  have hρρ : ρ ≤ ρ1 := by have := min_le_right δ1 ρ1; linarith
+  have hside : ∀ z, 0 < s * z → s * z ≤ ρ → 0 < s * g (g z) ∧ s * g (g z) ≤ s * z :=
+    fun z h1 h2 => hside1 z h1 (h2.trans hρρ)
+  set A : Set (Fin 1 → ℝ) := {v | 0 < s * v 0 ∧ s * v 0 ≤ ρ} with hA
+  have hAnorm : ∀ v ∈ A, ‖v‖ = s * v 0 := by
+    intro v hv
+    rw [norm_fin1]
+    have : |s * v 0| = |v 0| := by rw [abs_mul, hsa, one_mul]
+    rw [← this, abs_of_pos hv.1]
+  have hAinv : ∀ v ∈ A, lift g (lift g v) ∈ A ∧ ‖lift g (lift g v)‖ ≤ ‖v‖ := by
+    intro v hv
+    obtain ⟨h1, h2⟩ := hside (v 0) hv.1 hv.2
+    have hmem : lift g (lift g v) ∈ A := ⟨h1, h2.trans hv.2⟩
+    refine ⟨hmem, ?_⟩
+    rw [hAnorm _ hmem, hAnorm _ hv]
+    exact h2
+  have hAL : ∀ v ∈ A, ‖lift g v‖ ≤ 2 * ‖v‖ := by
+    intro v hv
+    rw [norm_fin1, norm_fin1]
+    have hv0 : |v 0| < δ1 := by
+      have : |s * v 0| = |v 0| := by rw [abs_mul, hsa, one_mul]
+      rw [← this, abs_of_pos hv.1]
+      linarith [hv.2]
+    exact (hL _ hv0).2
+  -- the two date-1 values
+  set w0 := min (2 / 3 * ρ) (ε / 3) with hw0
+  have hw00 : 0 < w0 := lt_min (by positivity) (by positivity)
+  set y : Fin 1 → ℝ := fun _ => s * w0 with hy
+  have hsy : s * (s * w0) = w0 := by rw [← mul_assoc, hs, one_mul]
+  have hw0ρ : w0 ≤ 2 / 3 * ρ := min_le_left _ _
+  have hyA : y ∈ A := ⟨by change 0 < s * (s * w0); rw [hsy]; exact hw00,
+    by change s * (s * w0) ≤ ρ; rw [hsy]; linarith⟩
+  have hy0 : y 0 = s * w0 := rfl
+  obtain ⟨hG1, hG2⟩ := hside (s * w0) (by rw [hsy]; exact hw00) (by rw [hsy]; linarith)
+  rw [hsy] at hG2
+  set Gy := g (g (s * w0)) with hGy
+  have hy1 : (fun _ => (3 / 2 : ℝ) * Gy : Fin 1 → ℝ) ∈ A := by
+    refine ⟨by simp only; nlinarith, ?_⟩
+    simp only
+    have := min_le_left (2 / 3 * ρ) (ε / 3)
+    nlinarith
+  have hy2 : (fun _ => (1 / 2 : ℝ) * Gy : Fin 1 → ℝ) ∈ A := by
+    refine ⟨by simp only; nlinarith, ?_⟩
+    simp only
+    have := min_le_left (2 / 3 * ρ) (ε / 3)
+    nlinarith
+  have hGy0 : Gy ≠ 0 := by
+    intro h0
+    rw [h0, mul_zero] at hG1
+    exact lt_irrefl _ hG1
+  have hne : (fun _ => (3 / 2 : ℝ) * Gy : Fin 1 → ℝ) ≠ fun _ => (1 / 2 : ℝ) * Gy := by
+    intro h
+    have := congrFun h 0
+    apply hGy0
+    linarith
+  have hc : lift g (lift g y) = (1 / 2 : ℝ) •
+      ((fun _ => (3 / 2 : ℝ) * Gy : Fin 1 → ℝ) + fun _ => (1 / 2 : ℝ) * Gy) := by
+    funext i
+    simp only [lift, Pi.smul_apply, Pi.add_apply, smul_eq_mul, hy, hGy]
+    ring
+  obtain ⟨x, hx, hxn, hxr⟩ := coin_sunspot_of_pair (by norm_num : (1 : ℝ) ≤ 2) hAinv hAL hy1 hy2
+    hne hc
+  refine ⟨x, hx, hxn.trans ?_, hxr⟩
+  have hyn : ‖y‖ = w0 := by rw [hAnorm _ hyA, hy0, hsy]
+  have hly : ‖lift g y‖ ≤ 2 * w0 := by rw [← hyn]; exact hAL _ hyA
+  have hn1 : ‖(fun _ => (3 / 2 : ℝ) * Gy : Fin 1 → ℝ)‖ ≤ 3 / 2 * w0 := by
+    rw [hAnorm _ hy1]
+    nlinarith
+  have hn2 : ‖(fun _ => (1 / 2 : ℝ) * Gy : Fin 1 → ℝ)‖ ≤ 3 / 2 * w0 := by
+    rw [hAnorm _ hy2]
+    nlinarith
+  have hwε : w0 ≤ ε / 3 := min_le_right _ _
+  refine max_le (hly.trans (by linarith)) ?_
+  have := max_le hn1 hn2
+  nlinarith
+
+/-- **No random sunspots when `g ∘ g` repels at odd order** (Woodford (2003), App. A.3,
+pp. 632–634): if `g(0) = 0`, `g'(0) = σ`, `σ² = 1`, and `g(g(x)) = x + c xᵐ + o(xᵐ)` with
+`c > 0` and `m` odd, the coin tree has no random sunspots near the steady state. -/
+theorem not_coinSunspots_of_repel {g : ℝ → ℝ} {σ c : ℝ} {m : ℕ} (hσ : σ * σ = 1)
+    (hg0 : g 0 = 0) (hd : HasDerivAt g σ 0) (hc : 0 < c) (hodd : Odd m)
+    (hG : (fun x => g (g x) - x - c * x ^ m) =o[𝓝 0] fun x => x ^ m) : ¬ CoinSunspots g := by
+  obtain ⟨δ1, hδ1, hL⟩ := near_lip hσ hg0 hd
+  obtain ⟨δ2, hδ2, hP⟩ := lower_of_expansion hc hodd hG
+  set r := min δ1 δ2 / 2 with hr
+  have hr0 : 0 < r := by positivity
+  have hr1 : r < δ1 := by have := min_le_left δ1 δ2; linarith
+  have hr2 : r < δ2 := by have := min_le_right δ1 δ2; linarith
+  have hrep : RepelAnn (lift g ∘ lift g) r := by
+    rw [lift_comp]
+    exact repelAnn_lift (half_pos hc) fun z hz => hP z (by linarith)
+  have hz : ∀ v : Fin 1 → ℝ, ‖v‖ ≤ r → lift g v = 0 → v = 0 := by
+    intro v hv h0
+    rw [norm_fin1] at hv
+    have h1 := (hL (v 0) (by linarith)).1
+    have h2 : g (v 0) = 0 := congrFun h0 0
+    rw [h2, abs_zero] at h1
+    funext i
+    fin_cases i
+    simp only [Fin.zero_eta, Fin.isValue, Pi.zero_apply]
+    have : |v 0| ≤ 0 := by linarith
+    exact abs_nonpos_iff.mp this
+  exact no_coin_sunspot_of_two_step hr0 hrep hz
+
+/-- **The leading-coefficient criterion on a one-dimensional critical direction** (Woodford
+(2003), App. A.3, pp. 632–634; both directions): let `g(0) = 0`, `g'(0) = σ` with `σ = ±1`, and
+`g(g(x)) = x + c xᵐ + o(xᵐ)` with `c ≠ 0`, `m ≥ 2`. Then the scalar forward system
+`E_t[x_{t+1} − g(x_t)] = 0` has random sunspot equilibria at every scale on the coin tree **iff
+`c < 0` or `m` is even**. -/
+theorem coin_sunspots_iff {g : ℝ → ℝ} {σ c : ℝ} {m : ℕ} (hσ : σ * σ = 1) (hg0 : g 0 = 0)
+    (hd : HasDerivAt g σ 0) (hm : 2 ≤ m) (hc : c ≠ 0)
+    (hG : (fun x => g (g x) - x - c * x ^ m) =o[𝓝 0] fun x => x ^ m) :
+    CoinSunspots g ↔ (c < 0 ∨ Even m) := by
+  constructor
+  · intro hsun
+    by_contra hno
+    push Not at hno
+    obtain ⟨hc0, hev⟩ := hno
+    have hcpos : 0 < c := lt_of_le_of_ne hc0 (Ne.symm hc)
+    exact not_coinSunspots_of_repel hσ hg0 hd hcpos (Nat.not_even_iff_odd.mp hev) hG hsun
+  · rintro (hneg | hev)
+    · exact coinSunspots_of_side hσ hg0 hd (by norm_num : (1 : ℝ) * 1 = 1) hm
+        (by rw [one_pow, mul_one]; exact hneg) hG
+    · rcases lt_or_gt_of_ne hc with hneg | hpos
+      · exact coinSunspots_of_side hσ hg0 hd (by norm_num : (1 : ℝ) * 1 = 1) hm
+          (by rw [one_pow, mul_one]; exact hneg) hG
+      · refine coinSunspots_of_side hσ hg0 hd (by norm_num : (-1 : ℝ) * -1 = 1) hm ?_ hG
+        rw [hev.add_one.neg_one_pow]
+        linarith
+
+/-! ### One-step repulsion: uniqueness under every informationally closed system -/
+
+/-- **No sunspots under any informationally closed expectation system** (Woodford (2003),
+App. A.3, pp. 632–634): if `g(x) = σx + c xᵏ + o(xᵏ)` with `σ² = 1`, `k` odd and `σc > 0`
+(`g` itself pushes away from the steady state), there is `r > 0` such that under **every**
+informationally closed expectation system (perfect foresight, every finite tree) the steady state
+is the only bounded adapted equilibrium within `r` of it, for every `(x_{−1}, e)`. -/
+theorem unique_of_one_step {g : ℝ → ℝ} {σ c : ℝ} {k : ℕ} (hσ : σ * σ = 1) (hodd : Odd k)
+    (hsc : 0 < σ * c) (hg : (fun x => g x - σ * x - c * x ^ k) =o[𝓝 0] fun x => x ^ k) :
+    ∃ r > 0, ∀ {Ω : Type*} (𝔼 : ExpectationSystem Ω), LocalIFTStochastic.Ops.InfoClosed 𝔼 →
+      ∀ (u : ParS (Fin 1) ℝ Ω) (x : SProcV (Fin 1) Ω), SolvesSV 𝔼 (Gfwd (lift g)) u x →
+        ‖x‖ ≤ r → x = 0 := by
+  have hF : (fun x => σ * g x - x - (σ * c) * x ^ k) =o[𝓝 0] fun x => x ^ k := by
+    refine (hg.const_mul_left σ).congr_left fun x => ?_
+    linear_combination (-x) * hσ
+  obtain ⟨δ, hδ, hP⟩ := lower_of_expansion hsc hodd hF
+  have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  refine ⟨δ / 2, half_pos hδ, fun 𝔼 hcl u x hx hxr => ?_⟩
+  refine unique_of_repelAnn hcl (repelAnn_lift (m := k) (half_pos hsc) fun z hz => ?_) hx hxr
+  have := hP z (by linarith)
+  rwa [abs_mul, hs, one_mul] at this
+
+/-! ### The unit root and the flip root -/
+
+/-- **Unit root: the criterion in the leading coefficient of `g`** (Woodford (2003), App. A.3,
+pp. 632–634; both directions): for `E_t x_{t+1} = g(x_t)` with `g(x) = x + c xᵏ + o(xᵏ)`,
+`c ≠ 0`, `k ≥ 2` (operator (A.8) `v_{t+1} − v_t`, as for `SunspotsNotOntoExamples.Gatt`): random
+sunspots exist at every scale on the coin tree **iff `c < 0` or `k` is even**; and when `c > 0`,
+`k` odd, the
+steady state is the only nearby equilibrium under every informationally closed expectation
+system. -/
+theorem unit_root_criterion {g : ℝ → ℝ} {c : ℝ} {k : ℕ} (hk : 2 ≤ k) (hc : c ≠ 0)
+    (hg : (fun x => g x - x - c * x ^ k) =o[𝓝 0] fun x => x ^ k) :
+    (CoinSunspots g ↔ (c < 0 ∨ Even k)) ∧
+    (0 < c → Odd k → ∃ r > 0, ∀ {Ω : Type*} (𝔼 : ExpectationSystem Ω),
+      LocalIFTStochastic.Ops.InfoClosed 𝔼 → ∀ (u : ParS (Fin 1) ℝ Ω) (x : SProcV (Fin 1) Ω),
+        SolvesSV 𝔼 (Gfwd (lift g)) u x → ‖x‖ ≤ r → x = 0) := by
+  have hg' : (fun x => g x - 1 * x - c * x ^ k) =o[𝓝 0] fun x => x ^ k := by
+    simpa only [one_mul] using hg
+  obtain ⟨hg0, hd⟩ := hasDerivAt_of_expansion hk hg'
+  have hG := comp_expansion (by norm_num : (1 : ℝ) * 1 = 1) hk hg'
+  simp only [one_pow] at hG
+  refine ⟨?_, fun hc0 hodd => unique_of_one_step (by norm_num) hodd (by linarith) hg'⟩
+  rw [coin_sunspots_iff (by norm_num) hg0 hd hk (by intro h; apply hc; linarith) hG]
+  have e : c * (1 + 1) < 0 ↔ c < 0 := by constructor <;> intro h <;> linarith
+  rw [e]
+
+/-- **Flip root, odd order: the criterion with the opposite sign** (Woodford (2003), App. A.3,
+pp. 632–634; both directions): for `g(x) = −x + c xᵏ + o(xᵏ)` with `k ≥ 2` odd, `c ≠ 0`
+(operator (A.8) `v_{t+1} + v_t`, root `−1`): random sunspots exist at every scale on the coin
+tree **iff `c > 0`**; when `c < 0` the steady state is the only nearby equilibrium under every
+informationally closed expectation system. -/
+theorem flip_root_criterion {g : ℝ → ℝ} {c : ℝ} {k : ℕ} (hk : 2 ≤ k) (hodd : Odd k)
+    (hc : c ≠ 0) (hg : (fun x => g x + x - c * x ^ k) =o[𝓝 0] fun x => x ^ k) :
+    (CoinSunspots g ↔ 0 < c) ∧
+    (c < 0 → ∃ r > 0, ∀ {Ω : Type*} (𝔼 : ExpectationSystem Ω),
+      LocalIFTStochastic.Ops.InfoClosed 𝔼 → ∀ (u : ParS (Fin 1) ℝ Ω) (x : SProcV (Fin 1) Ω),
+        SolvesSV 𝔼 (Gfwd (lift g)) u x → ‖x‖ ≤ r → x = 0) := by
+  have hg' : (fun x => g x - (-1) * x - c * x ^ k) =o[𝓝 0] fun x => x ^ k := by
+    refine hg.congr_left fun x => ?_
+    ring
+  obtain ⟨hg0, hd⟩ := hasDerivAt_of_expansion hk hg'
+  have hG := comp_expansion (by norm_num : (-1 : ℝ) * -1 = 1) hk hg'
+  simp only [hodd.neg_one_pow] at hG
+  refine ⟨?_, fun hc0 => unique_of_one_step (by norm_num) hodd (by linarith) hg'⟩
+  rw [coin_sunspots_iff (by norm_num) hg0 hd hk (by intro h; apply hc; linarith) hG]
+  have hne : ¬ Even k := Nat.not_even_iff_odd.mpr hodd
+  constructor
+  · rintro (h | h)
+    · linarith
+    · exact absurd h hne
+  · intro h
+    left
+    linarith
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the flip-root map `g₁(x) = −x + x²`. -/
+def gFlipA (x : ℝ) : ℝ := -x + x ^ 2
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the flip-root map `g₂(x) = −x + x² − 2x³`, with
+the same `σ = −1`, `k = 2` and leading coefficient `c = 1` as `gFlipA`. -/
+def gFlipB (x : ℝ) : ℝ := -x + x ^ 2 - 2 * x ^ 3
+
+/-- **At a flip root of even order the leading coefficient of `g` does not decide** (Woodford
+(2003), App. A.3, pp. 632–634; the criterion cannot be stated for `g` itself): `g₁ = −x + x²` and
+`g₂ = −x + x² − 2x³` both have the expansion `−x + 1·x² + o(x²)`, yet `g₁` has random sunspots at
+every scale on the coin tree (`g₁(g₁(x)) = x − 2x³ + x⁴`) and `g₂` has none
+(`g₂(g₂(x)) = x + 2x³ + O(x⁴)`): the order-2 terms cancel in `g ∘ g`, whose leading coefficient
+decides (`coin_sunspots_iff`). -/
+theorem flip_even_undecided :
+    ((fun x => gFlipA x - (-1) * x - 1 * x ^ 2) =o[𝓝 0] fun x => x ^ 2) ∧
+    ((fun x => gFlipB x - (-1) * x - 1 * x ^ 2) =o[𝓝 0] fun x => x ^ 2) ∧
+    CoinSunspots gFlipA ∧ ¬ CoinSunspots gFlipB := by
+  have hA : (fun x => gFlipA x - (-1) * x - 1 * x ^ 2) =o[𝓝 0] fun x => x ^ 2 :=
+    (isLittleO_zero (fun x : ℝ => x ^ 2) (𝓝 0)).congr_left fun x => by simp only [gFlipA]; ring
+  have hB : (fun x => gFlipB x - (-1) * x - 1 * x ^ 2) =o[𝓝 0] fun x => x ^ 2 :=
+    ((isLittleO_pow_pow (𝕜 := ℝ) (show 2 < 3 by norm_num)).const_mul_left (-2)).congr_left
+      fun x => by simp only [gFlipB]; ring
+  obtain ⟨hA0, hAd⟩ := hasDerivAt_of_expansion le_rfl hA
+  obtain ⟨hB0, hBd⟩ := hasDerivAt_of_expansion le_rfl hB
+  have hGA : (fun x => gFlipA (gFlipA x) - x - (-2) * x ^ 3) =o[𝓝 0] fun x => x ^ 3 :=
+    (isLittleO_pow_pow (𝕜 := ℝ) (show 3 < 4 by norm_num)).congr_left
+      fun x => by simp only [gFlipA]; ring
+  have hp : ∀ j : ℕ, 3 < j → ∀ a : ℝ, (fun x : ℝ => a * x ^ j) =o[𝓝 0] fun x => x ^ 3 :=
+    fun j hj a => (isLittleO_pow_pow (𝕜 := ℝ) hj).const_mul_left a
+  have hGB : (fun x => gFlipB (gFlipB x) - x - 2 * x ^ 3) =o[𝓝 0] fun x => x ^ 3 := by
+    have h := (((((hp 4 (by norm_num) (-1)).add (hp 5 (by norm_num) 14)).add
+      (hp 6 (by norm_num) (-22))).add (hp 7 (by norm_num) 36)).add
+      (hp 8 (by norm_num) (-24))).add (hp 9 (by norm_num) 16)
+    refine h.congr_left fun x => ?_
+    simp only [gFlipB]
+    ring
+  refine ⟨hA, hB, ?_, ?_⟩
+  · exact (coin_sunspots_iff (by norm_num) hA0 hAd (by norm_num) (by norm_num) hGA).mpr
+      (Or.inl (by norm_num))
+  · exact not_coinSunspots_of_repel (by norm_num) hB0 hBd (by norm_num : (0 : ℝ) < 2)
+      (by decide) hGB
+
+/-! ### A flat perturbation: no criterion in the Taylor jet -/
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the flat odd function `f(x) = ψ(x) − ψ(−x)`,
+with `ψ` Mathlib's `expNegInvGlue` (`ψ(x) = e^{−1/x}` for `x > 0`, `0` otherwise): all its
+derivatives vanish at `0`, yet `f(x) > 0` for `x > 0`. -/
+noncomputable def fl : ℝ → ℝ := expNegInvGlue - fun x => expNegInvGlue (-x)
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the attracting flat perturbation of the unit
+root, `gm(x) = x − f(x)`. -/
+noncomputable def gm (x : ℝ) : ℝ := x - fl x
+
+/-- Woodford (2003), App. A.3, p. 632 (example): the repelling flat perturbation of the unit
+root, `gp(x) = x + f(x)`. -/
+noncomputable def gp (x : ℝ) : ℝ := x + fl x
+
+/-- Woodford (2003), App. A.3, p. 632 (tool): `ψ(y) ≤ y` and `ψ(y) ≤ 2y²` for `y ≥ 0`. -/
+theorem glue_le {y : ℝ} (hy : 0 ≤ y) : expNegInvGlue y ≤ y ∧ expNegInvGlue y ≤ 2 * y ^ 2 := by
+  rcases hy.eq_or_lt with h0 | hpos
+  · rw [← h0, expNegInvGlue.zero]
+    norm_num
+  have he : expNegInvGlue y = (Real.exp y⁻¹)⁻¹ := by
+    simp only [expNegInvGlue, not_le.mpr hpos, ↓reduceIte, Real.exp_neg]
+  have hi : 0 < y⁻¹ := inv_pos.mpr hpos
+  rw [he]
+  constructor
+  · have h1 : y⁻¹ ≤ Real.exp y⁻¹ := by linarith [Real.add_one_le_exp y⁻¹]
+    have := inv_anti₀ hi h1
+    rwa [inv_inv] at this
+  · have h1 : y⁻¹ ^ 2 / 2 ≤ Real.exp y⁻¹ := by
+      have := Real.pow_div_factorial_le_exp y⁻¹ hi.le 2
+      simpa using this
+    have h2 : 0 < y⁻¹ ^ 2 / 2 := by positivity
+    have := inv_anti₀ h2 h1
+    have e : (y⁻¹ ^ 2 / 2)⁻¹ = 2 * y ^ 2 := by field_simp
+    rwa [e] at this
+
+/-- Woodford (2003), App. A.3, p. 632 (tool): `f(x) = ψ(x)` for `x ≥ 0` and `f(x) = −ψ(−x)` for
+`x ≤ 0`. -/
+theorem fl_cases (x : ℝ) : (0 ≤ x → fl x = expNegInvGlue x) ∧
+    (x ≤ 0 → fl x = -expNegInvGlue (-x)) := by
+  refine ⟨fun hx => ?_, fun hx => ?_⟩
+  · change expNegInvGlue x - expNegInvGlue (-x) = _
+    rw [expNegInvGlue.zero_of_nonpos (by linarith : -x ≤ 0), sub_zero]
+  · change expNegInvGlue x - expNegInvGlue (-x) = _
+    rw [expNegInvGlue.zero_of_nonpos hx, zero_sub]
+
+/-- Woodford (2003), App. A.3, p. 632 (example): `|gp(x)| = |x| + ψ(|x|)` (repelling) and
+`|gm(x)| ≤ |x|` (attracting), for every `x`. -/
+theorem abs_gp_gm (x : ℝ) : |gp x| = |x| + expNegInvGlue |x| ∧ |gm x| ≤ |x| := by
+  rcases le_or_gt 0 x with hx | hx
+  · have h1 := (fl_cases x).1 hx
+    have h2 := glue_le hx
+    have h3 := expNegInvGlue.nonneg x
+    rw [abs_of_nonneg hx]
+    refine ⟨?_, ?_⟩
+    · rw [gp, h1, abs_of_nonneg (by linarith)]
+    · rw [gm, h1, abs_of_nonneg (by linarith)]
+      linarith
+  · have h1 := (fl_cases x).2 hx.le
+    have h2 := glue_le (by linarith : 0 ≤ -x)
+    have h3 := expNegInvGlue.nonneg (-x)
+    rw [abs_of_neg hx]
+    refine ⟨?_, ?_⟩
+    · rw [gp, h1, abs_of_neg (by linarith)]
+      ring
+    · rw [gm, h1, abs_of_nonpos (by linarith)]
+      linarith
+
+/-- Woodford (2003), App. A.3, p. 632 (tool): `f` is `C^∞`. -/
+theorem contDiff_fl (k : ℕ) : ContDiff ℝ k fl :=
+  (expNegInvGlue.contDiff (n := k)).sub ((expNegInvGlue.contDiff (n := k)).comp contDiff_neg)
+
+/-- Woodford (2003), App. A.3, p. 632 (tool): a `C^∞` function vanishing on an open set whose
+closure contains `0` has all derivatives zero at `0`. -/
+theorem flat_of_eqOn {F : ℝ → ℝ} (hF : ∀ k : ℕ, ContDiff ℝ k F) {S : Set ℝ} (hS : IsOpen S)
+    (h0 : ∀ x ∈ S, F x = 0) (hcl : (0 : ℝ) ∈ closure S) (n : ℕ) :
+    iteratedFDeriv ℝ n F 0 = 0 := by
+  have hc : Continuous fun x => iteratedFDeriv ℝ n F x :=
+    (hF n).continuous_iteratedFDeriv le_rfl
+  have hsub : S ⊆ {x | iteratedFDeriv ℝ n F x = 0} := by
+    intro x hx
+    have hev : F =ᶠ[𝓝 x] fun _ => 0 := Filter.eventually_of_mem (hS.mem_nhds hx) h0
+    have e := (hev.iteratedFDeriv ℝ n).eq_of_nhds
+    change iteratedFDeriv ℝ n F x = 0
+    rw [e, iteratedFDeriv_fun_zero]
+    rfl
+  exact (isClosed_eq hc continuous_const).closure_subset_iff.mpr hsub hcl
+
+/-- Woodford (2003), App. A.3, p. 632 (example): **`f` is flat at `0`**: all its derivatives
+vanish there. -/
+theorem fl_flat (n : ℕ) : iteratedFDeriv ℝ n fl 0 = 0 := by
+  have h1 : iteratedFDeriv ℝ n expNegInvGlue 0 = 0 :=
+    flat_of_eqOn (fun k => expNegInvGlue.contDiff (n := k)) isOpen_Iio
+      (fun x hx => expNegInvGlue.zero_of_nonpos (le_of_lt hx))
+      (by rw [closure_Iio]; exact Set.mem_Iic.mpr le_rfl) n
+  have h2 : iteratedFDeriv ℝ n (fun x => expNegInvGlue (-x)) 0 = 0 :=
+    flat_of_eqOn (fun k => (expNegInvGlue.contDiff (n := k)).comp contDiff_neg) isOpen_Ioi
+      (fun x hx => by
+        have hx' : 0 < x := hx
+        change expNegInvGlue (-x) = 0
+        exact expNegInvGlue.zero_of_nonpos (by linarith))
+      (by rw [closure_Ioi]; exact Set.mem_Ici.mpr le_rfl) n
+  change iteratedFDeriv ℝ n (expNegInvGlue - fun x => expNegInvGlue (-x)) 0 = 0
+  rw [iteratedFDeriv_sub_apply (f := expNegInvGlue) (g := fun x => expNegInvGlue (-x))
+    ((expNegInvGlue.contDiff (n := n)).contDiffAt)
+    (((expNegInvGlue.contDiff (n := n)).comp contDiff_neg).contDiffAt), h1, h2, sub_zero]
+
+/-- Woodford (2003), App. A.3, p. 632 (tool): `f` has derivative `0` at `0` (`|f(x)| ≤ 2x²`). -/
+theorem hasDerivAt_fl : HasDerivAt fl 0 0 := by
+  rw [hasDerivAt_iff_isLittleO_nhds_zero]
+  have hf0 : fl 0 = 0 := by rw [(fl_cases 0).1 le_rfl, expNegInvGlue.zero]
+  have hO : fl =O[𝓝 0] fun x => x ^ 2 := by
+    refine IsBigO.of_bound 2 (Filter.Eventually.of_forall fun x => ?_)
+    rw [Real.norm_eq_abs, Real.norm_eq_abs, abs_pow, sq_abs]
+    rcases le_or_gt 0 x with hx | hx
+    · rw [(fl_cases x).1 hx, abs_of_nonneg (expNegInvGlue.nonneg x)]
+      exact (glue_le hx).2
+    · rw [(fl_cases x).2 hx.le, abs_neg, abs_of_nonneg (expNegInvGlue.nonneg _)]
+      have := (glue_le (by linarith : 0 ≤ -x)).2
+      rwa [neg_sq] at this
+  have h := hO.trans_isLittleO (isLittleO_pow_pow (𝕜 := ℝ) (show 1 < 2 by norm_num))
+  refine (h.congr_left fun x => ?_).congr_right fun x => pow_one x
+  simp only [zero_add, hf0, sub_zero, smul_zero]
+
+/-- Woodford (2003), App. A.3, eq. (A.8), p. 632 (tool): for a scalar map with `g'(0) = σ`, the
+derivative of `x_{t+1} − g(x_t)` at the steady state is `x_{t+1} − σ x_t`. -/
+theorem fderiv_Gfwd_lift {g : ℝ → ℝ} {σ : ℝ} (hd : HasDerivAt g σ 0)
+    (p : Arg (Fin 1) ℝ) :
+    fderiv ℝ (Gfwd (lift g)) 0 p =
+      fun _ => 0 * p.1 0 + (-σ) * p.2.1 0 + 1 * p.2.2.1 0 + 0 * p.2.2.2 := by
+  have hB : HasFDerivAt (LocalIFTSystems.projB : Arg (Fin 1) ℝ → ℝ) LocalIFTSystems.projB 0 :=
+    LocalIFTSystems.projB.hasFDerivAt
+  have hC : HasFDerivAt (SunspotsNotOntoExamples.pC : Arg (Fin 1) ℝ → ℝ)
+      SunspotsNotOntoExamples.pC 0 := SunspotsNotOntoExamples.pC.hasFDerivAt
+  have hd' : HasDerivAt g σ (LocalIFTSystems.projB (0 : Arg (Fin 1) ℝ)) := by
+    rw [map_zero]
+    exact hd
+  have hgB := hd'.comp_hasFDerivAt (0 : Arg (Fin 1) ℝ) hB
+  have h : HasFDerivAt (Gfwd (lift g)) (ContinuousLinearMap.pi fun _ : Fin 1 =>
+      SunspotsNotOntoExamples.pC - σ • LocalIFTSystems.projB) 0 := by
+    refine hasFDerivAt_pi'' fun i => ?_
+    have hi : i = 0 := Subsingleton.elim _ _
+    subst hi
+    exact hC.sub hgB
+  rw [h.fderiv]
+  funext i
+  simp [LocalIFTSystems.projB, SunspotsNotOntoExamples.pC]
+  ring
+
+/-- **A flat perturbation decides the opposite way: no criterion in the Taylor jet**
+(Woodford (2003), App. A.3, pp. 632–634; the hypothesis `c ≠ 0` of `unit_root_criterion` cannot
+be dropped): `gp(x) = x + f(x)` and `gm(x) = x − f(x)` with `f` flat are `C^∞`, have **equal
+derivatives of every order** at the steady state and the **same operator (A.8)** as
+`SunspotsNotOntoExamples.Gatt` (`v_{t+1} − v_t`), yet `gm` has random sunspots at every scale
+on the coin tree while under every
+informationally closed expectation system the steady state is the **only** bounded equilibrium
+of `gp`, for every `(x_{−1}, e)`. -/
+theorem flat_undecided :
+    (∀ k : ℕ, ContDiff ℝ k gp ∧ ContDiff ℝ k gm) ∧
+    (∀ n : ℕ, iteratedFDeriv ℝ n gp 0 = iteratedFDeriv ℝ n gm 0) ∧
+    linOp (Gfwd (lift gp)) = linOp SunspotsNotOntoExamples.Gatt ∧
+    linOp (Gfwd (lift gm)) = linOp SunspotsNotOntoExamples.Gatt ∧
+    CoinSunspots gm ∧
+    (∀ {Ω : Type*} (𝔼 : ExpectationSystem Ω), LocalIFTStochastic.Ops.InfoClosed 𝔼 →
+      ∀ (u : ParS (Fin 1) ℝ Ω) (x : SProcV (Fin 1) Ω), SolvesSV 𝔼 (Gfwd (lift gp)) u x →
+        x = 0) := by
+  have hid : ∀ k : ℕ, ContDiff ℝ k fun x : ℝ => x := fun k => contDiff_id
+  have hcp : ∀ k : ℕ, ContDiff ℝ k gp := fun k => (hid k).add (contDiff_fl k)
+  have hcm : ∀ k : ℕ, ContDiff ℝ k gm := fun k => (hid k).sub (contDiff_fl k)
+  have hf0 : fl 0 = 0 := by rw [(fl_cases 0).1 le_rfl, expNegInvGlue.zero]
+  have hm0 : gm 0 = 0 := by rw [gm, hf0, sub_zero]
+  have hpd : HasDerivAt gp 1 0 := by
+    have := (hasDerivAt_id' (x := (0 : ℝ))).add hasDerivAt_fl
+    rw [add_zero] at this
+    exact this
+  have hmd : HasDerivAt gm 1 0 := by
+    have := (hasDerivAt_id' (x := (0 : ℝ))).sub hasDerivAt_fl
+    rw [sub_zero] at this
+    exact this
+  have hlin : ∀ g : ℝ → ℝ, HasDerivAt g 1 0 →
+      linOp (Gfwd (lift g)) = linOp SunspotsNotOntoExamples.Gatt := by
+    intro g hd
+    have hA := fun v t => SunspotsNotOntoExamples.linOp_of_fderiv
+      (fun p => (fderiv_Gfwd_lift hd p)) v t
+    have hR := SunspotsNotOntoExamples.linOp_Gatt_Grep.2
+    refine ContinuousLinearMap.ext fun v => seq_ext fun t => ?_
+    rw [hA, hR]
+  refine ⟨fun k => ⟨hcp k, hcm k⟩, fun n => ?_, hlin gp hpd, hlin gm hmd, ?_, ?_⟩
+  · change iteratedFDeriv ℝ n ((fun x : ℝ => x) + fl) 0 =
+      iteratedFDeriv ℝ n ((fun x : ℝ => x) - fl) 0
+    rw [iteratedFDeriv_add_apply ((hid n).contDiffAt) ((contDiff_fl n).contDiffAt),
+      iteratedFDeriv_sub_apply ((hid n).contDiffAt) ((contDiff_fl n).contDiffAt), fl_flat,
+      add_zero, sub_zero]
+  · intro ε hε
+    have hA : ∀ v ∈ (Set.univ : Set (Fin 1 → ℝ)),
+        lift gm (lift gm v) ∈ Set.univ ∧ ‖lift gm (lift gm v)‖ ≤ ‖v‖ := by
+      intro v _
+      refine ⟨Set.mem_univ _, ?_⟩
+      rw [norm_fin1, norm_fin1]
+      exact (abs_gp_gm _).2.trans (abs_gp_gm _).2
+    have hL : ∀ v ∈ (Set.univ : Set (Fin 1 → ℝ)), ‖lift gm v‖ ≤ 1 * ‖v‖ := by
+      intro v _
+      rw [norm_fin1, norm_fin1, one_mul]
+      exact (abs_gp_gm _).2
+    have hne : (fun _ => ε : Fin 1 → ℝ) ≠ fun _ => -ε := by
+      intro h
+      have := congrFun h 0
+      linarith
+    have hc : lift gm 0 = (1 / 2 : ℝ) • ((fun _ => ε : Fin 1 → ℝ) + fun _ => -ε) := by
+      funext i
+      simp [lift, hm0]
+    obtain ⟨x, hx, hxn, hxr⟩ := coin_sunspot_of_pair le_rfl hA hL (Set.mem_univ _)
+      (Set.mem_univ _) hne hc
+    refine ⟨x, hx, hxn.trans ?_, hxr⟩
+    rw [norm_zero, norm_fin1, norm_fin1, one_mul]
+    simp only [abs_neg, max_self, abs_of_pos hε]
+    exact max_le hε.le le_rfl
+  · intro Ω 𝔼 hcl u x hx
+    refine unique_of_repelAnn_global hcl (fun r B hB _ => ?_) hx
+    refine ⟨expNegInvGlue (B / 2), expNegInvGlue.pos_of_pos (by positivity), fun v hv1 _ => ?_⟩
+    rw [norm_fin1] at hv1 ⊢
+    rw [show ‖lift gp v‖ = |gp (v 0)| from norm_fin1 _, (abs_gp_gm _).1]
+    have := expNegInvGlue.monotone hv1
+    linarith
+
+end Woodford.PriceLevelDetermination.TidyR6CriticalCriterion
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Analytic critical directions: the higher-order terms always decide
+
+Woodford (2003), *Interest and Prices*, Appendix A.3, pp. 632–634. For the scalar forward system
+`E_t[x_{t+1} − g(x_t)] = 0` with a critical root `g'(0) = σ = ±1`,
+`TidyR6CriticalCriterion.coin_sunspots_iff` decides the sunspot question whenever `g ∘ g − id`
+has a nonzero leading term, and `TidyR6CriticalCriterion.flat_undecided` shows that for `C^∞`
+maps the Taylor jet can vanish while the answer still depends on the map. For **analytic** `g`
+neither gap remains: either `g ∘ g` is the identity near the steady state (then every small orbit
+is periodic and random sunspots exist), or `g ∘ g − id` has a nonzero leading term `c xᵐ`,
+`m ≥ 2`, and the criterion applies. This is a complete characterisation in the higher-order
+terms.
+
+## Main results
+
+* `coinSunspots_of_involutive`: `g ∘ g = id` near `0` ⟹ random sunspots at every scale.
+* `analytic_dichotomy`: for analytic `g`, `g ∘ g = id` near `0` or
+  `g(g(x)) = x + c xᵐ + o(xᵐ)` with `c ≠ 0`, `m ≥ 2`.
+* `analytic_coin_sunspots_iff` (**the characterisation**): for analytic `g` with `g(0) = 0`,
+  `g'(0) = ±1`, random sunspots exist at every scale on the coin tree **iff** `g ∘ g = id` near
+  the steady state, or the leading coefficient `c` of `g ∘ g − id` is negative, or its order is
+  even.
+-/
+
+namespace Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic
+
+open scoped Topology
+open Asymptotics Filter
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic TidyR6ForwardSunspots
+open TidyR6CriticalCriterion (lift norm_fin1 CoinSunspots near_lip coin_sunspots_iff)
+
+/-- **Random sunspots when `g ∘ g` is the identity near the steady state** (Woodford (2003),
+App. A.3, pp. 632–634): if `g(0) = 0`, `g'(0) = σ`, `σ² = 1`, and `g(g(x)) = x` near `0`, the
+scalar forward system has random sunspots at every scale on the coin tree (`x_1 = ±a`, then the
+orbit is periodic). -/
+theorem coinSunspots_of_involutive {g : ℝ → ℝ} {σ : ℝ} (hσ : σ * σ = 1) (hg0 : g 0 = 0)
+    (hd : HasDerivAt g σ 0) (hinv : ∀ᶠ x in 𝓝 0, g (g x) = x) : CoinSunspots g := by
+  intro ε hε
+  obtain ⟨r, hr, hrP⟩ := Metric.eventually_nhds_iff.mp hinv
+  obtain ⟨δ1, hδ1, hL⟩ := near_lip hσ hg0 hd
+  set ρ := min r δ1 / 2 with hρ
+  have hρ0 : 0 < ρ := by positivity
+  have hρr : ρ < r := by have := min_le_left r δ1; linarith
+  have hρδ : ρ < δ1 := by have := min_le_right r δ1; linarith
+  set A : Set (Fin 1 → ℝ) := {v | |v 0| ≤ ρ} with hA
+  have hgg : ∀ v ∈ A, lift g (lift g v) = v := by
+    intro v hv
+    funext i
+    fin_cases i
+    exact hrP (show dist (v 0) 0 < r by rw [Real.dist_0_eq_abs]; linarith [hv.out])
+  have hAinv : ∀ v ∈ A, lift g (lift g v) ∈ A ∧ ‖lift g (lift g v)‖ ≤ ‖v‖ :=
+    fun v hv => by rw [hgg v hv]; exact ⟨hv, le_rfl⟩
+  have hAL : ∀ v ∈ A, ‖lift g v‖ ≤ 2 * ‖v‖ := by
+    intro v hv
+    rw [norm_fin1, norm_fin1]
+    exact (hL (v 0) (lt_of_le_of_lt hv.out hρδ)).2
+  set a := min ρ (ε / 2) with ha
+  have ha0 : 0 < a := lt_min hρ0 (by positivity)
+  have hy1 : (fun _ => a : Fin 1 → ℝ) ∈ A := by
+    change |a| ≤ ρ
+    rw [abs_of_pos ha0]
+    exact min_le_left _ _
+  have hy2 : (fun _ => -a : Fin 1 → ℝ) ∈ A := by
+    change |-a| ≤ ρ
+    rw [abs_neg, abs_of_pos ha0]
+    exact min_le_left _ _
+  have hne : (fun _ => a : Fin 1 → ℝ) ≠ fun _ => -a := by
+    intro h
+    have := congrFun h 0
+    linarith
+  have hc : lift g 0 = (1 / 2 : ℝ) • ((fun _ => a : Fin 1 → ℝ) + fun _ => -a) := by
+    funext i
+    simp [lift, hg0]
+  obtain ⟨x, hx, hxn, hxr⟩ := coin_sunspot_of_pair (by norm_num : (1 : ℝ) ≤ 2) hAinv hAL hy1
+    hy2 hne hc
+  refine ⟨x, hx, hxn.trans ?_, hxr⟩
+  rw [norm_zero, norm_fin1, norm_fin1]
+  simp only [abs_neg, max_self, abs_of_pos ha0]
+  have : a ≤ ε / 2 := min_le_right _ _
+  exact max_le hε.le (by linarith)
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): a local factorisation `F(x) = xᵐ q(x)` with `q`
+continuous at `0` is the expansion `F(x) = q(0) xᵐ + o(xᵐ)`. -/
+theorem expansion_of_factor {F q : ℝ → ℝ} {m : ℕ} (hq : ContinuousAt q 0)
+    (h : ∀ᶠ x in 𝓝 0, F x = x ^ m * q x) :
+    (fun x => F x - q 0 * x ^ m) =o[𝓝 0] fun x => x ^ m := by
+  have h1 : (fun x => q x - q 0) =o[𝓝 0] fun _ => (1 : ℝ) := by
+    rw [isLittleO_one_iff]
+    have := hq.tendsto
+    simpa using this.sub_const (q 0)
+  have h2 := (isBigO_refl (fun x : ℝ => x ^ m) (𝓝 0)).mul_isLittleO h1
+  simp only [mul_one] at h2
+  refine h2.congr' ?_ EventuallyEq.rfl
+  filter_upwards [h] with x hx
+  rw [hx]
+  ring
+
+/-- **The analytic dichotomy** (Woodford (2003), App. A.3, pp. 632–634): if `g` is analytic at
+the steady state with `g(0) = 0` and `g'(0) = σ`, `σ² = 1`, then either `g ∘ g` is the identity
+near `0`, or `g(g(x)) = x + c xᵐ + o(xᵐ)` with `c ≠ 0` and `m ≥ 2`. -/
+theorem analytic_dichotomy {g : ℝ → ℝ} {σ : ℝ} (hσ : σ * σ = 1) (hg0 : g 0 = 0)
+    (hd : HasDerivAt g σ 0) (han : AnalyticAt ℝ g 0) :
+    (∀ᶠ x in 𝓝 0, g (g x) = x) ∨ ∃ c : ℝ, ∃ m : ℕ, c ≠ 0 ∧ 2 ≤ m ∧
+      (fun x => g (g x) - x - c * x ^ m) =o[𝓝 0] fun x => x ^ m := by
+  set F : ℝ → ℝ := fun x => g (g x) - x with hF
+  have han' : AnalyticAt ℝ g (g 0) := by rw [hg0]; exact han
+  have hFan : AnalyticAt ℝ F 0 := (han'.comp han).sub analyticAt_id
+  have hGd : HasDerivAt (fun x => g (g x)) (σ * σ) 0 := by
+    have hd' : HasDerivAt g σ (g 0) := by rw [hg0]; exact hd
+    exact hd'.comp 0 hd
+  have hFd : HasDerivAt F 0 0 := by
+    have := hGd.sub (hasDerivAt_id 0)
+    rw [hσ, sub_self] at this
+    exact this
+  by_cases hz : ∀ᶠ x in 𝓝 0, F x = 0
+  · left
+    filter_upwards [hz] with x hx
+    exact sub_eq_zero.mp hx
+  · right
+    obtain ⟨n, q, hqan, hq0, hfac⟩ := hFan.exists_eventuallyEq_pow_smul_nonzero_iff.mpr hz
+    have hfac' : ∀ᶠ x in 𝓝 0, F x = x ^ n * q x := by
+      filter_upwards [hfac] with x hx
+      rw [hx, sub_zero, smul_eq_mul]
+    have hF0 : F 0 = 0 := by simp only [hF, hg0, sub_zero]
+    have hn2 : 2 ≤ n := by
+      by_contra hn
+      push Not at hn
+      interval_cases n
+      · have h0 := hfac'.self_of_nhds
+        rw [hF0, pow_zero, one_mul] at h0
+        exact hq0 h0.symm
+      · have hq' : HasDerivAt (fun x => x ^ 1 * q x) (q 0) 0 := by
+          have h1 := (hasDerivAt_id' (x := (0 : ℝ))).mul hqan.differentiableAt.hasDerivAt
+          simp only [one_mul, zero_mul, add_zero] at h1
+          simp only [pow_one]
+          exact h1
+        have hFd' : HasDerivAt (fun x => x ^ 1 * q x) 0 0 :=
+          hFd.congr_of_eventuallyEq (hfac'.mono fun x hx => hx.symm)
+        exact hq0 (hq'.unique hFd')
+    refine ⟨q 0, n, hq0, hn2, ?_⟩
+    have := expansion_of_factor hqan.continuousAt hfac'
+    refine this.congr_left fun x => ?_
+    simp only [hF]
+
+/-- **For analytic maps the higher-order terms always decide** (Woodford (2003), App. A.3,
+pp. 632–634; the complete characterisation on a one-dimensional critical direction): let `g` be
+analytic at the steady state with `g(0) = 0` and `g'(0) = σ`, `σ = ±1`. The scalar forward system
+`E_t[x_{t+1} − g(x_t)] = 0` has random sunspot equilibria at every scale on the coin tree **iff**
+`g ∘ g` is the identity near `0`, or `g(g(x)) = x + c xᵐ + o(xᵐ)` with `c ≠ 0`, `m ≥ 2` and
+(`c < 0` or `m` even). (By `analytic_dichotomy` one of the two expansions always exists; by
+`TidyR6CriticalCriterion.flat_undecided` analyticity cannot be weakened to `C^∞`.) -/
+theorem analytic_coin_sunspots_iff {g : ℝ → ℝ} {σ : ℝ} (hσ : σ * σ = 1) (hg0 : g 0 = 0)
+    (hd : HasDerivAt g σ 0) (han : AnalyticAt ℝ g 0) :
+    CoinSunspots g ↔ ((∀ᶠ x in 𝓝 0, g (g x) = x) ∨ ∃ c : ℝ, ∃ m : ℕ, c ≠ 0 ∧ 2 ≤ m ∧
+      ((fun x => g (g x) - x - c * x ^ m) =o[𝓝 0] fun x => x ^ m) ∧ (c < 0 ∨ Even m)) := by
+  constructor
+  · intro hsun
+    rcases analytic_dichotomy hσ hg0 hd han with h | ⟨c, m, hc, hm, hexp⟩
+    · exact Or.inl h
+    · exact Or.inr ⟨c, m, hc, hm, hexp, (coin_sunspots_iff hσ hg0 hd hm hc hexp).mp hsun⟩
+  · rintro (h | ⟨c, m, hc, hm, hexp, hcrit⟩)
+    · exact coinSunspots_of_involutive hσ hg0 hd h
+    · exact (coin_sunspots_iff hσ hg0 hd hm hc hexp).mpr hcrit
+
+end Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The boundary of Proposition 2.8 for every rule with the boundary slopes
+
+Woodford (2003), *Interest and Prices*, Prop. 2.8, p. 96, and App. A.3, pp. 632–634. The exact
+inertial model is the Fisher equation `E_t[î_t − π_{t+1}] = 0` and a nonlinear rule
+`E_t[î_t − Ψ(π_t, î_{t−1})] = 0` (`LocalIFTSystemsApps.Finert`, no fundamental shocks,
+`î_{−1} = 0`). `InertialBoundary` settled the boundary `|φ_π + ρ| = 1` only for specific rules
+(`InertialBoundary.unique_affine`, `InertialBoundary.ruleCubI`). This module treats **every**
+rule `Ψ` that is strictly
+differentiable at the steady state with slopes `φ_π ≠ 0`, `ρ`, `|φ_π + ρ| = 1` (in particular
+every `C¹` rule), and decides the sunspot question by the higher-order terms of the **diagonal**
+`D(y) = Ψ(y, y)`, in both directions.
+
+## Main results
+
+* `inertial_unique_of_repel`: if `D` is repelling on annuli (`|D y| ≥ |y| + δ(B)` on
+  `B/2 ≤ |y| ≤ B`), the steady state is the only nearby bounded equilibrium under **every**
+  informationally closed expectation system. The rule may be nonlinear in inflation: inflation
+  surprises cannot keep the interest rate small, because `Ψ` is monotone in `π` near `0` and the
+  forecast of `π_{t+1}` is pinned by the Fisher equation (the argument uses only the information
+  cell of the state, `InertialBoundaryExistCube.E_eq_of_eqOn_cell`).
+* `inertial_no_coin_sunspot`: on the coin tree it suffices that `D ∘ D` repels.
+* `inertial_coin_sunspot_of_side`: random sunspots on the coin tree when `D ∘ D` pulls one side
+  towards the steady state.
+* `inertial_coin_iff` (**the criterion**): with `D(D(y)) = y + c yᵐ + o(yᵐ)`, `c ≠ 0`, random
+  sunspots exist at every scale on the coin tree **iff `c < 0` or `m` is even**.
+* `inertial_diag_criterion`: in terms of `D(y) = σy + c yᵏ + o(yᵏ)` itself (`σ = φ_π + ρ`):
+  sunspots iff `σc < 0` or (`σ = 1` and `k` even), for `σ = 1` or `k` odd; uniqueness under every
+  informationally closed system when `σc > 0`, `k` odd.
+* `ruleCubI_criterion`: the rules `φ_π π + ρ î + κ î³` of `InertialBoundary`: sunspots iff
+  `σκ < 0`.
+-/
+
+namespace Woodford.PriceLevelDetermination.TidyR6InertialEveryRule
+
+open scoped Topology
+open Asymptotics Filter
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic
+open TidyR6ForwardSunspots (eq_zero_of_annulus coin_E_late)
+open TidyR6CriticalCriterion (bound_of_isLittleO lower_of_expansion hasDerivAt_of_expansion
+  comp_expansion near_lip side_estimate)
+open LocalIFTSystemsApps (Finert ruleD)
+open InertialBoundary (eq0_of_solves eq1_of_solves lag_known)
+open ExpectationsFiniteTree (coinSystem)
+
+/-! ### Local estimates for a rule with slopes `φ_π`, `ρ` -/
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): strict differentiability of the rule at the steady
+state as an explicit estimate on a ball. -/
+theorem strict_bound {Ψ : ℝ × ℝ → ℝ} {φ ρ : ℝ} (hΨ : HasStrictFDerivAt Ψ (ruleD φ ρ) 0)
+    {η : ℝ} (hη : 0 < η) :
+    ∃ δ > 0, ∀ a b : ℝ × ℝ, ‖a‖ < δ → ‖b‖ < δ →
+      |Ψ a - Ψ b - (φ * (a.1 - b.1) + ρ * (a.2 - b.2))| ≤ η * ‖a - b‖ := by
+  obtain ⟨δ, hδ, hP⟩ := Metric.eventually_nhds_iff.mp (hΨ.isLittleO.def hη)
+  refine ⟨δ, hδ, fun a b ha hb => ?_⟩
+  have hab : dist (a, b) ((0 : ℝ × ℝ), (0 : ℝ × ℝ)) < δ := by
+    rw [Prod.dist_eq, dist_zero_right, dist_zero_right]
+    exact max_lt ha hb
+  have h := hP hab
+  have e : ruleD φ ρ (a - b) = φ * (a.1 - b.1) + ρ * (a.2 - b.2) := by
+    simp [ruleD]
+  simp only [Real.norm_eq_abs] at h
+  rw [e] at h
+  exact h
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): **the rule is monotone in inflation near the
+steady state**: `|Ψ(p, y) − Ψ(q, y) − φ_π(p − q)| ≤ (|φ_π|/2)|p − q|` for small `p, q, y`. -/
+theorem pi_gap {Ψ : ℝ × ℝ → ℝ} {φ ρ : ℝ} (hΨ : HasStrictFDerivAt Ψ (ruleD φ ρ) 0)
+    (hφ : φ ≠ 0) :
+    ∃ δ > 0, ∀ p q y : ℝ, |p| < δ → |q| < δ → |y| < δ →
+      |Ψ (p, y) - Ψ (q, y) - φ * (p - q)| ≤ |φ| / 2 * |p - q| := by
+  obtain ⟨δ, hδ, h⟩ := strict_bound hΨ (half_pos (abs_pos.mpr hφ))
+  refine ⟨δ, hδ, fun p q y hp hq hy => ?_⟩
+  have ha : ‖((p, y) : ℝ × ℝ)‖ < δ := by
+    rw [Prod.norm_mk, Real.norm_eq_abs, Real.norm_eq_abs]
+    exact max_lt hp hy
+  have hb : ‖((q, y) : ℝ × ℝ)‖ < δ := by
+    rw [Prod.norm_mk, Real.norm_eq_abs, Real.norm_eq_abs]
+    exact max_lt hq hy
+  have h1 := h (p, y) (q, y) ha hb
+  have hn : ‖((p, y) : ℝ × ℝ) - (q, y)‖ = |p - q| := by
+    rw [Prod.mk_sub_mk, sub_self, Prod.norm_mk, norm_zero, Real.norm_eq_abs,
+      max_eq_left (abs_nonneg _)]
+  simp only [sub_self, mul_zero, add_zero] at h1
+  rwa [hn] at h1
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): consequences of `pi_gap`: the rule is one-to-one in
+inflation and `(|φ_π|/2)|p − q| ≤ |Ψ(p, y) − Ψ(q, y)| ≤ (3|φ_π|/2)|p − q|`. -/
+theorem pi_bounds {Ψ : ℝ × ℝ → ℝ} {φ δ : ℝ}
+    (hg : ∀ p q y : ℝ, |p| < δ → |q| < δ → |y| < δ →
+      |Ψ (p, y) - Ψ (q, y) - φ * (p - q)| ≤ |φ| / 2 * |p - q|)
+    {p q y : ℝ} (hp : |p| < δ) (hq : |q| < δ) (hy : |y| < δ) :
+    |φ| / 2 * |p - q| ≤ |Ψ (p, y) - Ψ (q, y)| ∧ |Ψ (p, y) - Ψ (q, y)| ≤ 3 * |φ| / 2 * |p - q| := by
+  have h := hg p q y hp hq hy
+  have h1 := abs_sub_abs_le_abs_sub (Ψ (p, y) - Ψ (q, y)) (φ * (p - q))
+  have h2 := abs_sub_abs_le_abs_sub (φ * (p - q)) (Ψ (p, y) - Ψ (q, y))
+  rw [abs_sub_comm (φ * (p - q))] at h2
+  rw [abs_mul] at h1 h2
+  constructor <;> nlinarith [abs_nonneg φ, abs_nonneg (p - q)]
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): the diagonal `D(y) = Ψ(y, y)` has slope
+`φ_π + ρ` at the steady state. -/
+theorem hasDerivAt_diag {Ψ : ℝ × ℝ → ℝ} {φ ρ : ℝ} (hΨ : HasFDerivAt Ψ (ruleD φ ρ) 0) :
+    HasDerivAt (fun y : ℝ => Ψ (y, y)) (φ + ρ) 0 := by
+  have hd : HasFDerivAt (fun i : ℝ => ((i, i) : ℝ × ℝ))
+      ((ContinuousLinearMap.id ℝ ℝ).prod (ContinuousLinearMap.id ℝ ℝ)) 0 :=
+    (hasFDerivAt_id 0).prodMk (hasFDerivAt_id 0)
+  have hΨ' : HasFDerivAt Ψ (ruleD φ ρ) ((fun i : ℝ => ((i, i) : ℝ × ℝ)) 0) := hΨ
+  have h := (HasFDerivAt.comp (f := fun i : ℝ => ((i, i) : ℝ × ℝ)) (0 : ℝ) hΨ' hd).hasDerivAt
+  have e : ((ruleD φ ρ).comp ((ContinuousLinearMap.id ℝ ℝ).prod
+      (ContinuousLinearMap.id ℝ ℝ))) 1 = φ + ρ := by
+    simp [ruleD]
+  rw [e] at h
+  exact h
+
+/-! ### The two conditions state by state -/
+
+variable {Ω : Type*} {𝔼 : ExpectationSystem Ω}
+
+/-- Woodford (2003), eq. (2.12), p. 96 (tool): under informational closure, with no shocks, the
+rule holds state by state: `î_t = Ψ(π_t, î_{t−1})`. -/
+theorem rule_pathwise (hcl : LocalIFTStochastic.Ops.InfoClosed 𝔼) {Ψ : ℝ × ℝ → ℝ}
+    {x : SProcV (Fin 2) Ω} (hx : SolvesSV 𝔼 (Finert Ψ) 0 x) (t : ℕ) (ω : Ω) :
+    x (t, ω) 1 = Ψ (x (t, ω) 0, lagV (0 : Fin 2 → ℝ) (fun s => x (s, ω)) t 1) := by
+  have h := congrFun (eq1_of_solves hx t) ω
+  have hk : 𝔼.E t (fun ω => Ψ (x (t, ω) 0,
+      lagV (0 : ParS (Fin 2) (Fin 2 → ℝ) Ω).1 (fun s => x (s, ω)) t 1)) =
+      fun ω => Ψ (x (t, ω) 0, lagV (0 : ParS (Fin 2) (Fin 2 → ℝ) Ω).1
+        (fun s => x (s, ω)) t 1) := by
+    refine hcl t _ fun ω₁ ω₂ h12 => ?_
+    have e1 := LocalIFTStochastic.Ops.cellConst_of_known 𝔼 (hx.1 t 0) ω₁ ω₂ h12
+    have e2 := LocalIFTStochastic.Ops.cellConst_of_known 𝔼 (lag_known hx t) ω₁ ω₂ h12
+    change x (t, ω₁) 0 = x (t, ω₂) 0 at e1
+    simp only at e2 ⊢
+    rw [e1, e2]
+  have hz : 𝔼.E t (fun ω => (0 : ParS (Fin 2) (Fin 2 → ℝ) Ω).2 (t, ω) 1) = 0 := by
+    change 𝔼.E t (fun _ => 0) = 0
+    exact 𝔼.const t 0
+  rw [hk, hz] at h
+  simp only [Pi.add_apply, Pi.zero_apply, add_zero] at h
+  exact h
+
+/-- Woodford (2003), eq. (1.32), p. 79 (tool): with no shocks, `E_t π_{t+1} = î_t`. -/
+theorem fisher_E {Ψ : ℝ × ℝ → ℝ} {x : SProcV (Fin 2) Ω} (hx : SolvesSV 𝔼 (Finert Ψ) 0 x)
+    (t : ℕ) : 𝔼.E t (toP x (t + 1) 0) = toP x t 1 := by
+  rw [eq0_of_solves hx t]
+  have hz : 𝔼.E t (fun ω => (0 : ParS (Fin 2) (Fin 2 → ℝ) Ω).2 (t, ω) 0) = 0 := by
+    change 𝔼.E t (fun _ => 0) = 0
+    exact 𝔼.const t 0
+  rw [hz, sub_zero]
+
+/-! ### Uniqueness when the diagonal repels -/
+
+set_option maxHeartbeats 800000 in
+-- the push argument works on the information cell with explicit sign bookkeeping
+/-- **No sunspots for every rule whose diagonal repels** (Woodford (2003), Prop. 2.8, p. 96;
+App. A.3, pp. 632–634): let `Ψ` be strictly differentiable at the steady state with slopes
+`φ_π ≠ 0`, `ρ`, `Ψ(0) = 0`, and let the diagonal `D(y) = Ψ(y, y)` be repelling on annuli up to
+`r > 0`. Then there is `r' > 0` such that under **every** informationally closed expectation
+system the steady state is the only bounded adapted equilibrium within `r'` of it (no shocks,
+`î_{−1} = 0`). -/
+theorem inertial_unique_of_repel {Ψ : ℝ × ℝ → ℝ} {φ ρ r : ℝ}
+    (hΨ : HasStrictFDerivAt Ψ (ruleD φ ρ) 0) (hΨ0 : Ψ 0 = 0) (hφ : φ ≠ 0) (hr : 0 < r)
+    (hrep : ∀ B, 0 < B → B ≤ r → ∃ δ > 0, ∀ y : ℝ, B / 2 ≤ |y| → |y| ≤ B →
+      |y| + δ ≤ |Ψ (y, y)|) :
+    ∃ r' > 0, ∀ {Ω : Type*} (𝔼 : ExpectationSystem Ω), LocalIFTStochastic.Ops.InfoClosed 𝔼 →
+      ∀ x : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert Ψ) 0 x → ‖x‖ ≤ r' → x = 0 := by
+  obtain ⟨δ0, hδ0, hgap⟩ := pi_gap hΨ hφ
+  have hφa : 0 < |φ| := abs_pos.mpr hφ
+  refine ⟨min r (δ0 / 2), lt_min hr (by positivity), fun {Ω} 𝔼 hcl x hx hxr => ?_⟩
+  have hxr1 : ‖x‖ ≤ r := hxr.trans (min_le_left _ _)
+  have hxr2 : ‖x‖ < δ0 := by have := min_le_right r (δ0 / 2); linarith
+  have hb : ∀ t ω j, |x (t, ω) j| < δ0 := fun t ω j => (abs_apply_le x t ω j).trans_lt hxr2
+  have h00 : Ψ ((0 : ℝ), (0 : ℝ)) = 0 := by rw [Prod.mk_zero_zero]; exact hΨ0
+  -- interest rates vanish
+  have hI : ∀ p : ℕ × Ω, x p 1 = 0 := by
+    refine eq_zero_of_annulus (fun p : ℕ × Ω => x p 1)
+      (fun p => (abs_apply_le x p.1 p.2 1).trans hxr1) (fun B hB hBr hall => ?_)
+    obtain ⟨δ, hδ, hδP⟩ := hrep B hB hBr
+    refine ⟨δ, hδ, fun q hq => ?_⟩
+    obtain ⟨t, ω⟩ := q
+    by_contra hcon
+    push Not at hcon
+    set d := x (t, ω) 1 with hd
+    have hDd : B < |Ψ (d, d)| := by have := hδP d hq (hall (t, ω)); linarith
+    set S : ℝ := if 0 ≤ Ψ (d, d) then 1 else -1 with hS
+    have hSD : S * Ψ (d, d) = |Ψ (d, d)| := by
+      by_cases h : 0 ≤ Ψ (d, d)
+      · simp only [hS, h, ↓reduceIte, one_mul, abs_of_nonneg h]
+      · push Not at h
+        simp only [hS, not_le.mpr h, ↓reduceIte, neg_one_mul, abs_of_neg h]
+    have hS1 : |S| = 1 := by
+      by_cases h : 0 ≤ Ψ (d, d) <;> simp [hS, h]
+    set κ := 2 / 3 * (|Ψ (d, d)| - B) with hκ
+    have hκ0 : 0 < κ := by rw [hκ]; linarith
+    set q : Ω → ℝ := fun w => S * φ * (x (t + 1, w) 0 - d) with hq
+    have hcell : ∀ w, LocalIFTStochastic.Ops.Indist 𝔼 t ω w → q w ≤ -κ := by
+      intro w hw
+      have hdw : x (t, w) 1 = d :=
+        (LocalIFTStochastic.Ops.cellConst_of_known 𝔼 (hx.1 t 1) ω w hw).symm
+      have hr1 := rule_pathwise hcl hx (t + 1) w
+      change x (t + 1, w) 1 = Ψ (x (t + 1, w) 0, x (t, w) 1) at hr1
+      rw [hdw] at hr1
+      have hg := hgap (x (t + 1, w) 0) d d (hb _ _ 0) (hb t ω 1) (hb t ω 1)
+      have hbd : |x (t + 1, w) 1| ≤ B := hall (t + 1, w)
+      have h1 : S * x (t + 1, w) 1 ≤ B :=
+        (le_abs_self _).trans (by rw [abs_mul, hS1, one_mul]; exact hbd)
+      have herr : |S * (Ψ (x (t + 1, w) 0, d) - Ψ (d, d) - φ * (x (t + 1, w) 0 - d))| ≤
+          |φ| / 2 * |x (t + 1, w) 0 - d| := by
+        rw [abs_mul, hS1, one_mul]
+        exact hg
+      have hqa : |q w| = |φ| * |x (t + 1, w) 0 - d| := by
+        simp only [hq, abs_mul, hS1, one_mul]
+      have hsplit : S * x (t + 1, w) 1 = |Ψ (d, d)| + q w +
+          S * (Ψ (x (t + 1, w) 0, d) - Ψ (d, d) - φ * (x (t + 1, w) 0 - d)) := by
+        rw [hr1, ← hSD, hq]
+        ring
+      have he := (abs_le.mp herr).1
+      rcases le_or_gt 0 (q w) with hq0 | hq0
+      · rw [abs_of_nonneg hq0] at hqa
+        nlinarith
+      · rw [abs_of_neg hq0] at hqa
+        nlinarith
+    -- the forecast of `q` is zero
+    have hEq : 𝔼.E t q ω = 0 := by
+      have e : q = (S * φ) • (toP x (t + 1) 0 - fun _ => d) := by
+        funext w
+        simp only [hq, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+        rfl
+      rw [e, map_smul, map_sub, fisher_E hx t, 𝔼.const]
+      simp only [Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+      change S * φ * (d - d) = 0
+      ring
+    have hM : ∀ w, |q w - min (q w) (-κ)| ≤ |φ| * (4 * δ0) + κ := by
+      intro w
+      have h1 : |q w| ≤ |φ| * (2 * δ0) := by
+        simp only [hq, abs_mul, hS1, one_mul]
+        refine mul_le_mul_of_nonneg_left ?_ (abs_nonneg φ)
+        have h3 := abs_sub (x (t + 1, w) 0) d
+        have h4 := hb (t + 1) w 0
+        have h5 : |d| < δ0 := hb t ω 1
+        linarith
+      have h2 : |min (q w) (-κ)| ≤ |q w| + κ := by
+        rcases le_total (q w) (-κ) with h | h
+        · rw [min_eq_left h]; linarith
+        · rw [min_eq_right h, abs_neg, abs_of_pos hκ0]; linarith [abs_nonneg (q w)]
+      calc |q w - min (q w) (-κ)| ≤ |q w| + |min (q w) (-κ)| := abs_sub _ _
+        _ ≤ |φ| * (4 * δ0) + κ := by linarith
+    have hloc := InertialBoundaryExistCube.E_eq_of_eqOn_cell 𝔼 hcl hM
+      (fun w hw => (min_eq_left (hcell w hw)).symm)
+    have hle : 𝔼.E t (fun w => min (q w) (-κ)) ω ≤ -κ := by
+      have := 𝔼.mono t (show (fun w => min (q w) (-κ)) ≤ fun _ => -κ from
+        fun w => min_le_right _ _) ω
+      rw [𝔼.const] at this
+      exact this
+    have : (0 : ℝ) ≤ -κ := by rw [← hEq, hloc]; exact hle
+    linarith
+  -- inflation vanishes
+  have hP : ∀ t ω, x (t, ω) 0 = 0 := by
+    intro t ω
+    have hr1 := rule_pathwise hcl hx t ω
+    have hlag : lagV (0 : Fin 2 → ℝ) (fun s => x (s, ω)) t 1 = 0 := by
+      cases t with
+      | zero => rfl
+      | succ s => exact hI (s, ω)
+    rw [hlag, hI (t, ω)] at hr1
+    have hbd := (pi_bounds hgap (hb t ω 0) (show |(0 : ℝ)| < δ0 by rwa [abs_zero])
+      (show |(0 : ℝ)| < δ0 by rwa [abs_zero])).1
+    rw [← hr1, h00] at hbd
+    simp only [sub_self, abs_zero, sub_zero] at hbd
+    have : |x (t, ω) 0| ≤ 0 := by nlinarith [abs_nonneg (x (t, ω) 0)]
+    exact abs_nonpos_iff.mp this
+  ext ⟨t, ω⟩ j
+  fin_cases j
+  · exact hP t ω
+  · exact hI (t, ω)
+
+/-! ### The coin tree -/
+
+/-- Woodford (2003), Prop. 2.8, p. 96: **random sunspots at every scale on the coin tree** for
+the exact inertial model with rule `Ψ` (no shocks, `î_{−1} = 0`): for every `ε > 0` a bounded
+adapted equilibrium within `ε` of the steady state whose date-1 value differs across the first
+flip. -/
+def InertialCoinSunspots (Ψ : ℝ × ℝ → ℝ) : Prop :=
+  ∀ ε > 0, ∃ x : SProcV (Fin 2) (Bool × Bool), SolvesSV coinSystem (Finert Ψ) 0 x ∧ ‖x‖ ≤ ε ∧
+    x (1, (true, true)) ≠ x (1, (false, true))
+
+set_option maxHeartbeats 800000 in
+-- the proof follows the coin-tree equilibrium date by date
+/-- **No random sunspots on the coin tree when the two-step diagonal repels** (Woodford (2003),
+Prop. 2.8, p. 96; App. A.3, pp. 632–634): for a rule strictly differentiable at the steady state
+with `φ_π ≠ 0`, if `D ∘ D` (`D(y) = Ψ(y, y)`) is repelling on annuli up to `r > 0` and `D`
+vanishes only at `0` within `r`, the exact model has no random sunspots near the steady state on
+the coin tree. From date 2 the path is deterministic, `î_{t+1} = D(î_t)`, so `î_t = 0` for
+`t ≥ 2`; then `π_2` solves `Ψ(π_2, î_1) = 0`, hence is known at date 1 and equals `î_1`, so
+`D(î_1) = 0`; finally `Ψ(π_1, î_0) = 0` pins `π_1`. -/
+theorem inertial_no_coin_sunspot {Ψ : ℝ × ℝ → ℝ} {φ ρ r : ℝ}
+    (hΨ : HasStrictFDerivAt Ψ (ruleD φ ρ) 0) (hφ : φ ≠ 0) (hr : 0 < r)
+    (hG : ∀ B, 0 < B → B ≤ r → ∃ δ > 0, ∀ y : ℝ, B / 2 ≤ |y| → |y| ≤ B →
+      |y| + δ ≤ |Ψ (Ψ (y, y), Ψ (y, y))|)
+    (hz : ∀ y : ℝ, |y| ≤ r → Ψ (y, y) = 0 → y = 0) : ¬ InertialCoinSunspots Ψ := by
+  intro hsun
+  obtain ⟨δ0, hδ0, hgap⟩ := pi_gap hΨ hφ
+  have hφa : 0 < |φ| := abs_pos.mpr hφ
+  obtain ⟨x, hx, hxn, hne⟩ := hsun (min r (δ0 / 2)) (lt_min hr (by positivity))
+  have hxr1 : ‖x‖ ≤ r := hxn.trans (min_le_left _ _)
+  have hxr2 : ‖x‖ < δ0 := by have := min_le_right r (δ0 / 2); linarith
+  have hb : ∀ t ω j, |x (t, ω) j| < δ0 := fun t ω j => (abs_apply_le x t ω j).trans_lt hxr2
+  have hcl : LocalIFTStochastic.Ops.InfoClosed coinSystem :=
+    LocalIFTStochastic.finiteTree_infoClosed _
+  have hR := rule_pathwise hcl hx
+  have hF : ∀ s ω, x (s + 3, ω) 0 = x (s + 2, ω) 1 := by
+    intro s ω
+    have h := fisher_E hx (s + 2)
+    rw [coin_E_late] at h
+    exact congrFun h ω
+  have hstep : ∀ s ω, x (s + 3, ω) 1 = Ψ (x (s + 2, ω) 1, x (s + 2, ω) 1) := by
+    intro s ω
+    have h := hR (s + 3) ω
+    rw [hF s ω] at h
+    exact h
+  -- from date 2 on the interest rate is zero
+  have hlate : ∀ s ω, x (s + 2, ω) 1 = 0 := by
+    intro s ω
+    refine eq_zero_of_annulus (fun p : ℕ × (Bool × Bool) => x (p.1 + 2, p.2) 1)
+      (fun p => (abs_apply_le x _ _ 1).trans hxr1) (fun B hB hBr hall => ?_) (s, ω)
+    obtain ⟨δ, hδ, hδP⟩ := hG B hB hBr
+    refine ⟨δ, hδ, fun q hq => ?_⟩
+    obtain ⟨t, ω₁⟩ := q
+    have hq' : B / 2 ≤ |x (t + 2, ω₁) 1| := hq
+    have e : x (t + 2 + 2, ω₁) 1 = Ψ (Ψ (x (t + 2, ω₁) 1, x (t + 2, ω₁) 1),
+        Ψ (x (t + 2, ω₁) 1, x (t + 2, ω₁) 1)) := by
+      rw [show t + 2 + 2 = (t + 1) + 3 by ring, hstep (t + 1) ω₁,
+        show t + 1 + 2 = t + 3 by ring, hstep t ω₁]
+    have hb2 : |x (t + 2 + 2, ω₁) 1| ≤ B := hall (t + 2, ω₁)
+    have hb0 : |x (t + 2, ω₁) 1| ≤ B := hall (t, ω₁)
+    rw [e] at hb2
+    have := hδP _ hq' hb0
+    change |x (t + 2, ω₁) 1| ≤ B - δ
+    linarith
+  -- date 2
+  have h2 : ∀ ω, Ψ (x (2, ω) 0, x (1, ω) 1) = 0 := by
+    intro ω
+    have h0 : x (2, ω) 1 = 0 := hlate 0 ω
+    have h := hR 2 ω
+    rw [h0] at h
+    exact h.symm
+  have hk2 : coinSystem.E 1 (toP x 2 0) = toP x 2 0 := by
+    refine hcl 1 _ fun ω ω' h => ?_
+    have e1 : x (1, ω) 1 = x (1, ω') 1 :=
+      LocalIFTStochastic.Ops.cellConst_of_known coinSystem (hx.1 1 1) ω ω' h
+    have hpq := (pi_bounds hgap (hb 2 ω 0) (hb 2 ω' 0) (hb 1 ω 1)).1
+    have e2 : Ψ (x (2, ω') 0, x (1, ω) 1) = 0 := by rw [e1]; exact h2 ω'
+    rw [h2 ω, e2, sub_zero, abs_zero] at hpq
+    have h3 : |x (2, ω) 0 - x (2, ω') 0| ≤ 0 := by
+      nlinarith [abs_nonneg (x (2, ω) 0 - x (2, ω') 0)]
+    have h4 := abs_nonpos_iff.mp h3
+    change x (2, ω) 0 = x (2, ω') 0
+    linarith
+  have hπ2 : ∀ ω, x (2, ω) 0 = x (1, ω) 1 := by
+    intro ω
+    have h := fisher_E hx 1
+    rw [hk2] at h
+    exact congrFun h ω
+  have hi1 : ∀ ω, x (1, ω) 1 = 0 := by
+    intro ω
+    refine hz _ ((abs_apply_le x 1 ω 1).trans hxr1) ?_
+    have := h2 ω
+    rwa [hπ2 ω] at this
+  -- date 1
+  have hi0 : x (0, (true, true)) 1 = x (0, (false, true)) 1 :=
+    LocalIFTStochastic.Ops.cellConst_of_known coinSystem (hx.1 0 1) _ _
+      (fun z => by rw [LocalIFTStochasticModels.coin_E0, LocalIFTStochasticModels.coin_E0])
+  have hr1 : ∀ ω, Ψ (x (1, ω) 0, x (0, ω) 1) = 0 := by
+    intro ω
+    have h := hR 1 ω
+    rw [hi1 ω] at h
+    exact h.symm
+  have hp1 : x (1, (true, true)) 0 = x (1, (false, true)) 0 := by
+    have hpq := (pi_bounds hgap (hb 1 (true, true) 0) (hb 1 (false, true) 0)
+      (hb 0 (true, true) 1)).1
+    have e2 : Ψ (x (1, (false, true)) 0, x (0, (true, true)) 1) = 0 := by
+      rw [hi0]; exact hr1 _
+    rw [hr1, e2, sub_zero, abs_zero] at hpq
+    have h3 : |x (1, (true, true)) 0 - x (1, (false, true)) 0| ≤ 0 := by
+      nlinarith [abs_nonneg (x (1, (true, true)) 0 - x (1, (false, true)) 0)]
+    have h4 := abs_nonpos_iff.mp h3
+    linarith
+  apply hne
+  funext j
+  fin_cases j
+  · exact hp1
+  · change x (1, (true, true)) 1 = x (1, (false, true)) 1
+    rw [hi1, hi1]
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (sunspot construction): the orbit of the diagonal,
+`y, D(y), D(D(y)), …` with `D(y) = Ψ(y, y)`. -/
+noncomputable def dorb (Ψ : ℝ × ℝ → ℝ) (y : ℝ) : ℕ → ℝ
+  | 0 => y
+  | t + 1 => Ψ (dorb Ψ y t, dorb Ψ y t)
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (tool): **diagonal orbits from a two-step invariant set
+stay small**: if `D ∘ D` maps `A` into itself without increasing `|y|` and `|D y| ≤ L|y|` on `A`
+(`L ≥ 1`), the orbit from `y ∈ A` stays within `L|y|`. -/
+theorem abs_dorb_le {Ψ : ℝ × ℝ → ℝ} {A : Set ℝ} {L : ℝ} (hL : 1 ≤ L)
+    (hA : ∀ y ∈ A, Ψ (Ψ (y, y), Ψ (y, y)) ∈ A ∧ |Ψ (Ψ (y, y), Ψ (y, y))| ≤ |y|)
+    (hDL : ∀ y ∈ A, |Ψ (y, y)| ≤ L * |y|) {y : ℝ} (hy : y ∈ A) (t : ℕ) :
+    |dorb Ψ y t| ≤ L * |y| := by
+  have heven : ∀ s, dorb Ψ y (2 * s) ∈ A ∧ |dorb Ψ y (2 * s)| ≤ |y| := by
+    intro s
+    induction s with
+    | zero => exact ⟨hy, le_rfl⟩
+    | succ s ih =>
+      have e : dorb Ψ y (2 * (s + 1)) = Ψ (Ψ (dorb Ψ y (2 * s), dorb Ψ y (2 * s)),
+          Ψ (dorb Ψ y (2 * s), dorb Ψ y (2 * s))) := by
+        rw [show 2 * (s + 1) = 2 * s + 1 + 1 by ring]
+        rfl
+      rw [e]
+      exact ⟨(hA _ ih.1).1, (hA _ ih.1).2.trans ih.2⟩
+  have hy0 : 0 ≤ |y| := abs_nonneg y
+  obtain ⟨s, hs | hs⟩ := Nat.even_or_odd' t
+  · rw [hs]
+    calc |dorb Ψ y (2 * s)| ≤ |y| := (heven s).2
+      _ ≤ L * |y| := le_mul_of_one_le_left hy0 hL
+  · rw [hs]
+    change |Ψ (dorb Ψ y (2 * s), dorb Ψ y (2 * s))| ≤ L * |y|
+    exact (hDL _ (heven s).1).trans (mul_le_mul_of_nonneg_left (heven s).2 (by linarith))
+
+/-- Woodford (2003), Prop. 2.8, p. 96 (sunspot construction): the coin-tree path with
+`(π_0, î_0)`, the date-1 inflation `π_1 = p(b)` after first flip `b`, `î_1 = Ψ(p(b), î_0)`, and
+from then on the perfect-foresight path `π_{t+1} = î_t`, `î_{t+1} = Ψ(î_t, î_t)`. -/
+noncomputable def inertProc (Ψ : ℝ × ℝ → ℝ) (π0 i0 : ℝ) (p : Bool → ℝ) :
+    ℕ → Bool × Bool → Fin 2 → ℝ
+  | 0, _ => ![π0, i0]
+  | t + 1, ω => ![lagV (p ω.1) (dorb Ψ (Ψ (p ω.1, i0))) t, dorb Ψ (Ψ (p ω.1, i0)) t]
+
+set_option maxHeartbeats 800000 in
+-- the verification unfolds the coin-tree process date by date
+/-- Woodford (2003), Prop. 2.8, p. 96 (sunspot construction): **the path is an equilibrium** of
+the exact model on the coin tree when `î_0 = Ψ(π_0, 0)` and the two date-1 inflation rates
+average to `î_0` (the Fisher equation at date 0). -/
+theorem solvesSV_inertProc {Ψ : ℝ × ℝ → ℝ} {π0 i0 M : ℝ} {p : Bool → ℝ}
+    (hM : ∀ t ω, ‖inertProc Ψ π0 i0 p t ω‖ ≤ M) (h0 : i0 = Ψ (π0, 0))
+    (h1 : p true + p false = 2 * i0) :
+    SolvesSV coinSystem (Finert Ψ) 0
+      (LocalIFTStochastic.mkB (fun q => inertProc Ψ π0 i0 p q.1 q.2) ⟨M, fun q => hM q.1 q.2⟩) := by
+  set x : SProcV (Fin 2) (Bool × Bool) :=
+    LocalIFTStochastic.mkB (fun q => inertProc Ψ π0 i0 p q.1 q.2) ⟨M, fun q => hM q.1 q.2⟩ with hx
+  have hxv : ∀ t ω, x (t, ω) = inertProc Ψ π0 i0 p t ω := fun _ _ => rfl
+  refine ⟨fun t i => ?_, fun t i => ?_⟩
+  · rcases t with _ | t
+    · have h0' : toP x 0 i = fun _ => (![π0, i0] : Fin 2 → ℝ) i := by
+        funext ω
+        rfl
+      rw [h0']
+      exact coinSystem.const 0 _
+    · have h1' : toP x (t + 1) i =
+          fun ω => (fun b : Bool => inertProc Ψ π0 i0 p (t + 1) (b, b) i) ω.1 := by
+        funext ω
+        rfl
+      rw [h1']
+      exact LocalIFTStochasticModels.coin_known_fst t
+        (fun b : Bool => inertProc Ψ π0 i0 p (t + 1) (b, b) i)
+  · have hfis0 : ∀ t, coinSystem.E t (fun ω => Finert Ψ
+        (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x) (t, ω)) 0) = 0 := by
+      intro t
+      rcases t with _ | t
+      · have hf : (fun ω => Finert Ψ (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x)
+            (0, ω)) 0) = fun ω => i0 - p ω.1 := by
+          funext ω
+          simp [Finert, ptS, hxv, inertProc]
+        rw [hf]
+        funext ω
+        rw [LocalIFTStochasticModels.coin_E0]
+        simp only [Pi.zero_apply]
+        linarith
+      · have hf : (fun ω => Finert Ψ (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x)
+            (t + 1, ω)) 0) = 0 := by
+          funext ω
+          simp [Finert, ptS, hxv, inertProc]
+        rw [hf]
+        exact map_zero _
+    have hfis1 : ∀ t, coinSystem.E t (fun ω => Finert Ψ
+        (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x) (t, ω)) 1) = 0 := by
+      intro t
+      have hf : (fun ω => Finert Ψ (ptS ((0 : ParS (Fin 2) (Fin 2 → ℝ) (Bool × Bool)), x)
+          (t, ω)) 1) = 0 := by
+        funext ω
+        rcases t with _ | _ | t
+        · simp [Finert, ptS, hxv, inertProc, h0]
+        · simp [Finert, ptS, hxv, inertProc, dorb]
+        · simp [Finert, ptS, hxv, inertProc, dorb]
+      rw [hf]
+      exact map_zero _
+    fin_cases i
+    · exact hfis0 t
+    · exact hfis1 t
+
+set_option maxHeartbeats 1600000 in
+-- the proof chooses `π_0` by the intermediate value theorem and checks every bound explicitly
+/-- **Random sunspots for every rule whose two-step diagonal attracts one side** (Woodford
+(2003), Prop. 2.8, p. 96; App. A.3, pp. 632–634): let `Ψ` be strictly differentiable at the
+steady state with slopes `φ_π ≠ 0`, `ρ`, `(φ_π + ρ)² = 1`, `Ψ(0) = 0`, and let `D ∘ D`
+(`D(y) = Ψ(y, y)`) map the side `0 < s·z ≤ ρ₁` into itself without increasing `|z|`. Then the
+exact model has random sunspots at every scale on the coin tree: `î_0 = D(y)` for a small `y`
+on that side (reached by `π_0` through the intermediate value theorem), `π_1 = î_0 ± e`, and from
+date 1 the perfect-foresight path `î_{t+1} = D(î_t)`. -/
+theorem inertial_coin_sunspot_of_side {Ψ : ℝ × ℝ → ℝ} {φ ρ s ρ1 : ℝ}
+    (hΨ : HasStrictFDerivAt Ψ (ruleD φ ρ) 0) (hΨ0 : Ψ 0 = 0) (hφ : φ ≠ 0)
+    (hσ : (φ + ρ) * (φ + ρ) = 1) (hs : s * s = 1) (hρ1 : 0 < ρ1)
+    (hside : ∀ z, 0 < s * z → s * z ≤ ρ1 →
+      0 < s * Ψ (Ψ (z, z), Ψ (z, z)) ∧ s * Ψ (Ψ (z, z), Ψ (z, z)) ≤ s * z) :
+    InertialCoinSunspots Ψ := by
+  intro ε hε
+  have h00 : Ψ ((0 : ℝ), (0 : ℝ)) = 0 := by rw [Prod.mk_zero_zero]; exact hΨ0
+  have hφa : 0 < |φ| := abs_pos.mpr hφ
+  have hsa : |s| = 1 := by nlinarith [abs_mul_abs_self s, abs_nonneg s]
+  obtain ⟨δ1, hδ1, hL⟩ := near_lip (g := fun y => Ψ (y, y)) hσ h00
+    (hasDerivAt_diag hΨ.hasFDerivAt)
+  obtain ⟨δ0, hδ0, hgap⟩ := pi_gap hΨ hφ
+  set ρ := min δ1 ρ1 / 2 with hρ
+  have hρ0 : 0 < ρ := by positivity
+  have hρδ : ρ < δ1 := by have := min_le_left δ1 ρ1; linarith
+  have hρρ : ρ ≤ ρ1 := by have := min_le_right δ1 ρ1; linarith
+  set A : Set ℝ := {z | 0 < s * z ∧ s * z ≤ ρ} with hA
+  have habsA : ∀ z ∈ A, |z| = s * z := fun z hz => by
+    have : |s * z| = |z| := by rw [abs_mul, hsa, one_mul]
+    rw [← this, abs_of_pos hz.1]
+  have hAinv : ∀ z ∈ A, Ψ (Ψ (z, z), Ψ (z, z)) ∈ A ∧ |Ψ (Ψ (z, z), Ψ (z, z))| ≤ |z| := by
+    intro z hz
+    obtain ⟨h1, h2⟩ := hside z hz.1 (hz.2.trans hρρ)
+    have hm : Ψ (Ψ (z, z), Ψ (z, z)) ∈ A := ⟨h1, h2.trans hz.2⟩
+    exact ⟨hm, by rw [habsA _ hm, habsA _ hz]; exact h2⟩
+  have hAL : ∀ z ∈ A, |Ψ (z, z)| ≤ 2 * |z| := by
+    intro z hz
+    refine (hL z ?_).2
+    rw [habsA _ hz]
+    linarith [hz.2]
+  -- the scale
+  set K := 4 + 4 / |φ| with hK
+  have hK4 : 4 ≤ K := by
+    have : 0 < 4 / |φ| := by positivity
+    linarith
+  set m := min (2 * ρ / 3) (min δ0 ε) with hm
+  have hm0 : 0 < m := by positivity
+  set w := m / K with hw
+  have hw0 : 0 < w := by positivity
+  have hKw : K * w = m := by rw [hw]; field_simp
+  have hmρ : m ≤ 2 * ρ / 3 := min_le_left _ _
+  have hmδ : m ≤ δ0 := (min_le_right _ _).trans (min_le_left _ _)
+  have hmε : m ≤ ε := (min_le_right _ _).trans (min_le_right _ _)
+  have hwm : w ≤ m := by nlinarith
+  have hwρ : w ≤ 2 * ρ / 3 := hwm.trans hmρ
+  -- the point `y` on the attracting side and `î_0 = D(y)`
+  set y := s * w with hy
+  have hsy : s * y = w := by rw [hy, ← mul_assoc, hs, one_mul]
+  have hyA : y ∈ A := ⟨by rw [hsy]; exact hw0, by rw [hsy]; linarith⟩
+  have hyabs : |y| = w := by rw [habsA _ hyA, hsy]
+  obtain ⟨hG1, hG2⟩ := hside y hyA.1 (hyA.2.trans hρρ)
+  rw [hsy] at hG2
+  have hi0b : |Ψ (y, y)| ≤ 2 * w := by rw [← hyabs]; exact hAL y hyA
+  set i0 := Ψ (y, y) with hi0
+  set Gy := Ψ (i0, i0) with hGy
+  -- `π_0` by the intermediate value theorem
+  set a := 4 / |φ| * w with ha
+  have ha0 : 0 < a := by positivity
+  have haφ : a * |φ| = 4 * w := by rw [ha]; field_simp
+  have haδ : a < δ0 := by
+    have h1 : 4 / |φ| * w < K * w := by
+      refine mul_lt_mul_of_pos_right ?_ hw0
+      rw [hK]
+      linarith
+    rw [ha]
+    linarith
+  have h0δ : |(0 : ℝ)| < δ0 := by rw [abs_zero]; exact hδ0
+  have hcont : ContinuousOn (fun q => Ψ (q, 0)) (Set.uIcc (-a) a) := by
+    rw [Metric.continuousOn_iff]
+    intro b hb e he
+    refine ⟨e / (3 * |φ|), by positivity, fun c hc hcb => ?_⟩
+    rw [Set.uIcc_of_le (by linarith)] at hb hc
+    have hbI : |b| < δ0 := (abs_le.mpr ⟨hb.1, hb.2⟩).trans_lt haδ
+    have hcI : |c| < δ0 := (abs_le.mpr ⟨hc.1, hc.2⟩).trans_lt haδ
+    have h3 := (pi_bounds hgap hcI hbI h0δ).2
+    rw [Real.dist_eq] at hcb ⊢
+    have h4 : 3 * |φ| / 2 * |c - b| < e := by
+      have := mul_lt_mul_of_pos_left hcb (show 0 < 3 * |φ| / 2 by positivity)
+      have e2 : 3 * |φ| / 2 * (e / (3 * |φ|)) = e / 2 := by field_simp
+      linarith
+    linarith
+  have hpa := hgap a 0 0 (by rw [abs_of_pos ha0]; exact haδ) h0δ h0δ
+  have hpna := hgap (-a) 0 0 (by rw [abs_neg, abs_of_pos ha0]; exact haδ) h0δ h0δ
+  rw [h00, sub_zero, sub_zero, abs_of_pos ha0] at hpa
+  rw [h00, sub_zero, sub_zero, abs_neg, abs_of_pos ha0] at hpna
+  have hmem : i0 ∈ Set.uIcc (Ψ (-a, 0)) (Ψ (a, 0)) := by
+    rw [Set.mem_uIcc]
+    have hi := abs_le.mp hi0b
+    have hpa' := abs_le.mp hpa
+    have hpna' := abs_le.mp hpna
+    rcases lt_or_gt_of_ne hφ with hneg | hpos
+    · rw [abs_of_neg hneg] at haφ hpa' hpna'
+      right
+      constructor <;> nlinarith
+    · rw [abs_of_pos hpos] at haφ hpa' hpna'
+      left
+      constructor <;> nlinarith
+  obtain ⟨π0, hπ0mem, hπ0⟩ := intermediate_value_uIcc hcont hmem
+  rw [Set.uIcc_of_le (by linarith)] at hπ0mem
+  have hπ0b : |π0| ≤ a := abs_le.mpr ⟨hπ0mem.1, hπ0mem.2⟩
+  -- the two date-1 inflation rates
+  set e := s * Gy / (3 * |φ|) with he
+  have he0 : 0 < e := by positivity
+  have hew : e ≤ w / (3 * |φ|) := div_le_div_of_nonneg_right hG2 (by positivity)
+  set p : Bool → ℝ := fun b => if b then i0 + e else i0 - e with hp
+  have hpsum : p true + p false = 2 * i0 := by
+    simp only [hp, Bool.false_eq_true, ↓reduceIte]
+    ring
+  have hpe : ∀ b, |p b - i0| = e := by
+    intro b
+    cases b
+    · simp only [hp, Bool.false_eq_true, ↓reduceIte, sub_sub_cancel_left, abs_neg,
+        abs_of_pos he0]
+    · simp only [hp, ↓reduceIte, add_sub_cancel_left, abs_of_pos he0]
+  have hKe : 2 * w + e < K * w := by
+    have h1 : e ≤ 1 / (3 * |φ|) * w := by rw [one_div_mul_eq_div]; exact hew
+    have h2 : 1 / (3 * |φ|) < 4 / |φ| := by
+      rw [div_lt_div_iff₀ (by positivity) hφa]
+      nlinarith
+    have h3 : 1 / (3 * |φ|) * w < 4 / |φ| * w := mul_lt_mul_of_pos_right h2 hw0
+    rw [hK]
+    nlinarith
+  have hpb : ∀ b, |p b| ≤ 2 * w + e := by
+    intro b
+    have := abs_sub_abs_le_abs_sub (p b) i0
+    rw [hpe b] at this
+    linarith
+  have hpδ : ∀ b, |p b| < δ0 := fun b => by linarith [hpb b]
+  have hi0δ : |i0| < δ0 := by linarith
+  have hI1 : ∀ b, Ψ (p b, i0) ∈ A ∧ |Ψ (p b, i0)| ≤ 3 / 2 * w := by
+    intro b
+    have hgb := (pi_bounds hgap (hpδ b) hi0δ hi0δ).2
+    rw [hpe b] at hgb
+    have he3 : 3 * |φ| / 2 * e = s * Gy / 2 := by rw [he]; field_simp
+    rw [he3] at hgb
+    have hsd : |s * (Ψ (p b, i0) - Gy)| ≤ s * Gy / 2 := by
+      rw [abs_mul, hsa, one_mul]
+      exact hgb
+    have hsd' := abs_le.mp hsd
+    have hsplit : s * Ψ (p b, i0) = s * Gy + s * (Ψ (p b, i0) - Gy) := by ring
+    have hmemA : Ψ (p b, i0) ∈ A := ⟨by linarith [hsd'.1], by linarith [hsd'.2]⟩
+    refine ⟨hmemA, ?_⟩
+    rw [habsA _ hmemA]
+    linarith [hsd'.2]
+  have hdorb : ∀ b t, |dorb Ψ (Ψ (p b, i0)) t| ≤ 3 * w := by
+    intro b t
+    have h := abs_dorb_le (L := 2) one_le_two hAinv hAL (hI1 b).1 t
+    have := (hI1 b).2
+    linarith
+  have hKwε : K * w ≤ ε := by rw [hKw]; exact hmε
+  have hbound : ∀ t ω, ‖inertProc Ψ π0 i0 p t ω‖ ≤ ε := by
+    intro t ω
+    refine (pi_norm_le_iff_of_nonneg hε.le).mpr fun j => ?_
+    rw [Real.norm_eq_abs]
+    rcases t with _ | t
+    · fin_cases j
+      · change |π0| ≤ ε
+        have : a ≤ K * w := by
+          rw [ha]
+          refine mul_le_mul_of_nonneg_right ?_ hw0.le
+          rw [hK]
+          linarith
+        linarith
+      · change |i0| ≤ ε
+        nlinarith
+    · fin_cases j
+      · change |lagV (p ω.1) (dorb Ψ (Ψ (p ω.1, i0))) t| ≤ ε
+        rcases t with _ | t
+        · change |p ω.1| ≤ ε
+          linarith [hpb ω.1]
+        · change |dorb Ψ (Ψ (p ω.1, i0)) t| ≤ ε
+          nlinarith [hdorb ω.1 t]
+      · change |dorb Ψ (Ψ (p ω.1, i0)) t| ≤ ε
+        nlinarith [hdorb ω.1 t]
+  refine ⟨_, solvesSV_inertProc hbound hπ0.symm hpsum,
+    LocalIFTStochastic.norm_le_of_forall hε.le fun q => hbound q.1 q.2, fun h => ?_⟩
+  have h1 := congrFun h 0
+  change p true = p false at h1
+  simp only [hp, Bool.false_eq_true, ↓reduceIte] at h1
+  linarith
+
+/-! ### The criterion -/
+
+/-- **The boundary of Proposition 2.8 for every rule: the criterion in the two-step diagonal**
+(Woodford (2003), Prop. 2.8, p. 96; App. A.3, pp. 632–634; both directions): let `Ψ` be strictly
+differentiable at the steady state with slopes `φ_π ≠ 0`, `ρ`, `|φ_π + ρ| = 1`, `Ψ(0) = 0`, and
+`D(D(y)) = y + c yᵐ + o(yᵐ)` (`D(y) = Ψ(y, y)`) with `c ≠ 0`, `m ≥ 2`. The exact model has random
+sunspot equilibria at every scale on the coin tree **iff `c < 0` or `m` is even**. -/
+theorem inertial_coin_iff {Ψ : ℝ × ℝ → ℝ} {φ ρ c : ℝ} {m : ℕ}
+    (hΨ : HasStrictFDerivAt Ψ (ruleD φ ρ) 0) (hΨ0 : Ψ 0 = 0) (hφ : φ ≠ 0)
+    (hσ : (φ + ρ) * (φ + ρ) = 1) (hm : 2 ≤ m) (hc : c ≠ 0)
+    (hG : (fun y => Ψ (Ψ (y, y), Ψ (y, y)) - y - c * y ^ m) =o[𝓝 0] fun y => y ^ m) :
+    InertialCoinSunspots Ψ ↔ (c < 0 ∨ Even m) := by
+  have h00 : Ψ ((0 : ℝ), (0 : ℝ)) = 0 := by rw [Prod.mk_zero_zero]; exact hΨ0
+  constructor
+  · intro hsun
+    by_contra hno
+    push Not at hno
+    obtain ⟨hc0, hev⟩ := hno
+    have hcpos : 0 < c := lt_of_le_of_ne hc0 (Ne.symm hc)
+    have hodd := Nat.not_even_iff_odd.mp hev
+    obtain ⟨δ1, hδ1, hL⟩ := near_lip (g := fun y => Ψ (y, y)) hσ h00
+      (hasDerivAt_diag hΨ.hasFDerivAt)
+    obtain ⟨δ2, hδ2, hP⟩ := lower_of_expansion hcpos hodd hG
+    have hr0 : 0 < min δ1 δ2 / 2 := by positivity
+    have hr1 : min δ1 δ2 / 2 < δ1 := by have := min_le_left δ1 δ2; linarith
+    have hr2 : min δ1 δ2 / 2 < δ2 := by have := min_le_right δ1 δ2; linarith
+    refine inertial_no_coin_sunspot hΨ hφ hr0 (fun B hB hBr => ⟨c / 2 * (B / 2) ^ m,
+      by positivity, fun y hy1 hy2 => ?_⟩) (fun y hy h0 => ?_) hsun
+    · have h1 := hP y (by linarith)
+      have h2 : (B / 2) ^ m ≤ |y| ^ m := pow_le_pow_left₀ (by positivity) hy1 m
+      nlinarith
+    · have h1 := (hL y (by linarith)).1
+      rw [h0, abs_zero] at h1
+      have : |y| ≤ 0 := by linarith
+      exact abs_nonpos_iff.mp this
+  · intro h
+    have hneg_case : c < 0 → InertialCoinSunspots Ψ := fun hneg => by
+      obtain ⟨ρ1, hρ1, hside⟩ := side_estimate (G := fun y => Ψ (Ψ (y, y), Ψ (y, y))) (s := 1)
+        (by norm_num) hm (by rw [one_pow, mul_one]; exact hneg) hG
+      exact inertial_coin_sunspot_of_side hΨ hΨ0 hφ hσ (by norm_num) hρ1 hside
+    rcases h with hneg | hev
+    · exact hneg_case hneg
+    · rcases lt_or_gt_of_ne hc with hneg | hpos
+      · exact hneg_case hneg
+      · obtain ⟨ρ1, hρ1, hside⟩ := side_estimate (G := fun y => Ψ (Ψ (y, y), Ψ (y, y)))
+          (s := -1) (by norm_num) hm (by rw [hev.add_one.neg_one_pow]; linarith) hG
+        exact inertial_coin_sunspot_of_side hΨ hΨ0 hφ hσ (by norm_num) hρ1 hside
+
+/-- **The criterion in the leading coefficient of the diagonal** (Woodford (2003), Prop. 2.8,
+p. 96; App. A.3, pp. 632–634; both directions): for a rule as in `inertial_coin_iff` whose
+diagonal is `D(y) = σy + c yᵏ + o(yᵏ)` (`σ = φ_π + ρ = ±1`, `c ≠ 0`, `k ≥ 2`), with `σ = 1` or
+`k` odd: random sunspots exist at every scale on the coin tree **iff `σc < 0` or (`σ = 1` and `k`
+even)**; and when `σc > 0` with `k` odd, the steady state is the only nearby bounded equilibrium
+under **every** informationally closed expectation system. (For `σ = −1` and `k` even the order-`k`
+term cancels in `D ∘ D`, and `inertial_coin_iff` applies to the leading term of `D ∘ D`;
+`TidyR6CriticalCriterion.flip_even_undecided` shows the leading term of `D` cannot decide.) -/
+theorem inertial_diag_criterion {Ψ : ℝ × ℝ → ℝ} {φ ρ c : ℝ} {k : ℕ}
+    (hΨ : HasStrictFDerivAt Ψ (ruleD φ ρ) 0) (hΨ0 : Ψ 0 = 0) (hφ : φ ≠ 0)
+    (hσ : (φ + ρ) * (φ + ρ) = 1) (hk : 2 ≤ k) (hc : c ≠ 0) (hcase : φ + ρ = 1 ∨ Odd k)
+    (hD : (fun y => Ψ (y, y) - (φ + ρ) * y - c * y ^ k) =o[𝓝 0] fun y => y ^ k) :
+    (InertialCoinSunspots Ψ ↔ ((φ + ρ) * c < 0 ∨ (φ + ρ = 1 ∧ Even k))) ∧
+    (0 < (φ + ρ) * c → Odd k → ∃ r > 0, ∀ {Ω : Type*} (𝔼 : ExpectationSystem Ω),
+      LocalIFTStochastic.Ops.InfoClosed 𝔼 → ∀ x : SProcV (Fin 2) Ω,
+        SolvesSV 𝔼 (Finert Ψ) 0 x → ‖x‖ ≤ r → x = 0) := by
+  set σ := φ + ρ with hσdef
+  have hG := comp_expansion (g := fun y => Ψ (y, y)) hσ hk hD
+  constructor
+  · rcases mul_self_eq_one_iff.mp hσ with h1 | h1
+    · rw [h1, one_pow] at hG
+      rw [inertial_coin_iff hΨ hΨ0 hφ hσ hk (by rw [h1] at *; intro h; apply hc; linarith) hG,
+        h1]
+      constructor
+      · rintro (h | h)
+        · left; linarith
+        · right; exact ⟨rfl, h⟩
+      · rintro (h | h)
+        · left; linarith
+        · right; exact h.2
+    · have hodd : Odd k := by
+        rcases hcase with h | h
+        · rw [h1] at h; norm_num at h
+        · exact h
+      rw [h1, hodd.neg_one_pow] at hG
+      rw [inertial_coin_iff hΨ hΨ0 hφ hσ hk (by intro h; apply hc; linarith) hG, h1]
+      have hne : ¬ Even k := Nat.not_even_iff_odd.mpr hodd
+      constructor
+      · rintro (h | h)
+        · left; linarith
+        · exact absurd h hne
+      · rintro (h | h)
+        · left; linarith
+        · norm_num at h
+  · intro hsc hodd
+    have hF : (fun y => σ * Ψ (y, y) - y - (σ * c) * y ^ k) =o[𝓝 0] fun y => y ^ k := by
+      refine (hD.const_mul_left σ).congr_left fun y => ?_
+      linear_combination (-y) * hσ
+    obtain ⟨δ, hδ, hP⟩ := lower_of_expansion hsc hodd hF
+    have hs : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+    refine inertial_unique_of_repel hΨ hΨ0 hφ (r := δ / 2) (half_pos hδ)
+      (fun B hB hBr => ⟨σ * c / 2 * (B / 2) ^ k, by positivity, fun y hy1 hy2 => ?_⟩)
+    have h1 := hP y (by linarith)
+    rw [abs_mul, hs, one_mul] at h1
+    have h2 : (B / 2) ^ k ≤ |y| ^ k := pow_le_pow_left₀ (by positivity) hy1 k
+    nlinarith
+
+/-- **The cubic rules of `InertialBoundary`, all signs** (Woodford (2003), Prop. 2.8, p. 96):
+for `Ψ(π, î) = φ_π π + ρ î + κ î³` (`InertialBoundary.ruleCubI`) with `φ_π ≠ 0`,
+`|φ_π + ρ| = 1`, `κ ≠ 0`: random sunspots at every scale on the coin tree **iff
+`(φ_π + ρ)κ < 0`**, and for `(φ_π + ρ)κ > 0` the steady state is the only nearby bounded
+equilibrium under every informationally closed expectation system. -/
+theorem ruleCubI_criterion {φ ρ κ : ℝ} (hφ : φ ≠ 0) (hσ : (φ + ρ) * (φ + ρ) = 1) (hκ : κ ≠ 0) :
+    (InertialCoinSunspots (InertialBoundary.ruleCubI φ ρ κ) ↔ (φ + ρ) * κ < 0) ∧
+    (0 < (φ + ρ) * κ → ∃ r > 0, ∀ {Ω : Type*} (𝔼 : ExpectationSystem Ω),
+      LocalIFTStochastic.Ops.InfoClosed 𝔼 → ∀ x : SProcV (Fin 2) Ω,
+        SolvesSV 𝔼 (Finert (InertialBoundary.ruleCubI φ ρ κ)) 0 x → ‖x‖ ≤ r → x = 0) := by
+  obtain ⟨-, hfd, -, hcd, -, h0, -⟩ := InertialBoundary.rules_slopes φ ρ κ 0
+  have hstrict : HasStrictFDerivAt (InertialBoundary.ruleCubI φ ρ κ) (ruleD φ ρ) 0 :=
+    ((hcd 1).2.1.contDiffAt).hasStrictFDerivAt' hfd one_ne_zero
+  have hD : (fun y => InertialBoundary.ruleCubI φ ρ κ (y, y) - (φ + ρ) * y - κ * y ^ 3) =o[𝓝 0]
+      fun y => y ^ 3 :=
+    (isLittleO_zero (fun y : ℝ => y ^ 3) (𝓝 0)).congr_left fun y => by
+      simp only [InertialBoundary.ruleCubI]
+      ring
+  obtain ⟨h1, h2⟩ := inertial_diag_criterion hstrict h0 hφ hσ (by norm_num) hκ (Or.inr (by decide))
+    hD
+  refine ⟨?_, fun h => h2 h (by decide)⟩
+  rw [h1]
+  constructor
+  · rintro (h | ⟨-, h⟩)
+    · exact h
+    · exact absurd h (by decide)
+  · exact Or.inl
+
+end Woodford.PriceLevelDetermination.TidyR6InertialEveryRule
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The boundary of Proposition 2.8 for every analytic rule
+
+Woodford (2003), *Interest and Prices*, Prop. 2.8, p. 96, and App. A.3, pp. 632–634. For every
+rule `Ψ` analytic at the steady state with slopes `φ_π ≠ 0`, `ρ`, `|φ_π + ρ| = 1`, the sunspot
+question on the boundary is decided by the higher-order terms of the diagonal `D(y) = Ψ(y, y)`
+in every case: either `D ∘ D` is the identity near the steady state (random sunspots), or
+`D(D(y)) = y + c yᵐ + o(yᵐ)` with `c ≠ 0`, `m ≥ 2`, and `TidyR6InertialEveryRule.inertial_coin_iff`
+applies.
+
+## Main results
+
+* `inertial_coin_sunspot_of_involutive`: `D ∘ D = id` near `0` ⟹ random sunspots.
+* `inertial_analytic_iff` (**the characterisation**): random sunspots at every scale on the coin
+  tree iff `D ∘ D = id` near `0`, or the leading coefficient `c` of `D ∘ D − id` is negative, or
+  its order is even.
+-/
+
+namespace Woodford.PriceLevelDetermination.TidyR6InertialAnalytic
+
+open scoped Topology
+open Asymptotics Filter
+open LocalIFTSystemsApps (ruleD)
+open TidyR6InertialEveryRule (InertialCoinSunspots inertial_coin_sunspot_of_side inertial_coin_iff
+  hasDerivAt_diag)
+open TidyR6CriticalAnalytic (analytic_dichotomy)
+
+/-- **Random sunspots when the two-step diagonal is the identity** (Woodford (2003), Prop. 2.8,
+p. 96): for a rule strictly differentiable at the steady state with `φ_π ≠ 0`, `|φ_π + ρ| = 1`,
+`Ψ(0) = 0`, if `D(D(y)) = y` near `0` (`D(y) = Ψ(y, y)`), the exact model has random sunspots at
+every scale on the coin tree. -/
+theorem inertial_coin_sunspot_of_involutive {Ψ : ℝ × ℝ → ℝ} {φ ρ : ℝ}
+    (hΨ : HasStrictFDerivAt Ψ (ruleD φ ρ) 0) (hΨ0 : Ψ 0 = 0) (hφ : φ ≠ 0)
+    (hσ : (φ + ρ) * (φ + ρ) = 1) (hinv : ∀ᶠ y in 𝓝 0, Ψ (Ψ (y, y), Ψ (y, y)) = y) :
+    InertialCoinSunspots Ψ := by
+  obtain ⟨r, hr, hrP⟩ := Metric.eventually_nhds_iff.mp hinv
+  refine inertial_coin_sunspot_of_side hΨ hΨ0 hφ hσ (s := 1) (ρ1 := r / 2) (by norm_num)
+    (by positivity) fun z hz1 hz2 => ?_
+  have hz : 0 < z := by simpa using hz1
+  have hz' : z ≤ r / 2 := by simpa using hz2
+  have h := hrP (show dist z 0 < r by rw [Real.dist_0_eq_abs, abs_of_pos hz]; linarith)
+  simp only [one_mul, h]
+  exact ⟨hz, le_rfl⟩
+
+/-- **For analytic rules the higher-order terms always decide** (Woodford (2003), Prop. 2.8,
+p. 96; App. A.3, pp. 632–634; the complete characterisation on the boundary `φ_π ≠ 0`,
+`|φ_π + ρ| = 1`): for a rule `Ψ` analytic at the steady state with `Ψ(0) = 0` and slopes
+`φ_π ≠ 0`, `ρ`, the exact model has random sunspots at every scale on the coin tree **iff**
+`D ∘ D` is the identity near `0`, or `D(D(y)) = y + c yᵐ + o(yᵐ)` with `c ≠ 0`, `m ≥ 2` and
+(`c < 0` or `m` even); here `D(y) = Ψ(y, y)`. -/
+theorem inertial_analytic_iff {Ψ : ℝ × ℝ → ℝ} {φ ρ : ℝ} (han : AnalyticAt ℝ Ψ 0)
+    (hΨd : HasFDerivAt Ψ (ruleD φ ρ) 0) (hΨ0 : Ψ 0 = 0) (hφ : φ ≠ 0)
+    (hσ : (φ + ρ) * (φ + ρ) = 1) :
+    InertialCoinSunspots Ψ ↔ ((∀ᶠ y in 𝓝 0, Ψ (Ψ (y, y), Ψ (y, y)) = y) ∨
+      ∃ c : ℝ, ∃ m : ℕ, c ≠ 0 ∧ 2 ≤ m ∧
+        ((fun y => Ψ (Ψ (y, y), Ψ (y, y)) - y - c * y ^ m) =o[𝓝 0] fun y => y ^ m) ∧
+        (c < 0 ∨ Even m)) := by
+  have hstrict : HasStrictFDerivAt Ψ (ruleD φ ρ) 0 := by
+    have := han.hasStrictFDerivAt
+    rwa [hΨd.fderiv] at this
+  have h00 : Ψ ((0 : ℝ), (0 : ℝ)) = 0 := by rw [Prod.mk_zero_zero]; exact hΨ0
+  have hdiag : AnalyticAt ℝ (fun y : ℝ => Ψ (y, y)) 0 := by
+    have hpair : AnalyticAt ℝ (fun y : ℝ => ((y, y) : ℝ × ℝ)) 0 :=
+      analyticAt_id.prod analyticAt_id
+    have han' : AnalyticAt ℝ Ψ ((fun y : ℝ => ((y, y) : ℝ × ℝ)) 0) := by
+      rw [show ((fun y : ℝ => ((y, y) : ℝ × ℝ)) 0) = 0 from Prod.mk_zero_zero]
+      exact han
+    exact AnalyticAt.comp (g := Ψ) (f := fun y : ℝ => ((y, y) : ℝ × ℝ)) han' hpair
+  have hDd := hasDerivAt_diag hΨd
+  constructor
+  · intro hsun
+    rcases analytic_dichotomy (g := fun y => Ψ (y, y)) hσ h00 hDd hdiag with
+      h | ⟨c, m, hc, hm, hexp⟩
+    · exact Or.inl h
+    · exact Or.inr ⟨c, m, hc, hm, hexp,
+        (inertial_coin_iff hstrict hΨ0 hφ hσ hm hc hexp).mp hsun⟩
+  · rintro (h | ⟨c, m, hc, hm, hexp, hcrit⟩)
+    · exact inertial_coin_sunspot_of_involutive hstrict hΨ0 hφ hσ h
+    · exact (inertial_coin_iff hstrict hΨ0 hφ hσ hm hc hexp).mpr hcrit
+
+end Woodford.PriceLevelDetermination.TidyR6InertialAnalytic
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The boundary of Proposition 2.8 beyond informational closure
+
+Woodford (2003), *Interest and Prices*, Prop. 2.8, p. 96, and App. A.3, pp. 633–634.
+`InertialBoundary.unique_affine` and `InertialBoundary.unique_cube` assume informational closure
+(every variable constant on information cells is known). That closure is what makes
+`E_t h(î_{t−1}) = h(î_{t−1})` and `E_t π_t³ = π_t³`. This module removes it.
+
+## Main results
+
+* `conc_lower`, `conc_upper`: **concentration of a forecast near the supremum.** If `D ≤ B`
+  everywhere and `E_t D` is close to `B` in state `ω`, then `E_t` puts little weight on
+  `{D < c}`: `(B − c)·E_t 1_{D<c} ≤ B − E_t D`. Only linearity, constants and monotonicity of
+  `E_t` are used.
+* `unique_affine_any`: **for every expectation system** (no informational closure, no pull-out
+  property), the rule `φ_π π + h(î_{−1})` with `φ_π ≠ 0`, `h` continuous and the expanding
+  diagonal of `InertialBoundary.unique_affine` has at most one bounded equilibrium for every
+  initial rate and disturbance process. Continuity of `h` replaces closure: it makes the
+  diagonal monotone, so
+  the sign of `g(î_t) − g(î'_t)` is that of `î_t − î'_t` in every state that `E_t` weighs.
+* `boundary_affine_any`: hence the rule `ruleCubI φ ρ (φ + ρ)` of
+  `InertialBoundary.boundary_unit_circle` (c) has **exactly one** bounded equilibrium for every
+  initial rate, without shocks, under every expectation system.
+* `unique_affine_skew`: the extension is genuine: it applies to `skewSystem`, which is not
+  informationally closed (`LocalIFTStochastic.skewSystem_not_infoClosed`).
+* `unique_cube_of_cube_known`: the rule `ρ î_{−1} + σπ³` (`σ² = 1`, `σρ ≥ 1`) has at most one
+  bounded equilibrium under every expectation system in which **cubes of known variables are
+  known**; `cube_known_of_pullOut`: this holds whenever `E_t` has the pull-out property
+  (`ExpectationSystem.PullOut`). Closure is no longer used for the forecast of the bound
+  `∛(4 max(B − τ D_t, 0))` (concentration replaces it).
+-/
+
+namespace Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation
+
+open scoped Topology
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic
+open TidyR6ForwardSunspots (eq_zero_of_annulus)
+open LocalIFTSystems (cbrt cbrt_pow)
+open LocalIFTSystemsApps (Finert)
+open InertialBoundary (eq0_of_solves eq1_of_solves lag_known sub_le_cbrt pow_le_of_le_cbrt
+  cbrt_nonneg)
+
+variable {Ω : Type*}
+
+/-! ### Concentration near the supremum -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): **a lower bound for a forecast from a bound on the
+event `{D ≥ c}`.** If `D ≤ B`, `Z ≥ αD` where `D ≥ c` and `Z ≥ −L` where `D < c`
+(`0 ≤ c < B`, `α, L ≥ 0`), then
+`E_t Z ≥ α E_t D − (αc + L)(B − E_t D)/(B − c)` in every state. -/
+theorem conc_lower (𝔼 : ExpectationSystem Ω) (t : ℕ) (ω : Ω) {D Z : Ω → ℝ} {B c α L : ℝ}
+    (hcB : c < B) (hα : 0 ≤ α) (hL : 0 ≤ L) (hc : 0 ≤ c) (hD : ∀ w, D w ≤ B)
+    (hZ1 : ∀ w, c ≤ D w → α * D w ≤ Z w) (hZ2 : ∀ w, D w < c → -L ≤ Z w) :
+    α * 𝔼.E t D ω - (α * c + L) * ((B - 𝔼.E t D ω) / (B - c)) ≤ 𝔼.E t Z ω := by
+  classical
+  set χ : Ω → ℝ := fun w => if D w < c then 1 else 0 with hχ
+  have h1 : α • D - (α * c + L) • χ ≤ Z := by
+    intro w
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul, hχ]
+    by_cases hw : D w < c
+    · simp only [hw, ↓reduceIte, mul_one]
+      have := hZ2 w hw
+      nlinarith
+    · simp only [hw, ↓reduceIte, mul_zero, sub_zero]
+      exact hZ1 w (not_lt.mp hw)
+  have h2 : (B - c) • χ ≤ (fun _ => B) - D := by
+    intro w
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul, hχ]
+    by_cases hw : D w < c
+    · simp only [hw, ↓reduceIte, mul_one]
+      linarith
+    · simp only [hw, ↓reduceIte, mul_zero]
+      linarith [hD w]
+  have h0 : (0 : Ω → ℝ) ≤ χ := by
+    intro w
+    simp only [Pi.zero_apply, hχ]
+    split_ifs <;> norm_num
+  have e1 := 𝔼.mono t h1 ω
+  have e2 := 𝔼.mono t h2 ω
+  have e0 := 𝔼.mono t h0 ω
+  simp only [map_sub, map_smul, 𝔼.const, map_zero, Pi.sub_apply, Pi.smul_apply, smul_eq_mul,
+    Pi.zero_apply] at e1 e2 e0
+  have hBc : 0 < B - c := by linarith
+  have hq : 𝔼.E t χ ω ≤ (B - 𝔼.E t D ω) / (B - c) := by
+    rw [le_div_iff₀ hBc]
+    linarith
+  have hk : 0 ≤ α * c + L := by positivity
+  nlinarith
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): **an upper bound for a forecast from a bound on the
+event `{D ≥ c}`.** If `D ≤ B`, `P ≤ A` where `D ≥ c` and `P ≤ F` where `D < c` (`c < B`,
+`A, F ≥ 0`), then `E_t P ≤ A + F(B − E_t D)/(B − c)`. -/
+theorem conc_upper (𝔼 : ExpectationSystem Ω) (t : ℕ) (ω : Ω) {D P : Ω → ℝ} {B c A F : ℝ}
+    (hcB : c < B) (hA : 0 ≤ A) (hF : 0 ≤ F) (hD : ∀ w, D w ≤ B)
+    (hP1 : ∀ w, c ≤ D w → P w ≤ A) (hP2 : ∀ w, D w < c → P w ≤ F) :
+    𝔼.E t P ω ≤ A + F * ((B - 𝔼.E t D ω) / (B - c)) := by
+  classical
+  set χ : Ω → ℝ := fun w => if D w < c then 1 else 0 with hχ
+  have h1 : P ≤ (fun _ => A) + F • χ := by
+    intro w
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, hχ]
+    by_cases hw : D w < c
+    · simp only [hw, ↓reduceIte, mul_one]
+      linarith [hP2 w hw]
+    · simp only [hw, ↓reduceIte, mul_zero, add_zero]
+      exact hP1 w (not_lt.mp hw)
+  have h2 : (B - c) • χ ≤ (fun _ => B) - D := by
+    intro w
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul, hχ]
+    by_cases hw : D w < c
+    · simp only [hw, ↓reduceIte, mul_one]
+      linarith
+    · simp only [hw, ↓reduceIte, mul_zero]
+      linarith [hD w]
+  have e1 := 𝔼.mono t h1 ω
+  have e2 := 𝔼.mono t h2 ω
+  simp only [map_add, map_sub, map_smul, 𝔼.const, Pi.add_apply, Pi.sub_apply, Pi.smul_apply,
+    smul_eq_mul] at e1 e2
+  have hBc : 0 < B - c := by linarith
+  have hq : 𝔼.E t χ ω ≤ (B - 𝔼.E t D ω) / (B - c) := by
+    rw [le_div_iff₀ hBc]
+    linarith
+  nlinarith
+
+/-! ### The affine rule under every expectation system -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): a continuous map with an expanding difference
+`|g a − g b| ≥ |a − b| + κ|a − b|³` is strictly monotone: there is a sign `τ` with
+`τ(g a − g b) > 0` whenever `a > b`. -/
+theorem exists_sign_of_expanding {g : ℝ → ℝ} {κ : ℝ} (hgc : Continuous g) (hκ : 0 < κ)
+    (hexp : ∀ a b, |a - b| + κ * |a - b| ^ 3 ≤ |g a - g b|) :
+    ∃ τ : ℝ, |τ| = 1 ∧ ∀ a b, b < a → 0 < τ * (g a - g b) := by
+  have hinj : Function.Injective g := by
+    intro a b hab
+    have h := hexp a b
+    rw [hab, sub_self, abs_zero] at h
+    have h3 : 0 ≤ κ * |a - b| ^ 3 := by positivity
+    have : |a - b| ≤ 0 := by linarith
+    exact sub_eq_zero.mp (abs_nonpos_iff.mp this)
+  rcases hgc.strictMono_of_inj hinj with hm | ha
+  · exact ⟨1, abs_one, fun a b hab => by rw [one_mul]; exact sub_pos.mpr (hm hab)⟩
+  · exact ⟨-1, by norm_num, fun a b hab => by have := ha hab; linarith⟩
+
+set_option maxHeartbeats 1600000 in
+-- the push argument combines the concentration bound with explicit constants
+/-- **Uniqueness on the boundary `φ_π ≠ 0` under every expectation system** (Woodford (2003),
+Prop. 2.8, p. 96; App. A.3, p. 634): for the rule `Ψ(π, i) = φ_π π + h(i)` with `φ_π ≠ 0`, `h`
+continuous, and the expanding diagonal `|g(i) − g(i')| ≥ |i − i'| + κ|i − i'|³`
+(`g(i) = φ_π i + h(i)`, `κ > 0`), any two bounded adapted equilibria with the same initial rate
+and disturbances coincide, **for every expectation system** (no informational closure, no
+pull-out property). The gap `D_t = î_t − î'_t` satisfies `E_t D_{t+1} = E_t[g(î_t) − g(î'_t)]`;
+at a state where `|D_t|` is near its supremum, `E_t` concentrates on states where `D_t` is large
+(`conc_lower`), and there `g` has pushed the gap beyond the supremum. -/
+theorem unique_affine_any (𝔼 : ExpectationSystem Ω) {Ψ : ℝ × ℝ → ℝ} {φ κ : ℝ} {h : ℝ → ℝ}
+    (hΨ : ∀ π i, Ψ (π, i) = φ * π + h i) (hφ : φ ≠ 0) (hκ : 0 < κ) (hh : Continuous h)
+    (hexp : ∀ i i', |i - i'| + κ * |i - i'| ^ 3 ≤ |(φ * i + h i) - (φ * i' + h i')|)
+    {u : ParS (Fin 2) (Fin 2 → ℝ) Ω} {x y : SProcV (Fin 2) Ω}
+    (hx : SolvesSV 𝔼 (Finert Ψ) u x) (hy : SolvesSV 𝔼 (Finert Ψ) u y) : x = y := by
+  set g : ℝ → ℝ := fun i => φ * i + h i with hg
+  have hgc : Continuous g := (continuous_const.mul continuous_id).add hh
+  obtain ⟨τ, hτ1, hτ⟩ := exists_sign_of_expanding hgc hκ hexp
+  -- the rule without closure
+  have hrule : ∀ z : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert Ψ) u z → ∀ t,
+      toP z t 1 = φ • toP z t 0 + 𝔼.E t (fun ω => h (lagV u.1 (fun s => z (s, ω)) t 1)) +
+        𝔼.E t (fun ω => u.2 (t, ω) 1) := by
+    intro z hz t
+    rw [eq1_of_solves hz t]
+    have e : (fun ω => Ψ (z (t, ω) 0, lagV u.1 (fun s => z (s, ω)) t 1)) =
+        φ • toP z t 0 + fun ω => h (lagV u.1 (fun s => z (s, ω)) t 1) := by
+      funext ω
+      simp only [hΨ, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      rfl
+    rw [e, map_add, map_smul, hz.1 t 0]
+  set D : ℕ → Ω → ℝ := fun t => toP x t 1 - toP y t 1 with hD
+  have hDk : ∀ t, 𝔼.E t (D t) = D t := fun t => by
+    simp only [hD, map_sub, hx.1 t 1, hy.1 t 1]
+  have hED : ∀ t, 𝔼.E t (D (t + 1)) =
+      𝔼.E t (fun ω => g (x (t, ω) 1) - g (y (t, ω) 1)) := by
+    intro t
+    have hdiff : D (t + 1) = φ • (toP x (t + 1) 0 - toP y (t + 1) 0) +
+        (𝔼.E (t + 1) (fun ω => h (x (t, ω) 1)) - 𝔼.E (t + 1) (fun ω => h (y (t, ω) 1))) := by
+      change toP x (t + 1) 1 - toP y (t + 1) 1 = _
+      rw [hrule x hx (t + 1), hrule y hy (t + 1)]
+      simp only [lagV_succ, smul_sub]
+      abel
+    have htw : ∀ f : Ω → ℝ, 𝔼.E t (𝔼.E (t + 1) f) = 𝔼.E t f := fun f =>
+      𝔼.tower (Nat.le_succ t) f
+    have hrhs : (fun ω => g (x (t, ω) 1) - g (y (t, ω) 1)) =
+        φ • D t + ((fun ω => h (x (t, ω) 1)) - fun ω => h (y (t, ω) 1)) := by
+      funext ω
+      simp only [hg, hD, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      change _ = φ * (x (t, ω) 1 - y (t, ω) 1) + _
+      ring
+    have hDk' : 𝔼.E t (toP x t 1 - toP y t 1) = toP x t 1 - toP y t 1 := hDk t
+    rw [hdiff, hrhs]
+    simp only [map_add, map_smul, map_sub, htw, eq0_of_solves hx t, eq0_of_solves hy t]
+    funext ω
+    simp only [hDk', hD, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    ring
+  -- bounds
+  set M := ‖x‖ + ‖y‖ with hMdef
+  have hxM : ∀ t ω, |x (t, ω) 1| ≤ M := fun t ω =>
+    (abs_apply_le x t ω 1).trans (le_add_of_nonneg_right (norm_nonneg y))
+  have hyM : ∀ t ω, |y (t, ω) 1| ≤ M := fun t ω =>
+    (abs_apply_le y t ω 1).trans (le_add_of_nonneg_left (norm_nonneg x))
+  obtain ⟨L0, hL0⟩ := (isCompact_Icc (a := -M) (b := M)).exists_bound_of_continuousOn
+    hgc.continuousOn
+  set L := 2 * max L0 0 with hLdef
+  have hL : 0 ≤ L := by positivity
+  have hgM : ∀ z, |z| ≤ M → |g z| ≤ max L0 0 := fun z hz => by
+    have := hL0 z ⟨(abs_le.mp hz).1, (abs_le.mp hz).2⟩
+    rw [Real.norm_eq_abs] at this
+    exact this.trans (le_max_left _ _)
+  have hZb : ∀ t ω, |g (x (t, ω) 1) - g (y (t, ω) 1)| ≤ L := fun t ω => by
+    have h1 := hgM _ (hxM t ω)
+    have h2 := hgM _ (hyM t ω)
+    calc |g (x (t, ω) 1) - g (y (t, ω) 1)| ≤ |g (x (t, ω) 1)| + |g (y (t, ω) 1)| := abs_sub _ _
+      _ ≤ L := by rw [hLdef]; linarith
+  have hDM : ∀ p : ℕ × Ω, |D p.1 p.2| ≤ M := fun p => by
+    have h1 := abs_le.mp (abs_apply_le x p.1 p.2 1)
+    have h2 := abs_le.mp (abs_apply_le y p.1 p.2 1)
+    change |x p 1 - y p 1| ≤ _
+    exact abs_le.mpr ⟨by linarith [h1.1, h2.2], by linarith [h1.2, h2.1]⟩
+  -- the gap of interest rates vanishes
+  have hD0 : ∀ p : ℕ × Ω, D p.1 p.2 = 0 := by
+    refine eq_zero_of_annulus (fun p : ℕ × Ω => D p.1 p.2) hDM (fun B hB _ hall => ?_)
+    set c := B / 2 with hc
+    set α := 1 + κ * c ^ 2 with hα
+    have hcpos : 0 < c := by rw [hc]; positivity
+    have hα1 : 0 < α - 1 := by
+      have := mul_pos hκ (pow_pos hcpos 2)
+      rw [hα]
+      linarith
+    set k := 2 * α + 2 * L / B with hk
+    have hα0 : 0 < α := by linarith
+    have hk0 : 0 ≤ k := by rw [hk]; positivity
+    refine ⟨(α - 1) * B / (k + 1), div_pos (mul_pos hα1 hB) (by positivity), fun q _ => ?_⟩
+    obtain ⟨t, ω⟩ := q
+    by_contra hcon
+    push Not at hcon
+    set d := D t ω with hd
+    obtain ⟨σ, hσ1, hσd⟩ : ∃ σ : ℝ, |σ| = 1 ∧ σ * d = |d| := by
+      rcases le_or_gt 0 d with h0 | h0
+      · exact ⟨1, abs_one, by rw [one_mul, abs_of_nonneg h0]⟩
+      · exact ⟨-1, by norm_num, by rw [abs_of_neg h0]; ring⟩
+    have hD'B : ∀ w, σ * D t w ≤ B := fun w =>
+      (le_abs_self _).trans (by rw [abs_mul, hσ1, one_mul]; exact hall (t, w))
+    have hZ1 : ∀ w, c ≤ σ * D t w →
+        α * (σ * D t w) ≤ σ * τ * (g (x (t, w) 1) - g (y (t, w) 1)) := by
+      intro w hw
+      have hc0 : 0 < c := by positivity
+      have hpos : 0 < σ * D t w := lt_of_lt_of_le hc0 hw
+      have hDw : D t w = x (t, w) 1 - y (t, w) 1 := rfl
+      have hD0w : D t w ≠ 0 := by
+        intro h0
+        rw [h0, mul_zero] at hpos
+        exact lt_irrefl _ hpos
+      have hsgn : 0 < σ * τ * (g (x (t, w) 1) - g (y (t, w) 1)) := by
+        rcases lt_or_gt_of_ne hD0w with hneg | hpos'
+        · have hs : σ < 0 := by
+            by_contra hs
+            push Not at hs
+            nlinarith
+          have h1 := hτ (y (t, w) 1) (x (t, w) 1) (by rw [hDw] at hneg; linarith)
+          nlinarith
+        · have hs : 0 < σ := by
+            by_contra hs
+            push Not at hs
+            nlinarith
+          have h1 := hτ (x (t, w) 1) (y (t, w) 1) (by rw [hDw] at hpos'; linarith)
+          nlinarith
+      have habs : σ * τ * (g (x (t, w) 1) - g (y (t, w) 1)) =
+          |g (x (t, w) 1) - g (y (t, w) 1)| := by
+        rw [← abs_of_pos hsgn, abs_mul, abs_mul, hσ1, hτ1, one_mul, one_mul]
+      have he := hexp (x (t, w) 1) (y (t, w) 1)
+      have hDa : |x (t, w) 1 - y (t, w) 1| = σ * D t w := by
+        rw [← hDw, ← abs_of_pos hpos, abs_mul, hσ1, one_mul]
+      rw [habs]
+      rw [hDa] at he
+      have hc2 : c ^ 2 ≤ (σ * D t w) ^ 2 := pow_le_pow_left₀ hc0.le hw 2
+      change |g (x (t, w) 1) - g (y (t, w) 1)| ≥ _ at he
+      rw [hα]
+      nlinarith [mul_nonneg (mul_nonneg hκ.le hpos.le) (sub_nonneg.mpr hc2)]
+    have hZ2 : ∀ w, σ * D t w < c → -L ≤ σ * τ * (g (x (t, w) 1) - g (y (t, w) 1)) := by
+      intro w _
+      have h1 : |σ * τ * (g (x (t, w) 1) - g (y (t, w) 1))| ≤ L := by
+        rw [abs_mul, abs_mul, hσ1, hτ1, one_mul, one_mul]
+        exact hZb t w
+      exact (abs_le.mp h1).1
+    have hcl := conc_lower 𝔼 t ω (D := fun w => σ * D t w)
+      (Z := fun w => σ * τ * (g (x (t, w) 1) - g (y (t, w) 1))) (by rw [hc]; linarith)
+      (by positivity) hL (by positivity) hD'B hZ1 hZ2
+    have hED' : 𝔼.E t (fun w => σ * D t w) ω = |d| := by
+      have e : (fun w => σ * D t w) = σ • D t := rfl
+      rw [e, map_smul, hDk]
+      exact hσd
+    have hEZ' : 𝔼.E t (fun w => σ * τ * (g (x (t, w) 1) - g (y (t, w) 1))) ω ≤ B := by
+      have e : (fun w => σ * τ * (g (x (t, w) 1) - g (y (t, w) 1))) =
+          (σ * τ) • fun w => g (x (t, w) 1) - g (y (t, w) 1) := rfl
+      rw [e, map_smul, ← hED t]
+      have hb := 𝔼.abs_E_le (fun w => hall (t + 1, w)) t ω
+      simp only [Pi.smul_apply, smul_eq_mul]
+      calc σ * τ * 𝔼.E t (D (t + 1)) ω ≤ |σ * τ * 𝔼.E t (D (t + 1)) ω| := le_abs_self _
+        _ = |𝔼.E t (D (t + 1)) ω| := by rw [abs_mul, abs_mul, hσ1, hτ1, one_mul, one_mul]
+        _ ≤ B := hb
+    rw [hED'] at hcl
+    have hdB : |d| ≤ B := hall (t, ω)
+    set η := B - |d| with hη
+    have hη0 : 0 ≤ η := by linarith
+    have hηδ : η < (α - 1) * B / (k + 1) := by linarith
+    have hfrac : (α * c + L) * ((B - |d|) / (B - c)) = α * η + 2 * L / B * η := by
+      rw [hc, ← hη]
+      field_simp
+      ring
+    rw [hfrac] at hcl
+    have h1 : (α - 1) * B ≤ η * k := by rw [hk]; nlinarith
+    have h2 : η * (k + 1) < (α - 1) * B := by
+      rwa [lt_div_iff₀ (by positivity)] at hηδ
+    nlinarith
+  have hI : ∀ t, toP x t 1 = toP y t 1 := fun t => funext fun ω => sub_eq_zero.mp (hD0 (t, ω))
+  have hlag : ∀ t ω, lagV u.1 (fun s => x (s, ω)) t 1 = lagV u.1 (fun s => y (s, ω)) t 1 := by
+    intro t ω
+    cases t with
+    | zero => rfl
+    | succ s => exact congrFun (hI s) ω
+  have hπ : ∀ t, toP x t 0 = toP y t 0 := by
+    intro t
+    have e1 := hrule x hx t
+    have e2 := hrule y hy t
+    rw [hI t] at e1
+    have hl : (fun ω => h (lagV u.1 (fun s => x (s, ω)) t 1)) =
+        fun ω => h (lagV u.1 (fun s => y (s, ω)) t 1) := funext fun ω => by rw [hlag t ω]
+    rw [hl] at e1
+    have hs : φ • toP x t 0 = φ • toP y t 0 :=
+      add_right_cancel (add_right_cancel (e1.symm.trans e2))
+    exact smul_right_injective _ hφ hs
+  ext ⟨t, ω⟩ i
+  fin_cases i
+  · exact congrFun (hπ t) ω
+  · exact congrFun (hI t) ω
+
+/-- **The boundary rule `φ_π π + ρî + (φ_π + ρ)î³` under every expectation system** (Woodford
+(2003), Prop. 2.8, p. 96): for `φ_π ≠ 0`, `|φ_π + ρ| = 1`, without shocks, the exact model has
+**exactly one** bounded equilibrium for every initial rate, under every expectation system
+(`InertialBoundary.boundary_unit_circle` (c) assumed informational closure). -/
+theorem boundary_affine_any {φ ρ : ℝ} (hσ : (φ + ρ) * (φ + ρ) = 1) (hφ : φ ≠ 0)
+    (𝔼 : ExpectationSystem Ω) (xm : Fin 2 → ℝ) :
+    ∃! x : SProcV (Fin 2) Ω,
+      SolvesSV 𝔼 (Finert (InertialBoundary.ruleCubI φ ρ (φ + ρ))) (xm, 0) x := by
+  have hΨ : ∀ π i, InertialBoundary.ruleCubI φ ρ (φ + ρ) (π, i) =
+      φ * π + (ρ * i + (φ + ρ) * i ^ 3) := fun π i => by
+    simp only [InertialBoundary.ruleCubI]
+    ring
+  have hexp : ∀ i i', |i - i'| + 1 / 4 * |i - i'| ^ 3 ≤
+      |(φ * i + (ρ * i + (φ + ρ) * i ^ 3)) - (φ * i' + (ρ * i' + (φ + ρ) * i' ^ 3))| := by
+    intro i i'
+    have := InertialBoundary.expand_cubic hσ i i'
+    convert this using 2
+    ring
+  have hc : Continuous fun i : ℝ => ρ * i + (φ + ρ) * i ^ 3 := by fun_prop
+  have h00 : InertialBoundary.ruleCubI φ ρ (φ + ρ) (0, 0) = 0 := by
+    simp [InertialBoundary.ruleCubI]
+  have hroot : InertialBoundary.ruleCubI φ ρ (φ + ρ)
+      (-(ρ * xm 1 + (φ + ρ) * xm 1 ^ 3) / φ, xm 1) = 0 := by
+    rw [hΨ]
+    field_simp
+    ring
+  refine ⟨InertialBoundary.jumpP (-(ρ * xm 1 + (φ + ρ) * xm 1 ^ 3) / φ),
+    InertialBoundary.solvesSV_jump h00 hroot, fun y hy => ?_⟩
+  exact unique_affine_any 𝔼 hΨ hφ (by norm_num) hc hexp hy
+    (InertialBoundary.solvesSV_jump h00 hroot)
+
+/-- **The extension is genuine** (Woodford (2003), Prop. 2.8, p. 96, and p. 633): the skew
+expectation system `LocalIFTStochastic.skewSystem` is not informationally closed, yet the
+boundary rule `φ_π π + ρî + (φ_π + ρ)î³` has at most one bounded equilibrium for every initial
+rate and disturbance process under it (and exactly one without shocks). -/
+theorem unique_affine_skew {φ ρ : ℝ} (hσ : (φ + ρ) * (φ + ρ) = 1) (hφ : φ ≠ 0) :
+    ¬ LocalIFTStochastic.Ops.InfoClosed LocalIFTStochastic.skewSystem ∧
+    (∀ (u : ParS (Fin 2) (Fin 2 → ℝ) (Fin 3)) (x y : SProcV (Fin 2) (Fin 3)),
+      SolvesSV LocalIFTStochastic.skewSystem (Finert (InertialBoundary.ruleCubI φ ρ (φ + ρ))) u x →
+      SolvesSV LocalIFTStochastic.skewSystem (Finert (InertialBoundary.ruleCubI φ ρ (φ + ρ))) u y →
+        x = y) ∧
+    ∀ xm : Fin 2 → ℝ, ∃! x : SProcV (Fin 2) (Fin 3),
+      SolvesSV LocalIFTStochastic.skewSystem (Finert (InertialBoundary.ruleCubI φ ρ (φ + ρ)))
+        (xm, 0) x := by
+  have hΨ : ∀ π i, InertialBoundary.ruleCubI φ ρ (φ + ρ) (π, i) =
+      φ * π + (ρ * i + (φ + ρ) * i ^ 3) := fun π i => by
+    simp only [InertialBoundary.ruleCubI]
+    ring
+  have hexp : ∀ i i', |i - i'| + 1 / 4 * |i - i'| ^ 3 ≤
+      |(φ * i + (ρ * i + (φ + ρ) * i ^ 3)) - (φ * i' + (ρ * i' + (φ + ρ) * i' ^ 3))| := by
+    intro i i'
+    have := InertialBoundary.expand_cubic hσ i i'
+    convert this using 2
+    ring
+  have hc : Continuous fun i : ℝ => ρ * i + (φ + ρ) * i ^ 3 := by fun_prop
+  exact ⟨LocalIFTStochastic.skewSystem_not_infoClosed,
+    fun u x y hx hy => unique_affine_any _ hΨ hφ (by norm_num) hc hexp hx hy,
+    boundary_affine_any hσ hφ _⟩
+
+/-! ### The cubic rule `ρ î_{−1} + σπ³` -/
+
+/-- Woodford (2003), App. A.3, p. 633 (tool): **with the pull-out property, cubes of known
+variables are known** (`E_t(z·z·z) = z·z·E_t z`). -/
+theorem cube_known_of_pullOut (𝔼 : ExpectationSystem Ω) (hpo : 𝔼.PullOut) {t : ℕ}
+    {z : Ω → ℝ} (hz : 𝔼.E t z = z) : 𝔼.E t (fun ω => z ω ^ 3) = fun ω => z ω ^ 3 := by
+  have e : (fun ω => z ω ^ 3) = z * (z * z) := by
+    funext ω
+    simp only [Pi.mul_apply]
+    ring
+  rw [e, hpo t z (z * z) hz, hpo t z z hz, hz]
+
+set_option maxHeartbeats 1600000 in
+-- the proof reruns `InertialBoundary.unique_cube` with the concentration bound at the end
+/-- **Uniqueness on the boundary `φ_π = 0` without informational closure** (Woodford (2003),
+Prop. 2.8, p. 96; App. A.3, p. 634): for the rule `Ψ(π, i) = ρ i + σπ³` with `σ² = 1`, `σρ ≥ 1`,
+any two bounded adapted equilibria with the same initial rate and disturbances coincide under
+**every expectation system in which cubes of known variables are known** (in particular every
+system with the pull-out property, `cube_known_of_pullOut`, and every informationally closed
+one). The forecast of the bound `∛(4 max(B − σρ D_t, 0))` no longer needs closure: `conc_upper`
+bounds it near the supremum of the gap. -/
+theorem unique_cube_of_cube_known (𝔼 : ExpectationSystem Ω)
+    (hcube : ∀ t (z : Ω → ℝ), 𝔼.E t z = z → 𝔼.E t (fun ω => z ω ^ 3) = fun ω => z ω ^ 3)
+    {Ψ : ℝ × ℝ → ℝ} {ρ σ : ℝ} (hΨ : ∀ π i, Ψ (π, i) = ρ * i + σ * π ^ 3) (hσ : σ * σ = 1)
+    (hτ : 1 ≤ σ * ρ) {u : ParS (Fin 2) (Fin 2 → ℝ) Ω} {x y : SProcV (Fin 2) Ω}
+    (hx : SolvesSV 𝔼 (Finert Ψ) u x) (hy : SolvesSV 𝔼 (Finert Ψ) u y) : x = y := by
+  have hrule : ∀ z : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert Ψ) u z → ∀ t,
+      toP z t 1 = ρ • (fun ω => lagV u.1 (fun s => z (s, ω)) t 1) +
+        σ • (fun ω => toP z t 0 ω ^ 3) + 𝔼.E t (fun ω => u.2 (t, ω) 1) := by
+    intro z hz t
+    rw [eq1_of_solves hz t]
+    have e : (fun ω => Ψ (z (t, ω) 0, lagV u.1 (fun s => z (s, ω)) t 1)) =
+        ρ • (fun ω => lagV u.1 (fun s => z (s, ω)) t 1) + σ • (fun ω => toP z t 0 ω ^ 3) := by
+      funext ω
+      simp only [hΨ, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+      rfl
+    rw [e, map_add, map_smul, map_smul, lag_known hz t, hcube t _ (hz.1 t 0)]
+  set D : ℕ → Ω → ℝ := fun t => toP x t 1 - toP y t 1 with hD
+  set τ := σ * ρ with hτdef
+  have hgap : ∀ t ω, toP x (t + 1) 0 ω ^ 3 - toP y (t + 1) 0 ω ^ 3 =
+      σ * D (t + 1) ω - τ * D t ω := by
+    intro t ω
+    have e1 := congrFun (hrule x hx (t + 1)) ω
+    have e2 := congrFun (hrule y hy (t + 1)) ω
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul, lagV_succ] at e1 e2
+    change σ * σ = 1 at hσ
+    change _ = σ * (toP x (t + 1) 1 ω - toP y (t + 1) 1 ω) -
+      σ * ρ * (toP x t 1 ω - toP y t 1 ω)
+    change toP x (t + 1) 1 ω = ρ * toP x t 1 ω + σ * toP x (t + 1) 0 ω ^ 3 + _ at e1
+    change toP y (t + 1) 1 ω = ρ * toP y t 1 ω + σ * toP y (t + 1) 0 ω ^ 3 + _ at e2
+    rw [e1, e2]
+    linear_combination (toP y (t + 1) 0 ω ^ 3 - toP x (t + 1) 0 ω ^ 3) * hσ
+  have hEπ : ∀ t, 𝔼.E t (toP x (t + 1) 0 - toP y (t + 1) 0) = D t := by
+    intro t
+    rw [map_sub, eq0_of_solves hx t, eq0_of_solves hy t]
+    change _ = toP x t 1 - toP y t 1
+    abel
+  have hDk : ∀ t, 𝔼.E t (D t) = D t := fun t => by
+    change 𝔼.E t (toP x t 1 - toP y t 1) = toP x t 1 - toP y t 1
+    rw [map_sub, hx.1 t 1, hy.1 t 1]
+  have hsa : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  have hDM : ∀ p : ℕ × Ω, |D p.1 p.2| ≤ ‖x‖ + ‖y‖ := fun p => by
+    have h1 := abs_le.mp (abs_apply_le x p.1 p.2 1)
+    have h2 := abs_le.mp (abs_apply_le y p.1 p.2 1)
+    change |x p 1 - y p 1| ≤ _
+    exact abs_le.mpr ⟨by linarith [h1.1, h2.2], by linarith [h1.2, h2.1]⟩
+  have hcm := InertialBoundaryExistCube.cbrt_strictMono.monotone
+  have hD0 : ∀ p : ℕ × Ω, D p.1 p.2 = 0 := by
+    refine eq_zero_of_annulus (fun p : ℕ × Ω => D p.1 p.2) hDM (fun B hB _ hall => ?_)
+    set lam := min B (B ^ 3 / 64) with hlam
+    have hlam0 : 0 < lam := lt_min hB (by positivity)
+    have hlamB : lam ≤ B := min_le_left _ _
+    have hlam3 : lam ≤ B ^ 3 / 64 := min_le_right _ _
+    set F := cbrt (4 * ((1 + τ) * B)) with hF
+    have hF0 : 0 ≤ F := cbrt_nonneg (by nlinarith)
+    set δ := B / 2 / (1 + F / lam) / 2 with hδ
+    have hq0 : 0 < 1 + F / lam := by positivity
+    have hδ0 : 0 < δ := by positivity
+    refine ⟨δ, hδ0, fun q _ => ?_⟩
+    obtain ⟨t, ω⟩ := q
+    by_contra hcon
+    push Not at hcon
+    set d := D t ω with hd
+    have hBn : ∀ ω', |σ * D (t + 1) ω'| ≤ B := fun ω' => by
+      rw [abs_mul, hsa, one_mul]
+      exact hall (t + 1, ω')
+    -- the value of the bound on `{|D_t| ≥ B − λ}`
+    have hA : cbrt (4 * max (B - τ * (B - lam)) 0) ≤ B / 2 := by
+      refine InertialBoundaryExistCube.cbrt_le_of_le_pow ?_
+      have h1 : B - τ * (B - lam) ≤ lam := by nlinarith
+      have h2 : max (B - τ * (B - lam)) 0 ≤ lam := max_le h1 hlam0.le
+      nlinarith
+    have hA0 : 0 ≤ cbrt (4 * max (B - τ * (B - lam)) 0) := cbrt_nonneg (by positivity)
+    have hFbig : ∀ w : ℝ, -B ≤ w → cbrt (4 * max (B - τ * w) 0) ≤ F := by
+      intro w hw
+      refine hcm ?_
+      have : max (B - τ * w) 0 ≤ (1 + τ) * B := max_le (by nlinarith) (by nlinarith)
+      linarith
+    have hkey : ∀ (Dv P : Ω → ℝ), (∀ w, Dv w ≤ B) → (∀ w, -B ≤ Dv w) →
+        (∀ w, P w ≤ cbrt (4 * max (B - τ * Dv w) 0)) → 𝔼.E t P ω = 𝔼.E t Dv ω →
+        𝔼.E t Dv ω ≤ B - δ := by
+      intro Dv P hDB hDl hP hEP
+      by_contra hc
+      push Not at hc
+      have hc' := conc_upper 𝔼 t ω (c := B - lam) (A := cbrt (4 * max (B - τ * (B - lam)) 0))
+        (F := F) (by linarith) hA0 hF0 hDB
+        (fun w hw => (hP w).trans (hcm (by
+          have : B - τ * Dv w ≤ B - τ * (B - lam) := by nlinarith
+          have := max_le_max this (le_refl (0 : ℝ))
+          linarith)))
+        (fun w _ => (hP w).trans (hFbig _ (hDl w)))
+      rw [hEP] at hc'
+      set η := B - 𝔼.E t Dv ω with hη
+      have hη0 : η < δ := by linarith
+      have hfr : (B - 𝔼.E t Dv ω) / (B - (B - lam)) = η / lam := by
+        rw [hη]
+        congr 1
+        ring
+      rw [hfr] at hc'
+      have h1 : B / 2 ≤ η * (1 + F / lam) := by
+        have : F * (η / lam) = η * (F / lam) := by ring
+        nlinarith
+      have h2 : δ * (1 + F / lam) = B / 4 := by
+        rw [hδ]
+        field_simp
+        ring
+      have h3 : η * (1 + F / lam) < δ * (1 + F / lam) := mul_lt_mul_of_pos_right hη0 hq0
+      linarith
+    have hdB : |d| ≤ B := hall (t, ω)
+    rcases le_or_gt 0 d with h0 | h0
+    · have hup : ∀ ω', (toP x (t + 1) 0 - toP y (t + 1) 0) ω' ≤
+          cbrt (4 * max (B - τ * D t ω') 0) := fun ω' => by
+        refine sub_le_cbrt ?_
+        rw [hgap t ω']
+        linarith [(abs_le.mp (hBn ω')).2]
+      have := hkey (D t) (toP x (t + 1) 0 - toP y (t + 1) 0)
+        (fun w => (le_abs_self _).trans (hall (t, w)))
+        (fun w => (neg_abs_le _).trans' (by linarith [hall (t, w)])) hup
+        (by rw [hEπ, hDk])
+      rw [hDk] at this
+      rw [abs_of_nonneg h0] at hcon
+      linarith
+    · have hlo : ∀ ω', (toP y (t + 1) 0 - toP x (t + 1) 0) ω' ≤
+          cbrt (4 * max (B - τ * (-D t ω')) 0) := fun ω' => by
+        refine sub_le_cbrt ?_
+        have := hgap t ω'
+        have h2 := (abs_le.mp (hBn ω')).1
+        linarith
+      have hneg : (fun w => -D t w) = -D t := rfl
+      have := hkey (fun w => -D t w) (toP y (t + 1) 0 - toP x (t + 1) 0)
+        (fun w => (neg_le_abs _).trans (hall (t, w)))
+        (fun w => by have := le_abs_self (D t w); linarith [hall (t, w)]) hlo
+        (by
+          rw [hneg, map_neg, show toP y (t + 1) 0 - toP x (t + 1) 0 =
+            -(toP x (t + 1) 0 - toP y (t + 1) 0) by abel, map_neg, hEπ, hDk])
+      rw [hneg, map_neg, hDk] at this
+      simp only [Pi.neg_apply] at this
+      rw [abs_of_neg h0] at hcon
+      linarith
+  have hI : ∀ t, toP x t 1 = toP y t 1 := fun t => funext fun ω => sub_eq_zero.mp (hD0 (t, ω))
+  have hπ : ∀ t, toP x t 0 = toP y t 0 := by
+    intro t
+    funext ω
+    have e1 := congrFun (hrule x hx t) ω
+    have e2 := congrFun (hrule y hy t) ω
+    have hl : lagV u.1 (fun s => x (s, ω)) t 1 = lagV u.1 (fun s => y (s, ω)) t 1 := by
+      cases t with
+      | zero => rfl
+      | succ s => exact congrFun (hI s) ω
+    simp only [Pi.add_apply, Pi.smul_apply, smul_eq_mul] at e1 e2
+    rw [congrFun (hI t) ω, hl] at e1
+    have hcube' : toP x t 0 ω ^ 3 = toP y t 0 ω ^ 3 := by
+      have h3 : σ * toP x t 0 ω ^ 3 = σ * toP y t 0 ω ^ 3 := by linarith
+      have := congrArg (fun w => σ * w) h3
+      rw [← mul_assoc, ← mul_assoc, hσ, one_mul, one_mul] at this
+      exact this
+    exact (Odd.pow_injective (by decide : Odd 3)) hcube'
+  ext ⟨t, ω⟩ i
+  fin_cases i
+  · exact congrFun (hπ t) ω
+  · exact congrFun (hI t) ω
+
+/-- **The cubic rule under every expectation system with the pull-out property** (Woodford
+(2003), Prop. 2.8, p. 96): `unique_cube_of_cube_known` with `cube_known_of_pullOut`. -/
+theorem unique_cube_pullOut (𝔼 : ExpectationSystem Ω) (hpo : 𝔼.PullOut) {Ψ : ℝ × ℝ → ℝ}
+    {ρ σ : ℝ} (hΨ : ∀ π i, Ψ (π, i) = ρ * i + σ * π ^ 3) (hσ : σ * σ = 1) (hτ : 1 ≤ σ * ρ)
+    {u : ParS (Fin 2) (Fin 2 → ℝ) Ω} {x y : SProcV (Fin 2) Ω}
+    (hx : SolvesSV 𝔼 (Finert Ψ) u x) (hy : SolvesSV 𝔼 (Finert Ψ) u y) : x = y :=
+  unique_cube_of_cube_known 𝔼 (fun _ _ hz => cube_known_of_pullOut 𝔼 hpo hz) hΨ hσ hτ hx hy
+
+end Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Existence on the boundary of Proposition 2.8 under every expectation system
+
+Woodford (2003), *Interest and Prices*, Prop. 2.8, p. 96, and App. A.3, pp. 633–634.
+`InertialBoundaryExist.exists_unique_affine` constructs the unique equilibrium of the rule
+`φ_π π + h(î_{−1})` with small disturbances under informational closure: the backward step
+`î_t = g⁻¹(E_t î_{t+1} − f_t)` is computed state by state, and closure makes it known at `t`.
+Without closure the step must solve `E_t g(y) = w` for a variable `y` known at `t`; this module
+solves it and redoes the construction for **every** expectation system.
+
+## Main results
+
+* `step_solve`: for `w` known at `t`, the equation `E_t g(y) = w` has a solution `y` known at
+  `t` (a contraction `y ↦ E_t[y − (τ/Λ) g(y)] + (τ/Λ) w` on the variables known at `t`, using
+  that `g` is strictly monotone with slopes in `[1, Λ]` near `0`).
+* `step_contract`: two such solutions satisfy `|y − y'| + (κ/4)|y − y'|³ ≤ sup |w − w'|`
+  (concentration of `E_t` near the supremum, `TidyR6InertialAnyExpectation.conc_lower`).
+* `exists_expanding_any`: a bounded process known at every date with
+  `E_t î_{t+1} = E_t g(î_t) + f_t`, as the uniform limit of backward solutions.
+* `exists_unique_affine_any`: for every expectation system, the rule `φ_π π + h(î_{−1})` with
+  `φ_π ≠ 0`, `h(0) = 0`, `h` locally Lipschitz and the expanding diagonal has **exactly one**
+  bounded equilibrium for every initial rate and every disturbance process with
+  `(1 + |φ_π|)‖e‖ ≤ (κ/4)R³`, and its interest rate stays within `R`.
+* `boundary_affine_any_shocks`: the boundary rule `φ_π π + ρ î + (φ_π + ρ) î³` of
+  `InertialBoundary.boundary_unit_circle` (c).
+-/
+
+namespace Woodford.PriceLevelDetermination.TidyR6InertialAnyExist
+
+open scoped Topology
+open Filter
+open LinearSystems LinearSystemsStochastic LocalIFTSystemsStochastic
+open TidyR6InertialAnyExpectation (conc_lower exists_sign_of_expanding unique_affine_any)
+open LocalIFTSystemsApps (Finert)
+open InertialBoundary (eq0_of_solves eq1_of_solves lag_known)
+open InertialBoundaryExist (forceA forceA_known abs_forceA_le phi_mono)
+
+variable {Ω : Type*} (𝔼 : ExpectationSystem Ω)
+
+/-! ### Solving `E_t g(y) = w` on the variables known at `t` -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the damped map `m(z) = z − (τ/Λ) g(z)` is a
+contraction with factor `1 − 1/Λ` on `[−R, R]` when `τ g` has slopes in `[1, Λ]` there. -/
+theorem damp_lip {g : ℝ → ℝ} {τ Λ Rb : ℝ} (hΛ : 1 ≤ Λ)
+    (hslope : ∀ a b, |a| ≤ Rb → |b| ≤ Rb → b ≤ a →
+      a - b ≤ τ * (g a - g b) ∧ τ * (g a - g b) ≤ Λ * (a - b))
+    {a b : ℝ} (ha : |a| ≤ Rb) (hb : |b| ≤ Rb) :
+    |(a - τ / Λ * g a) - (b - τ / Λ * g b)| ≤ (1 - 1 / Λ) * |a - b| := by
+  have hΛ0 : 0 < Λ := by linarith
+  have key : ∀ a b, |a| ≤ Rb → |b| ≤ Rb → b ≤ a →
+      |(a - τ / Λ * g a) - (b - τ / Λ * g b)| ≤ (1 - 1 / Λ) * |a - b| := by
+    intro a b ha hb hab
+    obtain ⟨h1, h2⟩ := hslope a b ha hb hab
+    have e : (a - τ / Λ * g a) - (b - τ / Λ * g b) = (a - b) - (τ * (g a - g b)) / Λ := by
+      field_simp
+      ring
+    rw [e, abs_of_nonneg (sub_nonneg.mpr hab)]
+    have h3 : (a - b) / Λ ≤ (τ * (g a - g b)) / Λ := div_le_div_of_nonneg_right h1 hΛ0.le
+    have h4 : (τ * (g a - g b)) / Λ ≤ a - b := by
+      rw [div_le_iff₀ hΛ0]
+      linarith
+    rw [abs_le]
+    constructor
+    · have : 0 ≤ (1 - 1 / Λ) * (a - b) := mul_nonneg (by
+        rw [sub_nonneg, div_le_one hΛ0]
+        exact hΛ) (sub_nonneg.mpr hab)
+      linarith
+    · have : (1 - 1 / Λ) * (a - b) = (a - b) - (a - b) / Λ := by ring
+      linarith
+  rcases le_total b a with hab | hab
+  · exact key a b ha hb hab
+  · rw [abs_sub_comm, abs_sub_comm a b]
+    exact key b a hb ha hab
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): a number bounded by `C qⁿ` for every `n`, with
+`0 ≤ q < 1`, is zero. -/
+theorem eq_zero_of_le_geom {x C q : ℝ} (hq0 : 0 ≤ q) (hq1 : q < 1) (h : ∀ n : ℕ, |x| ≤ C * q ^ n) :
+    x = 0 := by
+  have ht : Tendsto (fun n : ℕ => C * q ^ n) atTop (𝓝 0) := by
+    simpa using (tendsto_pow_atTop_nhds_zero_of_lt_one hq0 hq1).const_mul C
+  have := ge_of_tendsto' ht h
+  exact abs_nonpos_iff.mp this
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the iteration `y_{n+1} = E_t m(y_n) + c w` from
+`y_0 = 0` for the step equation. -/
+noncomputable def stepIter (t : ℕ) (m : ℝ → ℝ) (c : ℝ) (w : Ω → ℝ) : ℕ → Ω → ℝ
+  | 0 => fun _ => 0
+  | n + 1 => fun ω => 𝔼.E t (fun ω' => m (stepIter t m c w n ω')) ω + c * w ω
+
+set_option maxHeartbeats 1600000 in
+-- the proof runs the contraction and passes three identities to the limit
+/-- **The backward step without informational closure** (Woodford (2003), App. A.3, p. 634): if
+`τ g` has slopes in `[1, Λ]` on `[−R_b, R_b]` (`|τ| = 1`, `Λ ≥ 1`) and `w` is known at `t` with
+`|w| + |g(0)| ≤ R_b`, there is `y` **known at `t`**, `|y| ≤ R_b`, with `E_t g(y) = w`. -/
+theorem step_solve {g : ℝ → ℝ} {τ Λ Rb : ℝ} (hΛ : 1 ≤ Λ) (hτ1 : |τ| = 1) (hRb : 0 ≤ Rb)
+    (hslope : ∀ a b, |a| ≤ Rb → |b| ≤ Rb → b ≤ a →
+      a - b ≤ τ * (g a - g b) ∧ τ * (g a - g b) ≤ Λ * (a - b))
+    (t : ℕ) {w : Ω → ℝ} (hw : 𝔼.E t w = w) (hwb : ∀ ω, |w ω| + |g 0| ≤ Rb) :
+    ∃ y : Ω → ℝ, 𝔼.E t y = y ∧ (∀ ω, |y ω| ≤ Rb) ∧ 𝔼.E t (fun ω => g (y ω)) = w := by
+  have hΛ0 : 0 < Λ := by linarith
+  set m : ℝ → ℝ := fun z => z - τ / Λ * g z with hm
+  set c := τ / Λ with hc
+  set q := 1 - 1 / Λ with hq
+  have hq0 : 0 ≤ q := by rw [hq, sub_nonneg, div_le_one hΛ0]; exact hΛ
+  have hq1 : q < 1 := by
+    have : 0 < 1 / Λ := by positivity
+    rw [hq]
+    linarith
+  have hca : |c| = 1 / Λ := by rw [hc, abs_div, hτ1, abs_of_pos hΛ0]
+  have hmlip : ∀ a b, |a| ≤ Rb → |b| ≤ Rb → |m a - m b| ≤ q * |a - b| :=
+    fun a b ha hb => damp_lip hΛ hslope ha hb
+  have hglip : ∀ a b, |a| ≤ Rb → |b| ≤ Rb → |g a - g b| ≤ Λ * |a - b| := by
+    intro a b ha hb
+    have key : ∀ a b, |a| ≤ Rb → |b| ≤ Rb → b ≤ a → |g a - g b| ≤ Λ * |a - b| := by
+      intro a b ha hb hab
+      obtain ⟨h1, h2⟩ := hslope a b ha hb hab
+      have e : |g a - g b| = |τ * (g a - g b)| := by rw [abs_mul, hτ1, one_mul]
+      rw [e, abs_of_nonneg (by linarith), abs_of_nonneg (sub_nonneg.mpr hab)]
+      exact h2
+    rcases le_total b a with hab | hab
+    · exact key a b ha hb hab
+    · rw [abs_sub_comm, abs_sub_comm a b]
+      exact key b a hb ha hab
+  have hm0 : |m 0| = |g 0| / Λ := by
+    simp only [hm, zero_sub, abs_neg, abs_mul, hca]
+    ring
+  set y := stepIter 𝔼 t m c w with hy
+  have hy0 : ∀ ω, y 0 ω = 0 := fun _ => rfl
+  have hysucc : ∀ n ω, y (n + 1) ω = 𝔼.E t (fun ω' => m (y n ω')) ω + c * w ω := fun _ _ => rfl
+  have hyfun : ∀ n, y (n + 1) = 𝔼.E t (fun ω' => m (y n ω')) + c • w := fun n => by
+    funext ω
+    rw [hysucc]
+    rfl
+  -- the iterates stay in the ball
+  have hbd : ∀ n ω, |y n ω| ≤ Rb := by
+    intro n
+    induction n with
+    | zero => intro ω; rw [hy0, abs_zero]; exact hRb
+    | succ n ih =>
+      intro ω
+      have hmb : ∀ ω', |m (y n ω')| ≤ q * Rb + |g 0| / Λ := by
+        intro ω'
+        have h1 := hmlip (y n ω') 0 (ih ω') (by rw [abs_zero]; exact hRb)
+        rw [sub_zero] at h1
+        have h2 := abs_sub_abs_le_abs_sub (m (y n ω')) (m 0)
+        have h3 : q * |y n ω'| ≤ q * Rb := mul_le_mul_of_nonneg_left (ih ω') hq0
+        linarith
+      have hE := 𝔼.abs_E_le hmb t ω
+      rw [hysucc]
+      have hcw : |c * w ω| = |w ω| / Λ := by rw [abs_mul, hca]; ring
+      have hw' := hwb ω
+      calc |𝔼.E t (fun ω' => m (y n ω')) ω + c * w ω|
+          ≤ |𝔼.E t (fun ω' => m (y n ω')) ω| + |c * w ω| := abs_add_le _ _
+        _ ≤ q * Rb + |g 0| / Λ + |w ω| / Λ := by rw [hcw]; linarith
+        _ = q * Rb + (|w ω| + |g 0|) / Λ := by ring
+        _ ≤ q * Rb + Rb / Λ := by
+            have := div_le_div_of_nonneg_right hw' hΛ0.le
+            linarith
+        _ = Rb := by rw [hq]; field_simp; ring
+  -- the iterates are known at `t`
+  have hkn : ∀ n, 𝔼.E t (y n) = y n := by
+    intro n
+    cases n with
+    | zero =>
+      have : y 0 = fun _ => 0 := funext hy0
+      rw [this]
+      exact 𝔼.const t 0
+    | succ n => rw [hyfun, map_add, map_smul, 𝔼.E_E_self, hw]
+  -- geometric decay of the steps
+  have hdiff : ∀ n ω, |y (n + 1) ω - y n ω| ≤ Rb * q ^ n := by
+    intro n
+    induction n with
+    | zero => intro ω; rw [hy0, sub_zero, pow_zero, mul_one]; exact hbd 1 ω
+    | succ n ih =>
+      intro ω
+      have hpt : ∀ ω', |m (y (n + 1) ω') - m (y n ω')| ≤ q * (Rb * q ^ n) := fun ω' =>
+        (hmlip _ _ (hbd _ ω') (hbd _ ω')).trans (mul_le_mul_of_nonneg_left (ih ω') hq0)
+      have hE := 𝔼.abs_E_le hpt t ω
+      have e : y (n + 1 + 1) ω - y (n + 1) ω =
+          𝔼.E t (fun ω' => m (y (n + 1) ω') - m (y n ω')) ω := by
+        rw [hysucc, hysucc, show (fun ω' => m (y (n + 1) ω') - m (y n ω')) =
+          (fun ω' => m (y (n + 1) ω')) - fun ω' => m (y n ω') from rfl, map_sub]
+        simp only [Pi.sub_apply]
+        ring
+      rw [e, pow_succ]
+      calc _ ≤ q * (Rb * q ^ n) := hE
+        _ = Rb * (q ^ n * q) := by ring
+  -- the limit
+  have hcs : ∀ ω, CauchySeq fun n => y n ω := fun ω =>
+    cauchySeq_of_le_geometric q Rb hq1 fun n => by
+      rw [Real.dist_eq, abs_sub_comm]
+      exact hdiff n ω
+  choose Y hY using fun ω => cauchySeq_tendsto_of_complete (hcs ω)
+  have hYn : ∀ n ω, |y n ω - Y ω| ≤ Rb * q ^ n / (1 - q) := fun n ω => by
+    have := dist_le_of_le_geometric_of_tendsto q Rb hq1 (fun n => by
+      rw [Real.dist_eq, abs_sub_comm]
+      exact hdiff n ω) (hY ω) n
+    rwa [Real.dist_eq] at this
+  have hq1' : 0 < 1 - q := by linarith
+  have hYb : ∀ ω, |Y ω| ≤ Rb := fun ω =>
+    le_of_tendsto' ((hY ω).abs) fun n => hbd n ω
+  have hYk : 𝔼.E t Y = Y := by
+    funext ω
+    refine sub_eq_zero.mp (eq_zero_of_le_geom (C := 2 * Rb / (1 - q)) hq0 hq1 fun n => ?_)
+    have h1 := 𝔼.abs_E_le (x := Y - y n) (M := Rb * q ^ n / (1 - q)) (fun ω' => by
+      change |Y ω' - y n ω'| ≤ _
+      rw [abs_sub_comm]
+      exact hYn n ω') t ω
+    have e : 𝔼.E t Y ω - Y ω = 𝔼.E t (Y - y n) ω + (y n ω - Y ω) := by
+      rw [map_sub, hkn n]
+      simp only [Pi.sub_apply]
+      ring
+    rw [e]
+    refine (abs_add_le _ _).trans ?_
+    have h2 := hYn n ω
+    have e3 : 2 * Rb / (1 - q) * q ^ n = Rb * q ^ n / (1 - q) + Rb * q ^ n / (1 - q) := by ring
+    rw [e3]
+    exact add_le_add h1 h2
+  have hYg : 𝔼.E t (fun ω => g (Y ω)) = w := by
+    funext ω
+    refine sub_eq_zero.mp (eq_zero_of_le_geom
+      (C := Λ * Rb / (1 - q) + Λ * Rb) hq0 hq1 fun n => ?_)
+    -- the step identity `c (E_t g(y_n) − w) = y_n − y_{n+1}`
+    have hst : c * (𝔼.E t (fun ω' => g (y n ω')) ω - w ω) = y n ω - y (n + 1) ω := by
+      rw [hysucc]
+      have e : (fun ω' => m (y n ω')) = y n - c • fun ω' => g (y n ω') := by
+        funext ω'
+        simp only [hm, hc, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      rw [e, map_sub, map_smul, hkn n]
+      simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      ring
+    have hst' : |𝔼.E t (fun ω' => g (y n ω')) ω - w ω| ≤ Λ * (Rb * q ^ n) := by
+      have h1 : |c| * |𝔼.E t (fun ω' => g (y n ω')) ω - w ω| ≤ Rb * q ^ n := by
+        rw [← abs_mul, hst, abs_sub_comm]
+        exact hdiff n ω
+      rw [hca] at h1
+      rw [div_mul_eq_mul_div, one_mul, div_le_iff₀ hΛ0] at h1
+      linarith
+    have hgl : ∀ ω', |g (Y ω') - g (y n ω')| ≤ Λ * (Rb * q ^ n / (1 - q)) := fun ω' =>
+      (hglip _ _ (hYb ω') (hbd n ω')).trans (mul_le_mul_of_nonneg_left (by
+        rw [abs_sub_comm]
+        exact hYn n ω') hΛ0.le)
+    have hE := 𝔼.abs_E_le hgl t ω
+    have e : 𝔼.E t (fun ω => g (Y ω)) ω - w ω =
+        𝔼.E t (fun ω' => g (Y ω') - g (y n ω')) ω +
+          (𝔼.E t (fun ω' => g (y n ω')) ω - w ω) := by
+      rw [show (fun ω' => g (Y ω') - g (y n ω')) =
+        (fun ω' => g (Y ω')) - fun ω' => g (y n ω') from rfl, map_sub]
+      simp only [Pi.sub_apply]
+      ring
+    rw [e]
+    refine (abs_add_le _ _).trans ?_
+    have e3 : (Λ * Rb / (1 - q) + Λ * Rb) * q ^ n =
+        Λ * (Rb * q ^ n / (1 - q)) + Λ * (Rb * q ^ n) := by ring
+    rw [e3]
+    exact add_le_add hE hst'
+  exact ⟨Y, hYk, hYb, hYg⟩
+
+/-! ### Two step solutions are close when their targets are close -/
+
+set_option maxHeartbeats 1600000 in
+-- the concentration bound is applied at a state near the supremum of the gap
+/-- **The backward step is a weak contraction without informational closure** (Woodford (2003),
+App. A.3, p. 634): let `τ(g(a) − g(b)) ≥ (a − b) + κ(a − b)³` for `a ≥ b`, and let `y, y'` be
+known at `t` with bounded gap, `|g(y) − g(y')| ≤ L`, and `|E_t[g(y) − g(y')]| ≤ d`. Then
+`|y − y'| + (κ/4)|y − y'|³ ≤ d` in every state. -/
+theorem step_contract [Nonempty Ω] {g : ℝ → ℝ} {τ κ L : ℝ} (hτ1 : |τ| = 1) (hκ : 0 < κ)
+    (hL : 0 ≤ L) (hexpτ : ∀ a b, b ≤ a → (a - b) + κ * (a - b) ^ 3 ≤ τ * (g a - g b))
+    {t : ℕ} {y y' : Ω → ℝ} (hy : 𝔼.E t y = y) (hy' : 𝔼.E t y' = y')
+    (hbd : BddAbove (Set.range fun ω => |y ω - y' ω|))
+    (hgL : ∀ ω, |g (y ω) - g (y' ω)| ≤ L) {d : ℝ}
+    (hd : ∀ ω, |𝔼.E t (fun ω' => g (y ω') - g (y' ω')) ω| ≤ d) (ω : Ω) :
+    |y ω - y' ω| + κ / 4 * |y ω - y' ω| ^ 3 ≤ d := by
+  set e := ⨆ ω, |y ω - y' ω| with he
+  have hle : ∀ ω, |y ω - y' ω| ≤ e := fun ω => le_ciSup hbd ω
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  have he0 : 0 ≤ e := (abs_nonneg _).trans (hle ω₀)
+  have hd0 : 0 ≤ d := (abs_nonneg _).trans (hd ω₀)
+  have hmain : e + κ / 4 * e ^ 3 ≤ d := by
+    by_contra hc
+    push Not at hc
+    have hepos : 0 < e := by
+      rcases he0.lt_or_eq with h | h
+      · exact h
+      · rw [← h] at hc
+        simp at hc
+        linarith
+    set c := e / 2 with hcdef
+    have hc0 : 0 < c := by positivity
+    set α := 1 + κ * c ^ 2 with hα
+    have hα0 : 0 ≤ α := by positivity
+    have hαe : α * e = e + κ / 4 * e ^ 3 := by rw [hα, hcdef]; ring
+    set gap := α * e - d with hgap
+    have hgap0 : 0 < gap := by rw [hgap, hαe]; linarith
+    set K := α + 2 * (α * c + L) / e with hK
+    have hK0 : 0 ≤ K := by positivity
+    set η := gap / (K + 1) with hη
+    have hη0 : 0 < η := by positivity
+    have hηK : η * (K + 1) = gap := by rw [hη]; field_simp
+    obtain ⟨ω₁, hω₁⟩ := exists_lt_of_lt_ciSup (show e - η < e by linarith)
+    change e - η < |y ω₁ - y' ω₁| at hω₁
+    obtain ⟨σ, hσ1, hσd, hσc⟩ : ∃ σ : ℝ, (σ = 1 ∨ σ = -1) ∧
+        σ * (y ω₁ - y' ω₁) = |y ω₁ - y' ω₁| ∧ |σ| = 1 := by
+      rcases le_or_gt 0 (y ω₁ - y' ω₁) with h0 | h0
+      · exact ⟨1, Or.inl rfl, by rw [one_mul, abs_of_nonneg h0], abs_one⟩
+      · exact ⟨-1, Or.inr rfl, by rw [abs_of_neg h0]; ring, by norm_num⟩
+    have hD' : ∀ w, σ * (y w - y' w) ≤ e := fun w =>
+      (le_abs_self _).trans (by rw [abs_mul, hσc, one_mul]; exact hle w)
+    have hZ1 : ∀ w, c ≤ σ * (y w - y' w) →
+        α * (σ * (y w - y' w)) ≤ σ * τ * (g (y w) - g (y' w)) := by
+      intro w hw
+      have hpos : 0 < σ * (y w - y' w) := lt_of_lt_of_le hc0 hw
+      have hc2 : c ^ 2 ≤ (σ * (y w - y' w)) ^ 2 := pow_le_pow_left₀ hc0.le hw 2
+      have hk : 0 ≤ κ * (σ * (y w - y' w)) * ((σ * (y w - y' w)) ^ 2 - c ^ 2) :=
+        mul_nonneg (mul_nonneg hκ.le hpos.le) (sub_nonneg.mpr hc2)
+      rcases hσ1 with h1 | h1
+      · rw [h1] at hpos hk ⊢
+        have := hexpτ (y w) (y' w) (by linarith)
+        rw [hα]
+        nlinarith
+      · rw [h1] at hpos hk ⊢
+        have := hexpτ (y' w) (y w) (by linarith)
+        rw [hα]
+        nlinarith
+    have hZ2 : ∀ w, σ * (y w - y' w) < c → -L ≤ σ * τ * (g (y w) - g (y' w)) := by
+      intro w _
+      have h1 : |σ * τ * (g (y w) - g (y' w))| ≤ L := by
+        rw [abs_mul, abs_mul, hσc, hτ1, one_mul, one_mul]
+        exact hgL w
+      exact (abs_le.mp h1).1
+    have hcl := conc_lower 𝔼 t ω₁ (D := fun w => σ * (y w - y' w))
+      (Z := fun w => σ * τ * (g (y w) - g (y' w))) (by rw [hcdef]; linarith) hα0 hL hc0.le hD'
+      hZ1 hZ2
+    have hED : 𝔼.E t (fun w => σ * (y w - y' w)) ω₁ = |y ω₁ - y' ω₁| := by
+      have e1 : (fun w => σ * (y w - y' w)) = σ • (y - y') := rfl
+      rw [e1, map_smul, map_sub, hy, hy']
+      exact hσd
+    have hEZ : 𝔼.E t (fun w => σ * τ * (g (y w) - g (y' w))) ω₁ ≤ d := by
+      have e1 : (fun w => σ * τ * (g (y w) - g (y' w))) =
+          (σ * τ) • fun w => g (y w) - g (y' w) := rfl
+      rw [e1, map_smul]
+      simp only [Pi.smul_apply, smul_eq_mul]
+      calc σ * τ * 𝔼.E t (fun w => g (y w) - g (y' w)) ω₁
+          ≤ |σ * τ * 𝔼.E t (fun w => g (y w) - g (y' w)) ω₁| := le_abs_self _
+        _ = |𝔼.E t (fun w => g (y w) - g (y' w)) ω₁| := by
+            rw [abs_mul, abs_mul, hσc, hτ1, one_mul, one_mul]
+        _ ≤ d := hd ω₁
+    rw [hED] at hcl
+    set s := |y ω₁ - y' ω₁| with hs
+    have hse : s ≤ e := hle ω₁
+    have hfrac : (α * c + L) * ((e - s) / (e - c)) ≤ (α * c + L) * (2 * η / e) := by
+      refine mul_le_mul_of_nonneg_left ?_ (by positivity)
+      rw [hcdef, show e - e / 2 = e / 2 by ring, div_le_div_iff₀ (by positivity) hepos]
+      nlinarith
+    have h2 : (α * c + L) * (2 * η / e) = η * (K - α) := by
+      rw [hK]
+      field_simp
+      ring
+    have h3 : α * (e - η) ≤ α * s := mul_le_mul_of_nonneg_left (by linarith) hα0
+    nlinarith
+  have hΦ := phi_mono (κ := κ / 4) (by positivity) (hle ω)
+  have hΦ' : |y ω - y' ω| + κ / 4 * |y ω - y' ω| ^ 3 ≤ e + κ / 4 * e ^ 3 := hΦ
+  linarith
+
+/-! ### The backward construction -/
+
+/-- Woodford (2003), App. A.3, p. 634 (the construction): a solution `y`, known at `t` and
+within `R_b`, of `E_t g(y) = w` (chosen by `Classical.epsilon`; it exists by `step_solve`). -/
+noncomputable def stepMap (g : ℝ → ℝ) (Rb : ℝ) (t : ℕ) (w : Ω → ℝ) : Ω → ℝ :=
+  Classical.epsilon fun y : Ω → ℝ =>
+    𝔼.E t y = y ∧ (∀ ω, |y ω| ≤ Rb) ∧ 𝔼.E t (fun ω => g (y ω)) = w
+
+/-- Woodford (2003), App. A.3, p. 634 (the construction): the backward solution with horizon
+`t + k`, `V_0 = 0`, `E_t g(V_{k+1}(t)) = E_t V_k(t + 1) − f_t`. -/
+noncomputable def backV (g : ℝ → ℝ) (Rb : ℝ) (f : ℕ → Ω → ℝ) : ℕ → ℕ → Ω → ℝ
+  | 0, _ => fun _ => 0
+  | k + 1, t => stepMap 𝔼 g Rb t (𝔼.E t (backV g Rb f k (t + 1)) - f t)
+
+set_option maxHeartbeats 3200000 in
+-- the proof follows `InertialBoundaryExist.exists_expanding` with the closure-free step
+/-- **Existence for expanding forward recursions under every expectation system** (Woodford
+(2003), App. A.3, p. 634): let `g` be continuous with `g(0) = 0`, uniformly expanding
+(`|g(a) − g(b)| ≥ |a − b| + κ|a − b|³`) and Lipschitz on `[−(R + F₀), R + F₀]`, and let `f_t` be
+known at `t` with `|f_t| ≤ F₀ ≤ (κ/4)R³`. Then on any nonempty state space, for **every**
+expectation system there is a process `î`, known at every date, with `|î_t| ≤ R` and
+`E_t î_{t+1} = E_t g(î_t) + f_t`. -/
+theorem exists_expanding_any [Nonempty Ω] {g : ℝ → ℝ} {κ R F0 : ℝ} (hgc : Continuous g)
+    (hκ : 0 < κ) (hR : 0 ≤ R) (hg0 : g 0 = 0)
+    (hexp : ∀ a b, |a - b| + κ * |a - b| ^ 3 ≤ |g a - g b|)
+    (hlip : ∃ Λ, ∀ a b, |a| ≤ R + F0 → |b| ≤ R + F0 → |g a - g b| ≤ Λ * |a - b|)
+    (hF0 : 0 ≤ F0) (hsmall : F0 ≤ κ / 4 * R ^ 3)
+    {f : ℕ → Ω → ℝ} (hfk : ∀ t, 𝔼.E t (f t) = f t) (hfb : ∀ t ω, |f t ω| ≤ F0) :
+    ∃ i : ℕ → Ω → ℝ, (∀ t, 𝔼.E t (i t) = i t) ∧ (∀ t ω, |i t ω| ≤ R) ∧
+      ∀ t, 𝔼.E t (i (t + 1)) = 𝔼.E t (fun ω => g (i t ω)) + f t := by
+  obtain ⟨τ, hτ1, hτ⟩ := exists_sign_of_expanding hgc hκ hexp
+  obtain ⟨Λ0, hΛ0⟩ := hlip
+  set Rb := R + F0 with hRb
+  have hRb0 : 0 ≤ Rb := by positivity
+  set Λ := max Λ0 1 with hΛ
+  have hΛ1 : 1 ≤ Λ := le_max_right _ _
+  have hexpτ : ∀ a b, b ≤ a → (a - b) + κ * (a - b) ^ 3 ≤ τ * (g a - g b) := by
+    intro a b hab
+    rcases hab.lt_or_eq with h | h
+    · have hp := hτ a b h
+      have e : τ * (g a - g b) = |g a - g b| := by
+        rw [← abs_of_pos hp, abs_mul, hτ1, one_mul]
+      rw [e]
+      have := hexp a b
+      rwa [abs_of_nonneg (sub_nonneg.mpr hab)] at this
+    · rw [h, sub_self]
+      simp
+  have hslope : ∀ a b, |a| ≤ Rb → |b| ≤ Rb → b ≤ a →
+      a - b ≤ τ * (g a - g b) ∧ τ * (g a - g b) ≤ Λ * (a - b) := by
+    intro a b ha hb hab
+    have h1 := hexpτ a b hab
+    have h3 : 0 ≤ κ * (a - b) ^ 3 := mul_nonneg hκ.le (pow_nonneg (sub_nonneg.mpr hab) 3)
+    refine ⟨by linarith, ?_⟩
+    have h4 : τ * (g a - g b) ≤ |g a - g b| := by
+      calc τ * (g a - g b) ≤ |τ * (g a - g b)| := le_abs_self _
+        _ = |g a - g b| := by rw [abs_mul, hτ1, one_mul]
+    have h5 := hΛ0 a b ha hb
+    rw [abs_of_nonneg (sub_nonneg.mpr hab)] at h5
+    have h6 : Λ0 * (a - b) ≤ Λ * (a - b) :=
+      mul_le_mul_of_nonneg_right (le_max_left _ _) (sub_nonneg.mpr hab)
+    linarith
+  have hglip : ∀ a b, |a| ≤ Rb → |b| ≤ Rb → |g a - g b| ≤ Λ * |a - b| := fun a b ha hb =>
+    (hΛ0 a b ha hb).trans (mul_le_mul_of_nonneg_right (le_max_left _ _) (abs_nonneg _))
+  set V := backV 𝔼 g Rb f with hV
+  have hV0 : ∀ t, V 0 t = fun _ => 0 := fun _ => rfl
+  have hVs : ∀ k t, V (k + 1) t = stepMap 𝔼 g Rb t (𝔼.E t (V k (t + 1)) - f t) :=
+    fun _ _ => rfl
+  -- the invariant: known, within `R`, and the step equation
+  have hinv : ∀ k t, 𝔼.E t (V k t) = V k t ∧ (∀ ω, |V k t ω| ≤ R) := by
+    intro k
+    induction k with
+    | zero =>
+      intro t
+      rw [hV0]
+      exact ⟨𝔼.const t 0, fun _ => by rw [abs_zero]; exact hR⟩
+    | succ k ih =>
+      intro t
+      set w := 𝔼.E t (V k (t + 1)) - f t with hw
+      have hwk : 𝔼.E t w = w := by rw [hw, map_sub, 𝔼.E_E_self, hfk]
+      have hwb : ∀ ω, |w ω| ≤ R + F0 := fun ω => by
+        have h1 := 𝔼.abs_E_le (fun ω' => (ih (t + 1)).2 ω') t ω
+        simp only [hw, Pi.sub_apply]
+        exact (abs_sub _ _).trans (add_le_add h1 (hfb t ω))
+      have hex := step_solve 𝔼 hΛ1 hτ1 hRb0 hslope t hwk (fun ω => by
+        rw [hg0, abs_zero, add_zero]
+        exact hwb ω)
+      have hspec : 𝔼.E t (stepMap 𝔼 g Rb t w) = stepMap 𝔼 g Rb t w ∧
+          (∀ ω, |stepMap 𝔼 g Rb t w ω| ≤ Rb) ∧
+          𝔼.E t (fun ω => g (stepMap 𝔼 g Rb t w ω)) = w := Classical.epsilon_spec hex
+      rw [hVs]
+      obtain ⟨hk, hb, he⟩ := hspec
+      refine ⟨hk, fun ω => ?_⟩
+      -- compare with the solution `0` of `E_t g(0) = 0`
+      have hc := step_contract 𝔼 (y' := fun _ => 0) (L := Λ * Rb) hτ1 hκ (by positivity)
+        hexpτ hk (𝔼.const t 0)
+        ⟨Rb, by rintro _ ⟨ω', rfl⟩; simp only [sub_zero]; exact hb ω'⟩
+        (fun ω' => by
+          have := hglip _ _ (hb ω') (by rw [abs_zero]; exact hRb0)
+          rw [sub_zero] at this
+          exact this.trans (mul_le_mul_of_nonneg_left (hb ω') (by linarith)))
+        (d := R + F0) (fun ω' => by
+          have e : (fun ω'' => g (stepMap 𝔼 g Rb t w ω'') - g ((fun _ => (0 : ℝ)) ω'')) =
+              fun ω'' => g (stepMap 𝔼 g Rb t w ω'') := by
+            funext ω''
+            simp only [hg0, sub_zero]
+          rw [e, he]
+          exact hwb ω') ω
+      simp only [sub_zero] at hc
+      by_contra hcon
+      push Not at hcon
+      have h3 : R ^ 3 < |stepMap 𝔼 g Rb t w ω| ^ 3 := pow_lt_pow_left₀ hcon hR (by norm_num)
+      have h4 := mul_lt_mul_of_pos_left h3 (by positivity : (0 : ℝ) < κ / 4)
+      linarith
+  have hstepeq : ∀ k t, 𝔼.E t (fun ω => g (V (k + 1) t ω)) = 𝔼.E t (V k (t + 1)) - f t := by
+    intro k t
+    set w := 𝔼.E t (V k (t + 1)) - f t with hw
+    have hwk : 𝔼.E t w = w := by rw [hw, map_sub, 𝔼.E_E_self, hfk]
+    have hwb : ∀ ω, |w ω| ≤ R + F0 := fun ω => by
+      have h1 := 𝔼.abs_E_le (fun ω' => (hinv k (t + 1)).2 ω') t ω
+      simp only [hw, Pi.sub_apply]
+      exact (abs_sub _ _).trans (add_le_add h1 (hfb t ω))
+    have hex := step_solve 𝔼 hΛ1 hτ1 hRb0 hslope t hwk (fun ω => by
+      rw [hg0, abs_zero, add_zero]
+      exact hwb ω)
+    exact (Classical.epsilon_spec hex).2.2
+  -- the Cauchy property
+  set dk : ℕ → ℝ := fun k => ⨆ p : ℕ × Ω × ℕ, |V k p.1 p.2.1 - V (k + p.2.2) p.1 p.2.1| with hdk
+  have hbdd : ∀ k, BddAbove (Set.range fun p : ℕ × Ω × ℕ =>
+      |V k p.1 p.2.1 - V (k + p.2.2) p.1 p.2.1|) := fun k =>
+    ⟨2 * R, by
+      rintro _ ⟨p, rfl⟩
+      exact (abs_sub _ _).trans
+        (by linarith [(hinv k p.1).2 p.2.1, (hinv (k + p.2.2) p.1).2 p.2.1])⟩
+  have hle : ∀ k t ω m, |V k t ω - V (k + m) t ω| ≤ dk k :=
+    fun k t ω m => le_ciSup (hbdd k) (t, ω, m)
+  obtain ⟨ω₀⟩ := ‹Nonempty Ω›
+  have hd0 : ∀ k, 0 ≤ dk k := fun k => (abs_nonneg _).trans (hle k 0 ω₀ 0)
+  set Φ : ℝ → ℝ := fun x => x + κ / 4 * x ^ 3 with hΦ
+  have hΦm : Monotone Φ := phi_mono (by positivity)
+  have hΦc : Continuous Φ := by fun_prop
+  have hstep : ∀ k, Φ (dk (k + 1)) ≤ dk k := by
+    intro k
+    rw [hdk, hΦm.map_ciSup_of_continuousAt hΦc.continuousAt (hbdd (k + 1))]
+    refine ciSup_le fun p => ?_
+    obtain ⟨t, ω, m⟩ := p
+    have hk1 := hinv (k + 1) t
+    have hk2 := hinv (k + m + 1) t
+    have hc := step_contract 𝔼 (y := V (k + 1) t) (y' := V (k + m + 1) t) (L := Λ * (2 * R))
+      hτ1 hκ (by positivity) hexpτ hk1.1 hk2.1
+      ⟨2 * R, by
+        rintro _ ⟨ω', rfl⟩
+        exact (abs_sub _ _).trans (by linarith [hk1.2 ω', hk2.2 ω'])⟩
+      (fun ω' => (hglip _ _ ((hk1.2 ω').trans (by linarith)) ((hk2.2 ω').trans (by linarith))).trans
+        (mul_le_mul_of_nonneg_left ((abs_sub _ _).trans (by linarith [hk1.2 ω', hk2.2 ω']))
+          (by linarith)))
+      (d := dk k) (fun ω' => by
+        have e : (fun ω'' => g (V (k + 1) t ω'') - g (V (k + m + 1) t ω'')) =
+            (fun ω'' => g (V (k + 1) t ω'')) - fun ω'' => g (V (k + m + 1) t ω'') := rfl
+        rw [e, map_sub, hstepeq, hstepeq]
+        have e2 : (𝔼.E t (V k (t + 1)) - f t - (𝔼.E t (V (k + m) (t + 1)) - f t)) ω' =
+            𝔼.E t (V k (t + 1) - V (k + m) (t + 1)) ω' := by
+          rw [map_sub]
+          simp only [Pi.sub_apply]
+          ring
+        rw [e2]
+        exact 𝔼.abs_E_le (fun ω'' => hle k (t + 1) ω'' m) t ω') ω
+    change Φ |V (k + 1) t ω - V (k + 1 + m) t ω| ≤ _
+    rw [show k + 1 + m = k + m + 1 by omega]
+    exact hc
+  have hanti : Antitone dk := antitone_nat_of_succ_le fun k => by
+    have := hstep k
+    have : 0 ≤ κ / 4 * dk (k + 1) ^ 3 := mul_nonneg (by positivity) (pow_nonneg (hd0 _) 3)
+    simp only [hΦ] at *
+    linarith
+  have hbb : BddBelow (Set.range dk) := ⟨0, by rintro _ ⟨k, rfl⟩; exact hd0 k⟩
+  set Lm := ⨅ k, dk k with hLm
+  have hL0 : 0 ≤ Lm := le_ciInf hd0
+  have hΦL : Φ Lm ≤ Lm := le_ciInf fun k =>
+    (hΦm (ciInf_le hbb (k + 1))).trans (hstep k)
+  have hLz : Lm = 0 := by
+    simp only [hΦ] at hΦL
+    have : κ / 4 * Lm ^ 3 ≤ 0 := by linarith
+    rcases hL0.lt_or_eq with h | h
+    · have : 0 < κ / 4 * Lm ^ 3 := by positivity
+      linarith
+    · exact h.symm
+  have hd : Tendsto dk atTop (𝓝 0) := by
+    rw [← hLz]
+    exact tendsto_atTop_ciInf hanti hbb
+  -- the limit
+  have hcs : ∀ t ω, CauchySeq fun k => V k t ω := fun t ω =>
+    cauchySeq_of_le_tendsto_0 (fun N => 2 * dk N) (fun n m N hn hm => by
+      rw [Real.dist_eq]
+      have h1 := hle N t ω (n - N)
+      have h2 := hle N t ω (m - N)
+      rw [show N + (n - N) = n by omega] at h1
+      rw [show N + (m - N) = m by omega] at h2
+      refine (abs_sub_le _ (V N t ω) _).trans ?_
+      rw [abs_sub_comm (V n t ω)]
+      linarith) (by simpa using hd.const_mul 2)
+  choose lim hlim using fun t ω => cauchySeq_tendsto_of_complete (hcs t ω)
+  have hunif : ∀ k t ω, |V k t ω - lim t ω| ≤ dk k := by
+    intro k t ω
+    have ht : Tendsto (fun m => |V k t ω - V (m + k) t ω|) atTop (𝓝 |V k t ω - lim t ω|) :=
+      (tendsto_const_nhds.sub ((hlim t ω).comp (tendsto_add_atTop_nat k))).abs
+    refine le_of_tendsto' ht fun m => ?_
+    have := hle k t ω m
+    rwa [add_comm k m] at this
+  have hlimb : ∀ t ω, |lim t ω| ≤ R := fun t ω =>
+    le_of_tendsto' (hlim t ω).abs fun k => (hinv k t).2 ω
+  refine ⟨lim, fun t => ?_, hlimb, fun t => ?_⟩
+  · funext ω
+    have hb : ∀ k, |𝔼.E t (lim t) ω - lim t ω| ≤ 2 * dk k := by
+      intro k
+      have h1 : |𝔼.E t (lim t - V k t) ω| ≤ dk k :=
+        𝔼.abs_E_le (fun ω' => by
+          simp only [Pi.sub_apply]
+          rw [abs_sub_comm]
+          exact hunif k t ω') t ω
+      have e : 𝔼.E t (lim t) ω - lim t ω =
+          𝔼.E t (lim t - V k t) ω + (V k t ω - lim t ω) := by
+        rw [map_sub, (hinv k t).1]
+        simp only [Pi.sub_apply]
+        ring
+      rw [e]
+      exact (abs_add_le _ _).trans (by linarith [hunif k t ω])
+    have h0 := ge_of_tendsto' (hd.const_mul 2) hb
+    rw [mul_zero] at h0
+    exact sub_eq_zero.mp (abs_nonpos_iff.mp h0)
+  · funext ω
+    have ha : Tendsto (fun k => 𝔼.E t (fun ω' => g (V (k + 1) t ω')) ω) atTop
+        (𝓝 (𝔼.E t (fun ω' => g (lim t ω')) ω)) := by
+      have hd1 : Tendsto (fun k => Λ * dk (k + 1)) atTop (𝓝 0) := by
+        have := (hd.comp (tendsto_add_atTop_nat 1)).const_mul Λ
+        simpa using this
+      refine tendsto_iff_dist_tendsto_zero.mpr
+        (squeeze_zero (fun k => dist_nonneg) (fun k => ?_) hd1)
+      rw [Real.dist_eq]
+      have e : 𝔼.E t (fun ω' => g (V (k + 1) t ω')) ω - 𝔼.E t (fun ω' => g (lim t ω')) ω =
+          𝔼.E t (fun ω' => g (V (k + 1) t ω') - g (lim t ω')) ω := by
+        rw [show (fun ω' => g (V (k + 1) t ω') - g (lim t ω')) =
+          (fun ω' => g (V (k + 1) t ω')) - fun ω' => g (lim t ω') from rfl, map_sub]
+        rfl
+      rw [e]
+      refine 𝔼.abs_E_le (fun ω' => ?_) t ω
+      refine (hglip _ _ (((hinv (k + 1) t).2 ω').trans (by linarith))
+        ((hlimb t ω').trans (by linarith))).trans ?_
+      exact mul_le_mul_of_nonneg_left (hunif (k + 1) t ω') (by linarith)
+    have hb : Tendsto (fun k => 𝔼.E t (V k (t + 1)) ω - f t ω) atTop
+        (𝓝 (𝔼.E t (lim (t + 1)) ω - f t ω)) := by
+      refine Tendsto.sub_const ?_ _
+      refine tendsto_iff_dist_tendsto_zero.mpr
+        (squeeze_zero (fun k => dist_nonneg) (fun k => ?_) hd)
+      rw [Real.dist_eq]
+      have e : 𝔼.E t (V k (t + 1)) ω - 𝔼.E t (lim (t + 1)) ω =
+          𝔼.E t (V k (t + 1) - lim (t + 1)) ω := by
+        rw [map_sub]
+        rfl
+      rw [e]
+      exact 𝔼.abs_E_le (fun ω' => hunif k (t + 1) ω') t ω
+    have hab : (fun k => 𝔼.E t (fun ω' => g (V (k + 1) t ω')) ω) =
+        fun k => 𝔼.E t (V k (t + 1)) ω - f t ω := funext fun k => by
+      rw [hstepeq]
+      rfl
+    rw [hab] at ha
+    have := tendsto_nhds_unique hb ha
+    simp only [Pi.add_apply]
+    linarith
+
+/-! ### The affine-in-inflation rule under every expectation system -/
+
+set_option maxHeartbeats 1600000 in
+-- the verification of the two conditions unfolds the constructed process
+/-- **Existence and uniqueness on the boundary `φ_π ≠ 0` with small disturbances, under every
+expectation system** (Woodford (2003), Prop. 2.8, p. 96; App. A.3, pp. 632–634): on any nonempty
+state space and for **every** expectation system (no informational closure, no pull-out
+property), for the rule `Ψ(π, i) = φ_π π + h(i)` with `φ_π ≠ 0`, `h(0) = 0`, `h` Lipschitz on
+bounded intervals, and the expanding diagonal `|g(i) − g(i')| ≥ |i − i'| + κ|i − i'|³`, for every
+initial rate and every disturbance process with `(1 + |φ_π|)‖e‖ ≤ (κ/4)R³` there is **exactly
+one** bounded adapted equilibrium, and its interest rate stays within `R` of the steady state.
+Inflation is `π_t = (î_t − E_t h(î_{t−1}) − E_t ν_t)/φ_π`; without closure `E_t h(î_{t−1})` need
+not equal `h(î_{t−1})`, and the interest rate solves `E_t î_{t+1} = E_t g(î_t) + f_t`
+(`exists_expanding_any`). -/
+theorem exists_unique_affine_any [Nonempty Ω] {Ψ : ℝ × ℝ → ℝ} {φ κ R : ℝ} {h : ℝ → ℝ}
+    (hΨ : ∀ π i, Ψ (π, i) = φ * π + h i) (hφ : φ ≠ 0) (hκ : 0 < κ) (hR : 0 ≤ R)
+    (hhc : Continuous h) (hh0 : h 0 = 0)
+    (hlip : ∀ B, ∃ Λ, ∀ a b, |a| ≤ B → |b| ≤ B → |h a - h b| ≤ Λ * |a - b|)
+    (hexp : ∀ i i', |i - i'| + κ * |i - i'| ^ 3 ≤ |(φ * i + h i) - (φ * i' + h i')|)
+    (xm : Fin 2 → ℝ) (e : LocalIFTStochastic.BFun (ℕ × Ω) (Fin 2 → ℝ))
+    (he : (1 + |φ|) * ‖e‖ ≤ κ / 4 * R ^ 3) :
+    ∃ x : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert Ψ) (xm, e) x ∧ (∀ t ω, |x (t, ω) 1| ≤ R) ∧
+      ∀ y : SProcV (Fin 2) Ω, SolvesSV 𝔼 (Finert Ψ) (xm, e) y → y = x := by
+  set g : ℝ → ℝ := fun z => φ * z + h z with hg
+  have hgc : Continuous g := (continuous_const.mul continuous_id).add hhc
+  have hg0 : g 0 = 0 := by simp only [hg, mul_zero, hh0, add_zero]
+  set F0 := (1 + |φ|) * ‖e‖ with hF0
+  have hF00 : 0 ≤ F0 := by positivity
+  have hglip : ∃ Λ, ∀ a b, |a| ≤ R + F0 → |b| ≤ R + F0 → |g a - g b| ≤ Λ * |a - b| := by
+    obtain ⟨Λ, hΛ⟩ := hlip (R + F0)
+    refine ⟨|φ| + Λ, fun a b ha hb => ?_⟩
+    have e1 : g a - g b = φ * (a - b) + (h a - h b) := by simp only [hg]; ring
+    rw [e1]
+    refine (abs_add_le _ _).trans ?_
+    rw [abs_mul, add_mul]
+    linarith [hΛ a b ha hb]
+  obtain ⟨i, hik, hib, hirec⟩ := exists_expanding_any 𝔼 hgc hκ hR hg0 hexp hglip hF00 he
+    (forceA_known 𝔼 φ e) (abs_forceA_le 𝔼 φ e)
+  set lagI : ℕ → Ω → ℝ := fun t ω => lagV (xm 1) (fun s => i s ω) t with hlagI
+  set ν : ℕ → Ω → ℝ := fun t ω => e (t, ω) 1 with hν
+  set pz : ℕ → Ω → ℝ :=
+    fun t ω => (i t ω - 𝔼.E t (fun ω' => h (lagI t ω')) ω - 𝔼.E t (ν t) ω) / φ with hpz
+  obtain ⟨C, hC⟩ := (isCompact_Icc (a := -R) (b := R)).exists_bound_of_continuousOn
+    hhc.continuousOn
+  have hhl : ∀ t ω, |h (lagI t ω)| ≤ max C |h (xm 1)| := by
+    intro t ω
+    cases t with
+    | zero => exact le_max_right _ _
+    | succ t =>
+      have := hC (i t ω) (abs_le.mp (hib t ω) |> fun h' => ⟨h'.1, h'.2⟩)
+      rw [Real.norm_eq_abs] at this
+      exact this.trans (le_max_left _ _)
+  have habs : ∀ p j, |e p j| ≤ ‖e‖ := fun p j => by
+    rw [← Real.norm_eq_abs]
+    exact (norm_le_pi_norm _ j).trans (LocalIFTStochastic.norm_apply_le e p)
+  set Bp := (R + max C |h (xm 1)| + ‖e‖) / |φ| with hBp
+  have hpzb : ∀ t ω, |pz t ω| ≤ Bp := by
+    intro t ω
+    have h3 := 𝔼.abs_E_le (fun ω' => habs (t, ω') 1) t ω
+    have h4 := 𝔼.abs_E_le (fun ω' => hhl t ω') t ω
+    simp only [hpz, abs_div]
+    rw [hBp]
+    refine div_le_div_of_nonneg_right ((abs_sub _ _).trans ?_) (abs_nonneg φ)
+    exact add_le_add ((abs_sub _ _).trans (add_le_add (hib t ω) h4)) h3
+  set x : SProcV (Fin 2) Ω := LocalIFTStochastic.mkB (fun p => ![pz p.1 p.2, i p.1 p.2])
+    ⟨max Bp R, fun p => (pi_norm_le_iff_of_nonneg ((abs_nonneg _).trans
+      ((hib p.1 p.2).trans (le_max_right _ _)))).mpr fun j => by
+        rw [Real.norm_eq_abs]
+        fin_cases j
+        · exact (hpzb p.1 p.2).trans (le_max_left _ _)
+        · exact (hib p.1 p.2).trans (le_max_right _ _)⟩ with hx
+  have hpzf : ∀ t, pz t = φ⁻¹ • (i t - 𝔼.E t (fun ω => h (lagI t ω)) - 𝔼.E t (ν t)) := by
+    intro t
+    funext ω
+    simp only [hpz, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+    rw [div_eq_inv_mul]
+  have hpzk : ∀ t, 𝔼.E t (pz t) = pz t := by
+    intro t
+    rw [hpzf, map_smul, map_sub, map_sub, hik, 𝔼.E_E_self, 𝔼.E_E_self]
+  have hsol : SolvesSV 𝔼 (Finert Ψ) (xm, e) x := by
+    refine ⟨fun t j => ?_, fun t j => ?_⟩
+    · fin_cases j
+      · exact hpzk t
+      · exact hik t
+    · fin_cases j
+      · -- the Fisher equation
+        have hf : (fun ω => Finert Ψ (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Ω), x) (t, ω)) 0) =
+            i t - pz (t + 1) - fun ω => e (t, ω) 0 := rfl
+        change 𝔼.E t (fun ω => Finert Ψ (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Ω), x)
+          (t, ω)) 0) = 0
+        have hlag1 : (fun ω => h (lagI (t + 1) ω)) = fun ω => h (i t ω) := rfl
+        have hEg : 𝔼.E t (fun ω => g (i t ω)) = φ • i t + 𝔼.E t (fun ω => h (i t ω)) := by
+          have e1 : (fun ω => g (i t ω)) = φ • i t + fun ω => h (i t ω) := by
+            funext ω
+            simp only [hg, Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+          rw [e1, map_add, map_smul, hik]
+        have hEpz : 𝔼.E t (pz (t + 1)) = i t - 𝔼.E t (fun ω => e (t, ω) 0) := by
+          rw [hpzf, map_smul, map_sub, map_sub, hirec, hlag1, 𝔼.tower (Nat.le_succ t),
+            𝔼.tower (Nat.le_succ t), hEg]
+          funext ω
+          simp only [forceA, hν, Pi.smul_apply, Pi.sub_apply, Pi.add_apply, smul_eq_mul]
+          field_simp
+          ring
+        rw [hf, map_sub, map_sub, hik, hEpz]
+        funext ω
+        simp
+      · -- the rule
+        have hf : (fun ω => Finert Ψ (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Ω), x) (t, ω)) 1) =
+            i t - (φ • pz t + fun ω => h (lagI t ω)) - ν t := by
+          funext ω
+          have hl : lagV xm (fun s => x (s, ω)) t 1 = lagI t ω := by
+            cases t <;> rfl
+          simp only [Finert, ptS, Matrix.cons_val_one, Matrix.cons_val_zero, Pi.sub_apply,
+            Pi.add_apply, Pi.smul_apply, smul_eq_mul]
+          rw [hl, hΨ]
+          rfl
+        change 𝔼.E t (fun ω => Finert Ψ (ptS (((xm, e) : ParS (Fin 2) (Fin 2 → ℝ) Ω), x)
+          (t, ω)) 1) = 0
+        rw [hf, map_sub, map_sub, map_add, map_smul, hik, hpzk]
+        funext ω
+        simp only [hpz, Pi.sub_apply, Pi.add_apply, Pi.smul_apply, smul_eq_mul, Pi.zero_apply]
+        field_simp
+        ring
+  exact ⟨x, hsol, fun t ω => hib t ω,
+    fun y hy => unique_affine_any 𝔼 hΨ hφ hκ hhc hexp hy hsol⟩
+
+/-- **The boundary rule `φ_π π + ρî + (φ_π + ρ)î³` with small disturbances, under every
+expectation system** (Woodford (2003), Prop. 2.8, p. 96): for `φ_π ≠ 0`, `|φ_π + ρ| = 1`, on
+any nonempty state space, every initial rate and every disturbance process with
+`(1 + |φ_π|)‖e‖ ≤ R³/16`: exactly one bounded equilibrium, with `|î_t| ≤ R`. -/
+theorem boundary_affine_any_shocks [Nonempty Ω] {φ ρ R : ℝ} (hσ : (φ + ρ) * (φ + ρ) = 1)
+    (hφ : φ ≠ 0) (hR : 0 ≤ R) (xm : Fin 2 → ℝ) (e : LocalIFTStochastic.BFun (ℕ × Ω) (Fin 2 → ℝ))
+    (he : (1 + |φ|) * ‖e‖ ≤ 1 / 16 * R ^ 3) :
+    ∃ x : SProcV (Fin 2) Ω,
+      SolvesSV 𝔼 (Finert (InertialBoundary.ruleCubI φ ρ (φ + ρ))) (xm, e) x ∧
+      (∀ t ω, |x (t, ω) 1| ≤ R) ∧
+      ∀ y : SProcV (Fin 2) Ω,
+        SolvesSV 𝔼 (Finert (InertialBoundary.ruleCubI φ ρ (φ + ρ))) (xm, e) y → y = x := by
+  have hΨ : ∀ π i, InertialBoundary.ruleCubI φ ρ (φ + ρ) (π, i) =
+      φ * π + (ρ * i + (φ + ρ) * i ^ 3) := fun π i => by
+    simp only [InertialBoundary.ruleCubI]
+    ring
+  have hexp : ∀ i i', |i - i'| + 1 / 4 * |i - i'| ^ 3 ≤
+      |(φ * i + (ρ * i + (φ + ρ) * i ^ 3)) - (φ * i' + (ρ * i' + (φ + ρ) * i' ^ 3))| := by
+    intro i i'
+    have := InertialBoundary.expand_cubic hσ i i'
+    convert this using 2
+    ring
+  have hc : Continuous fun i : ℝ => ρ * i + (φ + ρ) * i ^ 3 := by fun_prop
+  have hs : |φ + ρ| = 1 := by nlinarith [abs_mul_abs_self (φ + ρ), abs_nonneg (φ + ρ)]
+  have hlip : ∀ B, ∃ Λ, ∀ a b, |a| ≤ B → |b| ≤ B →
+      |(ρ * a + (φ + ρ) * a ^ 3) - (ρ * b + (φ + ρ) * b ^ 3)| ≤ Λ * |a - b| := by
+    intro B
+    refine ⟨|ρ| + 3 * B ^ 2, fun a b ha hb => ?_⟩
+    have e1 : (ρ * a + (φ + ρ) * a ^ 3) - (ρ * b + (φ + ρ) * b ^ 3) =
+        (a - b) * (ρ + (φ + ρ) * (a ^ 2 + a * b + b ^ 2)) := by ring
+    rw [e1, abs_mul, mul_comm]
+    refine mul_le_mul_of_nonneg_right ?_ (abs_nonneg _)
+    refine (abs_add_le _ _).trans (add_le_add le_rfl ?_)
+    rw [abs_mul, hs, one_mul]
+    have h1 : |a ^ 2 + a * b + b ^ 2| ≤ |a| ^ 2 + |a| * |b| + |b| ^ 2 := by
+      refine (abs_add_le _ _).trans (add_le_add ((abs_add_le _ _).trans ?_) ?_)
+      · rw [abs_pow, abs_mul]
+      · rw [abs_pow]
+    have h2 : |a| ^ 2 + |a| * |b| + |b| ^ 2 ≤ 3 * B ^ 2 := by
+      have := abs_nonneg a
+      have := abs_nonneg b
+      nlinarith
+    linarith
+  exact exists_unique_affine_any 𝔼 hΨ hφ (by norm_num) hR hc (by ring) hlip hexp xm e
+    (by linarith)
+
+end Woodford.PriceLevelDetermination.TidyR6InertialAnyExist
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# The boundary of Proposition 2.8 on a probability space
+
+Woodford (2003), *Interest and Prices*, Prop. 2.8, p. 96, and App. A.3, pp. 633–634, with the
+expectations of a genuine probability space: `(Ω, μ)` a probability space, `𝓕` a filtration and
+`E_t = μ[· | 𝓕 t]` Mathlib's conditional expectation, every equation holding almost surely. The
+core `ExpectationSystem` cannot host such a model (on a countable state space its forecasts are
+finitely supported, `SGUStochasticMeasure.expectationSystem_finite_support`), so this module
+restates the exact inertial model there (`MeasEq`: adapted, essentially bounded processes, the
+Fisher equation and the rule as a.s. conditional equations) and proves the uniqueness results of
+`InertialBoundary` for it.
+
+## Main results
+
+* `ae_push`: the supremum argument almost surely (on the essential supremum of a process).
+* `unique_affine_measure`: the rule `φ_π π + h(î_{−1})` (`φ_π ≠ 0`, `h` continuous, expanding
+  diagonal): any two equilibria with the same initial rate and disturbances agree a.s. at every
+  date.
+* `unique_cube_measure`: the same for `ρ î_{−1} + σπ³` with `σ² = 1`, `σρ ≥ 1`.
+
+On a probability space a variable known at `t` (`𝓕 t`-measurable) is a.s. its own conditional
+expectation, and so is every measurable function of it: informational closure holds
+automatically, almost surely, and no extra hypothesis on the expectations is needed.
+-/
+
+namespace Woodford.PriceLevelDetermination.TidyR6InertialMeasure
+
+open MeasureTheory Filter
+open scoped Topology
+open LocalIFTSystems (cbrt cbrt_pow)
+open InertialBoundary (sub_le_cbrt pow_le_of_le_cbrt cbrt_nonneg)
+
+variable {Ω : Type*} [mΩ : MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+
+/-! ### The supremum argument almost surely -/
+
+omit [IsProbabilityMeasure μ] in
+/-- Woodford (2003), App. A.3, p. 634 (tool): **the push argument almost surely.** If a process
+is essentially bounded and every essential bound `B` of it satisfies
+`|a_t| + κ|a_t|³ ≤ B` a.s. at every date, the process is a.s. zero at every date. -/
+theorem ae_push {a : ℕ → Ω → ℝ} {κ : ℝ} (hκ : 0 < κ) (hb : ∃ M, ∀ t, ∀ᵐ ω ∂μ, |a t ω| ≤ M)
+    (hstep : ∀ B, (∀ t, ∀ᵐ ω ∂μ, |a t ω| ≤ B) →
+      ∀ t, ∀ᵐ ω ∂μ, |a t ω| + κ * |a t ω| ^ 3 ≤ B) :
+    ∀ t, a t =ᵐ[μ] 0 := by
+  set S : Set ℝ := {B | 0 ≤ B ∧ ∀ t, ∀ᵐ ω ∂μ, |a t ω| ≤ B} with hS
+  obtain ⟨M, hM⟩ := hb
+  have hne : S.Nonempty := ⟨max M 0, le_max_right _ _, fun t => (hM t).mono fun ω h =>
+    h.trans (le_max_left _ _)⟩
+  have hbdd : BddBelow S := ⟨0, fun B hB => hB.1⟩
+  set b := sInf S with hb
+  have hb0 : 0 ≤ b := le_csInf hne fun B hB => hB.1
+  have hbz : b = 0 := by
+    by_contra hne0
+    have hbpos : 0 < b := lt_of_le_of_ne hb0 (Ne.symm hne0)
+    set η := min (b / 2) (κ * (b / 2) ^ 3 / 2) with hη
+    have hη0 : 0 < η := lt_min (by positivity) (by positivity)
+    obtain ⟨B, hBS, hBlt⟩ := exists_lt_of_csInf_lt hne (show sInf S < b + η by linarith)
+    have hstepB := hstep B hBS.2
+    set B' := max (b / 2) (b - κ * (b / 2) ^ 3 / 2) with hB'
+    have hB'S : B' ∈ S := by
+      refine ⟨(by positivity : (0 : ℝ) ≤ b / 2).trans (le_max_left _ _), fun t => ?_⟩
+      filter_upwards [hstepB t] with ω hω
+      by_cases hsm : |a t ω| < b / 2
+      · exact hsm.le.trans (le_max_left _ _)
+      · push Not at hsm
+        have h3 : (b / 2) ^ 3 ≤ |a t ω| ^ 3 := pow_le_pow_left₀ (by positivity) hsm 3
+        have h4 : η ≤ κ * (b / 2) ^ 3 / 2 := min_le_right _ _
+        refine le_trans ?_ (le_max_right _ _)
+        nlinarith
+    have hle := csInf_le hbdd hB'S
+    have h1 : B' < b := max_lt (by linarith) (by
+      have : 0 < κ * (b / 2) ^ 3 / 2 := by positivity
+      linarith)
+    linarith
+  intro t
+  have hall : ∀ n : ℕ, ∀ᵐ ω ∂μ, |a t ω| ≤ 1 / (n + 1) := by
+    intro n
+    obtain ⟨B, hBS, hBlt⟩ := exists_lt_of_csInf_lt hne
+      (show sInf S < 1 / ((n : ℝ) + 1) by rw [← hb, hbz]; positivity)
+    exact (hBS.2 t).mono fun ω h => h.trans hBlt.le
+  filter_upwards [ae_all_iff.mpr hall] with ω hω
+  have h0 : |a t ω| ≤ 0 := by
+    refine le_of_forall_pos_lt_add fun ε hε => ?_
+    obtain ⟨n, hn⟩ := exists_nat_one_div_lt hε
+    linarith [hω n]
+  simpa using abs_nonpos_iff.mp h0
+
+/-! ### The exact inertial model on a filtered probability space -/
+
+/-- Woodford (2003), eq. (2.12), p. 96 (tool): the lagged interest rate `î_{t−1}`, with
+`î_{−1}` given. -/
+def lagI (im1 : ℝ) (i : ℕ → Ω → ℝ) : ℕ → Ω → ℝ
+  | 0 => fun _ => im1
+  | t + 1 => i t
+
+variable (μ) in
+/-- Woodford (2003), eqs. (1.32) and (2.12), pp. 79, 96, on a probability space: `(π, î)` is an
+equilibrium of the exact model with rule `Ψ`, initial rate `î_{−1}` and disturbances `(r̂, ν)`:
+both processes are adapted to `𝓕` and essentially bounded, and a.s. at every date
+`E_t[î_t − π_{t+1} − r̂_t] = 0` and `E_t[î_t − Ψ(π_t, î_{t−1}) − ν_t] = 0`, with
+`E_t = μ[· | 𝓕 t]`. -/
+def MeasEq (𝓕 : Filtration ℕ mΩ) (Ψ : ℝ × ℝ → ℝ) (im1 : ℝ) (r ν : ℕ → Ω → ℝ)
+    (π i : ℕ → Ω → ℝ) : Prop :=
+  (∀ t, StronglyMeasurable[𝓕 t] (π t) ∧ StronglyMeasurable[𝓕 t] (i t)) ∧
+  (∃ M, ∀ t, ∀ᵐ ω ∂μ, |π t ω| ≤ M ∧ |i t ω| ≤ M) ∧
+  (∀ t, μ[i t - π (t + 1) - r t | 𝓕 t] =ᵐ[μ] 0) ∧
+  (∀ t, μ[i t - (fun ω => Ψ (π t ω, lagI im1 i t ω)) - ν t | 𝓕 t] =ᵐ[μ] 0)
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): an essentially bounded variable measurable for a
+sub-σ-algebra of the filtration is integrable. -/
+theorem integrable_of_known {𝓕 : Filtration ℕ mΩ} {t : ℕ} {f : Ω → ℝ}
+    (hf : StronglyMeasurable[𝓕 t] f) {C : ℝ} (hC : ∀ᵐ ω ∂μ, |f ω| ≤ C) : Integrable f μ :=
+  Integrable.of_bound ((hf.mono (𝓕.le t)).aestronglyMeasurable) C
+    (hC.mono fun ω h => by rwa [Real.norm_eq_abs])
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): **a.s. closure**: if `f` is known at `t` and
+essentially bounded, then `E_t[f − g] = f − E_t g` a.s. -/
+theorem condExp_known_sub {𝓕 : Filtration ℕ mΩ} {t : ℕ} {f g : Ω → ℝ}
+    (hf : StronglyMeasurable[𝓕 t] f) {C : ℝ} (hC : ∀ᵐ ω ∂μ, |f ω| ≤ C) (hg : Integrable g μ) :
+    μ[f - g | 𝓕 t] =ᵐ[μ] f - μ[g | 𝓕 t] := by
+  have hfi := integrable_of_known hf hC
+  filter_upwards [condExp_sub hfi hg (𝓕 t)] with ω hω
+  rw [hω, Pi.sub_apply, Pi.sub_apply, condExp_of_stronglyMeasurable (𝓕.le t) hf hfi]
+
+/-- Woodford (2003), (2.12), p. 96 (tool): the lagged rate is known at `t`. -/
+theorem lagI_known {𝓕 : Filtration ℕ mΩ} {im1 : ℝ} {i : ℕ → Ω → ℝ}
+    (hi : ∀ t, StronglyMeasurable[𝓕 t] (i t)) (t : ℕ) :
+    StronglyMeasurable[𝓕 t] (lagI im1 i t) := by
+  cases t with
+  | zero => exact stronglyMeasurable_const
+  | succ s => exact (hi s).mono (𝓕.mono (Nat.le_succ s))
+
+omit [IsProbabilityMeasure μ] in
+/-- Woodford (2003), (2.12), p. 96 (tool): the lagged rate is essentially bounded. -/
+theorem lagI_bound {im1 M : ℝ} {i : ℕ → Ω → ℝ} (hi : ∀ t, ∀ᵐ ω ∂μ, |i t ω| ≤ M) (t : ℕ) :
+    ∀ᵐ ω ∂μ, |lagI im1 i t ω| ≤ max M |im1| := by
+  cases t with
+  | zero => exact Eventually.of_forall fun _ => le_max_right _ _
+  | succ s => exact (hi s).mono fun _ h => h.trans (le_max_left _ _)
+
+/-- Woodford (2003), eq. (1.32), p. 79, a.s. (tool): in an equilibrium
+`E_t π_{t+1} = î_t − E_t r̂_t` a.s. -/
+theorem fisher_ae {𝓕 : Filtration ℕ mΩ} {Ψ : ℝ × ℝ → ℝ} {im1 : ℝ} {r ν π i : ℕ → Ω → ℝ}
+    (hr : ∀ t, Integrable (r t) μ) (he : MeasEq μ 𝓕 Ψ im1 r ν π i) (t : ℕ) :
+    μ[π (t + 1) | 𝓕 t] =ᵐ[μ] i t - μ[r t | 𝓕 t] := by
+  obtain ⟨had, ⟨M, hM⟩, hF, -⟩ := he
+  have hiI : Integrable (i t) μ :=
+    integrable_of_known (had t).2 ((hM t).mono fun _ h => h.2)
+  have hπI : Integrable (π (t + 1)) μ :=
+    integrable_of_known ((had (t + 1)).1) ((hM (t + 1)).mono fun _ h => h.1)
+  have h1 := condExp_sub (hiI.sub hπI) (hr t) (𝓕 t)
+  have h2 := condExp_sub hiI hπI (𝓕 t)
+  rw [condExp_of_stronglyMeasurable (𝓕.le t) (had t).2 hiI] at h2
+  filter_upwards [hF t, h1, h2] with ω h0 h1' h2'
+  rw [h1', Pi.sub_apply, h2'] at h0
+  simp only [Pi.sub_apply, Pi.zero_apply] at h0 ⊢
+  linarith
+
+/-! ### The affine rule -/
+
+/-- Woodford (2003), eq. (2.12), p. 96, a.s. (tool): for the rule `φ_π π + h(î_{−1})` with `h`
+continuous, in an equilibrium `î_t = φ_π π_t + h(î_{t−1}) + E_t ν_t` a.s. (a.s. closure). -/
+theorem rule_ae_affine {𝓕 : Filtration ℕ mΩ} {Ψ : ℝ × ℝ → ℝ} {φ : ℝ} {h : ℝ → ℝ}
+    (hΨ : ∀ π i, Ψ (π, i) = φ * π + h i) (hh : Continuous h) {im1 : ℝ}
+    {r ν π i : ℕ → Ω → ℝ} (hν : ∀ t, Integrable (ν t) μ) (he : MeasEq μ 𝓕 Ψ im1 r ν π i)
+    (t : ℕ) : i t =ᵐ[μ] fun ω => φ * π t ω + h (lagI im1 i t ω) + μ[ν t | 𝓕 t] ω := by
+  obtain ⟨had, ⟨M, hM⟩, -, hR⟩ := he
+  set L := max M |im1| with hL
+  obtain ⟨C, hC⟩ := (isCompact_Icc (a := -L) (b := L)).exists_bound_of_continuousOn
+    hh.continuousOn
+  have hfe : (i t - fun ω => Ψ (π t ω, lagI im1 i t ω)) =
+      i t - fun ω => φ * π t ω + h (lagI im1 i t ω) := by
+    funext ω
+    simp only [Pi.sub_apply, hΨ]
+  have hfm : StronglyMeasurable[𝓕 t] (i t - fun ω => Ψ (π t ω, lagI im1 i t ω)) := by
+    rw [hfe]
+    exact (had t).2.sub ((stronglyMeasurable_const.mul (had t).1).add
+      (hh.comp_stronglyMeasurable (lagI_known (fun s => (had s).2) t)))
+  have hfb : ∀ᵐ ω ∂μ, |(i t - fun ω => Ψ (π t ω, lagI im1 i t ω)) ω| ≤ M + |φ| * M + C := by
+    filter_upwards [hM t, lagI_bound (fun s => (hM s).mono fun _ h => h.2) t] with ω h1 h2
+    have h3 := hC _ ⟨(abs_le.mp h2).1, (abs_le.mp h2).2⟩
+    rw [Real.norm_eq_abs] at h3
+    rw [hfe]
+    simp only [Pi.sub_apply]
+    calc |i t ω - (φ * π t ω + h (lagI im1 i t ω))|
+        ≤ |i t ω| + (|φ| * |π t ω| + |h (lagI im1 i t ω)|) := by
+          refine (abs_sub _ _).trans (add_le_add le_rfl ?_)
+          exact (abs_add_le _ _).trans (by rw [abs_mul])
+      _ ≤ M + |φ| * M + C := by
+          have := mul_le_mul_of_nonneg_left h1.1 (abs_nonneg φ)
+          linarith [h1.2]
+  have hk := condExp_known_sub hfm hfb (hν t)
+  filter_upwards [hR t, hk] with ω h0 h1
+  rw [h1] at h0
+  simp only [Pi.sub_apply, Pi.zero_apply, hΨ] at h0
+  linarith
+
+/-- **Uniqueness on the boundary `φ_π ≠ 0` on a probability space** (Woodford (2003), Prop. 2.8,
+p. 96; App. A.3, p. 634): for the rule `Ψ(π, i) = φ_π π + h(i)` with `φ_π ≠ 0`, `h` continuous
+and the expanding diagonal `|g(i) − g(i')| ≥ |i − i'| + κ|i − i'|³` (`g(i) = φ_π i + h(i)`),
+any two equilibria with conditional expectations `μ[· | 𝓕 t]`, the same initial rate and the
+same integrable disturbances agree almost surely at every date. -/
+theorem unique_affine_measure {𝓕 : Filtration ℕ mΩ} {Ψ : ℝ × ℝ → ℝ} {φ κ : ℝ} {h : ℝ → ℝ}
+    (hΨ : ∀ π i, Ψ (π, i) = φ * π + h i) (hφ : φ ≠ 0) (hκ : 0 < κ) (hh : Continuous h)
+    (hexp : ∀ i i', |i - i'| + κ * |i - i'| ^ 3 ≤ |(φ * i + h i) - (φ * i' + h i')|)
+    {im1 : ℝ} {r ν : ℕ → Ω → ℝ} (hr : ∀ t, Integrable (r t) μ) (hν : ∀ t, Integrable (ν t) μ)
+    {π i π' i' : ℕ → Ω → ℝ} (he : MeasEq μ 𝓕 Ψ im1 r ν π i)
+    (he' : MeasEq μ 𝓕 Ψ im1 r ν π' i') :
+    ∀ t, π t =ᵐ[μ] π' t ∧ i t =ᵐ[μ] i' t := by
+  have hA := rule_ae_affine hΨ hh hν he
+  have hA' := rule_ae_affine hΨ hh hν he'
+  have hF := fisher_ae hr he
+  have hF' := fisher_ae hr he'
+  obtain ⟨had, ⟨M, hM⟩, -, -⟩ := he
+  obtain ⟨had', ⟨M', hM'⟩, -, -⟩ := he'
+  set L := max M M' with hL
+  have hiL : ∀ t, ∀ᵐ ω ∂μ, |i t ω| ≤ L := fun t =>
+    (hM t).mono fun _ h => h.2.trans (le_max_left _ _)
+  have hiL' : ∀ t, ∀ᵐ ω ∂μ, |i' t ω| ≤ L := fun t =>
+    (hM' t).mono fun _ h => h.2.trans (le_max_right _ _)
+  obtain ⟨C, hC⟩ := (isCompact_Icc (a := -L) (b := L)).exists_bound_of_continuousOn
+    hh.continuousOn
+  have hπI : ∀ t, Integrable (π t) μ := fun t =>
+    integrable_of_known (had t).1 ((hM t).mono fun _ h => h.1)
+  have hπI' : ∀ t, Integrable (π' t) μ := fun t =>
+    integrable_of_known (had' t).1 ((hM' t).mono fun _ h => h.1)
+  have hHm : ∀ t, StronglyMeasurable[𝓕 t] (fun ω => h (i t ω) - h (i' t ω)) := fun t =>
+    (hh.comp_stronglyMeasurable (had t).2).sub (hh.comp_stronglyMeasurable (had' t).2)
+  have hHb : ∀ t, ∀ᵐ ω ∂μ, |h (i t ω) - h (i' t ω)| ≤ C + C := by
+    intro t
+    filter_upwards [hiL t, hiL' t] with ω h1 h2
+    have e1 := hC _ ⟨(abs_le.mp h1).1, (abs_le.mp h1).2⟩
+    have e2 := hC _ ⟨(abs_le.mp h2).1, (abs_le.mp h2).2⟩
+    rw [Real.norm_eq_abs] at e1 e2
+    exact (abs_sub _ _).trans (add_le_add e1 e2)
+  have hHI : ∀ t, Integrable (fun ω => h (i t ω) - h (i' t ω)) μ := fun t =>
+    integrable_of_known (hHm t) (hHb t)
+  set D : ℕ → Ω → ℝ := fun t => i t - i' t with hD
+  -- the forecast of next period's gap
+  have hCt : ∀ t, μ[D (t + 1) | 𝓕 t] =ᵐ[μ]
+      fun ω => (φ * i t ω + h (i t ω)) - (φ * i' t ω + h (i' t ω)) := by
+    intro t
+    have hDe : D (t + 1) =ᵐ[μ]
+        φ • (π (t + 1) - π' (t + 1)) + fun ω => h (i t ω) - h (i' t ω) := by
+      filter_upwards [hA (t + 1), hA' (t + 1)] with ω h1 h2
+      simp only [hD, Pi.add_apply, Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+      rw [h1, h2]
+      simp only [lagI]
+      ring
+    have hsI : Integrable (φ • (π (t + 1) - π' (t + 1))) μ :=
+      ((hπI (t + 1)).sub (hπI' (t + 1))).smul φ
+    filter_upwards [condExp_congr_ae (m := 𝓕 t) hDe, condExp_add hsI (hHI t) (𝓕 t),
+      condExp_smul (m := 𝓕 t) φ (π (t + 1) - π' (t + 1)),
+      condExp_sub (hπI (t + 1)) (hπI' (t + 1)) (𝓕 t), hF t, hF' t] with ω e1 e2 e3 e4 e5 e6
+    rw [e1, e2, Pi.add_apply, e3, Pi.smul_apply, e4, Pi.sub_apply, e5, e6,
+      condExp_of_stronglyMeasurable (𝓕.le t) (hHm t) (hHI t)]
+    simp only [Pi.sub_apply, smul_eq_mul]
+    ring
+  -- the gap of interest rates vanishes
+  have hD0 : ∀ t, D t =ᵐ[μ] 0 := by
+    refine ae_push hκ ⟨L + L, fun t => ?_⟩ (fun B hB t => ?_)
+    · filter_upwards [hiL t, hiL' t] with ω h1 h2
+      exact (abs_sub _ _).trans (add_le_add h1 h2)
+    · have hb := ae_bdd_abs_condExp_of_ae_bdd_abs (m := 𝓕 t) (hB (t + 1))
+      filter_upwards [hb, hCt t] with ω h1 h2
+      rw [h2] at h1
+      have := hexp (i t ω) (i' t ω)
+      change |i t ω - i' t ω| + κ * |i t ω - i' t ω| ^ 3 ≤ B
+      linarith
+  have hI : ∀ t, i t =ᵐ[μ] i' t := fun t => by
+    filter_upwards [hD0 t] with ω h
+    simpa [hD, sub_eq_zero] using h
+  have hlag : ∀ t, ∀ᵐ ω ∂μ, lagI im1 i t ω = lagI im1 i' t ω := by
+    intro t
+    cases t with
+    | zero => exact Eventually.of_forall fun _ => rfl
+    | succ s => exact hI s
+  refine fun t => ⟨?_, hI t⟩
+  filter_upwards [hA t, hA' t, hI t, hlag t] with ω h1 h2 h3 h4
+  rw [h3, h4] at h1
+  have h5 : φ * π t ω = φ * π' t ω := by linarith
+  exact mul_left_cancel₀ hφ h5
+
+/-! ### The cubic rule -/
+
+/-- Woodford (2003), eq. (2.12), p. 96, a.s. (tool): for the rule `ρ î_{−1} + σπ³`, in an
+equilibrium `î_t = ρ î_{t−1} + σ π_t³ + E_t ν_t` a.s. -/
+theorem rule_ae_cube {𝓕 : Filtration ℕ mΩ} {Ψ : ℝ × ℝ → ℝ} {ρ σ : ℝ}
+    (hΨ : ∀ π i, Ψ (π, i) = ρ * i + σ * π ^ 3) {im1 : ℝ} {r ν π i : ℕ → Ω → ℝ}
+    (hν : ∀ t, Integrable (ν t) μ) (he : MeasEq μ 𝓕 Ψ im1 r ν π i) (t : ℕ) :
+    i t =ᵐ[μ] fun ω => ρ * lagI im1 i t ω + σ * π t ω ^ 3 + μ[ν t | 𝓕 t] ω := by
+  obtain ⟨had, ⟨M, hM⟩, -, hR⟩ := he
+  have hfe : (i t - fun ω => Ψ (π t ω, lagI im1 i t ω)) =
+      i t - fun ω => ρ * lagI im1 i t ω + σ * π t ω ^ 3 := by
+    funext ω
+    simp only [Pi.sub_apply, hΨ]
+  have hfm : StronglyMeasurable[𝓕 t] (i t - fun ω => Ψ (π t ω, lagI im1 i t ω)) := by
+    rw [hfe]
+    exact (had t).2.sub ((stronglyMeasurable_const.mul (lagI_known (fun s => (had s).2) t)).add
+      (stronglyMeasurable_const.mul ((continuous_pow 3).comp_stronglyMeasurable (had t).1)))
+  have hfb : ∀ᵐ ω ∂μ, |(i t - fun ω => Ψ (π t ω, lagI im1 i t ω)) ω| ≤
+      M + |ρ| * max M |im1| + |σ| * M ^ 3 := by
+    filter_upwards [hM t, lagI_bound (fun s => (hM s).mono fun _ h => h.2) t] with ω h1 h2
+    rw [hfe]
+    simp only [Pi.sub_apply]
+    have h3 : |π t ω| ^ 3 ≤ M ^ 3 := pow_le_pow_left₀ (abs_nonneg _) h1.1 3
+    calc |i t ω - (ρ * lagI im1 i t ω + σ * π t ω ^ 3)|
+        ≤ |i t ω| + (|ρ| * |lagI im1 i t ω| + |σ| * |π t ω| ^ 3) := by
+          refine (abs_sub _ _).trans (add_le_add le_rfl ?_)
+          exact (abs_add_le _ _).trans (by rw [abs_mul, abs_mul, abs_pow])
+      _ ≤ M + |ρ| * max M |im1| + |σ| * M ^ 3 := by
+          have := mul_le_mul_of_nonneg_left h2 (abs_nonneg ρ)
+          have := mul_le_mul_of_nonneg_left h3 (abs_nonneg σ)
+          linarith [h1.2]
+  have hk := condExp_known_sub hfm hfb (hν t)
+  filter_upwards [hR t, hk] with ω h0 h1
+  rw [h1] at h0
+  simp only [Pi.sub_apply, Pi.zero_apply, hΨ] at h0
+  linarith
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the bound `w ↦ ∛(4 max(B − τw, 0))` is antitone
+for `τ ≥ 0`. -/
+theorem antitone_cbrt_bound (B τ : ℝ) (hτ : 0 ≤ τ) :
+    Antitone fun w : ℝ => cbrt (4 * max (B - τ * w) 0) := fun a b hab =>
+  InertialBoundaryExistCube.cbrt_strictMono.monotone (by
+    have : B - τ * b ≤ B - τ * a := by nlinarith
+    have := max_le_max this (le_refl (0 : ℝ))
+    linarith)
+
+/-- **Uniqueness on the boundary `φ_π = 0` on a probability space** (Woodford (2003), Prop. 2.8,
+p. 96; App. A.3, p. 634): for the rule `Ψ(π, i) = ρ i + σπ³` with `σ² = 1`, `σρ ≥ 1`, any two
+equilibria with conditional expectations `μ[· | 𝓕 t]`, the same initial rate and the same
+integrable disturbances agree almost surely at every date. -/
+theorem unique_cube_measure {𝓕 : Filtration ℕ mΩ} {Ψ : ℝ × ℝ → ℝ} {ρ σ : ℝ}
+    (hΨ : ∀ π i, Ψ (π, i) = ρ * i + σ * π ^ 3) (hσ : σ * σ = 1) (hτ : 1 ≤ σ * ρ)
+    {im1 : ℝ} {r ν : ℕ → Ω → ℝ} (hr : ∀ t, Integrable (r t) μ) (hν : ∀ t, Integrable (ν t) μ)
+    {π i π' i' : ℕ → Ω → ℝ} (he : MeasEq μ 𝓕 Ψ im1 r ν π i)
+    (he' : MeasEq μ 𝓕 Ψ im1 r ν π' i') :
+    ∀ t, π t =ᵐ[μ] π' t ∧ i t =ᵐ[μ] i' t := by
+  have hA := rule_ae_cube hΨ hν he
+  have hA' := rule_ae_cube hΨ hν he'
+  have hF := fisher_ae hr he
+  have hF' := fisher_ae hr he'
+  obtain ⟨had, ⟨M, hM⟩, -, -⟩ := he
+  obtain ⟨had', ⟨M', hM'⟩, -, -⟩ := he'
+  set τ := σ * ρ with hτdef
+  have hτ0 : 0 ≤ τ := by linarith
+  have hsa : |σ| = 1 := by nlinarith [abs_mul_abs_self σ, abs_nonneg σ]
+  set L := max M M' with hL
+  have hπI : ∀ t, Integrable (π t) μ := fun t =>
+    integrable_of_known (had t).1 ((hM t).mono fun _ h => h.1)
+  have hπI' : ∀ t, Integrable (π' t) μ := fun t =>
+    integrable_of_known (had' t).1 ((hM' t).mono fun _ h => h.1)
+  set D : ℕ → Ω → ℝ := fun t => i t - i' t with hD
+  have hDm : ∀ t, StronglyMeasurable[𝓕 t] (D t) := fun t => (had t).2.sub (had' t).2
+  -- the cubic gap of inflation, a.s.
+  have hgap : ∀ t, ∀ᵐ ω ∂μ, π (t + 1) ω ^ 3 - π' (t + 1) ω ^ 3 = σ * D (t + 1) ω - τ * D t ω := by
+    intro t
+    filter_upwards [hA (t + 1), hA' (t + 1)] with ω h1 h2
+    simp only [lagI] at h1 h2
+    change _ = σ * (i (t + 1) ω - i' (t + 1) ω) - σ * ρ * (i t ω - i' t ω)
+    rw [h1, h2]
+    linear_combination (π' (t + 1) ω ^ 3 - π (t + 1) ω ^ 3) * hσ
+  -- the forecast of the inflation gap is the interest-rate gap
+  have hEP : ∀ t, μ[π (t + 1) - π' (t + 1) | 𝓕 t] =ᵐ[μ] D t := by
+    intro t
+    filter_upwards [condExp_sub (hπI (t + 1)) (hπI' (t + 1)) (𝓕 t), hF t, hF' t] with ω e1 e2 e3
+    rw [e1, Pi.sub_apply, e2, e3]
+    simp only [hD, Pi.sub_apply]
+    ring
+  have hD0 : ∀ t, D t =ᵐ[μ] 0 := by
+    refine ae_push (κ := 1 / 4) (by norm_num) ⟨L + L, fun t => ?_⟩ (fun B hB t => ?_)
+    · filter_upwards [hM t, hM' t] with ω h1 h2
+      exact (abs_sub _ _).trans (add_le_add (h1.2.trans (le_max_left _ _))
+        (h2.2.trans (le_max_right _ _)))
+    · set fp : ℝ → ℝ := fun w => cbrt (4 * max (B - τ * w) 0) with hfp
+      set fm : ℝ → ℝ := fun w => cbrt (4 * max (B - τ * (-w)) 0) with hfm
+      have hfpA : Antitone fp := antitone_cbrt_bound B τ hτ0
+      have hfmM : Monotone fm := fun a b hab => hfpA (neg_le_neg hab)
+      have hfpm : StronglyMeasurable[𝓕 t] (fun ω => fp (D t ω)) :=
+        (hfpA.measurable.comp (hDm t).measurable).stronglyMeasurable
+      have hfmm : StronglyMeasurable[𝓕 t] (fun ω => fm (D t ω)) :=
+        (hfmM.measurable.comp (hDm t).measurable).stronglyMeasurable
+      have hDB : ∀ᵐ ω ∂μ, |D t ω| ≤ B := hB t
+      have hfpb : ∀ᵐ ω ∂μ, |fp (D t ω)| ≤ fp (-B) := by
+        filter_upwards [hDB] with ω h
+        rw [abs_of_nonneg (cbrt_nonneg (by positivity))]
+        exact hfpA (abs_le.mp h).1
+      have hfmb : ∀ᵐ ω ∂μ, |fm (D t ω)| ≤ fm B := by
+        filter_upwards [hDB] with ω h
+        rw [abs_of_nonneg (cbrt_nonneg (by positivity))]
+        exact hfmM (abs_le.mp h).2
+      have hfpI := integrable_of_known hfpm hfpb
+      have hfmI := integrable_of_known hfmm hfmb
+      have hup : (π (t + 1) - π' (t + 1)) ≤ᵐ[μ] fun ω => fp (D t ω) := by
+        filter_upwards [hgap t, hB (t + 1)] with ω h1 h2
+        refine sub_le_cbrt ?_
+        rw [h1]
+        have : |σ * D (t + 1) ω| ≤ B := by rw [abs_mul, hsa, one_mul]; exact h2
+        linarith [(abs_le.mp this).2]
+      have hlo : (π' (t + 1) - π (t + 1)) ≤ᵐ[μ] fun ω => fm (D t ω) := by
+        filter_upwards [hgap t, hB (t + 1)] with ω h1 h2
+        refine sub_le_cbrt ?_
+        have : |σ * D (t + 1) ω| ≤ B := by rw [abs_mul, hsa, one_mul]; exact h2
+        have h3 := (abs_le.mp this).1
+        nlinarith
+      have hU := condExp_mono (m := 𝓕 t) ((hπI (t + 1)).sub (hπI' (t + 1))) hfpI hup
+      have hLo := condExp_mono (m := 𝓕 t) ((hπI' (t + 1)).sub (hπI (t + 1))) hfmI hlo
+      rw [condExp_of_stronglyMeasurable (𝓕.le t) hfpm hfpI] at hU
+      rw [condExp_of_stronglyMeasurable (𝓕.le t) hfmm hfmI] at hLo
+      have hEPn : μ[π' (t + 1) - π (t + 1) | 𝓕 t] =ᵐ[μ] -D t := by
+        have e : π' (t + 1) - π (t + 1) = -(π (t + 1) - π' (t + 1)) := by abel
+        rw [e]
+        filter_upwards [condExp_neg (m := 𝓕 t) (μ := μ) (π (t + 1) - π' (t + 1)), hEP t]
+          with ω e1 e2
+        rw [e1, Pi.neg_apply, e2, Pi.neg_apply]
+      filter_upwards [hU, hLo, hEP t, hEPn, hDB] with ω h1 h2 h3 h4 h5
+      rw [h3] at h1
+      rw [h4] at h2
+      simp only [Pi.neg_apply] at h2
+      set d := D t ω with hd
+      change |d| + 1 / 4 * |d| ^ 3 ≤ B
+      rcases le_or_gt 0 d with h0 | h0
+      · have h6 := pow_le_of_le_cbrt h0 h1
+        have hm : max (B - τ * d) 0 ≤ B - |d| := by
+          rw [abs_of_nonneg h0]
+          refine max_le (by nlinarith) (by linarith [le_abs_self d])
+        rw [abs_of_nonneg h0] at hm ⊢
+        linarith
+      · have h6 := pow_le_of_le_cbrt (by linarith) h2
+        have hm : max (B - τ * -d) 0 ≤ B - |d| := by
+          rw [abs_of_neg h0]
+          refine max_le (by nlinarith) (by linarith [neg_abs_le d, abs_of_neg h0])
+        rw [abs_of_neg h0] at hm ⊢
+        nlinarith
+  have hI : ∀ t, i t =ᵐ[μ] i' t := fun t => by
+    filter_upwards [hD0 t] with ω h
+    simpa [hD, sub_eq_zero] using h
+  have hlag : ∀ t, ∀ᵐ ω ∂μ, lagI im1 i t ω = lagI im1 i' t ω := by
+    intro t
+    cases t with
+    | zero => exact Eventually.of_forall fun _ => rfl
+    | succ s => exact hI s
+  refine fun t => ⟨?_, hI t⟩
+  filter_upwards [hA t, hA' t, hI t, hlag t] with ω h1 h2 h3 h4
+  rw [h3, h4] at h1
+  have h5 : σ * π t ω ^ 3 = σ * π' t ω ^ 3 := by linarith
+  have h6 : π t ω ^ 3 = π' t ω ^ 3 := by
+    have := congrArg (fun w => σ * w) h5
+    rw [← mul_assoc, ← mul_assoc, hσ, one_mul, one_mul] at this
+    exact this
+  exact (Odd.pow_injective (by decide : Odd 3)) h6
+
+end Woodford.PriceLevelDetermination.TidyR6InertialMeasure
+
+/-
+Copyright (c) 2026 Robert Kirkby. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Robert Kirkby
+-/
+
+/-!
+# Existence on the boundary of Proposition 2.8 on a probability space
+
+Woodford (2003), *Interest and Prices*, Prop. 2.8, p. 96, and App. A.3, pp. 633–634, with the
+conditional expectations `μ[· | 𝓕 t]` of a filtered probability space (`TidyR6InertialMeasure`).
+For the rule `φ_π π + h(î_{−1})` this module constructs the equilibrium with small disturbances:
+the backward solutions `V_{k+1}(t) = g⁻¹(μ[V_k(t + 1) | 𝓕 t] − f_t)` (clipped to their a.s. bounds
+so that every bound holds in every state), their almost-sure uniform convergence, and the limit.
+
+## Main results
+
+* `bseq_props` and the a.s. Cauchy step inside its proof: the backward solutions of horizons
+  `k` and `k + m` differ by at most `b_k` a.s., where `b_{k+1} + κ b_{k+1}³ = b_k` and `b_k → 0`.
+* `exists_unique_affine_measure`: for `φ_π ≠ 0`, `h(0) = 0`, `h` continuous and the expanding
+  diagonal, every initial rate and all disturbances with `(1 + |φ_π|) E₀ ≤ κR³` (a.s. bounds
+  `|r̂_t|, |ν_t| ≤ E₀`), there is an equilibrium with `|î_t| ≤ R` a.s., and every equilibrium
+  agrees with it a.s. at every date.
+-/
+
+namespace Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist
+
+open MeasureTheory Filter
+open scoped Topology
+open TidyR6InertialMeasure (lagI MeasEq integrable_of_known condExp_known_sub lagI_known
+  lagI_bound unique_affine_measure)
+open InertialBoundaryExist (phi_mono surjective_of_expanding)
+
+/-! ### Clipping and the inverse of the diagonal -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): clipping to `[−C, C]`. -/
+def clip (C y : ℝ) : ℝ := max (-C) (min C y)
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): properties of clipping: continuous, bounded by
+`C`, the identity on `[−C, C]`, and `1`-Lipschitz. -/
+theorem clip_props {C : ℝ} (hC : 0 ≤ C) :
+    Continuous (clip C) ∧ (∀ y, |clip C y| ≤ C) ∧ (∀ y, |y| ≤ C → clip C y = y) ∧
+      ∀ a b, |clip C a - clip C b| ≤ |a - b| := by
+  refine ⟨(continuous_const.max (continuous_const.min continuous_id)), fun y => ?_,
+    fun y hy => ?_, fun a b => ?_⟩
+  · rw [abs_le]
+    exact ⟨le_max_left _ _, max_le (by linarith) (min_le_left _ _)⟩
+  · rw [abs_le] at hy
+    simp only [clip, min_eq_right hy.2, max_eq_right hy.1]
+  · simp only [clip]
+    rw [max_comm (-C), max_comm (-C)]
+    refine (abs_max_sub_max_le_abs _ _ _).trans ?_
+    rcases le_total C a with ha | ha <;> rcases le_total C b with hb | hb
+    · rw [min_eq_left ha, min_eq_left hb, sub_self, abs_zero]
+      exact abs_nonneg _
+    · rw [min_eq_left ha, min_eq_right hb, abs_le]
+      constructor <;> cases abs_cases (a - b) <;> linarith
+    · rw [min_eq_right ha, min_eq_left hb, abs_le]
+      constructor <;> cases abs_cases (a - b) <;> linarith
+    · rw [min_eq_right ha, min_eq_right hb]
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): an inverse of a continuous expanding map `g`
+(it is onto by `InertialBoundaryExist.surjective_of_expanding`). -/
+noncomputable def ginv (g : ℝ → ℝ) (hs : Function.Surjective g) (y : ℝ) : ℝ :=
+  Classical.choose (hs y)
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): `g(g⁻¹ y) = y`, and `g⁻¹` is measurable (it is
+monotone, `g` being strictly monotone). -/
+theorem ginv_props {g : ℝ → ℝ} {κ : ℝ} (hgc : Continuous g) (hκ : 0 < κ)
+    (hexp : ∀ a b, |a - b| + κ * |a - b| ^ 3 ≤ |g a - g b|) (hs : Function.Surjective g) :
+    (∀ y, g (ginv g hs y) = y) ∧ Measurable (ginv g hs) := by
+  have hspec : ∀ y, g (ginv g hs y) = y := fun y => Classical.choose_spec (hs y)
+  refine ⟨hspec, ?_⟩
+  obtain ⟨τ, -, hτ⟩ := TidyR6InertialAnyExpectation.exists_sign_of_expanding hgc hκ hexp
+  rcases le_or_gt 0 τ with hτ0 | hτ0
+  · refine Monotone.measurable fun a b hab => ?_
+    by_contra hlt
+    push Not at hlt
+    have := hτ _ _ hlt
+    rw [hspec, hspec] at this
+    rcases hτ0.lt_or_eq with h | h
+    · nlinarith
+    · rw [← h] at this
+      simp at this
+  · refine Antitone.measurable fun a b hab => ?_
+    by_contra hlt
+    push Not at hlt
+    have := hτ _ _ hlt
+    rw [hspec, hspec] at this
+    nlinarith
+
+/-! ### The bound sequence -/
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the bound sequence `b_0 = B₀`,
+`b_{k+1} + κ b_{k+1}³ = b_k`. -/
+noncomputable def bseq (κ B0 : ℝ) : ℕ → ℝ
+  | 0 => B0
+  | k + 1 => Classical.epsilon fun x => 0 ≤ x ∧ x + κ * x ^ 3 = bseq κ B0 k
+
+/-- Woodford (2003), App. A.3, p. 634 (tool): the bound sequence is nonnegative, satisfies
+`b_{k+1} + κ b_{k+1}³ = b_k`, and tends to `0`. -/
+theorem bseq_props {κ B0 : ℝ} (hκ : 0 < κ) (hB0 : 0 ≤ B0) :
+    (∀ k, 0 ≤ bseq κ B0 k) ∧ (∀ k, bseq κ B0 (k + 1) + κ * bseq κ B0 (k + 1) ^ 3 = bseq κ B0 k) ∧
+      Tendsto (bseq κ B0) atTop (𝓝 0) := by
+  have hex : ∀ b : ℝ, 0 ≤ b → ∃ x, 0 ≤ x ∧ x + κ * x ^ 3 = b := by
+    intro b hb
+    have hc : ContinuousOn (fun x : ℝ => x + κ * x ^ 3) (Set.Icc 0 b) := by fun_prop
+    have hmem : b ∈ Set.Icc ((fun x : ℝ => x + κ * x ^ 3) 0) ((fun x : ℝ => x + κ * x ^ 3) b) := by
+      simp only [Set.mem_Icc]
+      constructor
+      · simp only [ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow, mul_zero, add_zero]
+        exact hb
+      · have : 0 ≤ κ * b ^ 3 := by positivity
+        linarith
+    obtain ⟨x, hx, hxb⟩ := intermediate_value_Icc hb hc hmem
+    exact ⟨x, hx.1, hxb⟩
+  have h0 : ∀ k, 0 ≤ bseq κ B0 k ∧
+      (0 ≤ bseq κ B0 (k + 1) ∧ bseq κ B0 (k + 1) + κ * bseq κ B0 (k + 1) ^ 3 = bseq κ B0 k) := by
+    intro k
+    induction k with
+    | zero =>
+      exact ⟨hB0, Classical.epsilon_spec (hex _ hB0)⟩
+    | succ k ih =>
+      exact ⟨ih.2.1, Classical.epsilon_spec (hex _ ih.2.1)⟩
+  refine ⟨fun k => (h0 k).1, fun k => (h0 k).2.2, ?_⟩
+  have hanti : Antitone (bseq κ B0) := antitone_nat_of_succ_le fun k => by
+    have := (h0 k).2.2
+    have : 0 ≤ κ * bseq κ B0 (k + 1) ^ 3 := mul_nonneg hκ.le (pow_nonneg (h0 (k + 1)).1 3)
+    linarith
+  have hbb : BddBelow (Set.range (bseq κ B0)) := ⟨0, by rintro _ ⟨k, rfl⟩; exact (h0 k).1⟩
+  have ht := tendsto_atTop_ciInf hanti hbb
+  set L := ⨅ k, bseq κ B0 k with hL
+  have hL0 : 0 ≤ L := le_ciInf fun k => (h0 k).1
+  have ht1 : Tendsto (fun k => bseq κ B0 (k + 1) + κ * bseq κ B0 (k + 1) ^ 3) atTop
+      (𝓝 (L + κ * L ^ 3)) := by
+    have := ht.comp (tendsto_add_atTop_nat 1)
+    exact this.add ((this.pow 3).const_mul κ)
+  have heq : L + κ * L ^ 3 = L := by
+    refine tendsto_nhds_unique ht1 ?_
+    have : (fun k => bseq κ B0 (k + 1) + κ * bseq κ B0 (k + 1) ^ 3) = bseq κ B0 :=
+      funext fun k => (h0 k).2.2
+    rw [this]
+    exact ht
+  have hLz : L = 0 := by
+    have : κ * L ^ 3 = 0 := by linarith
+    rcases mul_eq_zero.mp this with h | h
+    · exact absurd h hκ.ne'
+    · exact pow_eq_zero_iff (by norm_num) |>.mp h
+  rwa [hLz] at ht
+
+/-! ### The backward solutions -/
+
+variable {Ω : Type*} [mΩ : MeasurableSpace Ω] {μ : Measure Ω} [IsProbabilityMeasure μ]
+
+variable (μ) in
+/-- Woodford (2003), App. A.3, p. 634 (the construction): the backward solution with horizon
+`t + k`, `V_0 = 0`, `V_{k+1}(t) = g⁻¹(clip_R(μ[V_k(t + 1) | 𝓕 t]) − f_t)`. -/
+noncomputable def backM (𝓕 : Filtration ℕ mΩ) (gi : ℝ → ℝ) (R : ℝ) (fc : ℕ → Ω → ℝ) :
+    ℕ → ℕ → Ω → ℝ
+  | 0, _ => fun _ => 0
+  | k + 1, t => fun ω => gi (clip R (μ[backM 𝓕 gi R fc k (t + 1) | 𝓕 t] ω) - fc t ω)
+
+set_option maxHeartbeats 3200000 in
+-- the construction, its almost-sure convergence and the verification of both conditions
+/-- **Existence and uniqueness on the boundary `φ_π ≠ 0` on a probability space** (Woodford
+(2003), Prop. 2.8, p. 96; App. A.3, pp. 632–634): with conditional expectations `μ[· | 𝓕 t]`, for
+the rule `Ψ(π, i) = φ_π π + h(i)` with `φ_π ≠ 0`, `h` continuous, `h(0) = 0` and the expanding
+diagonal `|g(i) − g(i')| ≥ |i − i'| + κ|i − i'|³`, for every initial rate and all integrable
+disturbances with `|r̂_t|, |ν_t| ≤ E₀` a.s. and `(1 + |φ_π|)E₀ ≤ κR³`, there is an equilibrium
+with `|î_t| ≤ R` a.s., and every equilibrium agrees with it a.s. at every date. -/
+theorem exists_unique_affine_measure (𝓕 : Filtration ℕ mΩ) {Ψ : ℝ × ℝ → ℝ} {φ κ R E0 : ℝ}
+    {h : ℝ → ℝ} (hΨ : ∀ π i, Ψ (π, i) = φ * π + h i) (hφ : φ ≠ 0) (hκ : 0 < κ) (hR : 0 ≤ R)
+    (hh : Continuous h) (hh0 : h 0 = 0)
+    (hexp : ∀ i i', |i - i'| + κ * |i - i'| ^ 3 ≤ |(φ * i + h i) - (φ * i' + h i')|)
+    (im1 : ℝ) {r ν : ℕ → Ω → ℝ} (hr : ∀ t, Integrable (r t) μ) (hν : ∀ t, Integrable (ν t) μ)
+    (hrb : ∀ t, ∀ᵐ ω ∂μ, |r t ω| ≤ E0) (hνb : ∀ t, ∀ᵐ ω ∂μ, |ν t ω| ≤ E0)
+    (hsmall : (1 + |φ|) * E0 ≤ κ * R ^ 3) :
+    ∃ π i : ℕ → Ω → ℝ, MeasEq μ 𝓕 Ψ im1 r ν π i ∧ (∀ t, ∀ᵐ ω ∂μ, |i t ω| ≤ R) ∧
+      ∀ π' i' : ℕ → Ω → ℝ, MeasEq μ 𝓕 Ψ im1 r ν π' i' →
+        ∀ t, π' t =ᵐ[μ] π t ∧ i' t =ᵐ[μ] i t := by
+  set g : ℝ → ℝ := fun z => φ * z + h z with hg
+  have hgc : Continuous g := (continuous_const.mul continuous_id).add hh
+  have hg0 : g 0 = 0 := by simp only [hg, mul_zero, hh0, add_zero]
+  have hexp' : ∀ a b, |a - b| + κ * |a - b| ^ 3 ≤ |g a - g b| := hexp
+  have hs := surjective_of_expanding hgc hκ hexp'
+  obtain ⟨hgi, hgim⟩ := ginv_props hgc hκ hexp' hs
+  set gi := ginv g hs with hgidef
+  have hE0 : 0 ≤ E0 := by
+    obtain ⟨ω, hω⟩ := (hrb 0).exists
+    exact (abs_nonneg _).trans hω
+  set F0 := (1 + |φ|) * E0 with hF0def
+  have hF0 : 0 ≤ F0 := by positivity
+  obtain ⟨hcR, hbR, hidR, hlipR⟩ := clip_props hR
+  obtain ⟨hcF, hbF, hidF, -⟩ := clip_props hF0
+  set f : ℕ → Ω → ℝ := fun t => μ[ν (t + 1) - φ • r t | 𝓕 t] with hf
+  have hfb : ∀ t, ∀ᵐ ω ∂μ, |f t ω| ≤ F0 := by
+    intro t
+    refine ae_bdd_abs_condExp_of_ae_bdd_abs ?_
+    filter_upwards [hνb (t + 1), hrb t] with ω h1 h2
+    simp only [Pi.sub_apply, Pi.smul_apply, smul_eq_mul]
+    calc |ν (t + 1) ω - φ * r t ω| ≤ |ν (t + 1) ω| + |φ| * |r t ω| := by
+          rw [← abs_mul]; exact abs_sub _ _
+      _ ≤ E0 + |φ| * E0 := add_le_add h1 (mul_le_mul_of_nonneg_left h2 (abs_nonneg φ))
+      _ = F0 := by rw [hF0def]; ring
+  set fc : ℕ → Ω → ℝ := fun t ω => clip F0 (f t ω) with hfc
+  set V := backM μ 𝓕 gi R fc with hV
+  have hV0 : ∀ t, V 0 t = fun _ => 0 := fun _ => rfl
+  have hVs : ∀ k t ω, g (V (k + 1) t ω) = clip R (μ[V k (t + 1) | 𝓕 t] ω) - fc t ω :=
+    fun k t ω => hgi _
+  have hVm : ∀ k t, StronglyMeasurable[𝓕 t] (V k t) := by
+    intro k t
+    cases k with
+    | zero => exact stronglyMeasurable_const
+    | succ k =>
+      have h1 : Measurable[𝓕 t] (fun ω => clip R (μ[V k (t + 1) | 𝓕 t] ω) - fc t ω) :=
+        (hcR.measurable.comp stronglyMeasurable_condExp.measurable).sub
+          (hcF.measurable.comp stronglyMeasurable_condExp.measurable)
+      exact (hgim.comp h1).stronglyMeasurable
+  have hVb : ∀ k t ω, |V k t ω| ≤ R := by
+    intro k t ω
+    cases k with
+    | zero => rw [hV0, abs_zero]; exact hR
+    | succ k =>
+      have he := hexp' (V (k + 1) t ω) 0
+      rw [sub_zero, hg0, sub_zero, hVs] at he
+      have h1 : |clip R (μ[V k (t + 1) | 𝓕 t] ω) - fc t ω| ≤ R + F0 :=
+        (abs_sub _ _).trans (add_le_add (hbR _) (hbF _))
+      by_contra hc
+      push Not at hc
+      have h3 : R ^ 3 < |V (k + 1) t ω| ^ 3 := pow_lt_pow_left₀ hc hR (by norm_num)
+      have h4 := mul_lt_mul_of_pos_left h3 hκ
+      linarith
+  have hVI : ∀ k t, Integrable (V k t) μ := fun k t =>
+    integrable_of_known (hVm k t) (Eventually.of_forall (hVb k t))
+  -- almost-sure Cauchy property
+  set b := bseq κ (2 * R) with hb
+  obtain ⟨hb0, hbstep, hbto⟩ := bseq_props hκ (by positivity : (0 : ℝ) ≤ 2 * R)
+  have hcau : ∀ k t m, ∀ᵐ ω ∂μ, |V k t ω - V (k + m) t ω| ≤ b k := by
+    intro k
+    induction k with
+    | zero =>
+      intro t m
+      refine Eventually.of_forall fun ω => ?_
+      rw [hV0, zero_add]
+      change |0 - V m t ω| ≤ bseq κ (2 * R) 0
+      simp only [bseq, zero_sub, abs_neg]
+      linarith [hVb m t ω]
+    | succ k ih =>
+      intro t m
+      have hc := ae_bdd_abs_condExp_of_ae_bdd_abs (m := 𝓕 t) (ih (t + 1) m)
+      filter_upwards [hc, condExp_sub (hVI k (t + 1)) (hVI (k + m) (t + 1)) (𝓕 t)] with ω h1 h2
+      have h1' : |μ[V k (t + 1) | 𝓕 t] ω - μ[V (k + m) (t + 1) | 𝓕 t] ω| ≤ b k := by
+        have e : (fun ω => V k (t + 1) ω - V (k + m) (t + 1) ω) = V k (t + 1) - V (k + m) (t + 1) :=
+          rfl
+        rw [e, h2] at h1
+        exact h1
+      have he := hexp' (V (k + 1) t ω) (V (k + m + 1) t ω)
+      rw [hVs, hVs] at he
+      have hl := hlipR (μ[V k (t + 1) | 𝓕 t] ω) (μ[V (k + m) (t + 1) | 𝓕 t] ω)
+      have e2 : clip R (μ[V k (t + 1) | 𝓕 t] ω) - fc t ω -
+          (clip R (μ[V (k + m) (t + 1) | 𝓕 t] ω) - fc t ω) =
+          clip R (μ[V k (t + 1) | 𝓕 t] ω) - clip R (μ[V (k + m) (t + 1) | 𝓕 t] ω) := by ring
+      rw [e2] at he
+      have hΦ : |V (k + 1) t ω - V (k + m + 1) t ω| +
+          κ * |V (k + 1) t ω - V (k + m + 1) t ω| ^ 3 ≤ b (k + 1) + κ * b (k + 1) ^ 3 := by
+        rw [hbstep k]
+        linarith
+      rw [show k + 1 + m = k + m + 1 by omega]
+      by_contra hcon
+      push Not at hcon
+      have h3 : b (k + 1) ^ 3 < |V (k + 1) t ω - V (k + m + 1) t ω| ^ 3 :=
+        pow_lt_pow_left₀ hcon (hb0 _) (by norm_num)
+      have h4 := mul_lt_mul_of_pos_left h3 hκ
+      linarith
+  have hcau' : ∀ t, ∀ᵐ ω ∂μ, ∀ k m, |V k t ω - V (k + m) t ω| ≤ b k := fun t =>
+    ae_all_iff.mpr fun k => ae_all_iff.mpr fun m => hcau k t m
+  -- the limit
+  set i : ℕ → Ω → ℝ := fun t ω => limUnder atTop (fun k => V k t ω) with hi
+  have him : ∀ t, StronglyMeasurable[𝓕 t] (i t) := fun t =>
+    @StronglyMeasurable.limUnder ℕ Ω ℝ (𝓕 t) _ _ atTop _ (fun k => V k t) _ _
+      (fun k => hVm k t)
+  have hconv : ∀ t, ∀ᵐ ω ∂μ, ∀ k, |V k t ω - i t ω| ≤ b k := by
+    intro t
+    filter_upwards [hcau' t] with ω hω
+    have hcs : CauchySeq fun k => V k t ω :=
+      cauchySeq_of_le_tendsto_0 (fun N => 2 * b N) (fun n m N hn hm => by
+        rw [Real.dist_eq]
+        have h1 := hω N (n - N)
+        have h2 := hω N (m - N)
+        rw [show N + (n - N) = n by omega] at h1
+        rw [show N + (m - N) = m by omega] at h2
+        refine (abs_sub_le _ (V N t ω) _).trans ?_
+        rw [abs_sub_comm (V n t ω)]
+        linarith) (by simpa using hbto.const_mul 2)
+    obtain ⟨c, hc⟩ := cauchySeq_tendsto_of_complete hcs
+    have hic : i t ω = c := hc.limUnder_eq
+    intro k
+    rw [hic]
+    have ht : Tendsto (fun m => |V k t ω - V (m + k) t ω|) atTop (𝓝 |V k t ω - c|) :=
+      (tendsto_const_nhds.sub (hc.comp (tendsto_add_atTop_nat k))).abs
+    refine le_of_tendsto' ht fun m => ?_
+    have := hω k m
+    rwa [add_comm k m] at this
+  have hib : ∀ t, ∀ᵐ ω ∂μ, |i t ω| ≤ R := by
+    intro t
+    filter_upwards [hconv t] with ω hω
+    have ht : Tendsto (fun k => V k t ω) atTop (𝓝 (i t ω)) :=
+      tendsto_iff_dist_tendsto_zero.mpr (squeeze_zero (fun k => dist_nonneg)
+        (fun k => by rw [Real.dist_eq]; exact hω k) hbto)
+    exact le_of_tendsto' ht.abs fun k => hVb k t ω
+  have hiI : ∀ t, Integrable (i t) μ := fun t => integrable_of_known (him t) (hib t)
+  -- the law of motion of the interest rate
+  have heq : ∀ t, ∀ᵐ ω ∂μ, μ[i (t + 1) | 𝓕 t] ω = g (i t ω) + f t ω := by
+    intro t
+    have h1 : ∀ k, ∀ᵐ ω ∂μ, |μ[V k (t + 1) | 𝓕 t] ω - μ[i (t + 1) | 𝓕 t] ω| ≤ b k := by
+      intro k
+      have hc := ae_bdd_abs_condExp_of_ae_bdd_abs (m := 𝓕 t)
+        ((hconv (t + 1)).mono fun ω h => h k)
+      filter_upwards [hc, condExp_sub (hVI k (t + 1)) (hiI (t + 1)) (𝓕 t)] with ω h2 h3
+      have e : (fun ω => V k (t + 1) ω - i (t + 1) ω) = V k (t + 1) - i (t + 1) := rfl
+      rw [e, h3] at h2
+      exact h2
+    have h2 : ∀ k, ∀ᵐ ω ∂μ, |μ[V k (t + 1) | 𝓕 t] ω| ≤ R := fun k =>
+      ae_bdd_abs_condExp_of_ae_bdd_abs (Eventually.of_forall (hVb k (t + 1)))
+    filter_upwards [ae_all_iff.mpr h1, ae_all_iff.mpr h2, hfb t, hconv t] with ω e1 e2 e3 e4
+    have hk : ∀ k, g (V (k + 1) t ω) = μ[V k (t + 1) | 𝓕 t] ω - f t ω := fun k => by
+      rw [hVs, hidR _ (e2 k), hfc]
+      simp only [hidF _ e3]
+    have hVt : Tendsto (fun k => V k t ω) atTop (𝓝 (i t ω)) :=
+      tendsto_iff_dist_tendsto_zero.mpr (squeeze_zero (fun k => dist_nonneg)
+        (fun k => by rw [Real.dist_eq]; exact e4 k) hbto)
+    have hA : Tendsto (fun k => g (V (k + 1) t ω)) atTop (𝓝 (g (i t ω))) :=
+      (hgc.tendsto _).comp (hVt.comp (tendsto_add_atTop_nat 1))
+    have hB : Tendsto (fun k => μ[V k (t + 1) | 𝓕 t] ω - f t ω) atTop
+        (𝓝 (μ[i (t + 1) | 𝓕 t] ω - f t ω)) := by
+      refine Tendsto.sub_const ?_ _
+      exact tendsto_iff_dist_tendsto_zero.mpr (squeeze_zero (fun k => dist_nonneg)
+        (fun k => by rw [Real.dist_eq]; exact e1 k) hbto)
+    have hfun : (fun k => g (V (k + 1) t ω)) = fun k => μ[V k (t + 1) | 𝓕 t] ω - f t ω :=
+      funext hk
+    rw [hfun] at hA
+    have := tendsto_nhds_unique hB hA
+    linarith
+  -- inflation
+  set L := max R |im1| with hL
+  obtain ⟨Ch, hCh⟩ := (isCompact_Icc (a := -L) (b := L)).exists_bound_of_continuousOn
+    hh.continuousOn
+  set π : ℕ → Ω → ℝ := fun t ω => (i t ω - h (lagI im1 i t ω) - μ[ν t | 𝓕 t] ω) / φ with hπ
+  have hhlm : ∀ t, StronglyMeasurable[𝓕 t] (fun ω => h (lagI im1 i t ω)) := fun t =>
+    hh.comp_stronglyMeasurable (lagI_known him t)
+  have hhlb : ∀ t, ∀ᵐ ω ∂μ, |h (lagI im1 i t ω)| ≤ Ch := by
+    intro t
+    filter_upwards [lagI_bound (im1 := im1) hib t] with ω hω
+    have := hCh _ ⟨(abs_le.mp hω).1, (abs_le.mp hω).2⟩
+    rwa [Real.norm_eq_abs] at this
+  have hπm : ∀ t, StronglyMeasurable[𝓕 t] (π t) := fun t =>
+    ((((him t).sub (hhlm t)).sub (stronglyMeasurable_condExp (μ := μ)
+      (f := ν t))).measurable.div_const φ).stronglyMeasurable
+  have hνc : ∀ t, ∀ᵐ ω ∂μ, |μ[ν t | 𝓕 t] ω| ≤ E0 := fun t =>
+    ae_bdd_abs_condExp_of_ae_bdd_abs (hνb t)
+  set Mπ := (R + Ch + E0) / |φ| with hMπ
+  have hπb : ∀ t, ∀ᵐ ω ∂μ, |π t ω| ≤ Mπ := by
+    intro t
+    filter_upwards [hib t, hhlb t, hνc t] with ω h1 h2 h3
+    simp only [hπ, abs_div]
+    exact div_le_div_of_nonneg_right ((abs_sub _ _).trans
+      (add_le_add ((abs_sub _ _).trans (add_le_add h1 h2)) h3)) (abs_nonneg φ)
+  have hπI : ∀ t, Integrable (π t) μ := fun t => integrable_of_known (hπm t) (hπb t)
+  have hMeq : MeasEq μ 𝓕 Ψ im1 r ν π i := by
+    refine ⟨fun t => ⟨hπm t, him t⟩, ⟨max Mπ R, fun t => ?_⟩, fun t => ?_, fun t => ?_⟩
+    · filter_upwards [hπb t, hib t] with ω h1 h2
+      exact ⟨h1.trans (le_max_left _ _), h2.trans (le_max_right _ _)⟩
+    · -- the Fisher equation
+      have hHm : StronglyMeasurable[𝓕 t] (fun ω => h (i t ω)) :=
+        hh.comp_stronglyMeasurable (him t)
+      have hHb : ∀ᵐ ω ∂μ, |h (i t ω)| ≤ Ch := hhlb (t + 1)
+      have hHI : Integrable (fun ω => h (i t ω)) μ := integrable_of_known hHm hHb
+      have hπe : π (t + 1) =
+          φ⁻¹ • (i (t + 1) - (fun ω => h (i t ω)) - μ[ν (t + 1) | 𝓕 (t + 1)]) := by
+        funext ω
+        simp only [hπ, lagI, Pi.smul_apply, Pi.sub_apply, smul_eq_mul]
+        rw [div_eq_inv_mul]
+      have e1 := condExp_smul (m := 𝓕 t) (μ := μ) φ⁻¹
+        (i (t + 1) - (fun ω => h (i t ω)) - μ[ν (t + 1) | 𝓕 (t + 1)])
+      have e2 := condExp_sub ((hiI (t + 1)).sub hHI) (integrable_condExp (m := 𝓕 (t + 1))
+        (f := ν (t + 1))) (𝓕 t)
+      have e3 := condExp_sub (hiI (t + 1)) hHI (𝓕 t)
+      have e4 : μ[fun ω => h (i t ω) | 𝓕 t] = fun ω => h (i t ω) :=
+        condExp_of_stronglyMeasurable (𝓕.le t) hHm hHI
+      have e5 : μ[μ[ν (t + 1) | 𝓕 (t + 1)] | 𝓕 t] =ᵐ[μ] μ[ν (t + 1) | 𝓕 t] :=
+        condExp_condExp_of_le (𝓕.mono (Nat.le_succ t)) (𝓕.le (t + 1))
+      have e6 := condExp_sub (hν (t + 1)) ((hr t).smul φ) (𝓕 t)
+      have e7 := condExp_smul (m := 𝓕 t) (μ := μ) φ (r t)
+      have hπμ : μ[π (t + 1) | 𝓕 t] =ᵐ[μ] fun ω => i t ω - μ[r t | 𝓕 t] ω := by
+        rw [hπe]
+        filter_upwards [e1, e2, e3, e5, e6, e7, heq t] with ω h1 h2 h3 h5 h6 h7 h9
+        rw [h1]
+        simp only [Pi.smul_apply, smul_eq_mul]
+        rw [h2]
+        simp only [Pi.sub_apply]
+        rw [h3]
+        simp only [Pi.sub_apply]
+        rw [e4, h5, h9]
+        have hf' : f t ω = μ[ν (t + 1) | 𝓕 t] ω - φ * μ[r t | 𝓕 t] ω := by
+          simp only [hf]
+          rw [h6]
+          simp only [Pi.sub_apply]
+          rw [h7]
+          simp only [Pi.smul_apply, smul_eq_mul]
+        rw [hf']
+        simp only [hg]
+        field_simp
+        ring
+      have hk := condExp_known_sub (him t) (hib t) (hπI (t + 1))
+      have hs := condExp_sub ((hiI t).sub (hπI (t + 1))) (hr t) (𝓕 t)
+      filter_upwards [hs, hk, hπμ] with ω h1 h2 h3
+      rw [h1, Pi.sub_apply, h2, Pi.sub_apply, h3, Pi.zero_apply]
+      ring
+    · -- the rule
+      have hfun : (i t - (fun ω => Ψ (π t ω, lagI im1 i t ω)) - ν t) = μ[ν t | 𝓕 t] - ν t := by
+        funext ω
+        simp only [Pi.sub_apply, hΨ, hπ]
+        field_simp
+        ring
+      rw [hfun]
+      have hcc : μ[μ[ν t | 𝓕 t] | 𝓕 t] = μ[ν t | 𝓕 t] :=
+        condExp_of_stronglyMeasurable (𝓕.le t) stronglyMeasurable_condExp integrable_condExp
+      filter_upwards [condExp_sub (integrable_condExp (m := 𝓕 t) (f := ν t)) (hν t) (𝓕 t)]
+        with ω h1
+      rw [h1, Pi.sub_apply, hcc, sub_self, Pi.zero_apply]
+  exact ⟨π, i, hMeq, hib, fun π' i' he' t =>
+    unique_affine_measure hΨ hφ hκ hh hexp hr hν he' hMeq t⟩
+
+end Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist
+
 set_option linter.style.longLine false
 #print axioms Woodford.PriceLevelDetermination.SchurStable
 #print axioms Woodford.PriceLevelDetermination.disc
@@ -39734,3 +48556,279 @@ set_option linter.style.longLine false
 #print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_nonlinear
 #print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_of_count_gt
 #print axioms Woodford.PriceLevelDetermination.LocalIFTSystemsStochasticSunspots.random_sunspot_of_opS
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.BoundedBelow
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.boundedBelow_iff
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.boundedBelow_of_isUnit
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.eq_zero_of_push
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.phi_mv
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.phi_identity
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.pf_bound
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.abs_innov_le
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.innov_bound
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.opS_boundedBelow
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.sysOp_boundedBelow_of_opS
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.opS_boundedBelow_iff
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.unique_of_boundedBelow
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.no_sunspot_of_boundedBelow
+#print axioms Woodford.PriceLevelDetermination.SunspotsBoundedBelow.sunspot_iff_of_surjective
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.known_comp
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.pA
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.pC
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.linOp_of_fderiv
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.brProc
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.norm_brProc_le
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.solvesSV_brProc
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Glag
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.contDiff_Glag
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.fderiv_Glag
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.linOp_Glag
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.boundedBelow_linOp_Glag
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.not_surjective_linOp_Glag
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Glag_unique
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gatt
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Grep
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.contDiff_Gatt_Grep
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.fderiv_Gatt_Grep
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.linOp_Gatt_Grep
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.not_injective_linOp_unit
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.not_surjective_linOp_unit
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.not_isClosed_range_unit
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.abs_att_le
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.attPath
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.abs_attPath_le
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gatt_random_sunspot
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Grep_E
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Grep_unique
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.unit_root_undecided
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gcub
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gsta
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.linOp_Gcub_Gsta
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gcub_random_sunspot
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.Gsta_unique
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoExamples.singular_pencil_undecided
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.eq0_of_solves
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.eq1_of_solves
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.lag_known
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.random_sunspot_of_diag
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.flatSun
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.random_sunspot_of_flat
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.jumpSeq
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.jumpP
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.solvesSV_jump
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.unique_affine
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.cube_gap
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.cbrt_nonneg
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.sub_le_cbrt
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.pow_le_of_le_cbrt
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.unique_cube
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.no_eq_flat
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.resShock
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.norm_resShock_le
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.no_eq_unit
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.ruleLin
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.ruleCubI
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.ruleCubPi
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.rules_slopes
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.expand_cubic
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.boundary_unit_circle
+#print axioms Woodford.PriceLevelDetermination.InertialBoundary.boundary_flat
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.prL
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.prN
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.prF
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.brProc2
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.norm_brProc2_le
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.solvesSV_brProc2
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hdamp
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hgrow
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.LH
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.hasFDerivAt_H
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.linOp_H
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.injective_linOp_H
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.not_boundedBelow_linOp_H
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.not_isClosed_range_linOp_H
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.dampXY
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.dampXY_bound
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hdamp_odd
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hdamp_random_sunspot
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Hgrow_unique
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.injective_nonclosed_undecided
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fsun
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fnone
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.LF
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.hasFDerivAt_F
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.linOp_F
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.kF
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.ker_linOp_F
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.geom_sum
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.abs_apply_le_seq
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.phiF
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.linOp_F_x
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.linOp_F_y
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.xsF
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.abs_xsF_le
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.ysF
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.fwd_split
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.range_linOp_F
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.fredholm_linOp_F
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fsun_odd
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fsun_random_sunspot
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.Fnone_unique
+#print axioms Woodford.PriceLevelDetermination.SunspotsNotOntoMore.fredholm_undecided
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.phi_mono
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.injective_of_expanding
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.surjective_of_expanding
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.gInv
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.gInv_spec
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.backW
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.backW_spec
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.abs_backW_le
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.backW_known
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.dist_k
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.backW_cauchy
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.exists_expanding
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.unique_expanding
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.forceA
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.forceA_known
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.abs_forceA_le
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.affine_i_rec
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.exists_unique_affine
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.resonant_cube_root
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExist.exists_unique_cube_pf
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.cbrt_strictMono
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.cbrt_cube
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.cbrt_neg
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.cbrt_le_of_le_pow
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.abs_cbrt_sub_le
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.E_eq_of_eqOn_cell
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.iterB
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.exists_limit_backward
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_anti
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_lip
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_continuous
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_root
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.hres_inj
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.Tcube
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.Tcube_spec
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.Tcube_cell
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.abs_Tcube_le
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.contract_aux
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.Tcube_contract
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.rel_Tcube
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.exists_unique_cube
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.zRes
+#print axioms Woodford.PriceLevelDetermination.InertialBoundaryExistCube.resonant_cube_root_pi
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.Gfwd
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.known_vec
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.fwd_E
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.eq_zero_of_annulus
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.RepelAnn
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.eq_zero_of_norm
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.unique_of_repelAnn
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.unique_of_repelAnn_global
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.coin_E_late
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.coin_step_late
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.coin_eq_zero_of_two_step
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.no_coin_sunspot_of_two_step
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.pathProc
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.norm_pathProc_le
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.solvesSV_pathProc
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.orb
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.norm_orb_le
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.orb_succ
+#print axioms Woodford.PriceLevelDetermination.TidyR6ForwardSunspots.coin_sunspot_of_pair
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.lift
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.norm_fin1
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.lift_comp
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.CoinSunspots
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.repelAnn_lift
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.bound_of_isLittleO
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.hasDerivAt_of_expansion
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.near_lip
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.comp_expansion
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.lower_of_expansion
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.side_estimate
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.coinSunspots_of_side
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.not_coinSunspots_of_repel
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.coin_sunspots_iff
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.unique_of_one_step
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.unit_root_criterion
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.flip_root_criterion
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.gFlipA
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.gFlipB
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.flip_even_undecided
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.fl
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.gm
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.gp
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.glue_le
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.fl_cases
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.abs_gp_gm
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.contDiff_fl
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.flat_of_eqOn
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.fl_flat
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.hasDerivAt_fl
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.fderiv_Gfwd_lift
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalCriterion.flat_undecided
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic.coinSunspots_of_involutive
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic.expansion_of_factor
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic.analytic_dichotomy
+#print axioms Woodford.PriceLevelDetermination.TidyR6CriticalAnalytic.analytic_coin_sunspots_iff
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.strict_bound
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.pi_gap
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.pi_bounds
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.hasDerivAt_diag
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.rule_pathwise
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.fisher_E
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_unique_of_repel
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.InertialCoinSunspots
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_no_coin_sunspot
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.dorb
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.abs_dorb_le
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertProc
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.solvesSV_inertProc
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_coin_sunspot_of_side
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_coin_iff
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.inertial_diag_criterion
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialEveryRule.ruleCubI_criterion
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnalytic.inertial_coin_sunspot_of_involutive
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnalytic.inertial_analytic_iff
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.conc_lower
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.conc_upper
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.exists_sign_of_expanding
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.unique_affine_any
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.boundary_affine_any
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.unique_affine_skew
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.cube_known_of_pullOut
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.unique_cube_of_cube_known
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExpectation.unique_cube_pullOut
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.damp_lip
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.eq_zero_of_le_geom
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.stepIter
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.step_solve
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.step_contract
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.stepMap
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.backV
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.exists_expanding_any
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.exists_unique_affine_any
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialAnyExist.boundary_affine_any_shocks
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.ae_push
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.lagI
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.MeasEq
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.integrable_of_known
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.condExp_known_sub
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.lagI_known
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.lagI_bound
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.fisher_ae
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.rule_ae_affine
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.unique_affine_measure
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.rule_ae_cube
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.antitone_cbrt_bound
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasure.unique_cube_measure
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.clip
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.clip_props
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.ginv
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.ginv_props
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.bseq
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.bseq_props
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.backM
+#print axioms Woodford.PriceLevelDetermination.TidyR6InertialMeasureExist.exists_unique_affine_measure

@@ -12,7 +12,7 @@ sums over bounded plans. Every optimality claim is proved as optimality: a feasi
 the first-order conditions minimises the expected loss over all bounded feasible plans (Lagrangian
 sufficiency), with uniqueness from strict convexity. "Optimal from a timeless perspective" and
 "robustly optimal" are given precise definitions and proved. "Unique equilibrium" means unique
-among bounded adapted processes. The library contains **1827 theorems**, including the shared
+among bounded adapted processes. The library contains **3314 theorems**, including the shared
 core.
 
 The general Giannoni–Woodford theory of §§1.4–1.5 (Propositions 8.1–8.4), which the book states
@@ -27,8 +27,20 @@ Headline results, in the namespace `Woodford.OptimalPolicyRules`:
   `GeneralFOC.lagrangian_sufficiency`); the timeless and robust optimality definitions
   (`GeneralSetup.LQProblem.TimelesslyOptimalPlan`, `GeneralSetup.RobustlyOptimal`); the root
   pairing of fn 8 and a counterexample to its "exactly half" (`GeneralFOC.Pencil.pencil_det_pairing`,
-  `GeneralFOC.Pencil.fn8_counterexample`); the target criterion (1.23) through the adjugate, with
-  the corrected degree of `α(L)` (`TargetCriterion.Crit.eq123_adjugate`,
+  `GeneralFOC.Pencil.fn8_counterexample`), with the corrected count `2L + C = 2n`, so exactly half
+  iff no root lies on `|ν| = β^{−1/2}` (`TidyR5aExactlyHalf.two_lower_add_circle`,
+  `TidyR5aExactlyHalf.lower_eq_half_iff`); necessity of the first-order conditions, which the book
+  asserts without proof, state by state with faithful expectations and in conditional mean square
+  without them, faithfulness being needed for the pointwise form (`TidyR5bFOCNecessity.foc_necessary`,
+  `TidyR5bFOCMeanSq.foc_necessary_meanSq`, `TidyR5bFaithNeeded.faithful_needed`), hence (1.10)–(1.12)
+  exactly (`TidyR5bFOCNecessity.restated_iff_affine`), and on every filtered probability space
+  with Mathlib's `condExp`, with no further hypothesis, where optimality subject to (1.6) is
+  equivalent to the first-order conditions with `M_{t₀−1}` known at `t₀`
+  (`TidyR6bFOCMeasure.m_foc_necessary`, `TidyR6bFOCMeasure.m_optimalSubjectTo_iff`); the exogenous-instrument determinacy claim of
+  p. 546 for every `Ẽ`, with genericity and no unit-circle root, counting finite roots only
+  (`TidyR5aExoSingular.Sys.exoDeterminate_iff_count`,
+  `TidyR5aExoSingular.Sys.not_exoDeterminate_of_pencil_zero`); the target criterion (1.23)
+  through the adjugate, with the corrected degree of `α(L)` (`TargetCriterion.Crit.eq123_adjugate`,
   `Adjugate.natDegree_alpha_le_rank`, `Adjugate.nilpotent_counterexample`); Proposition 8.2
   conditional on Proposition 8.1 (`TargetCriterion.Prop82.prop82_optimal`,
   `TargetCriterion.Prop82.prop82_unique`); the lemma behind (1.30) ⇔ (1.31) for polynomials of any
@@ -41,7 +53,14 @@ Headline results, in the namespace `Woodford.OptimalPolicyRules`:
   determinate exactly when every root of a cubic lies outside an ellipse, which fails for some
   admissible parameters (`InflTargetStickyWages.foc_imp_criterion`,
   `InflTargetStickyWages.criterion_determinacy_iff_stableRoots`,
-  `InflTargetStickyWages.P1_criterion_not_determinate`); (2.22) robustly optimal for `κ_w = κ_p`
+  `InflTargetStickyWages.P1_criterion_not_determinate`), the exact region holding under every
+  expectation system and on every filtered probability space
+  (`TidyR5bStickyBoundary.determinacy_iff_stableRoots_any`, `TidyR5bStickyExists.exists_meas_iff_stableRoots`),
+  on a probability space with existence and a.s. uniqueness for every essentially bounded
+  `𝓕₀`-measurable initial values (`TidyR6bStickyGeneral.existsUniqueM_iff_stableRoots`); the
+  criterion (2.5) necessary for timeless
+  optimality under uncertainty (`TidyR5bInertiaNecessity.timeless_iff_criterion`,
+  `TidyR5bInertiaNecessity.timeless_criterion_meanSq`); (2.22) robustly optimal for `κ_w = κ_p`
   (`InflTargetStickyWages.sym_robustlyOptimal`); (2.27) robustly optimal for every `0 ≤ δ < 1`
   (`InflTargetHabit.habit_robustlyOptimal`); (2.32) and (2.34) with predetermined decisions
   (`InflTargetPredetermined.eq232_optimal_rule`, `InflTargetPredetermined.eq234_of_optimal`); the
@@ -49,24 +68,145 @@ Headline results, in the namespace `Woodford.OptimalPolicyRules`:
 * **Optimal interest-rate rules.** Proposition 8.5 holds for every admissible parameter vector:
   the model's characteristic polynomial never has a root in `1 ≤ |μ| ≤ β⁻¹`, so the rule is always
   determinate and the book's hypothesis is redundant (`IRuleBasic.rule_determinate`,
-  `IRuleBasic.pG_ne_zero_of_annulus`, `IRuleBasic.bounded_optimum_exists`, `IRuleBasic.prop_8_5`);
+  `IRuleBasic.pG_ne_zero_of_annulus`, `IRuleBasic.bounded_optimum_exists`, `IRuleBasic.prop_8_5`),
+  also with bounded random pre-sample values known at date 0, where the rule stays optimal from a
+  timeless perspective (`TidyR6aRuleRandomHistory.rule_determinate_random`,
+  `TidyR6aRuleRandomHistory.rule_eqm_optimal_random`), and on every filtered probability space
+  (`TidyR6bLambdaILimitExists.rule_eqm_existsM`, `TidyR6bLambdaILimitExists.rule_eqm_uniqueM`);
   the rule equilibrium is the unique optimum (`IRuleBasic.rule_eqm_unique_optimum`);
   Proposition 8.6 and the target criterion (3.13) (`IRuleForwardIntegrated.prop_8_6`,
   `IRuleForwardIntegrated.rule_iff_crit313`); Proposition 8.7 (`CubicRoots.prop_8_7`); the
-  rule system of p. 593 is determinate (uniqueness) for every admissible parameter vector, by
-  strict convexity rather than a root count (`InflationInertiaRules.rule_system_unique`,
-  `InflationInertiaRules.rule_system_determinate`); Propositions 8.8–8.11, unconditional
+  rule system of p. 593 has at most one bounded solution for every admissible parameter vector,
+  by strict convexity rather than a root count (`InflationInertiaRules.rule_system_unique`,
+  `InflationInertiaRules.rule_system_determinate`), and for every `0 ≤ γ ≤ 1` exactly one for
+  every bounded disturbance and history, built from the bounded optimal plan
+  (`TidyRuleSystem.rule_system_existsUnique`, `TidyRuleSystem.rule_system_exists_iff`), also at
+  `λₓ = 0` (`TidyR5aLambdaXZero.rule_system_existsUnique_nonneg`), and on every filtered
+  probability space for every `λₓ ≥ 0` (`TidyR6bRuleSystemMeasure.rule_system_existsUniqueM_nonneg`);
+  the equilibrium paths converge to
+  the Chapter 7 paths as `λ_i → 0`, uniformly over dates and states (p. 591;
+  `TidyR5aLambdaILimit.paths_converge`, `TidyR5aLambdaILimitMeasure.paths_convergeM`), on a
+  probability space with no existence hypothesis (`TidyR6bLambdaILimitExists.paths_convergeM_exists`);
+  Rule III is
+  robustly optimal at the full stochastic level (`TidyR5aRuleIIIStochastic.Inertia.ruleIII_prop82_B`,
+  `TidyR5aRuleIIIMeasure.AllCases.m_prop82_III_all`), and optimal from a timeless perspective on
+  every VAR economy (`TidyR6bRuleIIIVar.AllCases.m_prop82_III_all_var`);
+  Propositions 8.8–8.11, unconditional
   (`InflationInertiaRules.prop_8_8_ruleIII`, `Links.prop_8_9_ruleIII_standing`,
   `Links.prop_8_10_standing`, `Links.prop_8_11_standing`), with their limits as `γ → 0` and
   `γ → 1` along the actual roots (`Links.prop_8_9_ruleI_limit_standing`,
   `Links.prop_8_11_limit_one_standing`); the delayed-information versions (3.29)–(3.31)
   (`Links.eq316_delay_iff_target331`); the reaction function (4.1) implements the optimal policy
   (`Reflections.rule41_timelesslyOptimal`).
+* **The generalised Taylor principle (p. 585; Ch. 4, (2.9) and fn 27).** For a general rule with
+  any number of lags the principle `φπ(1) + (1 − β)φₓ(1)/(4κ) > 1 − ρ(1)` holds iff the symbol of
+  the system at `μ = 1` has positive determinant, `det = κσ · gap`, and its boundary is exactly
+  where the system has the eigenvalue 1 (`Tidy.TaylorPrinciple.det_symOne`,
+  `Tidy.TaylorPrinciple.unit_root_iff`, `Tidy.TaylorPrinciple.shift_solves_iff`). For rules of the
+  form (3.7) it reduces to `φπ + ρ₁ > 1` (`Tidy.TaylorPrinciple.gtp37_iff`); the optimal rule
+  satisfies it at every admissible calibration, with slack `κσ/λᵢ + κσ/β`, and its cumulative
+  response to a permanent rise in inflation tends to `+∞` (`Tidy.TaylorPrinciple.rule37_gtp`,
+  `Tidy.TaylorPrinciple.rule37_gtp_determinate`, `Tidy.TaylorPrinciple.rule37_step_tendsto`).
+  Within the family (3.7), with Blanchard–Kahn determinacy of the (singular) pencil, the principle
+  is necessary for determinacy when `φπ, φₓ ≥ 0` and `1 + ρ₁ + 2ρ₂ > 0`, which covers the book's
+  signs (`TidyR6aTaylorNecessity.gtp_necessary`), and not necessary in general: `ρ₁ = ρ₂ = φₓ = 0`
+  with `φπ < −1 − 2(1 + β)/(σκ)` is determinate (`TidyR6aTaylorNecessity.gtp_not_necessary`).
+* **The parity remark of p. 727, exact.** `Δ(γ) = −β⁴` times the discriminant of the cubic, and
+  `Δ` has exactly one root in `(0, 1)`, a simple one, with `Δ < 0` below it and `Δ > 0` above it
+  up to 1: the book's "one or three roots" never has three (`Tidy.Parity.deltaQuartic_eq_disc`,
+  `Tidy.Parity.delta_unique_root`, `Tidy.Parity.deltaPoly_roots_Ioo`).
 * **Numbers.** `γ̄ ∈ (.3533, .3534)` (`CubicRoots.calib_gamma_bar`); the Fig. 8.4 mean horizon in
   `(2.2, 2.25)` and the relative weight `∑|α_j|/α₀ ∈ (.386, .389)`, by interval arithmetic
   (`Links.fig_8_4_mean_horizon_standing`, `Links.fig_8_4_abs_weight_ratio_standing`); the
   p. 586 and pp. 590–591 coefficients (`IRuleBasic.p586_numbers`,
   `IRuleForwardIntegrated.p590_numbers`).
+* **Genuine probability models.** The general problem (1.1)–(1.4) is restated on a probability
+  space with a filtration, `E_t` Mathlib's conditional expectation and every equation holding
+  almost surely. Lagrangian sufficiency holds as an exact identity and the optimal target path is
+  a.s. unique (`OptimalRulesMeasure.m_lagrangian_gap`, `OptimalRulesMeasure.m_lagrangian_sufficiency`,
+  `OptimalRulesMeasure.m_targets_eq_of_J_eq`). Proposition 8.2's linear form (1.5) is proved for a
+  VAR(1) exogenous state, `E_t s_{t+1} = A s_t`: under the perfect-foresight Assumption 8.1, every
+  bounded solution of (1.1) + (1.9) on every probability space has `z_t = f⁰ + f_Z Z̄_t + f_s s_t`
+  a.s. with `Z̄_t = (Z_t, M_{t−1})`, the coefficients fixed before the probability space
+  (`OptimalRulesMeasureMarkov.prop82_linear_form`), and also with the `Z̄_t` of (1.24)
+  (`OptimalRulesMeasureMarkov.prop82_linear_form_124`); the target criterion (1.23) holds a.s.
+  (`OptimalRulesMeasureMarkov.criterion_var`); and when the endogenous state transition `H_n` is
+  stable the solution exists, is a.s. unique and is optimal from a timeless perspective
+  (`OptimalRulesMeasureMarkov.m_existsUnique_var`, `OptimalRulesMeasureIID.iid_prop82`). The
+  book's Assumption 8.1 holds iff the corrected bounded form holds and date-`t₀` information is
+  a.s. bounded and a.s. predictable (`OptimalRulesMeasure.assumption81_iff`; for robust
+  optimality `OptimalRulesMeasure.robustlyOptimal_iff`). So it fails on the infinite fair-coin
+  economy at every `t₀ ≥ 1` and on Gaussian i.i.d. economies
+  (`OptimalRulesMeasureIID.coin_not_assumption81`, `OptimalRulesMeasureIID.gauss_not_assumption81`),
+  and holds as stated for a static problem on the coin economy at `t₀ = 0`
+  (`OptimalRulesMeasureStatic.static_coin_assumption81`). On a finite, fully supported space every
+  notion agrees with the core one, and the one-point space is perfect foresight
+  (`OptimalRulesMeasure.Bridge.mAssumption81_iff`, `OptimalRulesMeasure.Bridge.unitSystem_pf`).
+  For an arbitrary bounded adapted disturbance (no VAR): the conditional forecast path of any
+  solution is a perfect-foresight solution (`OptimalRulesMeasureForecast.fc_focSystem`), so the
+  uniqueness half of Assumption 8.1 follows from its perfect-foresight form
+  (`OptimalRulesMeasureForecast.m_focUnique_of_pf`) and (1.23) holds a.s.
+  (`OptimalRulesMeasureForecast.m_criterion`). Conversely, a bounded feasible plan satisfying (1.23)
+  a.s. is the FOC solution, so commitment to (1.23) is determinate with no stability of `Λ`
+  (`OptimalRulesMeasureConverse.m_criterion_iff`, `OptimalRulesMeasureConverse.m_prop82_unique_pf`).
+  The perfect-foresight solution map has an absolutely summable kernel, by the closed graph theorem
+  (`OptimalRulesMeasureKernel.kernel_summable`, `OptimalRulesMeasureKernel.kernel_hasSum`), and
+  existence holds iff the forecast-driven state `X_{t+1} = h + HX_t + E_t∑_kK^N_kc_{t+k}` is
+  essentially bounded (`OptimalRulesMeasureGeneral.m_exists_iff`), which geometric stability of `H`
+  guarantees (`OptimalRulesMeasureGeneral.m_assumption81MB_of_powDecay`,
+  `OptimalRulesMeasureGeneral.m_prop82_general`). The perfect-foresight Assumption 8.1 makes `H_n`
+  power-bounded but not geometrically stable (`OptimalRulesMeasureStability.powBdd_Hn`,
+  `OptimalRulesMeasureStability.ur_eigenvalue_one`), and it does not give existence for every
+  disturbance: Example B fails on the fair-coin economy
+  (`OptimalRulesMeasureCounterexample.pf_assumption81_not_sufficient`). The exact spectral relation
+  is with the pencil of (1.1) + (1.9), not (1.15): `ν` is an eigenvalue of `H` iff `|ν| ≤ 1` and `ν`
+  is a root of that pencil (`OptimalRulesMeasureSpectrum.eig_Hgen_iff`), so the root condition on
+  the pencil gives the measure Assumption 8.1 for every disturbance
+  (`OptimalRulesMeasureSpectrum.m_assumption81MB_of_noEulerRoot`). In the basic model and the
+  inflation-inertia model `H_n` is geometrically stable
+  (`OptimalRulesMeasureStabilityModels.NK.nk_powDecay`,
+  `OptimalRulesMeasureStabilityModels.Inertia.in_powDecay`), and Proposition 8.2 holds on every
+  filtered probability space for every bounded adapted disturbance with no hypothesis left
+  (`OptimalRulesMeasureModelsProp82.NK.nk_m_prop82_general`; inertia model in the real case,
+  `OptimalRulesMeasureModelsProp82.Inertia.in_m_prop82_general`). The whole theory is redone for
+  a quasi-split (`Prop81CaseII.QuasiSplit`, case (ii) of Assumption 8.2, where no real deflating
+  split exists): Proposition 8.2 holds for every bounded adapted disturbance and on every VAR
+  economy (`OptimalRulesMeasureQuasiSplit.m_prop82_generalQ`,
+  `OptimalRulesMeasureQuasiSplit.m_prop82_varQ`), the forward step through the a.s. vanishing of a
+  bounded residual with `D_t = βH E_tD_{t+1}` (`OptimalRulesMeasureQuasiSplit.m_fwd_zero`), and the
+  real-split theorems are recovered as a special case
+  (`OptimalRulesMeasureQuasiSplit.m_prop82_general_of_quasi`). So the inflation-inertia model
+  satisfies Proposition 8.2 on every filtered probability space in the complex case `discQ < 0`
+  (`OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_general`,
+  `OptimalRulesMeasureInertiaComplex.in_m_prop82_complex_var`) and at every admissible calibration
+  `0 < γ ≤ 1`, with no hypothesis left (`OptimalRulesMeasureInertiaComplex.in_m_prop82_all_general`,
+  `OptimalRulesMeasureInertiaComplex.in_m_prop82_all_var`); Assumption 8.5 holds for the `Λ` of
+  every quasi-split of the model (`OptimalRulesMeasureInertiaComplex.in_h85_quasi`). The
+  spectral relation holds with multiplicities: the Euler pencil `det(νF − G)` factors as
+  `det(νI − H) · R(ν)`, and the eigenvalues of `H`, with algebraic multiplicity, are exactly the
+  roots of the pencil in the closed unit disc, the unit circle included
+  (`OptimalRulesMeasureMultiplicity.eulerPoly_factor`,
+  `OptimalRulesMeasureMultiplicity.roots_charpoly_eq`,
+  `OptimalRulesMeasureMultiplicity.rootMultiplicity_charpoly`). The pencil pairs `ν` with
+  `1/(βν)` with equal multiplicities (`OptimalRulesMeasureEulerPencil.rootMultiplicity_pairMap`,
+  `OptimalRulesMeasureEulerPencil.card_lower_eq_upper`); the perfect-foresight Assumption 8.1
+  makes it regular, puts exactly `n` roots in the closed disc (the Blanchard–Kahn count) and none
+  in `1 < |ν| < β⁻¹` (`OptimalRulesMeasureMultiplicity.eulerPoly_ne_zero`,
+  `OptimalRulesMeasureMultiplicity.card_closedDisk_eq`,
+  `OptimalRulesMeasureMultiplicity.eulerRoot_gap`). The same involution maps the unselected roots
+  of (1.15) to the eigenvalues of `Λ`, so the remark after Proposition 8.1 becomes an iff
+  (`OptimalRulesMeasureMultiplicity.prop81_eig_pairMap`,
+  `OptimalRulesMeasureMultiplicity.powDecay_Λ_iff_outside`). In Example B every horizon of news
+  feeds the unit-root direction, `e'K^N_k ≠ 0`, while the total forcing sums to zero
+  (`OptimalRulesMeasureKernelB.eB_KN`, `OptimalRulesMeasureKernelB.eB_eKN_ne_zero`,
+  `OptimalRulesMeasureKernelB.eB_eKN_hasSum`). The stacked system (1.1) + (1.9), whose lead
+  matrix is singular, is an instance of the singular-pencil Blanchard–Kahn theorem (King–Watson,
+  Klein) with random initial conditions (`TidyR6aBKRandom.determinatePencilR_iff_general`): its
+  pencil polynomial is the Euler polynomial (`TidyR6aStackedBK.pencilPoly_map`), and at `t₀ = 0`
+  it is Blanchard–Kahn determinate iff the perfect-foresight Assumption 8.1 holds and no Euler root
+  lies on the unit circle (`TidyR6aStackedBK.stack_determinate_iff`,
+  `TidyR6aStackedBK.stack_determinate_card`); Assumption 8.1 alone is not enough
+  (`TidyR6aStackedBK.eB_not_determinate`).
 * **Cross-links.** The formalisations of the same objects in different modules are proved to
   agree: the canonical roots of Proposition 8.7 satisfy the hypotheses of Propositions 8.9–8.11
   (`Links.inertiaRoots_of_standing`); the two Euler equations, `A(z)` and discriminants coincide
@@ -89,17 +229,39 @@ Woodford (2002a) without proof.
     (`Prop81General.prop81_perfectForesight`).
   * *Repeated roots.* The distinct-root clause of Assumption 8.3 is replaced by selecting whole
     root classes, through generalised eigenspaces (`PencilRepeated.SelWhole`,
-    `PencilRepeated.prop81_of_assumptions_general`).
+    `PencilRepeated.prop81_of_assumptions_general`). A selection may also take only part of a
+    repeated root (`TidyR5bPartialSel.prop81_of_assumptions_partial`,
+    `TidyR5bPartialSel.prop82_of_assumptions_partial`); `Υ` is then determined by the selection iff
+    each partially selected root has a single Jordan chain (`TidyR5bCyclicSel.selSpace_conj_unique_iff`,
+    `TidyR5bSelLink.Υ_unique_iff`; counterexample `TidyR5bPartialSel.partial_nonunique`). Every
+    deflating split is a real selection for its own roots, `ker A` lies in the column space of
+    every deflating split, and the count data holds iff the zero eigenvalue of `Ψ` has multiplicity
+    `n − rank A`, automatically when the zero root is semisimple
+    (`TidyR6aSelDeflating.toRealSel`, `TidyR6aSelDeflating.ker_le_colSpan`,
+    `TidyR6aSelDeflating.countData_iff`, `TidyR6aSelDeflating.countData_of_semisimple`;
+    counterexample `TidyR6aSelDeflating.chain_not_countData`), so the `Υ` criterion covers every
+    deflating split (`TidyR6aSelDeflating.Υ_unique_iff_split`).
+  * *On a probability space.* Proposition 8.1 holds on every filtered probability space with
+    Mathlib's `condExp`, from any deflating split (`TidyR6aProp81Measure.mprop81_equiv`,
+    `TidyR6aProp81Measure.mprop81`).
   * *Case (ii) of Assumption 8.2* (one unpaired complex root). The book's Assumption 8.4(ii)
     depends on how the eigenvector is scaled (`Prop81Unique.re_det_rescale_zero`,
     `CaseIIInstance.book_condition_depends_on_scaling`). It is replaced by a normalisation-free
     condition (`CaseIIBasis.Assumption84II`, basis-invariant by `CaseIIBasis.basis_invariance`),
     under which Proposition 8.1 holds (`CaseIIBasis.prop81_caseII`). An explicit system shows the
     condition is not vacuous (`CaseIIInstance.ex82`, `CaseIIInstance.ex84`,
-    `CaseIIInstance.ex_prop81`).
+    `CaseIIInstance.ex_prop81`). Its existential form implies the every-basis form only when the
+    zero root is semisimple (`TidyR5bCaseIIZeroChain.zc_semisimple_needed`). That example system
+    satisfies Assumption 8.5 but not Assumption 8.1, and the conclusion of Proposition 8.2 fails
+    for it, so Assumption 8.1 cannot be dropped (`TidyR5aCaseIIExample.ex_prop82_summary`).
 
   The uniqueness remark of p. 553 holds when no root lies on `|μ| = β⁻¹`
-  (`Prop81Unique.remark_p553`), and `deg α = rank Λ = rank Ẽ` (E18) under the assumptions
+  (`Prop81Unique.remark_p553`); in general `Λ` and `Υ` are unique iff `Λ` is power-bounded, under
+  every expectation system on a nonempty sample space (`TidyR5bReRepUncertain.unique_iff_powBdd_any`,
+  `TidyR6aReRepBase.unique_iff_powBdd_uncond`; nonemptiness is needed,
+  `TidyR6aReRepBase.nonempty_needed`) and on every probability space
+  (`TidyR6aReRepMeasure.munique_iff_powBdd`, `TidyR6aProp81Measure.mprop81_unique_iff`), which
+  fails for a Jordan block on the circle (`TidyR5bReRep.jordan_nonunique`); and `deg α = rank Λ = rank Ẽ` (E18) under the assumptions
   (`PencilAssumptions.natDegree_alpha_eq_rank`).
 * **Proposition 8.2 without the stability hypothesis**, and with Assumption 8.1 corrected.
   * `TargetCriterion.Recursion.MultStable` fails whenever Assumption 8.7 holds
@@ -121,7 +283,10 @@ Woodford (2002a) without proof.
   (`Prop83.prop83`, `Prop83Links.prop83M`, `Prop83Links.prop83M_const`). Without that hypothesis
   only the bounds hold (`Prop83.prop83_bounds`), and the exact count fails
   (`Prop83.circle_counterexample`). Assumption 8.1 does not exclude roots on the circle
-  (`Circle81.assumption81_not_exclude_circle`).
+  (`Circle81.assumption81_not_exclude_circle`), and the exact count fails even for a problem
+  satisfying the full Assumption 8.1 (`TidyR5bProp83Circle.prop83_fails_on_circle`), also on every
+  filtered probability space and on the i.i.d. coin economy
+  (`TidyR6aProp83Measure.m_prop83_fails_on_circle`, `TidyR6aProp83Measure.m_prop83_fails_iid`).
 * **Proposition 8.4, unconditional.**
   * The bounded forward inverse exists and is unique exactly when every root is outside the unit
     circle (`Prop84General.forward_inverse_existsUnique`, `Prop84General.forward_inverse_iff`).
@@ -147,8 +312,10 @@ Woodford (2002a) without proof.
   * Rules I and II are exactly the general criterion (1.23) for the two deflating splits
     (`InertiaCriterion.crit_iff_ruleI`, `InertiaCriterion.crit_iff_ruleII`).
   * Rule III is not of the form (1.28) for any deflating split (`InertiaSplit.split_classify`,
-    `InertiaSplit.split_not_ruleIII`). It is compatible with the homogeneous content of
-    Proposition 8.1 (`InertiaRuleIII.ruleIII_homEquiv`).
+    `InertiaSplit.split_not_ruleIII`), but it is the criterion of a full representation of the
+    corrected Proposition 8.1 at every `0 < γ ≤ 1`, and robustly optimal
+    (`TidyR5aRuleIIIStochastic.Inertia.ruleIII_prop81M`,
+    `TidyR5aRuleIIIStochastic.Inertia.ruleIII_prop82_B`).
   * Assumption 8.1 holds at every admissible calibration, for any expectation system, in its
     bounded-initial-condition form (`InertiaAssumption81.Assumption81MB`,
     `InertiaAssumption81.in_assumption81MB`); `Prop82General.Assumption81M` holds on a finite
@@ -169,8 +336,11 @@ Woodford (2002a) without proof.
     (`InertiaAssumption81.in_focSolvableMB`): the degree-6 characteristic polynomial of the FOC
     system has no root in `1 ≤ |μ| ≤ β⁻¹` (`InertiaFOCRoots.charD_ne_zero_of_annulus`) and exactly
     three inside the unit circle (`InertiaFOCRoots.charD_inside_three`).
-  * Scope: `γ = 0` is excluded. These results take `0 < γ ≤ 1`; the leading matrix of the FOC
-    system is singular at `γ = 0`.
+  * At `γ = 0` the leading matrix of the FOC system is singular, so the results above take
+    `0 < γ ≤ 1`; there the system reduces to the basic model's, and Assumption 8.1 and
+    Proposition 8.2 hold at every `0 ≤ γ ≤ 1` (`TidyR5aInertiaGammaZero.focSystem0_iff`,
+    `TidyR5aInertiaGammaZero.in_assumption81MB_all`, `TidyR5aInertiaGammaZero.in_prop82_all_B'`),
+    also on every filtered probability space (`TidyR5aInertiaGammaZeroMeasure.in0_m_prop82_general`).
   * Proposition 8.9's `ρ₁ > 1` and Proposition 8.10 follow from the general theory
     (`InertiaSplit.prop_8_9_rho1_from_general`, `InertiaProp810.prop_8_10_via_prop84`).
 
@@ -180,74 +350,80 @@ the printed text precise. The main corrections and results:
 * the (2.6) misprint `βE_t[π_{t+1} − π_t]` for `βE_t[π_{t+1} − γπ_t]`, found independently in §2.1
   and §3.2; the wrong target criterion (2.20) (E14) and the cross-reference of p. 563 (E15); the
   typo in (2.32) (E16); (2.26) holding only for bounded processes (E17); the degree of `α(L)`
-  (E18); the "exactly half" of fn 8 (E19);
+  (E18); the "exactly half" of fn 8 (E19), which is `2L + C = 2n` in general;
+* the exogenous-instrument count of p. 546 needs genericity and no unit-circle root, and counts
+  finite roots only (for singular `Ẽ` the roots at infinity are unstable, and a singular pencil is
+  never determinate); the necessity of the first-order conditions (p. 541) needs faithful
+  expectations state by state and holds in conditional mean square, so almost surely, without them;
 * with `κ_w ≠ κ_p` the corrected (2.20) is determinate exactly when every root of
   `P(Z) = λ_xZ(Z + ξ)² + λ_w(κ_wZ + Δ)² + λ_p(κ_pZ + Δ)²` lies outside an explicit ellipse (exact
-  region under perfect foresight); the admissible parameters P1 violate it, and then neither the
+  region on every probability space); the admissible parameters P1 violate it, and then neither the
   optimal plan nor commitment to the criterion is determinate;
 * Proposition 8.5 holds for all admissible parameters (E21), and the p. 593 determinacy claim
-  holds for all parameters by strict convexity;
+  holds for all parameters, uniqueness by strict convexity and existence from the bounded optimal
+  plan;
+* Δ(γ) has exactly one root in `(0, 1)`, a simple one, not "one or three" (p. 727); the
+  eigenvector of Ch. 4 fn 27 has output-gap entry `(1 − β)/κ`; for (3.7) the generalised Taylor
+  principle is exactly `φπ + ρ₁ > 1`, so "`φπ > 0` and `ρ₁ > 1`" is sufficient, not necessary
+  (p. 585); within (3.7) the principle is necessary for determinacy when `φπ, φₓ ≥ 0` and
+  `1 + ρ₁ + 2ρ₂ > 0`, but not in general (fn 27);
 * the gaps in Appendix G.6 and Lemma G.2 (E20, E22) and the `γ → 1` limits of Propositions 8.9
   and 8.11, closed;
 * the printed `φ_x = .15` of pp. 590–591 is `.164` (S2), and `φ_x = .33` of p. 586 is `.3226`;
   `λ_x = .0026` of p. 574 is `.0027`;
 * the Fig. 8.4 ratio `.39` confirmed by the enclosure `(.386, .389)`;
-* in the general theory: Proposition 8.3 needs no root of (1.15) on `|λ| = β⁻¹`, and so does the
-  remark of p. 553; Assumption 8.4(ii) is normalisation-dependent in case (ii) and is replaced;
+* in the general theory: Proposition 8.3 needs no root of (1.15) on `|λ| = β⁻¹`, even under the
+  full Assumption 8.1; the remark of p. 553 holds iff `Λ` is power-bounded; Assumption 8.4(ii) is
+  normalisation-dependent in case (ii) and is replaced, and the semisimplicity hypothesis of its
+  ∃ ⇒ ∀ cannot be dropped; with a partial selection `Υ` is determined iff each partially selected
+  root has one Jordan chain; every deflating split has `ker A` in its column space, and lacks the
+  count data exactly when the zero root is non-semisimple; Blanchard–Kahn determinacy of the
+  stacked system (1.1) + (1.9) is Assumption 8.1 together with no Euler root on the unit circle,
+  and Assumption 8.1 alone is not enough;
   Assumption 8.3 is sufficient but not necessary; the `MultStable` hypothesis is unnecessary.
   Assumption 8.1 with a predetermined variable needs a bounded initial condition `Z_{t₀}`
-  (counterexample on an infinite sample space); the bounded optimal plan that p. 593 assumes
+  (counterexample on an infinite sample space). On a genuine probability space the book's
+  Assumption 8.1 holds exactly when the corrected form does and date-`t₀` information is a.s.
+  bounded and a.s. predictable at `t₀ − 1`; the bounded optimal plan that p. 593 assumes
   exists at every calibration, by a root count for the degree-6 FOC polynomial, not the
-  Proposition 8.7 cubic. Separately, two hypothesis structures of the earlier formalisation (the original Proposition
+  Proposition 8.7 cubic. The perfect-foresight Assumption 8.1 does not make `H_n` geometrically
+  stable and does not give the measure Assumption 8.1 for every disturbance, and the eigenvalues
+  of `H` are not the roots of (1.15) selected by the split; an earlier version of this README
+  listed the first as unproved and the second as open (see [corrections](docs/corrections.md)).
+  Separately, two hypothesis structures of the earlier formalisation (the original Proposition
   8.1 conclusion and Assumption 8.1) were found unsatisfiable under uncertainty and corrected;
   these are formalisation errors, not the book's.
 
 Not formalised:
 * in the general theory:
-  * the inflation-inertia results at `γ = 0` (Assumption 8.1 and Proposition 8.2 there), where the
-    FOC system's leading matrix is singular; and the original-sense Assumption 8.1 and robust
-    optimality on an infinite sample space, which are false there (counterexamples above);
-  * Rule III at the full stochastic level. Only the homogeneous level (`Prop83.HomEquiv`), which is
-    all Proposition 8.3 uses, is proved;
-  * the claim of Proposition 8.2 that the equilibrium has the linear form (1.5) in `(Z̄_t, s_t)`.
-    This needs a finite-dimensional exogenous state and a time-invariant expectation system,
-    neither of which is in the framework;
-  * repeated roots when the selection takes only part of a root class (`PencilRepeated.SelWhole`
-    fails);
-  * ∃ ⇒ ∀ for `CaseIIBasis.Assumption84II` when the zero root is not semisimple. It is proved when
-    the zero root is semisimple (`CaseIIBasis.all_of_ex_semisimple`);
-  * uniqueness of `Λ` and `Υ` in the remark of p. 553 when a root lies on `|μ| = β⁻¹`. Only the
-    failure of existence is shown (`Prop81Unique.circle_counterexample`);
-  * a counterexample to Proposition 8.3 that satisfies the full Assumption 8.1. The circle
-    counterexample is at the level of `Prop83.HomEquiv`;
-  * Proposition 8.2 for the case-(ii) example system (`CaseIIInstance.exProblem`), whose
-    Assumptions 8.1 and 8.5 are not checked;
-* in §1: a general "exactly half" root count for fn 8, and the exogenous-instrument determinacy
-  claim of p. 546;
-* necessity of the first-order conditions (that every optimum satisfies them), which the book
-  also asserts without proof; consequently the direction "original ⇒ restated" of (1.11)–(1.12)
-  is conditional (`GeneralFOC.LQ.timeless_restated`), and the necessity of the (2.5) criterion is
-  proved under perfect foresight only (`InflTargetInertia.timeless_criterion_pf`);
-* existence of a bounded solution of the p. 593 rule system (3.16) itself for every disturbance and
-  history beyond `γ = 0`: uniqueness is proved for all parameters, and at `γ = 0` existence is
-  supplied by `Links.inertia_system_gamma_zero`. The bounded optimal plan that p. 593 assumes is
-  supplied for `0 < γ ≤ 1` by `InertiaAssumption81.in_focSolvableMB`, but it is not linked to the
-  `InflationInertiaRules` formulation of the rule system;
-* the parity remark of p. 727 ("one or three roots" of `Δ` in `(0, 1)`), which nothing uses;
-  a root in `(0, 1)` and one in `(1, ∞)` are proved, and at the calibration the root in `(0, 1)` is
-  unique;
-* the "only if" half of the exact determinacy region for `κ_w ≠ κ_p` on the ellipse boundary,
-  proved under perfect foresight only (`InflTargetStickyWages.foc_not_exists_boundary`); existence
-  inside the region and failure strictly inside the ellipse hold for every expectation system;
+  * the Blanchard–Kahn instantiation for the stacked system (1.1) + (1.9)
+    (`TidyR6aStackedBK.stack_determinate_iff`) is stated at `t₀ = 0`; a general `t₀` needs a time
+    shift, which is not formalised. Its determinacy is Blanchard–Kahn determinacy, with forcing
+    allowed in every stacked row; the relation to Assumption 8.1, where only `c` and `τ*` force the
+    system, is the exact theorem `TidyR6aStackedBK.stack_determinate_iff`;
+  * the "only if" direction of the `Υ` criterion for deflating splits
+    (`TidyR6aSelDeflating.Υ_unique_iff_split`, like `TidyR5bSelLink.Υ_unique_iff`) still needs `Ẽ`
+    invertible and Assumption 8.4;
+  * the book's own form of Assumption 8.1 in the Proposition 8.3 counterexample on a probability
+    space (`TidyR6aProp83Measure.m_p83_assumption81`) needs date-0 information to be essentially
+    bounded (`OptimalRulesMeasure.BddInfo`); the corrected forms hold on every probability space;
+* necessity of the first-order conditions on a probability space
+  (`TidyR6bFOCMeasure.m_foc_necessary`) is proved in the weak form
+  `TidyR6bFOCMeasure.MFOCSystemI`, with `M_{t₀−1}` known at `t₀`; the full
+  `OptimalRulesMeasure.MFOCSystem` (`M_{t₀−1}` known at `t₀ − 1`) holds exactly when the needed
+  `M₀` has an `𝓕_{t₀−1}`-version (`TidyR6bFOCMeasure.mFOCSystem_of_I`), for example under
+  `PredInfo`, the book's Assumption 8.1, at `t₀ = 0` or for the `t₀`-optimal plan; uniqueness of
+  the multipliers is not addressed;
 * the derivation of the Giannoni–Woodford criteria (2.41)–(2.45) and their coefficients
   (`φ_w = .565`, `θ* = .580`, …), which need the unprinted structural model; (2.40) is proved under
   the explicit hypothesis that the constraints involve `i` only through forecasts a quarter
   earlier, verified for the IS block;
-* convergence of the equilibrium paths as `λ_i → 0` (p. 591): the coefficient limits, the limiting
-  criterion and a fixed-plan limit theorem are proved;
-* the remark of p. 585 that the rule satisfies the generalised Taylor principle, as a separate
-  inequality (determinacy is proved directly); pre-sample values in §3.1 are numbers, not random
-  variables;
+* necessity of the generalised Taylor principle within the (3.7) family
+  (`TidyR6aTaylorNecessity.gtp_necessary`, `TidyR6aTaylorNecessity.gtp_not_necessary`) is decided
+  for Blanchard–Kahn determinacy of the pencil, with forcing allowed in every row; neither
+  direction is proved for the narrower notion with disturbances entering only through `(rⁿ, u)`;
+  timeless optimality with random pre-sample values
+  (`TidyR6aRuleRandomHistory.rule_eqm_optimal_random`) assumes pull-out, as the original does;
 * Kalman filtering and Svensson–Woodford certainty equivalence beyond (3.32)–(3.35);
 * the plotted curves of Figures 8.1–8.6, beyond the specific numbers listed above; and §4 apart
   from (4.1).
@@ -311,6 +487,74 @@ Not formalised:
 | [InertiaFOCSystem](OptimalPolicyRules/InertiaFOCSystem.lean) | 19 | The inflation-inertia FOC system (1.1) + (1.9) as a Blanchard–Kahn system: regular pencil, roots, and the equivalence of solutions |
 | [InertiaAssumption81](OptimalPolicyRules/InertiaAssumption81.lean) | 22 | Assumption 8.1 for the inflation-inertia model at every calibration (bounded initial conditions; finite `Ω`; perfect foresight), the unbounded counterexample, Prop 8.2 in the real case |
 | [InertiaProp82Complex](OptimalPolicyRules/InertiaProp82Complex.lean) | 7 | Assumption 8.5 for the case-(ii) `Λ`; Prop 8.2 for the inflation-inertia model in the complex case and at every calibration |
+| [TidyRuleSystem](OptimalPolicyRules/TidyRuleSystem.lean) | 14 | p. 593: existence for the rule system (2.6), (3.1), (3.16) for every `0 ≤ γ ≤ 1` and every bounded history, from the bounded optimal plan; existence iff the history is bounded and known; exactly one solution |
+| [Tidy](OptimalPolicyRules/Tidy.lean) | 36 | p. 585 with Ch. 4 (2.9) and fn 27: the generalised Taylor principle for general rules, its boundary as the unit eigenvalue, (3.7) satisfies it; App. G.6 p. 727: `Δ(γ)` has exactly one root in `(0, 1)`, simple |
+| [ExpectationsMeasure](OptimalPolicyRules/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, copied from `ObservationalEquivalence`): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](OptimalPolicyRules/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [OptimalRulesMeasure](OptimalPolicyRules/OptimalRulesMeasure.lean) | 47 | §§1.1–1.4 on a probability space: (1.1), (1.2), (1.9), Lagrangian sufficiency a.s., Assumption 8.1 in the book's and the corrected forms, robust optimality; the book's form ⇔ the bounded form + `BddInfo` + `PredInfo`; bridges to the core on a finite space and to perfect foresight on one point |
+| [OptimalRulesMeasureMarkov](OptimalPolicyRules/OptimalRulesMeasureMarkov.lean) | 55 | Prop 8.2 on VAR economies: the perfect-foresight solution map and its time-invariant coefficient matrices; conditional forecasts of any solution; the linear form (1.5) and with (1.24); (1.19)–(1.20) and (1.23) a.s.; Assumption 8.1 (uniqueness; existence under stable `H_n`); timeless optimality |
+| [OptimalRulesMeasureIID](OptimalPolicyRules/OptimalRulesMeasureIID.lean) | 19 | The i.i.d.-driven VAR and Prop 8.2 on it; the fair-coin economy (`BddInfo` holds, `PredInfo` fails) and the Gaussian economy (`BddInfo` fails): the book's Assumption 8.1 and robust optimality there |
+| [OptimalRulesMeasureStatic](OptimalPolicyRules/OptimalRulesMeasureStatic.lean) | 14 | A static problem: the corrected Assumption 8.1 on every probability space; the book's form holds on the coin economy at `t₀ = 0` and fails at `t₀ ≥ 1`; `H_n = 0`, so the existence theorem applies |
+| [OptimalRulesMeasureForecast](OptimalPolicyRules/OptimalRulesMeasureForecast.lean) | 11 | For any bounded adapted disturbance: forecast paths of solutions are perfect-foresight solutions; Assumption 8.1 (uniqueness) from perfect foresight; (1.19)–(1.20) and (1.23) a.s. |
+| [OptimalRulesMeasureConverse](OptimalPolicyRules/OptimalRulesMeasureConverse.lean) | 29 | The converse of Prop 8.1 with conditional expectations: the forward recursion by the tower property, (1.23) a.s. ⟺ the FOC solution, determinacy under (1.23), Prop 8.2 on VAR economies; links to the core criterion |
+| [OptimalRulesMeasureKernel](OptimalPolicyRules/OptimalRulesMeasureKernel.lean) | 29 | The perfect-foresight solution map: affine, time invariant, closed under limits; continuity by the closed graph theorem; the absolutely summable kernel |
+| [OptimalRulesMeasureGeneral](OptimalPolicyRules/OptimalRulesMeasureGeneral.lean) | 25 | Assumption 8.1 for any bounded adapted disturbance: the forecast-driven state, the exact existence condition, stable `H` or the root condition; `H` power-bounded; Prop 8.2 for every disturbance |
+| [OptimalRulesMeasureStability](OptimalPolicyRules/OptimalRulesMeasureStability.lean) | 20 | `H_n` = `H`, power-bounded; stable iff no unit-circle eigenvalue; the counterexample `urP` with eigenvalue 1 where measure Assumption 8.1 still holds |
+| [OptimalRulesMeasureStabilityModels](OptimalPolicyRules/OptimalRulesMeasureStabilityModels.lean) | 11 | `H_n` geometrically stable in the basic and inflation-inertia models; Assumption 8.1 on every probability space for both |
+| [OptimalRulesMeasureModelsProp82](OptimalPolicyRules/OptimalRulesMeasureModelsProp82.lean) | 9 | The empty deflating split; Assumption 8.5 and the split discharged; measure Prop 8.2 with no hypothesis left for the basic model and the inflation-inertia model (real case) |
+| [OptimalRulesMeasureCounterexample](OptimalPolicyRules/OptimalRulesMeasureCounterexample.lean) | 36 | Example B: perfect-foresight Assumption 8.1 holds, `H` has eigenvalue 1 with a forced left eigen-direction, and on the fair-coin economy no bounded solution exists |
+| [OptimalRulesMeasureSpectrum](OptimalPolicyRules/OptimalRulesMeasureSpectrum.lean) | 23 | The spectrum of `H` = roots of the Euler pencil of (1.1) + (1.9) in the closed unit disc; the root condition on the pencil; not the selected roots of (1.15) |
+| [OptimalRulesMeasureQuasiSplit](OptimalPolicyRules/OptimalRulesMeasureQuasiSplit.lean) | 32 | Prop 8.2 from a quasi-split (case (ii)) with conditional expectations: (1.19)–(1.20) and (1.23) a.s., the converse by a.s. forward uniqueness, every disturbance and VAR economies; the real split as a special case; link to the core criterion |
+| [OptimalRulesMeasureInertiaComplex](OptimalPolicyRules/OptimalRulesMeasureInertiaComplex.lean) | 12 | Assumption 8.5 for every quasi-split of the inflation-inertia model; measure Prop 8.2 in the complex case and at every calibration, with no hypothesis left; links to the core |
+| [OptimalRulesMeasureEulerPencil](OptimalPolicyRules/OptimalRulesMeasureEulerPencil.lean) | 27 | The Euler pencil `det(νF − G)` of (1.1) + (1.9) as a polynomial; the symplectic pairing `ν ↔ 1/(βν)` with multiplicities; coefficient symmetry; equal halves at `β^{−1/2}`; at most `n` roots in the closed unit disc |
+| [OptimalRulesMeasureMultiplicity](OptimalPolicyRules/OptimalRulesMeasureMultiplicity.lean) | 22 | The factorisation `det(νF − G) = det(νI − H) · R(ν)`; the eigenvalues of `H` with multiplicity are the closed-disc roots; regularity, the Blanchard–Kahn count and the spectral gap under Assumption 8.1; `Λ` stable iff every unselected root has `\|μ\| > β⁻¹` |
+| [OptimalRulesMeasureKernelB](OptimalPolicyRules/OptimalRulesMeasureKernelB.lean) | 11 | Example B: the next-state kernel `K^N_k` at every lag; the forcing of the unit-root direction, nonzero at every lag with zero sum; the partner root `2 = β⁻¹` |
+| [TidyR5aCaseIIExample](OptimalPolicyRules/TidyR5aCaseIIExample.lean) | 22 | `CaseIIInstance.exProblem`: Assumption 8.5 holds, both halves of Assumption 8.1 fail, and no direct rule is robustly optimal, so the conclusion of Prop 8.2 fails |
+| [TidyR5aExactlyHalf](OptimalPolicyRules/TidyR5aExactlyHalf.lean) | 17 | fn 8 corrected: `2L + C = 2n` for a regular Euler pencil, exactly half iff no root on `\|ν\| = β^{−1/2}`; the counterexample as an `LQProblem`; regularity needed |
+| [TidyR5aExogenousInstrument](OptimalPolicyRules/TidyR5aExogenousInstrument.lean) | 32 | p. 546 with `Ẽ` invertible: Blanchard–Kahn in both directions; determinacy iff exactly `n_Z` roots of (1.15) inside and genericity; Sargent–Wallace; the basic model |
+| [TidyR5aExoSingular](OptimalPolicyRules/TidyR5aExoSingular.lean) | 69 | p. 546 for every `Ẽ`: a pencil decomposition into nilpotent and regular parts; finite roots counted, roots at infinity unstable; a singular pencil is never determinate |
+| [TidyR5aInertiaGammaZero](OptimalPolicyRules/TidyR5aInertiaGammaZero.lean) | 20 | The inflation-inertia model at `γ = 0`: reduction to the basic model, Assumption 8.1 and Prop 8.2; both at every `0 ≤ γ ≤ 1` |
+| [TidyR5aInertiaGammaZeroMeasure](OptimalPolicyRules/TidyR5aInertiaGammaZeroMeasure.lean) | 8 | `γ = 0` on a probability space: no Euler root on the unit circle, Assumption 8.1 and Prop 8.2 for every bounded adapted disturbance and on VAR economies |
+| [TidyR5aLambdaILimit](OptimalPolicyRules/TidyR5aLambdaILimit.lean) | 13 | p. 591: the equilibrium paths under (3.7) converge to the (2.5) paths as `λ_i → 0`, uniformly over dates and states |
+| [TidyR5aLambdaXZero](OptimalPolicyRules/TidyR5aLambdaXZero.lean) | 23 | p. 593 at `λₓ = 0`: the rule system in Blanchard–Kahn form, its root counts and genericity; existence, so determinacy for every `λₓ ≥ 0` |
+| [TidyR5aMeasBK](OptimalPolicyRules/TidyR5aMeasBK.lean) | 10 | Blanchard–Kahn (App. C.1) with Mathlib's conditional expectation: existence and a.s. uniqueness |
+| [TidyR5aLambdaXZeroMeasure](OptimalPolicyRules/TidyR5aLambdaXZeroMeasure.lean) | 15 | p. 593 on a probability space: a.s. uniqueness for every `λₓ ≥ 0` by forecast transfer; existence at `λₓ = 0` |
+| [TidyR5aLambdaILimitMeasure](OptimalPolicyRules/TidyR5aLambdaILimitMeasure.lean) | 11 | p. 591 on a probability space: the paths converge a.s. at every date as `λ_i → 0` (equilibria given) |
+| [TidyR5aRuleIIIStochastic](OptimalPolicyRules/TidyR5aRuleIIIStochastic.lean) | 15 | Rule III (3.24) at the full stochastic level: moving the unstable eigenvalue of `Λ`; a representation of Prop 8.1 with Rule III's `α(L)`; Prop 8.2 for it |
+| [TidyR5aRuleIIIMeasure](OptimalPolicyRules/TidyR5aRuleIIIMeasure.lean) | 29 | Rule III on a probability space: the modification a.s.; the real case, any quasi-split, and every `0 < γ ≤ 1` |
+| [TidyR5bCaseIIZeroChain](OptimalPolicyRules/TidyR5bCaseIIZeroChain.lean) | 35 | A case-(ii) system whose zero root is not semisimple: the existential Assumption 8.4(ii) holds and the universal one fails |
+| [TidyR5bCondExpC](OptimalPolicyRules/TidyR5bCondExpC.lean) | 29 | Complex conditional expectations; the forward solution, one stage of `P(𝒵)` and the cubic of (2.20) on a probability space |
+| [TidyR5bPartialSel](OptimalPolicyRules/TidyR5bPartialSel.lean) | 43 | Partial selections of a repeated root: the selected subspace, a real deflating pair, Props 8.1 and 8.2 without `SelWhole`; `Υ` not determined (example) |
+| [TidyR5bCyclicSel](OptimalPolicyRules/TidyR5bCyclicSel.lean) | 24 | Partial selections: the invariant subspace is unique iff one Jordan chain; the selected subspace unique iff `CyclicPartial`; `Υ` ↔ column space |
+| [TidyR5bFOCNecessity](OptimalPolicyRules/TidyR5bFOCNecessity.lean) | 34 | Necessity of (1.9) for the general LQ problem (faithful expectations); (1.10)–(1.12) without attainability, the affine form (1.11) exactly |
+| [TidyR5bFOCMeanSq](OptimalPolicyRules/TidyR5bFOCMeanSq.lean) | 5 | Necessity of (1.9) in conditional mean square, without faithfulness |
+| [TidyR5bFaithNeeded](OptimalPolicyRules/TidyR5bFaithNeeded.lean) | 15 | Faithfulness is needed for the pointwise (1.9) (two-state counterexample); (1.9) almost surely, including on the conditional-expectation model |
+| [TidyR5bInertiaNecessity](OptimalPolicyRules/TidyR5bInertiaNecessity.lean) | 9 | (2.5) necessary for timeless optimality under any expectation system: in conditional mean square, state by state with faithful expectations; the equivalence |
+| [TidyR5bReRep](OptimalPolicyRules/TidyR5bReRep.lean) | 17 | The remark of p. 553 on the circle: agreement on bounded orbits, uniqueness for power-bounded `Λ`, re-representation; Jordan and simple-root examples |
+| [TidyR5bProp83Circle](OptimalPolicyRules/TidyR5bProp83Circle.lean) | 13 | A counterexample to Prop 8.3 satisfying the full Assumption 8.1, Assumptions 8.3 and 8.7 (`m = 1`), with a root on `\|μ\| = β⁻¹` |
+| [TidyR5bReRepConverse](OptimalPolicyRules/TidyR5bReRepConverse.lean) | 12 | The p. 553 remark under perfect foresight: `Λ`, `Υ` unique iff `Λ` power-bounded |
+| [TidyR5bReRepUncertain](OptimalPolicyRules/TidyR5bReRepUncertain.lean) | 10 | The p. 553 remark under every expectation system: re-representation under uncertainty; unique iff `Λ` power-bounded |
+| [TidyR5bSelLink](OptimalPolicyRules/TidyR5bSelLink.lean) | 24 | Partial selections on the book's objects: the column space of a real deflating pair is a selected subspace (count data); `Υ` unique iff `CyclicPartial` |
+| [TidyR5bStickyBoundary](OptimalPolicyRules/TidyR5bStickyBoundary.lean) | 11 | The (2.20) region for `κ_w ≠ κ_p` under every expectation system, via date-`t₀` forecast paths: the boundary, the exact region, the criterion |
+| [TidyR5bStickyMeasure](OptimalPolicyRules/TidyR5bStickyMeasure.lean) | 11 | The (2.20) region on a probability space, the "only if" half and the boundary, via unconditional means |
+| [TidyR5bStickyExists](OptimalPolicyRules/TidyR5bStickyExists.lean) | 10 | The (2.20) region on a probability space, the "if" half: existence a.s. iff `StableRoots` |
+| [TidyR6aGeneralBK](OptimalPolicyRules/TidyR6aGeneralBK.lean) | 39 | The general Blanchard–Kahn theorem with existence and uniqueness for any expectation system (restated from the Cochrane KeynesianStickyPrices project) |
+| [TidyR6aGeneralBKPencil](OptimalPolicyRules/TidyR6aGeneralBKPencil.lean) | 7 | Blanchard–Kahn for `A₀ E_t y_{t+1} = A₁ y_t + w_t` with `A₀` invertible; the pencil polynomial (restated) |
+| [TidyR6aGeneralBKSingular](OptimalPolicyRules/TidyR6aGeneralBKSingular.lean) | 49 | Blanchard–Kahn for singular pencils (King–Watson, Klein): the Fitting decomposition, reduction to standard form, a singular pencil never determinate (restated) |
+| [TidyR6aBKRandom](OptimalPolicyRules/TidyR6aBKRandom.lean) | 4 | The singular-pencil Blanchard–Kahn theorem with bounded random initial conditions known at date 0 |
+| [TidyR6aReRepBase](OptimalPolicyRules/TidyR6aReRepBase.lean) | 4 | The remark of p. 553: a bounded solution of (1.18) always exists, so the criterion needs only a nonempty sample space, which cannot be dropped |
+| [TidyR6aReRepMeasure](OptimalPolicyRules/TidyR6aReRepMeasure.lean) | 21 | Representations of Proposition 8.1 on a probability space; re-representation; `Λ`, `Υ` unique iff `Λ` power-bounded, with no other hypothesis |
+| [TidyR6aProp81Measure](OptimalPolicyRules/TidyR6aProp81Measure.lean) | 11 | Proposition 8.1 on every filtered probability space from any deflating split, with the explicit `Λ`, `Υ`; the p. 553 criterion for it |
+| [TidyR6aProp83Measure](OptimalPolicyRules/TidyR6aProp83Measure.lean) | 11 | The Proposition 8.3 counterexample under the full Assumption 8.1 on every probability space and on the i.i.d. coin economy |
+| [TidyR6aRuleRandomHistory](OptimalPolicyRules/TidyR6aRuleRandomHistory.lean) | 22 | Proposition 8.5 with bounded random pre-sample values known at date 0: determinacy and timeless optimality |
+| [TidyR6aSelDeflating](OptimalPolicyRules/TidyR6aSelDeflating.lean) | 21 | Every deflating split is a real selection; `ker A` in its column space; count data iff zero multiplicity `n − rank A` (counterexample); `Υ` criterion for all splits |
+| [TidyR6aStackedBK](OptimalPolicyRules/TidyR6aStackedBK.lean) | 22 | The stacked system (1.1) + (1.9) as a singular pencil at `t₀ = 0`: determinate iff the perfect-foresight Assumption 8.1 and no Euler root on the unit circle |
+| [TidyR6aTaylorNecessity](OptimalPolicyRules/TidyR6aTaylorNecessity.lean) | 16 | Ch. 4 fn 27 within (3.7): the principle necessary for determinacy when `φπ, φₓ ≥ 0`, `1 + ρ₁ + 2ρ₂ > 0`; not necessary in general |
+| [TidyR6bFOCMeasure](OptimalPolicyRules/TidyR6bFOCMeasure.lean) | 40 | Necessity of (1.9) on every filtered probability space: optimality subject to (1.6) iff the first-order conditions (weak form); the full form iff a predictable version; the models |
+| [TidyR6bRuleSystemMeasure](OptimalPolicyRules/TidyR6bRuleSystemMeasure.lean) | 18 | p. 593 on a probability space: existence for `λₓ > 0`, so existence and a.s. uniqueness for every `λₓ ≥ 0`, `0 ≤ γ ≤ 1` |
+| [TidyR6bLambdaILimitExists](OptimalPolicyRules/TidyR6bLambdaILimitExists.lean) | 10 | p. 591 on a probability space: the equilibria under (3.7) and the (2.5) solution exist and are a.s. unique; convergence with no existence hypothesis |
+| [TidyR6bRuleIIIVar](OptimalPolicyRules/TidyR6bRuleIIIVar.lean) | 3 | Rule III on every VAR economy: an a.s. unique bounded plan, optimal from a timeless perspective, at every `0 < γ ≤ 1` |
+| [TidyR6bStickyGeneral](OptimalPolicyRules/TidyR6bStickyGeneral.lean) | 13 | The (2.20) region on a probability space for general `𝓕₀`-measurable initial values: existence, a.s. uniqueness, the exact region |
 
 ## Modelling conventions
 
@@ -322,7 +566,33 @@ Not formalised:
   theorems of §2 have finite-tree corollaries (`InflTargetInertia.baseline_robustlyOptimal_finiteTree`,
   `InflTargetStickyWages.sym_robustlyOptimal_finiteTree`). Complex roots are handled by the complexified
   expectation `ExpectationTools.EC`. Shifted and delayed information sets are themselves
-  expectation systems (`InflTargetPredetermined.shift`, `IRulePredetermined.delay`).
+  expectation systems (`InflTargetPredetermined.shift`, `IRulePredetermined.delay`). The
+  measure-theoretic restatement is described in the next bullet.
+* **Measure-theoretic expectations.** The core `ExpectationSystem` (an operator `E_t` on all
+  functions `Ω → ℝ`, with exact equalities) is kept unchanged, and every result above that is
+  stated for it still holds. On a countable `Ω` it forces finitely supported forecasts, so it
+  cannot carry an infinite-horizon model with nondegenerate shocks. `ExpectationsMeasure` adds,
+  alongside it, a probability space with a filtration (`ExpectationsMeasure.MeasExpectationSystem`):
+  `E_t` is Mathlib's conditional expectation `condExp`, variables are bounded measurable functions
+  and processes (`BddRV`, `BddProc`, Mathlib's `StronglyAdapted`), and equations hold almost
+  everywhere. The bridge is additive and runs both ways: a finite event tree is a measure system
+  with the same `E_t` at every state (`ExpectationsMeasure.TreeBridge.treeSystem_E`), and a
+  measure system on a finite discrete state space with full support is a core system with the
+  pull-out property (`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem`,
+  `ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`). The genuine instance
+  is the i.i.d. economy on `ℕ → ℝ` under `ν^ℕ`, in which every history has probability zero
+  (`ExpectationsMeasureIID.iidSystem`, `ExpectationsMeasureIID.iid_not_finitely_supported`). The
+  Chapter 8 objects are restated on it with `E_t` applied componentwise
+  (`OptimalRulesMeasure.EVm`) and essentially bounded vector processes
+  (`OptimalRulesMeasure.MBoundedV`); the exogenous state is a VAR(1) in the conditional-expectation
+  sense (`OptimalRulesMeasureMarkov.IsVAR`), or, from `OptimalRulesMeasureForecast` on, any bounded
+  adapted disturbance, which enters through its conditional forecast path
+  (`OptimalRulesMeasureForecast.cfc`) and the perfect-foresight kernel
+  (`OptimalRulesMeasureKernel.KY`); the endogenous state transition of the general case is
+  `OptimalRulesMeasureGeneral.Hgen`, equal to `H_n` (`OptimalRulesMeasureStability.Hn_eq_Hgen`).
+  On a finite, fully supported space each notion is the
+  core one (`OptimalRulesMeasure.Bridge.mFOCSystem_iff`, `OptimalRulesMeasure.Bridge.mAssumption81_iff`),
+  and the one-point space is perfect foresight (`OptimalRulesMeasure.Bridge.unitSystem_pf`).
 * **Bounded adapted processes.** Plans, multipliers and disturbances are bounded and adapted;
   pre-sample values (`x_{t₀−1}`, `π_{t₀−1}`, `i_{t₀−1}`, the multiplier history) are bounded and
   known at `t₀`. Uniqueness is uniqueness among bounded adapted processes.
@@ -355,4 +625,5 @@ python3 scripts/verify.py
 
 The verifier builds the library, freshly recompiles every contributed proof,
 and audits each named declaration's axioms (only `propext`, `Classical.choice`
-and `Quot.sound` are allowed). Warnings fail the check.
+and `Quot.sound` are allowed). Warnings fail the check. Each compiler run (the build and the
+fresh audit) has a timeout of 3600 s.

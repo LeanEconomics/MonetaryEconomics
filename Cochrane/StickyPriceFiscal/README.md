@@ -9,12 +9,18 @@ University Press, 2023), Chapter 5, "Fiscal theory in sticky-price models" (pp. 
 with the parts of the Online Appendix that the chapter relies on: §§A1.7–A1.13 (pp. 569–585),
 §A1.3 on the geometric maturity structure (pp. 561–564) and §A2, (2.1)–(2.3) (p. 595). The
 discrete-time models (§§5.1–5.6) are stated for an arbitrary `ExpectationSystem`, so every result
-holds under perfect foresight and under genuine uncertainty. The continuous-time models (§5.7)
-are about deterministic paths after a date-0 shock, which is how the book computes its responses.
+holds under perfect foresight and under genuine uncertainty. The discrete-time models are also
+restated in a genuine probability model, with Mathlib's conditional expectation: §5.5 in
+`PolicyRulesMeasure`, `PolicyRulesMeasureNews` and `PolicyRulesMeasureStationary`, and §§5.1–5.4,
+5.6, the responses and Table 5.1 in the TidyR6Meas modules. The continuous-time models (§5.7)
+are about deterministic paths after a date-0 shock, which is how the book computes its responses;
+§§5.7–5.7.5, the frictionless limit `κ → ∞` and the integral forms of p. 163 are also solved with
+Brownian shocks, with the Itô integral of the Brownian and Itô modules copied from the Monetarism
+project (by way of the FiscalConstraints project).
 "Determinate" means that exactly one bounded equilibrium exists for every admissible forcing and
-initial condition. The library contains **933 theorems**, including the shared core; 825 of them
-are in the nineteen chapter modules, 108 of these in a verbatim copy of the Woodford Chapter 4
-Blanchard–Kahn theorem (`BKCopy`).
+initial condition. The library contains **1995 theorems**, including the shared core and 357 in
+the twelve copied Brownian and Itô modules; 1422 of them are in the fifty-one chapter modules, 108
+of these in a verbatim copy of the Woodford Chapter 4 Blanchard–Kahn theorem (`BKCopy`).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. Survey codes E19–E54 refer to the
@@ -70,11 +76,22 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
   is in `(1.015, 1.016)` (`FiscalNK.fiscal_shock`, `FiscalNK.fig53_impact`,
   `FiscalNK.fiscal_shock_pv_one`, `FiscalNK.fig53_cumulative`; E28).
 * **AR(1) rise with long-term debt, and the p. 131 persistence correction.** For `i_t = η^t`,
-  `π_t = Aη^t + Cλ₁^{−t}` in closed form (`LongTermDebt.ltd_ar1`, `LongTermDebt.ar1_impact`).
-  With `ρ = β`, as in the book's calibrations, a rise of **any** persistence `0 ≤ η < 1` is
-  disinflationary on impact iff `ω̃ > ρ/λ₁`, the permanent-rise condition
-  (`LongTermDebt.ar1_disinflation_iff_rho_eq_beta`). So "the interest-rate rise must be
-  persistent" (p. 131) is not a precondition: persistence only enlarges the disinflation
+  `π_t = Aη^t + Cλ₁^{−t}` in closed form (`LongTermDebt.ltd_ar1`, `LongTermDebt.ar1_impact`). In
+  the resonant case `λ₁η = 1` the equilibrium exists, is unique, has the double-root form
+  `π_t = resA·tηᵗ + resC·ηᵗ`, and is the limit of the non-resonant paths
+  (`TidyR5Resonant.ltd_ar1_resonant_existsUnique`, `TidyR5Resonant.tendsto_ar1_resonant`). For
+  every `ρ`, the rise disinflates on impact iff `ω̃ > ω*(η) = Q(η)/P(η)`, with `ω*(1) = ρ/λ₁`
+  (`TidyR5Persistence.impact_neg_iff_omStar`, `TidyR5Persistence.omStar_one`), and `ω*` falls,
+  stays constant or rises with persistence as `ρ < β`, `ρ = β` or `ρ > β`
+  (`TidyR5Persistence.omStar_cross`). So the book's "the interest-rate rise must be persistent"
+  and "long-lasting … most likely to be disinflationary" (p. 131) **hold for `ρ ≤ β` and are
+  reversed for `ρ > β`**: for `ρ ≤ β` persistence helps and magnifies the disinflation, and for
+  `ρ < β` it is needed for some maturities (`TidyR5Persistence.persistence_helps`,
+  `TidyR5Persistence.persistence_magnifies`, `TidyR5Persistence.persistence_needed`); for `ρ > β`
+  less persistence helps, and at `ω̃ = ρ/λ₁` every transitory rise disinflates while the permanent
+  one does not (`TidyR5Persistence.persistence_hurts`, `TidyR5Persistence.rho_gt_beta_reversal_eqm`).
+  With `ρ = β`, as in the book's calibrations, the sign does not depend on persistence
+  (`LongTermDebt.ar1_disinflation_iff_rho_eq_beta`) and persistence only enlarges the disinflation
   (`LongTermDebt.ar1_magnitude_rho_eq_beta`). Long-term debt and surprise are necessary
   (`LongTermDebt.ar1_short_debt_no_disinflation`, `HigherOrLower.anticipated_rise_no_disinflation`).
 
@@ -146,8 +163,10 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
   coins and sets the later ones to tails. It satisfies every `ExpectationSystem` axiom and makes
   coin-driven shocks unpredictable, but it is a point-mass belief. The non-existence happens on the
   all-heads path (`PolicyRules.bump_unbounded`), to which this belief gives probability zero. The
-  core has no infinite-horizon full-support coin system, so whether a full-support i.i.d. system
-  gives the same verdict is not proved.
+  core has no infinite-horizon full-support coin system. In a genuine probability model the
+  verdicts are the same: the full-support i.i.d. economy gives exactly the `truncSystem` answers
+  (`PolicyRulesMeasureNews.alpha_iid_iff_trunc`, `PolicyRulesMeasureNews.unitroot_iid_iff_trunc`;
+  see "Genuine probability models" below).
 * **Responses and Table 5.1.** The closed form `x_t = gπ_t − σ/(λ_u − η_i)u_{i,t}`,
   `E_tπ_{t+1} = λ_sπ_t + …` (`PolicyRules.closed_form`); the identities (3.20)–(3.22) for every
   bounded solution (`PolicyRules.identity_320`, `PolicyRules.identity_321`,
@@ -164,6 +183,58 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
   exactly one member, with no price-level jump (`CTSimple.ct_equilibrium_exists_unique`,
   `CTSimple.ct_no_price_jump`); the step example (5.96) and its frictionless limit follow
   (`CTSimple.ct_step_solution`, `CTSimple.ct_price_limit`).
+* **Brownian shocks (§§5.7–5.7.1).** With diffusive shocks `dε_m = σ_i dW`, `dε_s = σ_s dW` for
+  one Brownian motion `W`, the model is solved explicitly on every continuous path: with the
+  Ornstein–Uhlenbeck noise `Y_t = ∫_0^t e^{−λ₂(t−u)}dW_u` (pathwise, by parts) and
+  `A = −(r + λ₂)σ_s/r`, `π = σ_iW + AY`, `x = (ρσ_iW + λ₁AY)/κ`, `v = (σ_s/r)(W − Y)` and
+  `p = ∫π` (`TidyR7StochCTPath.path_solves`). The book's `E_t d`-equations hold,
+  `E_t[x_T − x_t] = E_t∫_t^T σ(i − π)`, `E_t[π_T − π_t] = E_t∫_t^T (ρπ − κx)`,
+  `E_tΔi = E_tΔs̃ = 0`, with the `v` and `p` equations on every path and expectational errors
+  `dδx = R_x(0)dW`, `dδπ = R_π(0)dW` (`TidyR7StochCTBrownian.ito_book_equations`,
+  `TidyR7StochCTBrownian.expectational_errors`). **The `dW` loadings are the impulse responses**:
+  a.s. `π_T = ∫_0^T R_π(T − u)dW_u`, and likewise for `x` and `v`, where `R` is the book's
+  deterministic step response (5.96) (`TidyR7StochCTBrownian.responses_ito`,
+  `TidyR7StochCTPath.resp_eq_ct_step`); forecasts are moving averages of past shocks weighted by
+  the responses, and news loads on them (`TidyR7StochCTBrownian.condExp_responses`,
+  `TidyR7StochCTBrownian.news_responses`). The valuation equation (5.95) and the transversality
+  condition hold at every date, in `L¹` (`TidyR7StochCTBrownian.valuation_L1`,
+  `TidyR7StochCTBrownian.tvc_L1`). No covariation correction is needed: `v` and `p` are `C¹` on
+  every path, so their brackets with `W` vanish (`TidyR7StochCTBrownian.crossSum_v_tendsto_zero`).
+  With debt as the state, every equilibrium obeys the feedback rule (5.96)
+  (`TidyR7StochCTUnique.feedback_rule`); among adapted processes with continuous paths and `E|·|`
+  growing at most linearly, the equilibrium exists and is unique
+  (`TidyR7StochCTUnique.stochCTEq_exists`, `TidyR7StochCTUnique.stochCTEq_unique`), and on the
+  constructed Brownian motion debt is genuinely random (`TidyR7StochCTBrownian.bmPath_v_nondegenerate`).
+  The Brownian and Itô modules are copied from the Monetarism project (by way of
+  FiscalConstraints), and some FiscalConstraints Ornstein–Uhlenbeck and Wiener-integral lemmas are
+  restated in `TidyR7StochCTPath` and `TidyR7StochCTBrownian`.
+* **Brownian shocks in §§5.7.2–5.7.5, the frictionless limit and the integral forms of p. 163.**
+  With a diffusive surplus shock `dε_s = σ_s dW`, the corrected (5.98)–(5.99) hold on every path,
+  `dv* = (rv* − s)dt + β_sσ_s dW` (`TidyR8StochCTSurplus.vstar_incr`), the variables are the
+  deterministic responses integrated against `dW` (`TidyR8StochCTSurplus.responses_surplus`), and
+  `v*` is the present value of surpluses at every date, in `L¹`
+  (`TidyR8StochCTSurplus.valuation_surplus_L1`). The present-value innovation is
+  `L(r)σ_s dW = +β_sσ_s dW` (`TidyR8StochCTSurplus.innovation_eq_L_r`), and the innovation of the
+  log price level is `−β_s dε_s`, as in `dP/P = −β_s dε_s` on p. 167, not the printed `+β_s dε_s`
+  of p. 168 (`TidyR8StochCTSurplus.pstar_loading`, `TidyR8StochCTSurplus.bracket_pstar_W`). With a
+  diffusive rate shock the partial-adjustment rate (5.107) is its response integrated against `dW`
+  (`TidyR8StochCTRules.rate_ito`); the bond price (5.105) is the expected discounted rate path, and
+  every regular adapted solution of its `E_t d`-equation is that one
+  (`TidyR8StochCTRules.bond_valuation_L1`, `TidyR8StochCTRules.bond_unique`). The price level is
+  `C¹`, so the bond price and the price level have zero bracket and `QB/P` needs no Itô term
+  (`TidyR8StochCTRules.bond_price_level_bracket`). Given `v*₀ = v₀` (E49), the elimination
+  `v = v*`, `π = π*` holds a.s. at every date (`TidyR8StochCTRules.elim_stoch`), and two solutions
+  with the same rate process, the same inflation innovation and the same `π₀` agree whatever the
+  fiscal rules (`TidyR8StochCTRules.pinned_by_innovation`). As `κ → ∞` the price level converges,
+  on every path and in `L²`, to the frictionless diffusion `σ_i∫W − (σ_s/r)W`, while inflation has
+  no limit (`TidyR8StochCTLimit.pPath_tendsto`, `TidyR8StochCTLimit.pProc_tendsto_L2`,
+  `TidyR8StochCTLimit.inflation_variance_tendsto`). **The printed integrated IS curve of p. 163 is
+  false** for a permanent rate shock when `ρ ≠ 0`: output tends to `ρi₀/κ`, not `0`
+  (`TidyR8StochCTIntegralForms.printed_is_counterexample`), and under uncertainty the printed form
+  misses `x_t` by a positive `L¹` distance (`TidyR8StochCTIntegralForms.printed_is_fails`); the
+  corrected form `x_t = (ρ/κ)E_ti_∞ − σE_t∫(i − π)` holds (`TidyR8StochCTIntegralForms.is_corrected_L1`).
+  The integrated Phillips curve holds as printed for `ρ > 0`
+  (`TidyR8StochCTIntegralForms.pc_integral_L1`) and needs `+E_tπ_∞` at `ρ = 0`.
 * **Long-term debt (Fig. 5.10).** `π₀ = 1 − (r + λ₂)/(r + ω)`, negative iff `ω < λ₂`, with a
   smooth frictionless limit and longer disinflation for stickier prices
   (`CTSimple.fig510`, `CTSimple.fig510_initial_disinflation`, `CTSimple.fig510_price_limit`,
@@ -171,6 +242,14 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
 * **S-shaped surpluses (§5.7.2).** The impulse response in closed form, with a single sign
   change, and `L(r) = +β_s`, not `−β_s` (E47) (`CTSurplus.ct_surplus_irf`, `CTSurplus.ct_s_shape`,
   `CTSurplus.surplus_L_r`).
+* **The operator calculus `L(D)` in general (p. 168).** For every continuous impulse response of
+  exponential order below `r`, with a date-0 jump and a bounded continuous shock density, the
+  forward solution is the unique solution of `w' = rw − ℓ` satisfying the transversality condition
+  (`TidyR6OperatorCalculus.fwd_unique`); its transform is `(L(z) − L(r))/(r − z)`
+  (`TidyR6OperatorCalculus.lap_fwd_div`), the date-`t` forecast of the present value is the
+  response of that operator, and news moves it by `L(r)Dε` (`TidyR6OperatorCalculus.hs_general`,
+  `TidyR6OperatorCalculus.innovation_general`). At `z = r` the singularity is removable, with value
+  `−L'(r)` (`TidyR6LaplaceAtR.tendsto_hs_quotient`, `TidyR6LaplaceAtR.lap_fwd_eq_neg_deriv`).
 * **Rules (§§5.7.3–5.7.5).** Eliminating `v*` needs `v*₀ = v₀` (E49, `CTRules.ct_elim`). For every
   `α` an equilibrium is determined by `π₀`; for `α > 0` every `π₀` is an equilibrium and (5.111)
   selects one; for `α ≤ 0` the valuation equation pins it (`CTRulesEquilibrium.rules_unique_of_pi0`,
@@ -196,6 +275,18 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
   systems (`CTMatrixMethod.matrix_cdiag_bounded_iff`, `CTMatrixMethod.real_system_bounded_iff`).
   The decomposition is a hypothesis, as in the book's `A = QΛQ⁻¹`: Mathlib has no Jordan normal
   form for matrices.
+* **Every matrix, with no decomposition hypothesis.** For every complex operator, and every real
+  matrix by complexification, the generalised eigenspaces decompose the space and give spectral
+  projections (`TidyR6GenEigen.isInternal`, `TidyR6GenEigen.exists_decomp`); a component with chain
+  length `k` grows exactly like `t^k e^{(Re μ)t}` (`TidyR6GenEigen.tendsto_norm_expT_div`), and is
+  bounded iff it vanishes for `Re μ > 0` and is an eigenvector for `Re μ = 0`
+  (`TidyR6GenEigen.bounded_expT_iff`). So "explosive" means `Re μ > 0`, or `Re μ = 0` with a
+  nontrivial Jordan chain. A response is bounded iff its initial value has no such component
+  (`TidyR6MatrixMethod.bounded_iff`, `TidyR6MatrixMethod.real_bounded_iff`), with the closed form,
+  the expectational errors (1.53) and the Table 5.2 integrals
+  (`TidyR6MatrixMethod.solution_formula`, `TidyR6MatrixMethod.errors_iff`,
+  `TidyR6MatrixMethod.errors_unique`, `TidyR6MatrixMethod.errors_exist`, `TidyR6MatrixMethod.pv`,
+  `TidyR6MatrixMethod.real_pv`).
 
 ### Sims' model (§5.7.6)
 
@@ -205,6 +296,75 @@ All names are in the namespace `Cochrane.StickyPriceFiscal`.
   present values (`Sims.bond_price_pv`, `Sims.inflation_pv`, `Sims.debt_pv`); "Fisherian in the
   long run" (`Sims.fisherian_inflation`, `Sims.steady_state_peg`); the habit roots
   (`Sims.habit_roots`).
+
+### Genuine probability models (§§5.1–5.6, App. §1.9)
+
+* **Genuine probability models.** The §5.5 model is restated for any filtered probability space,
+  with `E_t` Mathlib's conditional expectation and every equation holding almost everywhere
+  (`PolicyRulesMeasure.MRedEquil`). Under passive money, `|ω| < 1`, `ρ > 0` and `|1 − α| < ρ`
+  there is exactly one bounded equilibrium, up to null sets, for every admissible shock process and
+  initial inflation and debt (`PolicyRulesMeasure.mpolicyRules_determinate`); at most one for every
+  `α` and on the unit root (`PolicyRulesMeasure.mpolicyRules_unique`,
+  `PolicyRulesMeasure.munitroot_unique`), with the boundary existence criteria
+  (`PolicyRulesMeasure.malpha_exists_iff`, `PolicyRulesMeasure.munitroot_exists_iff`). No
+  Blanchard–Kahn theorem is used: the forward combination `f = x − g(λ_S)π` solves a scalar forward
+  equation (`PolicyRulesMeasure.mblock_props`). For every system with recurring nondegenerate news
+  (`PolicyRulesMeasureNews.RecurringNews`) the model is determinate iff `|1 − α| < ρ`, or
+  `|1 − α| = ρ` with `κ_s = κ_i = 0`, and on the unit root iff `β_s = 0` and `β_i = k`
+  (`PolicyRulesMeasureNews.alpha_iff_news`, `PolicyRulesMeasureNews.unitroot_iff_news`), in
+  particular in the i.i.d. economy, in which every history is null, and for fair coins
+  (`PolicyRulesMeasureNews.alpha_iff_iid`, `PolicyRulesMeasureNews.alpha_iff_coin`). Non-existence
+  comes from second moments, `E W_t² ≥ tc`, not from a single path
+  (`PolicyRulesMeasureNews.not_bdd_of_news`). Active money leaves some initial inflation without an
+  equilibrium in every probability model, because the means of an equilibrium form a
+  perfect-foresight one (`PolicyRulesMeasureNews.mnonexist_of_active`,
+  `PolicyRulesMeasureNews.mean_equil`). On a finite fully supported state space all of this is the
+  core model (`PolicyRulesMeasureNews.mmodelDeterminate_iff_core`).
+* **Strict stationarity at `ρ = 1`.** With laws available, "the unique stationary equilibrium"
+  (p. 148) is stated as strict stationarity (`PolicyRulesMeasureStationary.StrictlyStationary`). A
+  bounded strictly stationary martingale is constant (`PolicyRulesMeasureStationary.stationary_martingale`),
+  so the gap `d = v* − v` of a bounded solution is strictly stationary iff `π* = π` from date 1, and
+  then `d` is constant (`PolicyRulesMeasureStationary.rho_one_stationary_iff`,
+  `PolicyRulesMeasureStationary.rho_one_stationary_const`). Stationarity does **not** select
+  `v* = v`: a constant gap is strictly stationary (`PolicyRulesMeasureStationary.rho_one_stationary_not_select`).
+  The survey's E32 example is stationary from date 1 only (`PolicyRulesMeasureStationary.iid_stationary_from_one`).
+  Requiring the **whole equilibrium** to be jointly strictly stationary
+  (`TidyR6MeasJointStationary.JointlyStationary`) still gives only `π* = π` and a constant gap
+  (`TidyR6MeasJointStationary.rho_one_joint_select`): in the i.i.d. economy a jointly stationary
+  bounded equilibrium with genuinely random shocks has `v* − v = −1`
+  (`TidyR6MeasJointStationary.iid_joint_not_select`). For `ρ < 1` boundedness alone gives
+  `v = v*` (`TidyR6MeasJointStationary.mfull_elim`).
+* **§§5.1–5.2 in a probability model.** The roots, (5.3)–(5.4) and the characterisation (5.5)–(5.7)
+  of all bounded equilibria (`TidyR6MeasFiscalNK.mpc_forward`,
+  `TidyR6MeasFiscalNK.mnk_characterization`); determinacy for `0 < ρ < 1` with one-period and
+  long-term debt, uniqueness under the transversality condition for `0 < ρ ≤ 1`, and a bounded
+  companion of every equilibrium at `ρ = 1` (`TidyR6MeasFiscalNK.meqm_determinate`,
+  `TidyR6MeasFiscalNK.mftplnk_determinate`, `TidyR6MeasFiscalNK.mltd_determinate`,
+  `TidyR6MeasFiscalNK.meqm_unique_tvc`, `TidyR6MeasFiscalNK.rho_one_not_unique`). The Euler
+  equation's derivative holds as a uniform a.e. second-order bound and a.e. along every sequence
+  (`TidyR6MeasEuler.meuler_deriv`, `TidyR6MeasEuler.meuler_deriv_seq`). E26 holds with i.i.d. rate
+  shocks (`TidyR6MeasE26.iid_e26`).
+* **Responses as forecast revisions.** The forecast paths of a bounded equilibrium are, state by
+  state, perfect-foresight equilibria (`TidyR6MeasResponses.pf_forecast`,
+  `TidyR6MeasLTDResponse.ltd_forecast`), so Figs. 5.1–5.4, the joint contraction and the AR(1)
+  rise hold as revisions `E_1π_{1+j} − E_0π_{1+j}` (`TidyR6MeasResponses.fig51_response`,
+  `TidyR6MeasPathForecasts.fig52_response`, `TidyR6MeasResponses.fig53_response`,
+  `TidyR6MeasLTDResponse.fig54_response`, `TidyR6MeasPathForecasts.joint_contraction_response`,
+  `TidyR6MeasPathForecasts.ltd_ar1_response`), with impact disinflation iff `ω̃ > ρ/λ₁`
+  (`TidyR6MeasLTDResponse.fig54_disinflation`).
+* **§§5.4, 5.6 and Table 5.1 in a probability model.** `v*` is the present value of surpluses,
+  the transversality condition selects `v = v*` with `ΔEπ = −β_sε`, AR(1) and alternative surpluses,
+  `0 < γ < 2`, observational equivalence (`TidyR6MeasSurplus.mvstar_eq_pv`,
+  `TidyR6MeasSurplus.mselect`, `TidyR6MeasSurplus.mar1_surplus_inflation`,
+  `TidyR6MeasSurplus.malt_unexpected_inflation`, `TidyR6MeasSurplus.mgamma_passive_iff`,
+  `TidyR6MeasSurplus.mobservationally_equivalent`); (5.38) is active iff `γ ≠ α`, and the printed
+  "iff `γ = 0`" is false in the i.i.d. economy (`TidyR6MeasActive538.mactive_iff_538`,
+  `TidyR6MeasActive538.mprinted_538_false`); the identities (3.20)–(3.22) and the expectation
+  claims behind Table 5.1 (`TidyR6MeasTable51.midentity_322`, `TidyR6MeasTable51.mfiscal_shock_sums`).
+  Expectation-free core results (moving averages, roots, comparative statics) apply verbatim; the
+  surplus news is s-shaped with present value `β_s` (`TidyR6PathwiseTransfer.msurplus_news_s_shape`,
+  `TidyR6PathwiseTransfer.msurplus_news_pv`), and `TidyR6PathwiseTransfer.idSystem` transfers core
+  statements that use an `ExpectationSystem` only formally.
 
 ### Links between the sections
 
@@ -218,14 +378,52 @@ passive in the §5.4 sense (`Links.alpha_iff_pf_gRoot`, `Links.determinate_regio
 `FiscalNK` determinacy is not derived from `PolicyRules.policyRules_determinate`, which assumes
 `|1 − α| < ρ` and so excludes the `α = 0` of §5.1.2.
 
+`LinksTidy` closes two links that were previously stated by docstring only.
+* **The bond weight.** The return `omega·q_{t+1} − q_t` of (5.60) is the exact derivative of the
+  portfolio return iff `omega = ω/(1 + i)`, the `ω̃` of `LongTermDebt`; the printed `ω` is not
+  (`LinksTidy.exact_weight_iff`, `LinksTidy.printed_weight_not_exact`, E23). Under the
+  identification map `LinksTidy.idParams` (all rule coefficients zero, `omega := ω̃`) the
+  long-term-debt model is the §5.5 reduced model equation by equation and equilibrium by
+  equilibrium, and the unique equilibrium carries over (`LinksTidy.ltd_iff_redCore`,
+  `LinksTidy.redEquil_iff_ltdEquil`, `LinksTidy.redEquil_eq_ltd`).
+* **The two continuous-time transversality theorems.** `NonlinearCT.tvc_iff_integral` (relative
+  time) is re-derived from `CTSimple.tvc_iff_forward` (absolute time) by a change of variables,
+  without its continuity hypothesis on the surplus (`LinksTidy.tvc_iff_integral_of_forward`).
+  Conversely `CTSimple.tvc_iff_forward` is re-derived from `NonlinearCT.tvc_iff_integral` for
+  forcing continuous on `[t, ∞)` (`LinksTidy.tvc_iff_forward_of_integral`).
+
+`TidyR5TVC` removes that restriction. An interior (Darboux-type) witness,
+`wv τ = (τ − 1)² sin(1/(τ − 1))`, satisfies CTSimple's hypotheses with forcing that has no right
+limit at `1` (`TidyR5TVC.witness_ctsimple_hyps`, `TidyR5TVC.wf_no_right_limit`), and
+`NonlinearCT.tvc_iff_integral` cannot be applied to it at any shift (`TidyR5TVC.witness_not_covered`).
+NonlinearCT's own argument works with merely integrable forcing (`TidyR5TVC.tvc_iff_integral_int`),
+and that statement yields the full `CTSimple.tvc_iff_forward` for any integrable forcing
+(`TidyR5TVC.forwardStmt_of_integralIntStmt`, `TidyR5TVC.tvc_iff_forward_of_integralInt`), which
+covers the witness (`TidyR5TVC.witness_valuation`).
+
+`TidyR5PegLimit` and `TidyR5PegLimitFull` prove **the discrete-to-continuous limit of the whole peg
+path**. With period length `h` (IS slope `σh`, Phillips-curve slope `κh`), along any family of
+bounded discrete equilibria inflation per unit of time and the real value of debt at date `⌊t/h⌋`
+converge to the continuous-time step example (5.96) uniformly on all of `[0, ∞)`
+(`TidyR5PegLimit.peg_path_uniform`, `TidyR5PegLimit.peg_debt_uniform` on `[0, T]`;
+`TidyR5PegLimitFull.peg_path_uniform_global`, `TidyR5PegLimitFull.peg_debt_uniform_global`), and
+discrete output divided by `h` converges uniformly to continuous-time output, while unscaled output
+tends to zero (`TidyR5PegLimitFull.peg_output_uniform`, `TidyR5PegLimitFull.peg_output_level_vanishes`).
+
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise. The main corrections are:
 * (5.38), p. 139: active iff `γ ≠ α`, not iff `γ = 0` (E33);
 * (5.41), p. 139: the sign of `β_sε` in the debt equation (found during formalisation);
-* p. 131: persistence is not needed for a disinflationary rate rise (found during formalisation);
+* p. 131: the claims that a disinflationary rate rise must be persistent hold only for `ρ ≤ β` and
+  are reversed for `ρ > β`; with the book's `ρ = β` persistence does not affect the sign (found
+  during formalisation);
 * p. 121, pp. 136–137, 148 and App. pp. 574–576: `ρ = 1` and unit eigenvalues are not
   forward-looking roots; the exact model-level answers above (E20, E32);
+* p. 148 at `ρ = 1`: "the unique stationary equilibrium … includes `v = v*`" is false, even with
+  joint strict stationarity of the whole equilibrium, which selects `π* = π` but not `v = v*`; the
+  survey's E32 example is stationary only from date 1 (`PolicyRulesMeasureStationary`,
+  `TidyR6MeasJointStationary`);
 * the missing upper bounds `α < 2`, `α < 1 + ρ`, `γ < 2`, `γ < 1 + ρ`, and the exact condition in
   `α` (E31, E54, E6 of Chapters 11–19);
 * Table 5.1 (`2.58` should be `0.26`, E41; `η_s = 0.5`, not `0.4`, E40) and Table 5.2
@@ -244,25 +442,28 @@ Not formalised:
 * numbers that need a full numerical solution: most Table 5.1 entries, Figs. 5.6–5.9, Table 5.2
   rows 2–3 (`1.28`, `0.50`), and the hump shape and timing of Figs. 5.14–5.15. Fig. 5.5 itself is
   not formalised, only the facts it plots;
-* for `ρ ≠ β`, the dependence of the AR(1) impact response on persistence beyond the closed form
-  `LongTermDebt.ar1_impact`; the resonant case `λ₁η = 1` is excluded;
-* determinacy with recurring news under a full-support system: the boundary results use the
-  point-mass `PolicyRules.truncSystem` (see the caveat above);
-* the survey's "strict stationarity" at `ρ = 1`: there is no stationarity notion for an abstract
-  `ExpectationSystem`; boundedness and the transversality condition are treated instead;
-* the matrix method for every matrix without the Jordan-decomposition hypothesis. A
-  hypothesis-free version needs the generalised-eigenspace projections and the asymptotics of
-  `exp(tA)`, which Mathlib does not provide in that form. The P/M selector notation of App. §1.13 is
-  replaced by row-by-row statements;
-* the operator calculus `L(D)` of §5.7.2 in general: it is covered for exponential-sum responses
-  (`CTSurplus.hs_pv`, `CTSurplus.hs_innovation`);
-* stochastic continuous time: `dε` and `dδ` are date-0 jumps followed by perfect foresight, as in
-  the book's responses, not diffusions;
-* the full discrete-to-continuous limit of the peg path: only the roots, the impact coefficient
-  and the decay factor are shown to converge (`Links`);
-* a formal link between `LongTermDebt`'s exact weight `ω̃` and the `omega` of `PolicyRules.Params`
-  (the same parameter by docstring only), and between `NonlinearCT.tvc_iff_integral` and
-  `CTSimple.tvc_iff_forward`, which use different time conventions.
+* a single pathwise derivative in `ε` of the Euler equation in a probability model: Mathlib's
+  `condExp` gives a separate a.e.-class for each of the uncountably many `ε`, so no common version
+  need exist; the two version-free forms are proved instead (`TidyR6MeasEuler.meuler_deriv`, a
+  uniform a.e. second-order bound, and `TidyR6MeasEuler.meuler_deriv_seq`, a.e. along every
+  sequence);
+* the P/M selector notation of App. §1.13, replaced by component-by-component statements
+  (`TidyR6MatrixMethod.Good`);
+* parts of stochastic continuous time: §5.7.2, the bond price, partial adjustment, the `v − v*`
+  elimination, coordination, the limit `κ → ∞` and the integral forms of p. 163 are proved with
+  diffusive shocks, but existence and uniqueness of the full joint rules equilibrium
+  (5.105)–(5.113) under diffusion (which needs kernel processes with three or more modes), Table
+  5.2 and (5.117) under diffusion, and the Itô drift `½β_s²σ_s²dt` of the level `1/P = e^{−p*}`
+  (no Itô formula for `f(X)`) are not. One Brownian motion drives all shocks (`dε_m = σ_i dW`,
+  `dε_s = σ_s dW`), so the cross variation of two independent Brownian motions never arises; with
+  independent shocks the inflation innovation (5.111) would be two-dimensional. The general
+  operator calculus of `TidyR6OperatorCalculus` still uses jumps and bounded continuous shock
+  densities;
+* `CTSimple.tvc_iff_forward` from `NonlinearCT.tvc_iff_integral` itself for interior-discontinuous
+  forcing: the theorem as stated assumes a continuous surplus and provably cannot reach such data
+  (`TidyR5TVC.witness_not_covered`). The full CTSimple theorem is derived instead from the same
+  statement with the continuity hypothesis dropped (`TidyR5TVC.IntegralIntStmt`), which is proved
+  by NonlinearCT's argument.
 
 ## Library map
 
@@ -291,6 +492,52 @@ Not formalised:
 | [CTRulesEquilibrium](StickyPriceFiscal/CTRulesEquilibrium.lean) | 21 | §§5.7.3–5.7.5: existence and uniqueness of the rules equilibrium for every `α`, and the certified Fig. 5.11 and Table 5.2 numbers |
 | [CTMatrixMethod](StickyPriceFiscal/CTMatrixMethod.lean) | 17 | App. §1.13 with complex and defective eigenvalues, given a Jordan decomposition |
 | [Links](StickyPriceFiscal/Links.lean) | 25 | Links between the sections: innovations, discrete and continuous roots, the §5.5 model without rules as the §§5.1.2 and 5.2 models, fiscal-rule roots, ODE solutions |
+| [LinksTidy](StickyPriceFiscal/LinksTidy.lean) | 25 | The exact bond weight `ω̃` as the `omega` of `PolicyRules.Params` (identification map, equations, equilibria; E23), and the two continuous-time transversality theorems derived from each other |
+| [ExpectationsMeasure](StickyPriceFiscal/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, copied from `ObservationalEquivalence`): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](StickyPriceFiscal/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [PolicyRulesMeasure](StickyPriceFiscal/PolicyRulesMeasure.lean) | 53 | §5.5, (5.61)–(5.73), App. §§1.9, 1.11, in a probability model: the block without Blanchard–Kahn, uniqueness for every `α` and on the unit root, determinacy, the closed form, existence at the boundaries |
+| [PolicyRulesMeasureNews](StickyPriceFiscal/PolicyRulesMeasureNews.lean) | 27 | §5.5 with recurring news: exact determinacy in `α` and on the unit root for every such system, the i.i.d. and coin economies, equality with the `truncSystem` verdicts, means of equilibria, the finite-space bridge to `PolicyRules` |
+| [PolicyRulesMeasureStationary](StickyPriceFiscal/PolicyRulesMeasureStationary.lean) | 9 | §§5.4.1, 5.5, p. 148: strict stationarity at `ρ = 1`; it selects `π* = π`, not `v* = v`; the survey's example (E32) |
+| [TidyR5Resonant](StickyPriceFiscal/TidyR5Resonant.lean) | 8 | §5.3, p. 131: the resonant AR(1) rise `λ₁η = 1` with long-term debt: closed form, existence and uniqueness, the limit of the non-resonant paths |
+| [TidyR5Persistence](StickyPriceFiscal/TidyR5Persistence.lean) | 25 | §5.3, p. 131: the AR(1) impact for every `ρ`: the maturity threshold `ω*(η)`, its monotonicity in persistence, the book's claims for `ρ ≤ β` and their reversal for `ρ > β` |
+| [TidyR5TVC](StickyPriceFiscal/TidyR5TVC.lean) | 21 | (5.44), p. 140, and (5.95), p. 165: an interior discontinuous-forcing witness, NonlinearCT's transversality theorem with integrable forcing, and the full `CTSimple.tvc_iff_forward` derived from it |
+| [TidyR5PegLimit](StickyPriceFiscal/TidyR5PegLimit.lean) | 17 | Figs. 5.1–5.3 → (5.96): the discrete peg path (inflation, debt) converges to the continuous-time one uniformly on `[0, T]` |
+| [TidyR5PegLimitFull](StickyPriceFiscal/TidyR5PegLimitFull.lean) | 11 | Figs. 5.1–5.3 → (5.96): uniform convergence on all of `[0, ∞)`, and output divided by the period length |
+| [TidyR6GenEigen](StickyPriceFiscal/TidyR6GenEigen.lean) | 29 | App. §1.13: the operator exponential and uniqueness for `z' = Az`; generalised eigenspaces and spectral projections; the closed form, growth rates and the bounded-component criterion |
+| [TidyR6OperatorCalculus](StickyPriceFiscal/TidyR6OperatorCalculus.lean) | 21 | §5.7.2, p. 168: `L(D)` for every response of exponential order: the forward solution, the transfer function `(L(z) − L(r))/(r − z)`, the innovation `L(r)`, general shock paths |
+| [TidyR6LaplaceAtR](StickyPriceFiscal/TidyR6LaplaceAtR.lean) | 7 | §5.7.2, p. 168: the forecast operator at `z = r`: its value, the removable singularity, `−L'(r)` |
+| [TidyR6MatrixMethod](StickyPriceFiscal/TidyR6MatrixMethod.lean) | 16 | App. §1.13, (1.52)–(1.53): the matrix method for every complex and every real matrix: closed form, bounded iff `Good`, expectational errors, the Table 5.2 integrals |
+| [TidyR6MeasFiscalNK](StickyPriceFiscal/TidyR6MeasFiscalNK.lean) | 28 | §§5.1–5.2, (5.1)–(5.21), in a probability model: the roots, (5.3)–(5.7), determinacy with one-period and long-term debt, `ρ = 1`, valuation, the bond price |
+| [TidyR6MeasSurplus](StickyPriceFiscal/TidyR6MeasSurplus.lean) | 15 | §§5.4, 5.4.1, 5.4.4, 5.6, (5.36)–(5.37), (5.42), in a probability model: `v*` as a present value, selection, AR(1) and alternative surpluses, the `γ` rule, observational equivalence |
+| [TidyR6MeasActive538](StickyPriceFiscal/TidyR6MeasActive538.lean) | 7 | (5.38), E33, in a probability model: active iff `γ ≠ α`; the printed criterion false in the i.i.d. economy |
+| [TidyR6MeasE26](StickyPriceFiscal/TidyR6MeasE26.lean) | 6 | (5.5), (5.7), E26, in a probability model: the book's shock is a martingale difference and differs from unexpected inflation under i.i.d. rate news |
+| [TidyR6MeasTable51](StickyPriceFiscal/TidyR6MeasTable51.lean) | 20 | Table 5.1 in a probability model: the innovation calculus, the identities (3.20)–(3.22), the claims of §§5.5.2–5.5.3, (5.75), (5.80) |
+| [TidyR6MeasEuler](StickyPriceFiscal/TidyR6MeasEuler.lean) | 5 | §5.1, p. 118, in a probability model: the Euler equation's derivative as an `L^∞` bound and along every sequence |
+| [TidyR6MeasJointStationary](StickyPriceFiscal/TidyR6MeasJointStationary.lean) | 6 | §§5.4.1, 5.5, p. 148: joint strict stationarity of the whole equilibrium; boundedness selects for `ρ < 1`; at `ρ = 1` it does not select `v = v*` |
+| [TidyR6MeasLTDResponse](StickyPriceFiscal/TidyR6MeasLTDResponse.lean) | 6 | §5.2, Fig. 5.4: long-term-debt forecasts are perfect-foresight equilibria; Fig. 5.4 as forecast revisions |
+| [TidyR6MeasResponses](StickyPriceFiscal/TidyR6MeasResponses.lean) | 8 | §§5.1.2–5.3, Figs. 5.1, 5.3: forecasts are perfect-foresight equilibria; the responses as forecast revisions; the Fisherian long run and the impact sign |
+| [TidyR6MeasPathForecasts](StickyPriceFiscal/TidyR6MeasPathForecasts.lean) | 7 | Fig. 5.2, §5.3: linearity and scaling of the perfect-foresight models; the anticipated rise, the joint contraction and the AR(1) rise as forecast revisions |
+| [TidyR6PathwiseTransfer](StickyPriceFiscal/TidyR6PathwiseTransfer.lean) | 13 | §5.4, (5.25)–(5.28): expectation-free core results on a probability space (`idSystem`), the surplus news and its s-shape, comparative statics of the impact revisions |
+| [TidyR7BrownianSchauder](StickyPriceFiscal/TidyR7BrownianSchauder.lean) | 53 | Copied from Monetarism (tool for §§5.7–5.7.5; originally from the Meyn–Tweedie project): the Lévy–Ciesielski construction on `[0,1]`, Schauder functions, the covariance identity `Σ_m S_m(s)S_m(t) = min s t`, uniform convergence almost surely to a path continuous for every `ω` |
+| [TidyR7BrownianUnit](StickyPriceFiscal/TidyR7BrownianUnit.lean) | 13 | Copied from Monetarism (tool; originally from the Meyn–Tweedie project): Brownian motion on `[0,1]`, its finite-dimensional laws, `B(t) ~ N(0, t)`, `Cov(B s, B t) = min s t` |
+| [TidyR7BrownianExist](StickyPriceFiscal/TidyR7BrownianExist.lean) | 17 | Copied from Monetarism (tool): a Brownian motion on `[0, ∞)` exists, with every path continuous (`TidyR7BrownianExist.bmPath`) |
+| [TidyR7BrownianTools](StickyPriceFiscal/TidyR7BrownianTools.lean) | 25 | Copied from Monetarism (tool): moments of increments of a pre-Brownian motion, the natural filtration, increments independent of the past, martingales; the bridge to the index `ℝ` |
+| [TidyR7StieltjesIntegral](StickyPriceFiscal/TidyR7StieltjesIntegral.lean) | 44 | Copied from Monetarism (tool): the Riemann–Stieltjes integral `∫_a^b f dg` from Mathlib's Lebesgue–Stieltjes vector measure, its atoms, linearity, bound and additivity |
+| [TidyR7StieltjesSums](StickyPriceFiscal/TidyR7StieltjesSums.lean) | 34 | Copied from Monetarism (tool): partitions, convergence of left-point Riemann–Stieltjes sums, the vanishing cross sum, dyadic partitions |
+| [TidyR7BrownianQV](StickyPriceFiscal/TidyR7BrownianQV.lean) | 48 | Copied from Monetarism (tool): the quadratic variation of a pre-Brownian motion along partitions, in `L²`, in probability and a.s. along dyadic partitions; admissible filtrations |
+| [TidyR7ItoL2](StickyPriceFiscal/TidyR7ItoL2.lean) | 20 | Copied from Monetarism (tool): mean-square convergence, completeness of `L²` with adapted limits, `L²` and a.s. limits agree |
+| [TidyR7ItoSums](StickyPriceFiscal/TidyR7ItoSums.lean) | 44 | Copied from Monetarism (tool): elementary integrals, left-point sums, the discrete Itô isometry and the Cauchy estimate |
+| [TidyR7ItoIntegral](StickyPriceFiscal/TidyR7ItoIntegral.lean) | 32 | Copied from Monetarism (tool): the Itô integral `∫ H dW` as an adapted mean-square limit, the Itô isometry, linearity, additivity, the martingale property |
+| [TidyR7StieltjesCalculus](StickyPriceFiscal/TidyR7StieltjesCalculus.lean) | 11 | Copied from Monetarism (tool): the partition identity for products, integration by parts, the vanishing cross sum against a bounded-variation integrator, measurability of pathwise integrals |
+| [TidyR7ItoBridge](StickyPriceFiscal/TidyR7ItoBridge.lean) | 16 | Copied from Monetarism (tool): for bounded-variation integrands the Itô integral is the pathwise integral by parts; Wiener integrals and their isometry; `∫ W dW` |
+| [TidyR7StochCTPath](StickyPriceFiscal/TidyR7StochCTPath.lean) | 28 | §§5.7–5.7.1, (5.85)–(5.96), pp. 162–166, path by path: the model with `dε_m = σ_i dw`, `dε_s = σ_s dw` solved explicitly on every continuous path, expectational errors `R(0)dw`, the responses as the step equilibrium (5.96), a jump at the news date as the same linear map; the OU noise restated from FiscalConstraints |
+| [TidyR7StochCTBrownian](StickyPriceFiscal/TidyR7StochCTBrownian.lean) | 43 | §§5.7–5.7.1, (5.85)–(5.96), App. §1.13: the model with Brownian shocks; the variables as Wiener integrals of the responses, forecasts and news, the book's `E_t d`-equations, valuation (5.95) and the transversality condition in `L¹`, zero covariation of `v` and `p` with `W`; non-vacuity |
+| [TidyR7StochCTUnique](StickyPriceFiscal/TidyR7StochCTUnique.lean) | 32 | §§5.7–5.7.1, (5.85)–(5.96), App. §1.12: the stochastic equilibrium (`StochCTEq`), the feedback rule (5.96) under uncertainty, existence and uniqueness |
+| [TidyR8StochKernel](StickyPriceFiscal/TidyR8StochKernel.lean) | 21 | §§5.7.2–5.7.5, (5.101), App. §§1.6, 1.13 (tools): two-mode kernel processes `cW + d₁Y^{η₁} + d₂Y^{η₂}` as Wiener integrals, their forecasts, variance, regularity and transversality in `L¹`; the discounted Wiener integral and `E_t` of it; discounting a diffusive state by parts; the bracket `[aW + F, bW + G] = ab t` |
+| [TidyR8StochCTIntegralForms](StickyPriceFiscal/TidyR8StochCTIntegralForms.lean) | 23 | §5.7, p. 163: the integrated IS curve with its limit term, the Fisherian counterexample to the printed form, the corrected form; with Brownian shocks the corrected IS form in `L¹`, the printed one failing by a positive `L¹` distance, and the Phillips form for `ρ > 0` (corrected at `ρ = 0`); non-vacuity |
+| [TidyR8StochCTLimit](StickyPriceFiscal/TidyR8StochCTLimit.lean) | 15 | pp. 163, 167: the frictionless limit `κ → ∞` with Brownian shocks: `Y^λ → 0`, the price level converges on every path and in `L²` (with an explicit bound) to `σ_i∫W − (σ_s/r)W`, inflation variance diverges, output tends to `0` in `L²`; non-vacuity |
+| [TidyR8StochCTRules](StickyPriceFiscal/TidyR8StochCTRules.lean) | 22 | §§5.7.3–5.7.5, (5.105)–(5.114), Figs. 5.11–5.13, with Brownian shocks: the partial-adjustment rate as a Wiener integral of its response, the bond price (increments, loading, `E_t d` form, valuation in `L¹`, uniqueness), zero bracket with a `C¹` price level, the `v − v*` elimination and "fiscal policy chooses only unexpected inflation"; non-vacuity |
+| [TidyR8StochCTSurplus](StickyPriceFiscal/TidyR8StochCTSurplus.lean) | 23 | §5.7.2, (5.97)–(5.101), pp. 167–169, with a Brownian surplus shock: the corrected (5.98)–(5.99) on every path, the responses as Wiener integrals, Hansen–Sargent valuation in `L¹`, the present-value innovation `L(r)σ_s dW = β_sσ_s dW`, the price-level diffusion `−β_s dε_s` and the brackets; non-vacuity |
 
 ## Modelling conventions
 
@@ -300,7 +547,24 @@ Not formalised:
   genuine uncertainty use the coin-flip tree (`ExpectationsFiniteTree.coinSystem`) or, for
   shocks that recur at every date, `PolicyRules.truncSystem`. The innovation `ΔE_{t+1}` is
   `SharedTools.innov`; statements in §§5.1–5.4 write `E_{t+1} − E_t` explicitly, which is the same
-  by `SharedTools.innov_apply`.
+  by `SharedTools.innov_apply`. Full-support versions with recurring news are in
+  `PolicyRulesMeasureNews` (next item).
+* **Measure-theoretic expectations.** The core `ExpectationSystem` (an operator `E_t` on all
+  functions `Ω → ℝ`, with exact equalities) is kept unchanged, and every result above that is
+  stated for it still holds. On a countable `Ω` it forces finitely supported forecasts, so it
+  cannot carry an infinite-horizon model with nondegenerate shocks. `ExpectationsMeasure` adds,
+  alongside it, a probability space with a filtration (`ExpectationsMeasure.MeasExpectationSystem`):
+  `E_t` is Mathlib's conditional expectation `condExp`, variables are bounded measurable functions
+  and processes (`BddRV`, `BddProc`, Mathlib's `StronglyAdapted`), and equations hold almost
+  everywhere. Uniqueness means agreement almost everywhere at every date
+  (`PolicyRulesMeasure.AESame`). The bridge is additive and runs both ways: a finite event tree is
+  a measure system with the same `E_t` at every state (`ExpectationsMeasure.TreeBridge.treeSystem_E`),
+  and a measure system on a finite discrete state space with full support is a core system with
+  the pull-out property (`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem`,
+  `ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`); there §5.5 equilibria
+  and determinacy are exactly the core ones (`PolicyRulesMeasureNews.mredEquil_iff_core`). The
+  genuine instance is the i.i.d. economy on `ℕ → ℝ` under `ν^ℕ`, in which every history has
+  probability zero (`ExpectationsMeasureIID.iidSystem`, `ExpectationsMeasureIID.iid_not_finitely_supported`).
 * **Equilibrium and determinacy.** An equilibrium is a bounded adapted solution from given
   predetermined values: the real value of nominal debt `b_0 = v_{−1} + i_{−1}` in §5.1.2
   (`FiscalNK.Eqm`), pre-sample debt and bond price in §5.2 (`LongTermDebt.LTD`), initial inflation
@@ -313,13 +577,24 @@ Not formalised:
   one pre-sample term `λ₁^{−t}K` with `K` known at date 0, and moving averages of shocks start
   from zero pre-sample states (`TwoSidedMA.piMA`, `SurplusProcess.ma`).
 * **Long-term debt.** The model uses the exact first-order weight `ω̃ = ω/(1 + i)` of App. (1.22),
-  not the `ω` of (1.24) (E23). In §5.5 the parameter `omega` of `PolicyRules.Params` is documented
-  as this weight, and the book's parameters set it to `0.9` (`PolicyRules.bookRules`).
+  not the `ω` of (1.24) (E23). In §5.5 the parameter `omega` of `PolicyRules.Params` is this
+  weight (`LinksTidy.exact_weight_iff`), and the book's parameters set it to `0.9`
+  (`PolicyRules.bookRules`).
 * **Continuous time.** Paths are functions `ℝ → ℝ` after a date-0 shock: the model holds as exact
   `HasDerivAt` equations on `(0, ∞)`, paths are continuous on `[0, ∞)` with the right limits as
   initial values, and the `dε`, `dδ` terms are the jumps at date 0. Infinite-horizon integrals are
   Bochner integrals over `(0, ∞)` with proved integrability. Instantaneous debt is predetermined,
-  so the price level does not jump (`CTSimple.IsCTEquilibrium`).
+  so the price level does not jump (`CTSimple.IsCTEquilibrium`). With Brownian shocks
+  (`TidyR7StochCTBrownian`, `TidyR7StochCTUnique`) the driving motion is a pre-Brownian motion
+  (Mathlib's `IsPreBrownianReal`) with measurable values, continuous paths and `W_0 = 0` for every
+  `ω`, with any admissible filtration (`TidyR7BrownianQV.BMFiltration`); `E_t` is Mathlib's
+  `condExp`, the `E_t d`-equations are stated over every interval `[t, T]`, and an equilibrium is a
+  triple of adapted processes with continuous paths and `E|·|` growing at most linearly
+  (`TidyR7StochCTUnique.StochCTEq`). Non-vacuity is shown on the constructed
+  `TidyR7BrownianExist.bmPath`. The TidyR8 modules use the same setting for §§5.7.2–5.7.5: every
+  variable is a combination of `W` and Ornstein–Uhlenbeck noises on every path, present values are
+  taken by parts against the deterministic discount factor, and uniqueness statements are among
+  regular processes (`TidyR7StochCTUnique.RegProc`).
 * **Numbers.** Printed figure and table values are proved as rational enclosures by exact
   arithmetic (`norm_num`, `nlinarith`), never by floating-point evaluation.
 * **Explicit hypotheses.** Hypotheses the book leaves implicit are stated in each theorem:
@@ -337,7 +612,20 @@ Nothing is imported from those projects. The chapter modules use `ExpectationSys
 `ExpectationSystem.forward_unique`, `ExpectationSystem.forwardSeries`, `ForwardSolution.Solves`,
 `ForwardSolution.existsUnique_bounded`, the coin-flip tree, and the quadratic roots `root₁` and
 `root₂` of `Determinacy`; the Schur–Cohn theorem itself (`schurStable_iff_roots`) is carried for
-the later projects.
+the later projects. The measure-theoretic core (`ExpectationsMeasure`, `ExpectationsMeasureIID`)
+is a verbatim copy, with the namespace renamed, of the modules built in the Cochrane
+`ObservationalEquivalence` project. The twelve Brownian and Itô modules (`TidyR7BrownianSchauder`
+to `TidyR7ItoBridge` in the library map) are copied, with only the namespace renamed and proofs
+unchanged, from the Cochrane Monetarism project, by way of the FiscalConstraints project; each
+docstring names its Monetarism original. They are the import closure of `TidyR7ItoBridge`, and
+only `TidyR7StochCTBrownian`, `TidyR7StochCTUnique` and the TidyR8 modules use them. Ten FiscalConstraints declarations are
+restated, each docstring naming its original: the Ornstein–Uhlenbeck noise of a path and its
+primitive in `TidyR7StochCTPath` (`TidyR7StochCTPath.ouPrim`, `TidyR7StochCTPath.ouNoise`,
+`TidyR7StochCTPath.hasDerivAt_ouPrim`, `TidyR7StochCTPath.continuous_ouPrim`,
+`TidyR7StochCTPath.ouPrim_zero`, `TidyR7StochCTPath.continuous_ouNoise`), and the Wiener integral
+of a `C¹` integrand in `TidyR7StochCTBrownian` (`TidyR7StochCTBrownian.tendsto_sum_mul_sub`,
+`TidyR7StochCTBrownian.wienerBP`, `TidyR7StochCTBrownian.tendsto_itoSum_wienerBP`,
+`TidyR7StochCTBrownian.itoInt_ae_eq_wienerBP`).
 
 **`BKCopy` is a verbatim copy of the Woodford Chapter 4 general Blanchard–Kahn theorem.** It
 consists of the three modules `InvariantSplit`, `GeneralBKForward` and `GeneralBK` of the

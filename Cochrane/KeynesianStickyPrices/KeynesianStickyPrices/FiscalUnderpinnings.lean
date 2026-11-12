@@ -47,15 +47,19 @@ reverse-engineered disturbances are not AR(1) (`fig17_7_u_not_ar1`). Survey erro
 
 ## Figure 17.6: `Δs` for equilibria A–E (p. 410)
 
-With (17.19) and `ρ < 1`, after an unexpected permanent rise the equilibrium with initial
-inflation `p` needs `Δs(p) = −p + ∑ ρʲ(1 − π_{j+1}) = (1 − p)/(λ₁ − ρ) − p` (`deltaS`,
-`deltaS_closed`), the percentage change in steady-state surpluses (`permanent_surplus_pct`):
-B has `Δs = −1` for all parameters (`deltaS_B`), D has `Δs = 1/(λ₁ − ρ)` (`deltaS_D`), C is
-`p = 1/(1 + λ₁ − ρ)` (`deltaS_zero_iff`). The book does not state the parameters of Fig. 17.6,
-so the printed numbers cannot be recomputed; but the affine form alone shows that, given the
-printed D and `δ = 0` values, A and E cannot be the jumps `δ₁ = ±1%` (`fig17_6_inconsistent`);
-they correspond to jumps of about `+0.83` and `−0.87` (`fig17_6_implied_jumps`).
--/
+With (17.19) and `ρ < 1`, after an unexpected permanent rise, `deltaS p = −p + ∑ ρʲ(1 − π_{j+1}) =
+(1 − p)/(λ₁ − ρ) − p` (`deltaS`, `deltaS_closed`) is (17.19) without the factor `ρ` that `Flow` puts
+on real-rate news; the surplus news actually required is `ρ(1 − p)/(λ₁ − ρ) − p`
+(`TidyR5StochasticFiscal.surplus_news_rise`), and the two agree iff `ρ = 1` or `p = 1`
+(`TidyR5StochasticFiscal.surplus_news_eq_deltaS_iff`). B needs `−1` in both (`deltaS_B`). For D,
+`deltaS` gives `1/(λ₁ − ρ)` (`deltaS_D`), but the requirement is `ρ/(λ₁ − ρ)`
+(`TidyR5StochasticFiscal.surplus_news_D`). For C, `deltaS` vanishes at `p = 1/(1 + λ₁ − ρ)`
+(`deltaS_zero_iff`), but the requirement vanishes at `p = ρ/λ₁`
+(`TidyR5StochasticFiscal.surplus_news_zero_iff`). The book does not state the parameters of Fig.
+17.6, so the printed numbers cannot be recomputed; but the affine form alone shows that, given the
+printed D and `δ = 0` values, A and E cannot be the jumps `δ₁ = ±1%` (`fig17_6_inconsistent`; it
+also holds for the corrected requirement, `TidyR5StochasticFiscal.fig17_6_inconsistent_corrected`);
+they correspond to jumps of about `+0.83` and `−0.87` (`fig17_6_implied_jumps`). -/
 
 namespace Cochrane.KeynesianStickyPrices.FiscalUnderpinnings
 
@@ -576,11 +580,13 @@ theorem path_step0 {σ β κ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) (p : ℝ) 
     ring
 
 /-- Cochrane (2023), Fig. 17.6, p. 410, and eq. (17.19) with `0 ≤ ρ < 1` (real rates earned
-between `j` and `j + 1`, `eq_17_19`): the news about the present value of surpluses needed by
-the equilibrium with initial inflation `p`, with pre-shock expectations at the steady state,
-`Δs = −π₀ + ∑_j ρʲ (i_j − π_{j+1})`. A permanent change `Δ` of `s̃` has present value
-`Δ/(1 − ρ)` (`permanent_surplus_pct`), i.e. `Δ/s̃̄` with steady state `s̃̄ = 1 − ρ` (debt value
-one), so `Δs` is the percentage change in steady-state surpluses that Fig. 17.6 reports. -/
+between `j` and `j + 1`, `eq_17_19`): the printed form of (17.19) (no factor `ρ` on real-rate news)
+for the equilibrium with initial inflation `p` — the requirement implied by `Flow` is
+`TidyR5StochasticFiscal.surplus_news_rise`, and the two agree iff `ρ = 1` or `π₀ = 1` — with
+pre-shock expectations at the steady state, `Δs = −π₀ + ∑_j ρʲ (i_j − π_{j+1})`. A permanent change
+`Δ` of `s̃` has present value `Δ/(1 − ρ)` (`permanent_surplus_pct`), i.e. `Δ/s̃̄` with steady state
+`s̃̄ = 1 − ρ` (debt value one), so `Δs` is the percentage change in steady-state surpluses that Fig.
+17.6 reports. -/
 noncomputable def deltaS (σ β κ ρ p : ℝ) : ℝ :=
   -p + ∑' j : ℕ, ρ ^ j * (1 - path σ β κ (stepI 0) p (j + 1))
 
@@ -614,7 +620,8 @@ theorem deltaS_B {σ β κ ρ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) (hρ0 : 0
   rw [deltaS_closed ha hβ hρ0 hρ]; simp
 
 /-- Cochrane (2023), Fig. 17.6, equilibrium D (no unexpected inflation, `π₀ = 0`):
-`Δs = 1/(λ₁ − ρ) > 0` — real rates rise, so surpluses must rise. -/
+`Δs = 1/(λ₁ − ρ) > 0` — real rates rise, so surpluses must rise. (This is `deltaS`; the surplus
+news required by `Flow` and (17.19) is `ρ/(λ₁ − ρ)`, `TidyR5StochasticFiscal.surplus_news_D`.) -/
 theorem deltaS_D {σ β κ ρ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) (hρ0 : 0 ≤ ρ)
     (hρ : ρ < lam1 σ β κ) : deltaS σ β κ ρ 0 = 1 / (lam1 σ β κ - ρ) ∧ 0 < deltaS σ β κ ρ 0 := by
   rw [deltaS_closed ha hβ hρ0 hρ]
@@ -624,7 +631,9 @@ theorem deltaS_D {σ β κ ρ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) (hρ0 : 0
   positivity
 
 /-- Cochrane (2023), Fig. 17.6, equilibrium C and p. 410 ("the Δs = 0 equilibrium is not the
-equilibrium … with ΔE₁π₁ = 0"): `Δs = 0` exactly at initial inflation `1/(1 + λ₁ − ρ) ∈ (0, 1)`. -/
+equilibrium … with ΔE₁π₁ = 0"): `Δs = 0` exactly at initial inflation `1/(1 + λ₁ − ρ) ∈ (0, 1)`.
+(For `deltaS`; the requirement implied by `Flow` vanishes at `p = ρ/λ₁`,
+`TidyR5StochasticFiscal.surplus_news_zero_iff`.) -/
 theorem deltaS_zero_iff {σ β κ ρ : ℝ} (ha : 0 < σ * κ) (hβ : 0 < β) (hρ0 : 0 ≤ ρ)
     (hρ : ρ < lam1 σ β κ) (p : ℝ) :
     deltaS σ β κ ρ p = 0 ↔ p = 1 / (1 + lam1 σ β κ - ρ) := by

@@ -10,7 +10,7 @@ Appendix C (pp. 670–686). Model equations hold for an arbitrary expectation op
 cover perfect foresight and genuine uncertainty; log-linear equations are exact derivatives of the
 nonlinear model, and determinacy means existence and uniqueness of a bounded adapted equilibrium
 for every bounded forcing, proved rather than assumed from a root count. The library contains
-**1255 theorems**, including the shared core.
+**1437 theorems**, including the shared core.
 
 Headline results, in the namespace `Woodford.NeoWicksellianFramework`:
 * **The basic model and the natural rate.** The IS relation and the Phillips curve as exact
@@ -66,7 +66,36 @@ Headline results, in the namespace `Woodford.NeoWicksellianFramework`:
   as for Proposition 4.9 (`Prop410.same_eStability_region`), though the learning dynamics differ
   (`Prop410.bTil_ne_taylorB`), and the intuition of p. 275 is formalised
   (`Prop410.isEig_jacobian_iff`, `Prop410.tHat_eq_Tmap`, `Prop410.eStable_bTil_iff`,
-  `Prop410.loci_coincide_iff`).
+  `Prop410.loci_coincide_iff`). For any stationary `C` the region is characterised exactly: (2.7)
+  and a complex Routh–Hurwitz condition on `B̃(ρ)` at every non-real eigenvalue `ρ`
+  (`TidyR5ComplexRegion.prop_4_10_complex`, `TidyR5ComplexRegion.prop_4_10_complex_explicit`),
+  which can fail or hold (`TidyR5ComplexRegion.prop_4_10_complex_stable_case`).
+* **E-stability as the book defines it, and Preston's forecast sums.** For the linear(ised) map,
+  E-stability (eigenvalues of `DT − I`) is equivalent to convergence of every solution of the
+  differential equation (2.20) and to local stability of the rest point, with no genericity
+  assumption (`TidyR5EStabilityODE.eStable_iff_tendsto`,
+  `TidyR5EStabilityODE.eStable_iff_locallyStable`); Propositions 4.8 and 4.9 hold for the actual
+  (affine) equation (`TidyR5EStabilityProps.prop_4_8_ode`, `TidyR5EStabilityProps.prop_4_9_ode`).
+  For any `T` differentiable at the rest point, E-stability implies local asymptotic stability of
+  the nonlinear (2.20) (`TidyR5Lyapunov.isLAS_of_eStableAt`). Conversely, for `T` Lipschitz near
+  the rest point (or `C¹`) and differentiable there, an eigenvalue of `DT − I` with positive real
+  part makes the rest point unstable, through a Chetaev function and global existence of solutions
+  (`TidyR6Instability.not_isLASLoc_of_unstable`, `TidyR6Chetaev.exists_chetaev`,
+  `TidyR6ODEExistence.fwdComplete_of_lipschitz`); so when no eigenvalue has zero real part
+  E-stability is equivalent to local asymptotic stability (`TidyR6Instability.eStableAt_iff_isLASLoc`,
+  `TidyR6Instability.eStableAt_iff_isLASLoc_of_contDiffAt`), and for the solutions-on-`[0, ∞)`
+  notion `IsLAS` under forward completeness (`TidyR6Instability.eStableAt_iff_isLAS`). Both
+  exclusions are needed: the zero-real-part case is not decided by `DT`
+  (`TidyR6InstabilityCex.zero_re_undecided`), and without forward completeness `IsLAS` holds at
+  an unstable hyperbolic rest point (`TidyR6InstabilityCex.blowup_isLAS_unstable`). For Preston's map the
+  equivalence is exact, zero real parts included (`TidyR5PrestonLAS.isLAS_iff_eStable`,
+  `TidyR5PrestonLAS.prop_4_10_LAS`, `TidyR5PrestonLAS.prop_4_10_LAS_complex`). The forecast sums
+  converge iff the beliefs annihilate the unstable generalised eigenvectors the state excites
+  (`TidyR5ForecastSums.fcast_summable_iff`); the spectral condition on `βĈ` is necessary only for
+  convergence at every belief and state (`TidyR5ForecastSums.forecast_sums_all_iff`,
+  `TidyR5ForecastSums.IS229_sums_all_iff`), and the decision rules and the PLM → ALM step hold
+  without it (`TidyR5ForecastSums.decisionRules_iff_exact`, `TidyR5PLMALM.E_succ_eq_tMapP_exact`,
+  `TidyR5PLMALM.E_succ_eq_tMapP_without_spectral`).
 * **Determinants of inflation and targeting rules.** The forward solution (2.34) with its sign
   corrected (`InflationDeterminants.forwardSys_eq_formula`), unique equilibria under inertial
   rules and inflation inertia, with an exact determinacy condition for the latter
@@ -83,14 +112,14 @@ See the [source map](docs/source-map.md) for the correspondence with the book an
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
 the printed text precise.
 
-Not covered: the convergence of the E-stability differential equation and the
-stochastic-approximation results of pp. 265–266, cited from Evans and Honkapohja, are not
-formalised, and E-stability is defined through the eigenvalues of `DT − I` (this applies to
-Propositions 4.8–4.10 alike); for Proposition 4.10, the spectral-radius condition on `βĈ` is
-proved sufficient for the forecast sums to converge but not necessary, the E-stability region for
-complex eigenvalues of `C` is not characterised beyond the counterexample, and Preston's other
-information sets and policy rules are outside the book's claim; the numerical impulse responses
-and phase diagrams in the figures are not formalised, only the claims the text makes about them.
+Not covered: the stochastic-approximation and least-squares convergence results of pp. 265–266,
+cited from Evans and Honkapohja, are not formalised; for a general nonlinear `T`-map the
+instability half of Lyapunov's indirect method assumes `T` Lipschitz near the rest point (or
+`C¹`) or the equation forward complete, since for `T` merely continuous the existence of solutions
+would need Peano's theorem, which Mathlib lacks (for the maps of Propositions 4.8–4.10 the
+equivalence with the book's definition is exact); Preston's other information sets
+and policy rules are outside the book's claim; the numerical impulse responses and phase diagrams
+in the figures are not formalised, only the claims the text makes about them.
 
 ## Library map
 
@@ -126,6 +155,17 @@ and phase diagrams in the figures are not formalised, only the claims the text m
 | [GeneralBKSingular](NeoWicksellianFramework/GeneralBKSingular.lean) | 49 | C.1: singular `A₀` (King–Watson, Klein): regularity, the Fitting split, infinite eigenvalues counted as unstable |
 | [GeneralBKLinks](NeoWicksellianFramework/GeneralBKLinks.lean) | 27 | C.1, C.3: any index type; Propositions C.1 and C.2 recovered; the Proposition 4.4 model determinate for every forcing vector |
 | [Prop46Sufficiency](NeoWicksellianFramework/Prop46Sufficiency.lean) | 20 | §2.2, C.5: Proposition 4.6 corrected (sufficiency and the iff, also for every forcing), the later Clarida–Galí–Gertler rule determinate |
+| [TidyR5ForecastSums](NeoWicksellianFramework/TidyR5ForecastSums.lean) | 38 | §2.3, pp. 273–274: the exact convergence condition for Preston's forecast sums and the series (2.29)–(2.30); the spectral condition on `βĈ` necessary only at every belief and state; the decision rules without it |
+| [TidyR5ComplexRegion](NeoWicksellianFramework/TidyR5ComplexRegion.lean) | 16 | §2.3: the complex Routh–Hurwitz criterion; Proposition 4.10 for any stationary `C`, an exact region; a complex `C` that is E-stable |
+| [TidyR5EStabilityODE](NeoWicksellianFramework/TidyR5EStabilityODE.lean) | 31 | §2.3, pp. 264–266, n. 37: the linear(ised) equation (2.20), its unique solution, E-stability iff convergence iff local stability |
+| [TidyR5EStabilityProps](NeoWicksellianFramework/TidyR5EStabilityProps.lean) | 6 | §2.3: Propositions 4.8–4.10 as statements about (2.20) |
+| [TidyR5Lyapunov](NeoWicksellianFramework/TidyR5Lyapunov.lean) | 11 | §2.3, pp. 264–266: the Lyapunov equation; E-stability implies local asymptotic stability of the nonlinear (2.20) |
+| [TidyR5PrestonLAS](NeoWicksellianFramework/TidyR5PrestonLAS.lean) | 6 | §2.3, p. 274: Proposition 4.10 for the nonlinear (2.20), an exact iff through the invariant set `Ĉ = C` |
+| [TidyR5PLMALM](NeoWicksellianFramework/TidyR5PLMALM.lean) | 3 | §2.3, p. 274: the PLM → ALM step without the spectral hypothesis |
+| [TidyR6Chetaev](NeoWicksellianFramework/TidyR6Chetaev.lean) | 9 | §2.3, pp. 264–266: the shifted Lyapunov (Sylvester) equation, a Chetaev function, escape from a rest point with an eigenvalue of `DT − I` of positive real part |
+| [TidyR6ODEExistence](NeoWicksellianFramework/TidyR6ODEExistence.lean) | 15 | (2.20), p. 265: solutions on finite intervals, global existence for Lipschitz `T` (Picard–Lindelöf and continuation), the clamped modification, first exits |
+| [TidyR6Instability](NeoWicksellianFramework/TidyR6Instability.lean) | 20 | §2.3, pp. 264–266, n. 37: the instability half of Lyapunov's indirect method for a general `T`; E-stability iff local asymptotic stability when no eigenvalue has zero real part |
+| [TidyR6InstabilityCex](NeoWicksellianFramework/TidyR6InstabilityCex.lean) | 27 | §2.3, n. 37: the zero-real-part case is not decided by `DT` (`θ̇ = ±θ³`); without forward completeness `IsLAS` misses instability (finite-time blow-up) |
 
 ## Build and verify
 

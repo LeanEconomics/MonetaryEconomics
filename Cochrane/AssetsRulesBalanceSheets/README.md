@@ -12,9 +12,11 @@ the exchange-rate claims of §24.3 (p. 527). The setting is the book's: flexible
 real rate `1/β`, and nominal, indexed, foreign-currency or defaultable one-period debt. Random
 variables are `Ω → ℝ` under an arbitrary `ExpectationSystem`, so the structural results hold under
 perfect foresight and under genuine uncertainty; comparative statics, numbers and some witnesses
-are deterministic. The library contains **449 theorems**, including the shared core; 341 of them
-are in the nineteen chapter modules (seventeen for the book's sections, plus the shared
-`PresentValue` and the cross-chapter `Links`).
+are deterministic. Theorem FR is also proved on genuine probability spaces, with Mathlib's
+conditional expectation. The library contains **969 theorems**, including the shared core; 753 of
+them are in the thirty-eight chapter modules (seventeen for the book's sections, plus the shared
+`PresentValue`, the cross-chapter `Links`, the six measure-theoretic Theorem FR modules, the
+seven TidyR5 supplements and the six TidyR6 supplements).
 
 The book has no labelled propositions. The source map is organised by equation number, section
 and page, and every Lean name cites the page it formalises. "Theorem IT", "Theorem FR",
@@ -39,8 +41,23 @@ Headline results, in the namespace `Cochrane.AssetsRulesBalanceSheets`:
 * **Maturity and default (§§8.4–8.6).** (8.4) is derived from (3.20)–(3.21)
   (`MaturityBuffer.identity_84`); matching maturities to surpluses insulates the price level
   from real rates under perfect foresight, and only matching does (`MaturityBuffer.price_insulated`,
-  `MaturityBuffer.price_insulated_only_if_matching`), but not under uncertainty
-  (`MaturityBuffer.matching_fails_under_uncertainty`). An expected haircut does not move `P_t`
+  `MaturityBuffer.price_insulated_only_if_matching`; in continuous time via uniqueness of the
+  Laplace transform, `TidyR5Matching.matching_necessary_cont`,
+  `TidyR5MatchingMeas.matching_necessary_meas`; for payment streams that are measures, lumpy
+  maturities included, `TidyR6MatchingGeneral.matching_necessary_measure`, and for conditionally
+  convergent present values, a strictly larger class,
+  `TidyR6MatchingGeneral.matching_necessary_improper`,
+  `TidyR6MatchingGeneral.improper_class_strictly_larger`; without a convergence hypothesis the
+  claim fails, `TidyR6MatchingGeneral.junk_counterexample`), but not under uncertainty
+  (`MaturityBuffer.matching_fails_under_uncertainty`). (3.20), (3.21), (8.4) and (9.22) are derived
+  from the exact nonlinear flow and portfolio return, with explicit second-order error bounds
+  (`TidyR6Linearise.unexpected_inflation_identity`, `TidyR6Linearise.bond_return_identity`,
+  `TidyR6Linearise.identity84_of_nonlinear`, `TidyR6Linearise.valuation922_of_flow`); the exact
+  maturity coefficient is `ω/(1 + i)`, not `ω` (`TidyR6Linearise.what_steady`). Spreading inflation
+  forward costs total inflation, at least `Δ(1 − ω)/ω` for a reduction `Δ` of current inflation
+  (`TidyR6TotalInflation.total_ge`, `TidyR6TotalInflation.total_ge_spread`), a cost that falls as
+  maturity lengthens; for a fixed geometric profile longer maturity means *less* total inflation
+  (`TidyR6TotalInflation.geometric_total_strictAnti_omega`). An expected haircut does not move `P_t`
   (`Default.expected_default_no_effect`); "2 bonds at 50% = 1 bond" (`Default.scaled_flow_iff`);
   an independent central bank turns a fiscal shortfall into default instead of inflation
   (`CentralBankIndependence.independence_default_vs_inflation`).
@@ -60,7 +77,9 @@ Headline results, in the namespace `Cochrane.AssetsRulesBalanceSheets`:
   surplus suffices (`MixedDebtRules.price_unique`). Theorem ST: under a spread target,
   unexpected inflation is `−D/(D + ρ)` times the fiscal shock, with existence and uniqueness for
   every `θ ∈ [0, 1]` (`SpreadTarget.unexpected_inflation_iff`, `SpreadTarget.exists_solution`,
-  `SpreadTarget.unique_solution`). Free swaps at `P*` do not reach the target
+  `SpreadTarget.unique_solution`). In the full new-Keynesian model the IS shock moves output
+  through unexpected inflation (E9.7: `TidyR5SpreadIS.valuation_iff`,
+  `TidyR5SpreadIS.output_innov`, `TidyR5SpreadIS.Coin.coin_ux_moves_output`). Free swaps at `P*` do not reach the target
   (`SpreadSwap.swap_reaches_target_iff`). Theorem IP: an indexed-debt peg gives `P = P*`
   (`IndexedDebtPeg.price_eq_target`, `IndexedDebtPeg.one_period_deviation`).
 * **Pots of assets and balance sheets (Chapter 10).** The value of nominal liabilities equals the
@@ -76,7 +95,84 @@ Headline results, in the namespace `Cochrane.AssetsRulesBalanceSheets`:
   value leaves `P` unchanged (`PotOfAssets.real_bills_real_asset`). Separate surplus pools give a
   determinate exchange rate, the ratio of debt to surplus present values
   (`ExchangeRates.separate_pools_exchange_rate`); a common pool leaves every rate `e > 0`
-  consistent with equilibrium (`ExchangeRates.common_pool_indeterminate`).
+  consistent with equilibrium (`ExchangeRates.common_pool_indeterminate`). Daniel's (2001a) peg
+  collapse: if surpluses do not support the peg the collapse is inevitable and happens within a
+  finite window (`TidyR6DanielPeg.collapse_inevitable`, `TidyR6DanielPeg.max_delay`); with
+  one-period debt only it is instantaneous (`TidyR6DanielPeg.short_debt_instant`); with long-term
+  debt monetary policy chooses the date `T`, which fixes a unique devaluation that grows with `T`
+  (`TidyR6DanielPeg.peg_at_zero_iff`, `TidyR6DanielPeg.delayed_eqm`,
+  `TidyR6DanielPeg.delayed_unique`, `TidyR6DanielPeg.devalue_mono`).
+* **Genuine probability models.** Theorem FR is restated on measure-theoretic expectation systems
+  (`FiscalRulesMeasure.RuleEqm`). The settle-or-continue tree of part (b) becomes a genuine
+  probability space, the settlement date `ω ∈ ℕ` with infinitely many atoms, on which Mathlib's
+  `condExp` agrees at every state with the tree's explicit conditional expectations
+  (`FiscalRulesMeasure.SunspotMeasure.sunSystem`, `FiscalRulesMeasure.SunspotMeasure.sun_E_node`,
+  `FiscalRulesMeasure.SunspotMeasure.sun_not_finitely_supported`); the sunspot path and
+  `P = P*` are both equilibria with the same initial debt
+  (`FiscalRulesMeasure.SunspotMeasure.fr_b_measure`). Part (d) extends to stochastic targets and
+  any initial debt: if the target's present value is predetermined, every equilibrium with prices
+  bounded above is `P_t = (1 + (b₀ − b̄)/(θa₀))P*_t`, and this path is an equilibrium
+  (`FiscalRulesTargetMeasure.fr_unique_stochastic`, `FiscalRulesTargetMeasure.exists_proportional`);
+  with `b₀ ≠ b̄` no equilibrium has `P = P*`, for any target
+  (`FiscalRulesTargetMeasure.initial_debt_of_target`); without that condition the proportional form
+  fails (`FiscalRulesTargetMeasure.BoolExample.bool_counterexample`). Uniqueness needs no condition
+  on the target: two bounded-above equilibria with the same `s₀`, target and initial debt coincide
+  (`FiscalRulesTargetOpen.fr_compare`), so with `b₀ = b̄` the target `P = P*` is the unique
+  bounded-above equilibrium even when its present value has news
+  (`FiscalRulesTargetOpen.fr_d_news`). Prices bounded only away from zero need the bounded
+  cumulative real-rate factor: an explicit counterexample on i.i.d. biased coins, for every
+  `β ∈ (0, 1)`, has `b₀ = b̄`, a predetermined target value and `P ≥ m_P > 0`, yet `P ≠ P*`
+  (`FiscalRulesBelowCounter.fr_below_counterexample`, `FiscalRulesBelowCounter.fr_d_dividing_line`);
+  with that factor, `P = P*` again, news or not (`FiscalRulesTargetClose.fr_d_news_below`). A general
+  surplus `s₀` with `a(β) = 0` (a predetermined present value `B`, as every moving average with
+  `a(β) = 0` has) replaces `b̄` by `B₀` (`FiscalRulesTargetOpen.fr_unique_s0`,
+  `FiscalRulesTargetOpen.MAinf.fr_unique_ma`, `FiscalRulesTargetClose.fr_unique_s0_random_full`).
+  With news and `b₀ ≠ b̄`, existence can fail although the realised present value of the target
+  plus the debt gap is positive on every path (`FiscalRulesTargetClose.NoExist.oneShot_no_eqm`);
+  for news at one date the exact existence condition is proved
+  (`FiscalRulesTargetClose.oneShot_eqm_form`, `FiscalRulesTargetClose.oneShot_eqm_exists`,
+  `FiscalRulesTargetClose.oneShot_exists_iff_atom`). With news at every date, a bounded-above
+  equilibrium exists iff some price path meets (9.12) and its realised discounted deviations from
+  the target sum to `d₀` on almost every path, equivalently iff the forward valuation is
+  predictable and starts at `d₀` (`FiscalRulesTargetFinal.exists_iff_pathwise`,
+  `FiscalRulesTargetFinal.exists_iff_forward`); positivity of `d₀` plus the realised present value
+  of the target is necessary, and sufficient when that value is predetermined
+  (`FiscalRulesTargetFinal.exists_imp_pos`, `FiscalRulesTargetFinal.predetermined_exists_iff`),
+  and the date-0 price level is strictly increasing in initial debt
+  (`FiscalRulesTargetFinal.price_monotone`, `TidyR5FiscalLink.price_strict_monotone`). Positivity,
+  even `d₀ ≥ 0`, is not sufficient: on a settle-or-continue target with news at every date no
+  bounded-above equilibrium exists for any `d₀ > 0` (`TidyR5NoExist.no_eqm_pos`,
+  `TidyR5NoExist.d0_nonneg_not_sufficient`); the exact existence set there is `(−1/(1 − β), 0]`
+  (`TidyR5ExistSet.existsAbove_iff`), and `{0}` when prices are also bounded away from zero
+  (`TidyR5NoExist.existsBoth_iff`), so no threshold or open condition characterises existence
+  (`TidyR5NoExist.existsAbove_not_upward_closed`, `TidyR5NoExist.existsBoth_not_open`). More
+  generally, no condition on the probability measure and the realised present value of the target
+  does: a one-shot target on the same space with the same realised present value in every state
+  admits an equilibrium for some `d₀ > 0` (`TidyR6ExistNoGo.no_condition_on_pv`,
+  `TidyR6ExistNoGo.existence_differs`), and the necessary bound `d₀ ≥ −inf PV*` is sharp
+  (`TidyR6ExistNoGo.lower_bound_sharp`). For `d₀ < 0` every bounded-above equilibrium has
+  continuation prices decreasing monotonically to zero at the asymptotic rate `(1 − p)/γ`
+  (`TidyR6ContinuationLimit.eqm_continuation_tendsto_zero`,
+  `TidyR6ContinuationLimit.eqm_ratio_tendsto`, `TidyR6ContinuationLimit.exists_and_tendsto_zero`).
+  A comparison identity, a submartingale whose drift
+  is `βᵗN_t⁻¹(P'_t − P_t)²/(P_tP'_t) ≥ 0`, shows that two equilibria bounded away from zero, both
+  possibly unbounded above, with the same initial debt (`b̄` or not) coincide under the date-0
+  deflator bound alone (`FiscalRulesTargetFinal.compare_identity_below`,
+  `FiscalRulesTargetFinal.fr_unique_below_pair`, `FiscalRulesTargetFinal.fr_unique_below_rule`).
+  If no news arrives after some date `T` the deflator is bounded by `(M*/m)^{2T+1}`, so every
+  finite system, and every bridged core finite tree, satisfies the bounded-away-from-zero theorem
+  without further hypotheses, and the counterexample needs news at infinitely many dates
+  (`FiscalRulesTargetFinal.resolved_hL`, `FiscalRulesTargetFinal.fr_d_resolved`,
+  `FiscalRulesTargetFinal.finite_resolved`, `FiscalRulesTargetFinal.iid_not_resolved`,
+  `FiscalRulesTargetFinal.tree_fr_d`). The valuation (9.9) follows from the flow, predetermined
+  debt and transversality even for prices unbounded above (`TidyR5FiscalLink.valuation_of_flow`),
+  so on finite systems the core hypotheses alone give `P = P*` for a stochastic target
+  (`TidyR5FiscalLink.fr_d_finite_core`); on infinite systems the deflator bound and some price
+  bound are each needed (`TidyR5FiscalLink.deflator_bound_needed`,
+  `TidyR5FiscalLink.price_bound_needed`). In the core `ExpectationSystem`, a general `s₀` with a
+  news-free present value `B` and `b_0 = B_0 + θd₀` gives `P ≡ 1 + (1 − β)d₀`, existing iff
+  `1 + (1 − β)d₀ > 0` (`TidyR5CoreS0.fr_unique_s0`, `TidyR5CoreS0.exists_iff_s0`,
+  `TidyR5CoreS0.fr_unique_ma`).
 
 ## The §9.3.2 uniqueness question (E9.9), settled
 
@@ -103,7 +199,12 @@ open whether bounded price levels restore it. Formalisation settles it in four p
   (`FiscalRules.Sunspot.valuation_cont`, `FiscalRules.Sunspot.valuation_settled`) and ex post
   along every settling path (`FiscalRules.Sunspot.valuation_expost`); the transversality
   condition holds at every node (`FiscalRules.Sunspot.tvc_cont`). The path never settles with
-  probability zero (`FiscalRules.Sunspot.contProb_tendsto_zero`).
+  probability zero (`FiscalRules.Sunspot.contProb_tendsto_zero`). *Measure version:* the same
+  tree is a genuine probability space on the settlement date, not finitely supported, whose
+  `condExp` is the tree's `FiscalRules.Sunspot.condE` at every state; there the sunspot path is an
+  equilibrium in the measure sense, with the same initial debt as `P = P*`
+  (`FiscalRulesMeasure.SunspotMeasure.sun_E_node`, `FiscalRulesMeasure.SunspotMeasure.fr_b_measure`,
+  `FiscalRulesMeasure.SunspotMeasure.fr_b_not_pinned`).
 * **(c) What survives in general.** Since `P*_t/P_t` is a martingale, Jensen's inequality gives
   `P_0 ≤ P*_0` in every equilibrium (`FiscalRules.fr_jensen`). The counterexample shows that this
   one-sided bound is all that survives without further restrictions.
@@ -114,14 +215,36 @@ open whether bounded price levels restore it. Formalisation settles it in four p
   and state (`FiscalRules.fr_unique_bounded`). The proof shows that `Z_t = S_t/P_t`, with
   `S_t = ∑ βʲE_tP_{t+j}`, obeys `E_tZ_{t+1} = (Z_t − 1)/β`, so `Z_t − 1/(1 − β)` is forced to zero
   once `βᵏE_tZ_{t+k} → 0` (`FiscalRules.unique_of_ratio_tvc`); either bound delivers that limit
-  through the transversality condition (`FiscalRules.value_bounds`).
+  through the transversality condition (`FiscalRules.value_bounds`). *Measure version:* on any
+  measure-theoretic system, for an adapted bounded target `P* ≥ m > 0` whose present value `a_t`
+  is predetermined (the target analogue of `a(β) = 0`) and any initial debt `b₀`, prices bounded
+  above give `P_t = (1 + (b₀ − b̄)/(θa₀))P*_t` a.e., hence `P = P*` when `b₀ = b̄`
+  (`FiscalRulesTargetMeasure.fr_unique_stochastic`,
+  `FiscalRulesTargetMeasure.fr_unique_stochastic_target`); prices bounded away from zero give the
+  same under a bounded cumulative target real-rate factor
+  (`FiscalRulesTargetMeasure.fr_unique_stochastic_below`). This covers every deterministic target
+  and a genuinely stochastic one (`FiscalRulesTargetMeasure.fr_unique_deterministic`,
+  `FiscalRulesTargetMeasure.fr_unique_sShaped`), and on finite systems it gives the core theorem
+  (`FiscalRulesTargetMeasure.fr_unique_bounded_link`).
 
 The counterexample's prices are unbounded on both sides: the settled levels are unbounded above
 (`FiscalRules.Sunspot.settlePrice_unbounded`) and the unsettled path tends to zero
-(`FiscalRules.Sunspot.contPrice_tendsto_zero`). So it violates both conditions of (d), and (b)
-and (d) are consistent. The corrected statement is the book's, with "among price paths bounded
-above, or bounded away from zero" added. Part (d) takes a constant target and `a(β) = 0`; a
-stochastic target is not treated.
+(`FiscalRules.Sunspot.contPrice_tendsto_zero`), also in the measure version
+(`FiscalRulesMeasure.SunspotMeasure.sun_price_unbounded`). So it violates both conditions of (d),
+and (b) and (d) are consistent. The corrected statement is the book's, with "among price paths
+bounded above, or bounded away from zero" added. With a stochastic target, the predetermined
+target value is needed for the proportional form: a coin target whose present value has news, with
+`b₀ ≠ b̄`, has the bounded equilibrium `P = P* + 1`
+(`FiscalRulesTargetMeasure.BoolExample.bool_counterexample`), which is nevertheless the unique
+bounded-above equilibrium for that debt (`FiscalRulesTargetOpen.BoolNews.bool_news_unique`). With
+`b₀ = b̄`, bounded-above equilibria are unique for every bounded adapted target, news or not, and
+equal `P*` (`FiscalRulesTargetOpen.fr_compare`, `FiscalRulesTargetOpen.fr_d_news`). Prices bounded
+away from zero give the same only under the bounded cumulative target real-rate factor
+(`FiscalRulesTargetClose.fr_d_news_below`), and that hypothesis cannot be dropped
+(`FiscalRulesBelowCounter.fr_below_counterexample`). The factor is needed only from date 0, for
+any initial debt (`FiscalRulesTargetFinal.fr_unique_below_pair`), and it holds automatically when
+no news arrives after some date (`FiscalRulesTargetFinal.fr_d_resolved`), so the counterexample
+needs news at infinitely many dates (`FiscalRulesTargetFinal.iid_not_resolved`).
 
 See the [source map](docs/source-map.md) for the correspondence with the book and
 [corrections](docs/corrections.md) for the claims found false and where the Lean statements make
@@ -143,7 +266,10 @@ the printed text precise. The main corrections are the confirmed errors of the c
 In addition, (8.4) prints `r_{t+j}` where (3.22) has `r_{t+1+j}` (E8.5, found during
 formalisation), the `θ_{iπ} = 0` display of p. 270 has `b_t` for `b_{t−1}` (E9.3), the footnote
 formula for `r_t` on p. 276 divides by zero at `θ = 1` (E9.5), and the Dupor–Daniel exchange-rate
-material is in §24.3, not §24.2 as the survey cites it.
+material is in §24.3, not §24.2 as the survey cites it. Two statements are made precise during
+formalisation: the remark of §8.4 that longer maturity spreads inflation "at the cost of more total
+inflation" holds for spreading, not for maturity (`TidyR6TotalInflation`), and the exact maturity
+weight in (3.21) and Appendix (1.24) is `ω/(1 + i)`, which the book approximates by `ω`.
 
 Not formalised:
 * the institutional and historical passages: §8.2's interpretation of pegs and the gold standard
@@ -152,27 +278,21 @@ Not formalised:
   identities in `BalanceSheets` (the ECB, crypto-currencies and "how much money");
 * the out-of-equilibrium dynamics of §10.1.2: the conversion right is formalised by the
   arbitrage inequalities and the transversality asymmetry, not as a tâtonnement;
-* the remark of §8.4 that longer maturity means more total inflation, which (8.4) alone does not
-  determine;
-* (3.20)–(3.21) and (9.22) are taken as model equations (the linearisations of Chapter 3),
-  not derived from the nonlinear valuation equation;
-* the continuous-time converse of the matching claim of §8.4: matching is proved sufficient in
-  continuous time, but its necessity only in discrete time, with real rates bounded below by some
-  `r̲ > 0` (`MaturityBuffer.matching_necessary`); the continuous version needs uniqueness of
-  Laplace-type transforms;
-* Theorem FR (d) with a stochastic target `P*` or with initial debt different from the present
-  value of `s₀`;
-* the sunspot tree of Theorem FR (b) as an `ExpectationSystem`: on its state space a positive
-  linear `E_t` defined on all functions must have finite support, so the tree carries explicit
-  node-based conditional expectations (`FiscalRules.Sunspot.condE`), with the law of iterated
-  expectations, unit total probability and positivity proved
-  (`FiscalRules.Sunspot.condE_succ`, `FiscalRules.Sunspot.condE_const`,
-  `FiscalRules.Sunspot.condE_nonneg`);
-* §9.4.1's claim that the IS shock does not appear in equilibrium output is proved given
-  inflation (`SpreadTarget.x_formula`); that `u_x` still enters through unexpected inflation
-  (E9.7) is not separately formalised;
-* Daniel's (2001a) collapse of a peg with long-term debt, which the survey lists as optional for
-  Chapter 7.
+* the continuous-time matching claim of §8.4 for tempered distributions that are not measures
+  (they are not payment streams with a present value in the book's sense, and Mathlib has no
+  distributional Laplace transform), and for measure-valued streams whose present values converge
+  only conditionally (`TidyR6MatchingGeneral.matching_necessary_measure` assumes absolute
+  convergence); the classical fact that convergence at `r̲` implies convergence at every `λ > r̲`
+  is not formalised, and convergence at every `λ ≥ r̲` is assumed instead, which is the claim's
+  hypothesis;
+* in the derivation of (3.21), the geometric-portfolio return `R = (1 + ωQ_{t+1})/Q_t` is taken
+  from Appendix (1.22) as the exact return at geometric maturity weights, and the book's claim that
+  changes in the maturity structure have no first-order effect is a modelling step, not derived;
+  the links to `MaturityBuffer.Identity320` and to (9.22) assume no growth (the general (3.20)
+  theorem, `TidyR6Linearise.unexpected_inflation_identity`, allows growth);
+* Daniel's (2001a) own continuous-time money model: the peg collapse is formalised in the book's
+  framework (perfect foresight, purchasing-power parity, a constant real rate), with a one-time
+  devaluation path (`TidyR6DanielPeg`).
 
 ## Library map
 
@@ -201,6 +321,27 @@ Not formalised:
 | [IndexedDebtPeg](AssetsRulesBalanceSheets/IndexedDebtPeg.lean) | 13 | §9.5, (9.28)–(9.29): Theorem IP, log-utility demand, nominal debt crowding out real debt, the five-minute example |
 | [CPIStandard](AssetsRulesBalanceSheets/CPIStandard.lean) | 7 | §9.6: commodity standards, perpetuities versus one-year bonds, the indexed-claim peg, the CPI bet |
 | [Links](AssetsRulesBalanceSheets/Links.lean) | 17 | Links between Chapters 8, 9 and 10: the same valuation equations, transversality conditions, indexed-debt prices, elasticities and bond prices |
+| [ExpectationsMeasure](AssetsRulesBalanceSheets/ExpectationsMeasure.lean) | 71 | Measure-theoretic expectations (shared core, copied from `ObservationalEquivalence`): `MeasExpectationSystem` with Mathlib's `condExp`, the axioms a.e., news, the forward equation and sunspots, AR(1) conditional variance, bridges to and from the core `ExpectationSystem` |
+| [ExpectationsMeasureIID](AssetsRulesBalanceSheets/ExpectationsMeasureIID.lean) | 37 | The genuine i.i.d. economy on `ℕ → ℝ` under `ν^ℕ` (shared core): independence, moments, every history null, determinacy iff `\|a\| < 1`, AR(1), the `±1` coin |
+| [FiscalRulesMeasure](AssetsRulesBalanceSheets/FiscalRulesMeasure.lean) | 39 | §9.3.2, (9.8)–(9.12): the rule equilibrium on a measure system; Theorem FR (b) on the genuine settlement-date probability space, its `condExp` equal to the tree's conditional expectations, unbounded prices |
+| [FiscalRulesTargetMeasure](AssetsRulesBalanceSheets/FiscalRulesTargetMeasure.lean) | 35 | §9.3.2: Theorem FR (d) with a stochastic target and any initial debt, existence, deterministic and s-shaped targets, the coin counterexample, the link to the core theorem |
+| [FiscalRulesTargetOpen](AssetsRulesBalanceSheets/FiscalRulesTargetOpen.lean) | 32 | §9.3.2: Theorem FR (d) with a general surplus `s₀`; the comparison theorem; uniqueness with a news-bearing target; finite and infinite moving averages with `a(β) = 0`; the link to the core theorem |
+| [FiscalRulesBelowCounter](AssetsRulesBalanceSheets/FiscalRulesBelowCounter.lean) | 48 | §9.3.2: the counterexample on i.i.d. biased coins showing the bounded real-rate factor is needed when prices are only bounded away from zero; the dividing line; the link for a constant target |
+| [FiscalRulesTargetClose](AssetsRulesBalanceSheets/FiscalRulesTargetClose.lean) | 24 | §9.3.2: the bounded-away-from-zero case with news, random date-0 data without a band, existence with one-shot news and a nonexistence example |
+| [FiscalRulesTargetFinal](AssetsRulesBalanceSheets/FiscalRulesTargetFinal.lean) | 38 | §9.3.2: the comparison identity; uniqueness for two equilibria bounded away from zero and unbounded above, any initial debt; the exact existence condition with news at every date; comparative statics in initial debt; finite-horizon information bounds the deflator; the link to core finite trees |
+| [TidyR5CoreS0](AssetsRulesBalanceSheets/TidyR5CoreS0.lean) | 8 | §9.3.2: Theorem FR (d) in the core `ExpectationSystem` with a general surplus `s₀` (`a(β) = 0`) and any initial debt: `P ≡ 1 + (1 − β)d₀`, exact existence, moving averages, the constant-surplus link |
+| [TidyR5SpreadIS](AssetsRulesBalanceSheets/TidyR5SpreadIS.lean) | 12 | §9.4.1 (E9.7): the discount-rate terms of (9.22) carry the IS shock; unexpected inflation and output news in the full model; a coin-tree equilibrium in which the IS shock moves output |
+| [TidyR5FiscalLink](AssetsRulesBalanceSheets/TidyR5FiscalLink.lean) | 10 | §9.3.2: strict comparative statics in initial debt; the valuation from flow plus transversality; FR (d) bounded below without the valuation hypothesis; the link to core finite systems; the deflator and price bounds are needed |
+| [TidyR5NoExist](AssetsRulesBalanceSheets/TidyR5NoExist.lean) | 32 | §9.3.2: the settle-or-continue target on a genuine probability space; `d₀ ≥ 0` is not sufficient; existence bounded on both sides iff `d₀ = 0`; no threshold or open existence condition |
+| [TidyR5Matching](AssetsRulesBalanceSheets/TidyR5Matching.lean) | 11 | §8.4: moment and Laplace-transform uniqueness; matching is necessary in continuous time for bounded continuous mismatch streams, constant rate paths sufficing |
+| [TidyR5ExistSet](AssetsRulesBalanceSheets/TidyR5ExistSet.lean) | 16 | §9.3.2: the exact existence set `(−1/(1 − β), 0]` on the settle-or-continue target, by a backward orbit, the intermediate value theorem and compactness |
+| [TidyR5MatchingMeas](AssetsRulesBalanceSheets/TidyR5MatchingMeas.lean) | 7 | §8.4: the continuous-time converse for measurable mismatch streams with an absolutely convergent transform, `y = 0` a.e. |
+| [TidyR6ContinuationLimit](AssetsRulesBalanceSheets/TidyR6ContinuationLimit.lean) | 15 | §9.3.2: on the settle-or-continue target with `d₀ < 0`, every bounded-above equilibrium has continuation prices decreasing to zero at the asymptotic rate `(1 − p)/γ`, scaled debt tending to `−1/(1 − β)` and settlement prices tending to `σ − 1`; `d₀ = 0` gives the target |
+| [TidyR6DanielPeg](AssetsRulesBalanceSheets/TidyR6DanielPeg.lean) | 13 | §24.3 and (7.2): Daniel (2001a) under perfect foresight and PPP: the inevitable collapse of an unsupported peg, instantaneous with one-period debt, delayed at the monetary authority's choice with long-term debt; the devaluation, its size and the rate path |
+| [TidyR6ExistNoGo](AssetsRulesBalanceSheets/TidyR6ExistNoGo.lean) | 10 | §9.3.2: two targets on the same space with the same realised present value and different existence sets; no condition on `(μ, PV*, d₀)` characterises existence; the bound `d₀ ≥ −inf PV*` is sharp |
+| [TidyR6Linearise](AssetsRulesBalanceSheets/TidyR6Linearise.lean) | 27 | (3.17)–(3.21), App. (1.9)–(1.25), (8.4), (9.22): the linearisations derived from the exact flow and portfolio return with second-order remainder bounds; the coefficient `ω/(1 + i)` |
+| [TidyR6MatchingGeneral](AssetsRulesBalanceSheets/TidyR6MatchingGeneral.lean) | 22 | §8.4: the continuous-time converse for payment streams that are measures and for conditionally convergent present values, a strictly larger class; the counterexample `e^{τ²}` without a convergence hypothesis |
+| [TidyR6TotalInflation](AssetsRulesBalanceSheets/TidyR6TotalInflation.lean) | 13 | §8.4, (8.4): spreading costs total inflation, the exact cost `(1 − ω)/ω` per unit spread, perpetuities, the geometric counterexample in `ω`, the sign condition, the link to (3.20)–(3.21) |
 
 ## Modelling conventions
 
@@ -213,6 +354,22 @@ Not formalised:
   (`ExpectationsFiniteTree.finiteTree_pullOut`). Under pull-out, products, reciprocals and
   quotients of known variables are known (`InflationTarget.known_mul`, `InflationTarget.known_inv`,
   `InflationTarget.known_div`).
+* **Measure-theoretic expectations.** The core `ExpectationSystem` is kept unchanged, and every
+  result above stated for it still holds; on a countable `Ω` it forces finitely supported
+  forecasts, which is why the sunspot tree of Theorem FR (b) carries its own conditional
+  expectations. `ExpectationsMeasure` adds, alongside it, a probability space with a filtration
+  (`ExpectationsMeasure.MeasExpectationSystem`): `E_t` is Mathlib's `condExp`, processes are
+  adapted in Mathlib's sense (`StronglyAdapted`), and equations hold almost everywhere. The bridge
+  is additive and runs both ways: a finite event tree is a measure system with the same `E_t`
+  (`ExpectationsMeasure.TreeBridge.treeSystem_E`), and a measure system on a finite discrete state
+  space with full support is a core system with the pull-out property
+  (`ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem`,
+  `ExpectationsMeasure.MeasExpectationSystem.toExpectationSystem_pullOut`). The genuine instances
+  are the i.i.d. economy on `ℕ → ℝ`, in which every history has probability zero
+  (`ExpectationsMeasureIID.iidSystem`, `ExpectationsMeasureIID.iid_not_finitely_supported`), and
+  the settlement-date space of Theorem FR (b) (`FiscalRulesMeasure.SunspotMeasure.sunSystem`). In
+  the measure modules the rule equilibrium is `FiscalRulesMeasure.RuleEqm`, with (9.9) and the
+  transversality condition a.e. and (9.8) on every path.
 * **Dates and debt.** Debt is indexed by the date at which it comes due: `b t` is the book's
   `b_{t−1}` (issued at `t − 1`, paid at `t`), so `b (t + 1)` is chosen at `t` and the indexed flow
   reads `b t = s t + β b (t + 1)`. The same holds for nominal debt `B`, central-bank holdings and
@@ -240,11 +397,21 @@ Not formalised:
   (`ExpectationsFiniteTree.coinSystem`: `InflationTarget.zero_debt_sunspot`,
   `MaturityBuffer.matching_fails_under_uncertainty`, `SpreadTarget.printed_9_26_fails_coin`),
   and the Theorem FR (b) counterexample uses its own infinite tree with explicit conditional
-  expectations (`FiscalRules.Sunspot.condE`).
+  expectations (`FiscalRules.Sunspot.condE`), realised as a genuine probability space in
+  `FiscalRulesMeasure.SunspotMeasure.sunSystem`. The stochastic-target counterexample is a coin
+  revealed at date 1 (`FiscalRulesTargetMeasure.BoolExample.boolSystem`). The news-bearing and
+  general-`s₀` results use `FiscalRulesTargetOpen.RuleEqmGen`, the rule equilibrium with a general
+  underlying surplus; their counterexamples live on i.i.d. biased coins
+  (`FiscalRulesBelowCounter.Sys`), on a one-shot news system (`FiscalRulesTargetClose.oneShot`) and
+  on `ℕ` with geometric weights (`FiscalRulesTargetClose.NoExist.wProb`). The exact existence
+  condition builds candidate equilibria from the debt generated forward, path by path
+  (`FiscalRulesTargetFinal.fwdDebt`).
 * **Explicit hypotheses.** Hypotheses the book leaves implicit are stated in each theorem: positive
   price levels, positive debts and present values wherever a formula divides by them, `0 ≤ β < 1`,
   bounded surpluses, `0 < α < 2` (§9.2), `V*_t ≠ s_t` under uncertainty (§9.2), `θ ≠ 0` for
-  the fiscal rules, `|βθ_{iπ}| < 1` and `|βη| < 1` (§9.3.4), `θ ∈ [0, 1]`, `σκ > 0`, `0 ≤ ρ < 1`
+  the fiscal rules, a bounded cumulative target real-rate factor for prices bounded away from zero
+  with a stochastic target (§9.3.2; from date 0 only, and automatic when news stops at a finite
+  date, `FiscalRulesTargetFinal.EventuallyResolved`), `|βθ_{iπ}| < 1` and `|βη| < 1` (§9.3.4), `θ ∈ [0, 1]`, `σκ > 0`, `0 ≤ ρ < 1`
   (§9.4.1), and strictly decreasing marginal utility (§9.5).
 
 ## Relation to the Woodford and Galí projects
@@ -252,6 +419,8 @@ Not formalised:
 The shared core (`Determinacy`, `Expectations`, `ExpectationsFiniteTree`, `ForwardSolution`) is
 restated from the Woodford projects (the first three from `Woodford/ReturnOfMonetaryRules`,
 `ForwardSolution` from the Woodford Chapter 2 and 3 projects), so the project builds on its own.
+The measure-theoretic core (`ExpectationsMeasure`, `ExpectationsMeasureIID`) is copied from
+`Cochrane/ObservationalEquivalence` with the namespace renamed.
 Nothing is imported from those projects. The chapter modules use only part of the core:
 `ExpectationSystem`, `ExpectationSystem.PullOut`, `ExpectationSystem.Adapted`, `BoundedProc`,
 `ExpectationSystem.forwardSeries` and `ForwardSolution.E_of_known` throughout, `perfectForesight`
@@ -276,7 +445,10 @@ link theorem:
 
 Within the Cochrane projects, `MaturityBuffer` takes the linearised identities (3.20)–(3.21) of
 Chapter 3 (`Generality`) as model equations, and `Links.valuation_of_short_debt` shows that the
-linearised valuation equation (9.22) is their one-period-debt case. The present-value machinery
+linearised valuation equation (9.22) is their one-period-debt case; `TidyR6Linearise` derives
+(3.20), (3.21) and (9.22) from the nonlinear identities in this project, with error bounds
+(`TidyR6Linearise.identity320_of_flow`, `TidyR6Linearise.identity321_of_return`,
+`TidyR6Linearise.valuation922_of_flow`). The present-value machinery
 of `PresentValue` restates, for one-period debt, what `IntertemporalModel` (Chapter 2) and
 `LongTermDebtDynamics` (Chapter 7) prove for their settings.
 
